@@ -130,6 +130,32 @@ function App() {
     return `$${cost}`;
   };
 
+  // Get maximum progress level across all components
+  const getMaxProgressLevel = (): number => {
+    const levels: number[] = [];
+    if (selectedArmorType) {
+      levels.push(selectedArmorType.progressLevel);
+    }
+    installedPowerPlants.forEach((pp) => {
+      levels.push(pp.powerPlantType.progressLevel);
+    });
+    return levels.length > 0 ? Math.max(...levels) : 0;
+  };
+
+  // Get unique tech tracks across all components
+  const getUniqueTechTracks = (): string[] => {
+    const tracks = new Set<string>();
+    if (selectedArmorType && selectedArmorType.techTrack !== '-') {
+      tracks.add(selectedArmorType.techTrack);
+    }
+    installedPowerPlants.forEach((pp) => {
+      if (pp.powerPlantType.techTrack !== '-') {
+        tracks.add(pp.powerPlantType.techTrack);
+      }
+    });
+    return Array.from(tracks).sort();
+  };
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
@@ -184,7 +210,7 @@ function App() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* App Bar */}
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="sticky" color="default" elevation={1} sx={{ top: 0, zIndex: 1200 }}>
         <Toolbar sx={{ minHeight: 64 }}>
           <RocketLaunchIcon sx={{ mr: 2, color: 'primary.main' }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -209,13 +235,25 @@ function App() {
               variant="outlined"
               size="small"
             />
+            <Chip
+              label={`PL: ${getMaxProgressLevel()}`}
+              color="default"
+              variant="outlined"
+              size="small"
+            />
+            <Chip
+              label={`Tech: ${getUniqueTechTracks().length > 0 ? getUniqueTechTracks().join(', ') : 'None'}`}
+              color="default"
+              variant="outlined"
+              size="small"
+            />
           </Box>
         </Toolbar>
       </AppBar>
 
       {/* Stepper */}
-      <Paper sx={{ px: 3, py: 2, minHeight: 72 }} elevation={0}>
-        <Stepper activeStep={activeStep} nonLinear>
+      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider' }} elevation={0}>
+        <Stepper activeStep={activeStep} nonLinear sx={{ '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
           {steps.map((step, index) => {
             // Determine if step is completed
             const isStepCompleted = (() => {

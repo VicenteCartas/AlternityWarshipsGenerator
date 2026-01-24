@@ -18,18 +18,33 @@ export function getAllArmorTypes(): ArmorType[] {
 
 /**
  * Get armor types available for a specific ship class
+ * Filters based on the armor weight's minShipClass requirement
  */
 export function getArmorTypesForShipClass(shipClass: ShipClass): ArmorType[] {
+  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
+  const shipClassIndex = classOrder.indexOf(shipClass);
+  const armorWeights = getArmorWeights();
+  
   return getAllArmorTypes().filter((armor) => {
-    if (shipClass === 'small-craft') {
-      return armor.allowSmallCraft;
-    }
-    if (shipClass === 'light') {
-      return armor.allowLightShips;
-    }
-    // Medium, heavy, and super-heavy can use all armor types
-    return true;
+    // Find the weight config for this armor's weight
+    const weightConfig = armorWeights.find(w => w.weight === armor.armorWeight);
+    if (!weightConfig) return false;
+    
+    // Check if ship class meets minimum requirement for this armor weight
+    const minClassIndex = classOrder.indexOf(weightConfig.minShipClass);
+    return shipClassIndex >= minClassIndex;
   });
+}
+
+/**
+ * Get armor types filtered by weight category
+ */
+export function getArmorTypesByWeight(shipClass: ShipClass, weight: ArmorWeight | 'all'): ArmorType[] {
+  const availableTypes = getArmorTypesForShipClass(shipClass);
+  if (weight === 'all') {
+    return availableTypes;
+  }
+  return availableTypes.filter((armor) => armor.armorWeight === weight);
 }
 
 /**

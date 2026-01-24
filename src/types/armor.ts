@@ -18,6 +18,9 @@ export interface ArmorType {
   /** Display name */
   name: string;
   
+  /** Armor weight category */
+  armorWeight: ArmorWeight;
+  
   /** Progress Level required */
   progressLevel: ProgressLevel;
   
@@ -41,12 +44,6 @@ export interface ArmorType {
   
   /** Description */
   description: string;
-  
-  /** Can be used on small craft */
-  allowSmallCraft: boolean;
-  
-  /** Can be used on light ships */
-  allowLightShips: boolean;
 }
 
 /**

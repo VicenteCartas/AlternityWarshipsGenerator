@@ -18,7 +18,7 @@ import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import {
   getArmorWeightsForShipClass,
-  getArmorTypesForShipClass,
+  getArmorTypesByWeight,
   calculateArmorHullPoints,
   calculateArmorCost,
   formatArmorCost,
@@ -40,22 +40,22 @@ export function ArmorSelection({
   onArmorSelect,
   onArmorClear,
 }: ArmorSelectionProps) {
-  // Default to 'light' armor so the grid is always visible
-  const [weightFilter, setWeightFilter] = useState<ArmorWeight>(selectedWeight ?? 'light');
+  // Filter for armor weight categories (All, Light, Medium, Heavy, Super-Heavy)
+  const [weightFilter, setWeightFilter] = useState<ArmorWeight | 'all'>('all');
 
   const availableWeights = useMemo(
     () => getArmorWeightsForShipClass(hull.shipClass),
     [hull.shipClass]
   );
 
-  const availableTypes = useMemo(
-    () => getArmorTypesForShipClass(hull.shipClass),
-    [hull.shipClass]
+  const filteredTypes = useMemo(
+    () => getArmorTypesByWeight(hull.shipClass, weightFilter),
+    [hull.shipClass, weightFilter]
   );
 
-  const handleWeightChange = (
+  const handleWeightFilterChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newWeight: ArmorWeight | null
+    newWeight: ArmorWeight | 'all' | null
   ) => {
     if (newWeight !== null) {
       setWeightFilter(newWeight);
@@ -63,10 +63,9 @@ export function ArmorSelection({
   };
 
   const handleTypeSelect = (armorType: ArmorType) => {
-    onArmorSelect(weightFilter, armorType);
+    // Use the armor's own weight category
+    onArmorSelect(armorType.armorWeight, armorType);
   };
-
-  const currentHullPointsCost = calculateArmorHullPoints(hull, weightFilter);
 
   return (
     <Box>
@@ -86,17 +85,18 @@ export function ArmorSelection({
         )}
       </Box>
 
-      {/* Weight Selection */}
+      {/* Weight Filter */}
       <Box sx={{ mb: 2 }}>
         <ToggleButtonGroup
           value={weightFilter}
           exclusive
-          onChange={handleWeightChange}
+          onChange={handleWeightFilterChange}
           size="small"
         >
+          <ToggleButton value="all">All</ToggleButton>
           {availableWeights.map((w) => (
             <ToggleButton key={w.weight} value={w.weight}>
-              {w.name} ({w.hullPercentage}%)
+              {w.name}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -108,22 +108,24 @@ export function ArmorSelection({
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Armor Type</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Tech</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>LI</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HI</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>En</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP Cost</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Total Cost</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {availableTypes.map((armorType) => {
-                const isSelected =
-                  selectedWeight === weightFilter && selectedType?.id === armorType.id;
-                const totalCost = calculateArmorCost(hull, weightFilter, armorType);
+              {filteredTypes.map((armorType) => {
+                const isSelected = selectedType?.id === armorType.id;
+                const hullPointsCost = calculateArmorHullPoints(hull, armorType.armorWeight);
+                const totalCost = calculateArmorCost(hull, armorType.armorWeight, armorType);
+                const weightConfig = availableWeights.find(w => w.weight === armorType.armorWeight);
 
                 return (
                   <TableRow
@@ -149,8 +151,10 @@ export function ArmorSelection({
                         {armorType.name}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2">{currentHullPointsCost}</Typography>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {weightConfig?.name ?? armorType.armorWeight} ({weightConfig?.hullPercentage ?? 0}%)
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">{armorType.progressLevel}</Typography>
@@ -179,6 +183,9 @@ export function ArmorSelection({
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2">{armorType.costDisplay}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2">{hullPointsCost}</Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2">{formatArmorCost(totalCost)}</Typography>
