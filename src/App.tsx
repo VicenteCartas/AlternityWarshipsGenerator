@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -12,20 +12,40 @@ import {
   StepLabel,
   StepButton,
   Button,
+  IconButton,
+  Tooltip,
+  Snackbar,
+  Alert,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import SaveIcon from '@mui/icons-material/Save';
+import { WelcomePage } from './components/WelcomePage';
 import { HullSelection } from './components/HullSelection';
 import { ArmorSelection } from './components/ArmorSelection';
 import { PowerPlantSelection } from './components/PowerPlantSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant } from './types/powerPlant';
+import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
+import { 
+  serializeWarship, 
+  saveFileToJson, 
+  jsonToSaveFile, 
+  deserializeWarship, 
+  getDefaultFileName,
+  type WarshipState 
+} from './services/saveService';
+
+type AppMode = 'welcome' | 'builder';
 
 const steps = [
   { label: 'Hull', required: true },
@@ -37,11 +57,152 @@ const steps = [
 ];
 
 function App() {
+  const [mode, setMode] = useState<AppMode>('welcome');
   const [activeStep, setActiveStep] = useState(0);
   const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
   const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
   const [selectedArmorType, setSelectedArmorType] = useState<ArmorType | null>(null);
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
+  const [warshipName, setWarshipName] = useState<string>('New Ship');
+  
+  // Snackbar state for notifications
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
+
+  const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleNewWarship = useCallback(() => {
+    // Reset all state for a new warship
+    setActiveStep(0);
+    setSelectedHull(null);
+    setSelectedArmorWeight(null);
+    setSelectedArmorType(null);
+    setInstalledPowerPlants([]);
+    setWarshipName('New Ship');
+    setMode('builder');
+  }, []);
+
+  const handleLoadWarship = useCallback(async () => {
+    if (!window.electronAPI) {
+      showNotification('Load functionality requires Electron', 'error');
+      return;
+    }
+
+    try {
+      const dialogResult = await window.electronAPI.showOpenDialog();
+      if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
+        return;
+      }
+
+      const filePath = dialogResult.filePaths[0];
+      const readResult = await window.electronAPI.readFile(filePath);
+      
+      if (!readResult.success || !readResult.content) {
+        showNotification(`Failed to read file: ${readResult.error}`, 'error');
+        return;
+      }
+
+      const saveFile = jsonToSaveFile(readResult.content);
+      if (!saveFile) {
+        showNotification('Invalid warship file format', 'error');
+        return;
+      }
+
+      const loadResult = deserializeWarship(saveFile);
+      if (!loadResult.success || !loadResult.state) {
+        showNotification(`Failed to load warship: ${loadResult.errors?.join(', ')}`, 'error');
+        return;
+      }
+
+      // Apply loaded state
+      setSelectedHull(loadResult.state.hull);
+      setSelectedArmorWeight(loadResult.state.armorWeight);
+      setSelectedArmorType(loadResult.state.armorType);
+      setInstalledPowerPlants(loadResult.state.powerPlants);
+      setWarshipName(loadResult.state.name);
+      setActiveStep(0);
+      setMode('builder');
+
+      if (loadResult.warnings && loadResult.warnings.length > 0) {
+        showNotification(`Loaded with warnings: ${loadResult.warnings.join(', ')}`, 'warning');
+      } else {
+        showNotification(`Loaded: ${loadResult.state.name}`, 'success');
+      }
+    } catch (error) {
+      showNotification(`Error loading file: ${error}`, 'error');
+    }
+  }, []);
+
+  const handleSaveWarship = useCallback(async () => {
+    if (!window.electronAPI) {
+      showNotification('Save functionality requires Electron', 'error');
+      return;
+    }
+
+    if (!selectedHull) {
+      showNotification('Please select a hull before saving', 'warning');
+      return;
+    }
+
+    const state: WarshipState = {
+      name: warshipName,
+      hull: selectedHull,
+      armorWeight: selectedArmorWeight,
+      armorType: selectedArmorType,
+      powerPlants: installedPowerPlants,
+    };
+
+    try {
+      const defaultFileName = getDefaultFileName(state);
+      const dialogResult = await window.electronAPI.showSaveDialog(defaultFileName);
+      
+      if (dialogResult.canceled || !dialogResult.filePath) {
+        return;
+      }
+
+      const saveFile = serializeWarship(state);
+      const json = saveFileToJson(saveFile);
+      const saveResult = await window.electronAPI.saveFile(dialogResult.filePath, json);
+
+      if (saveResult.success) {
+        showNotification('Warship saved successfully', 'success');
+      } else {
+        showNotification(`Failed to save: ${saveResult.error}`, 'error');
+      }
+    } catch (error) {
+      showNotification(`Error saving file: ${error}`, 'error');
+    }
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, warshipName]);
+
+  // Listen for Electron menu events
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.onNewWarship(() => {
+        handleNewWarship();
+      });
+      window.electronAPI.onLoadWarship(() => {
+        handleLoadWarship();
+      });
+      window.electronAPI.onSaveWarship(() => {
+        handleSaveWarship();
+      });
+
+      return () => {
+        window.electronAPI?.removeAllListeners('menu-new-warship');
+        window.electronAPI?.removeAllListeners('menu-load-warship');
+        window.electronAPI?.removeAllListeners('menu-save-warship');
+      };
+    }
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
@@ -137,7 +298,7 @@ function App() {
       levels.push(selectedArmorType.progressLevel);
     }
     installedPowerPlants.forEach((pp) => {
-      levels.push(pp.powerPlantType.progressLevel);
+      levels.push(pp.type.progressLevel);
     });
     return levels.length > 0 ? Math.max(...levels) : 0;
   };
@@ -149,8 +310,8 @@ function App() {
       tracks.add(selectedArmorType.techTrack);
     }
     installedPowerPlants.forEach((pp) => {
-      if (pp.powerPlantType.techTrack !== '-') {
-        tracks.add(pp.powerPlantType.techTrack);
+      if (pp.type.techTrack !== '-') {
+        tracks.add(pp.type.techTrack);
       }
     });
     return Array.from(tracks).sort();
@@ -201,11 +362,21 @@ function App() {
       default:
         return (
           <Typography color="text.secondary">
-            Step {activeStep + 1}: {steps[activeStep]} - Coming soon...
+            Step {activeStep + 1}: {steps[activeStep].label} - Coming soon...
           </Typography>
         );
     }
   };
+
+  // Show welcome page if in welcome mode
+  if (mode === 'welcome') {
+    return (
+      <WelcomePage
+        onNewWarship={handleNewWarship}
+        onLoadWarship={handleLoadWarship}
+      />
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
@@ -213,41 +384,76 @@ function App() {
       <AppBar position="sticky" color="default" elevation={1} sx={{ top: 0, zIndex: 1200 }}>
         <Toolbar sx={{ minHeight: 64 }}>
           <RocketLaunchIcon sx={{ mr: 2, color: 'primary.main' }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Alternity Warship Generator
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, visibility: selectedHull ? 'visible' : 'hidden' }}>
-            <Chip
-              label={selectedHull ? `HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}` : 'HP: - / -'}
-              color={getRemainingHullPoints() >= 0 ? 'success' : 'error'}
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={`Power: ${getTotalPower()}`}
-              color={getTotalPower() > 0 ? 'primary' : 'default'}
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={selectedHull ? `Cost: ${formatCost(getTotalCost())}` : 'Cost: -'}
-              color="default"
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={`PL: ${getMaxProgressLevel()}`}
-              color="default"
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={`Tech: ${getUniqueTechTracks().length > 0 ? getUniqueTechTracks().join(', ') : 'None'}`}
-              color="default"
-              variant="outlined"
-              size="small"
-            />
-          </Box>
+          <TextField
+            value={warshipName}
+            onChange={(e) => setWarshipName(e.target.value)}
+            variant="standard"
+            placeholder="Ship Name"
+            sx={{
+              flexGrow: 1,
+              maxWidth: 300,
+              '& .MuiInput-root': {
+                fontSize: '1.25rem',
+                fontWeight: 500,
+              },
+              '& .MuiInput-root:before': {
+                borderBottom: '1px solid transparent',
+              },
+              '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+              },
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <EditIcon fontSize="small" sx={{ color: 'action.disabled' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ flexGrow: 1 }} />
+          {selectedHull && (
+            <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+              <Chip
+                label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
+                color={getRemainingHullPoints() >= 0 ? 'success' : 'error'}
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={`Power: ${getTotalPower()}`}
+                color={getTotalPower() > 0 ? 'primary' : 'default'}
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={`Cost: ${formatCost(getTotalCost())}`}
+                color="default"
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={`PL: ${getMaxProgressLevel()}`}
+                color="default"
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={`Tech: ${getUniqueTechTracks().length > 0 ? getUniqueTechTracks().join(', ') : 'None'}`}
+                color="default"
+                variant="outlined"
+                size="small"
+              />
+            </Box>
+          )}
+          <Tooltip title="Save Warship (Ctrl+S)">
+            <IconButton
+              color="primary"
+              onClick={handleSaveWarship}
+            >
+              <SaveIcon />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -319,6 +525,18 @@ function App() {
           </Button>
         </Box>
       </Container>
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

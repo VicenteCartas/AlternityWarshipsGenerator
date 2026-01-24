@@ -11,18 +11,23 @@ const rootDir = join(__dirname, '..');
 console.log('Compiling Electron TypeScript files...');
 execSync('npx tsc -p electron/tsconfig.json', { cwd: rootDir, stdio: 'inherit' });
 
-// Rename .js files to .mjs
+// Rename files - main.js to .mjs (ESM), preload.js to .cjs (CommonJS)
 const distElectron = join(rootDir, 'dist-electron');
-const files = ['main.js', 'preload.js'];
 
-for (const file of files) {
-  const jsPath = join(distElectron, file);
-  const mjsPath = join(distElectron, file.replace('.js', '.mjs'));
-  
-  if (existsSync(jsPath)) {
-    renameSync(jsPath, mjsPath);
-    console.log(`Renamed ${file} to ${file.replace('.js', '.mjs')}`);
-  }
+// Main process uses ESM
+const mainJsPath = join(distElectron, 'main.js');
+const mainMjsPath = join(distElectron, 'main.mjs');
+if (existsSync(mainJsPath)) {
+  renameSync(mainJsPath, mainMjsPath);
+  console.log('Renamed main.js to main.mjs');
+}
+
+// Preload must use CommonJS
+const preloadJsPath = join(distElectron, 'preload.js');
+const preloadCjsPath = join(distElectron, 'preload.cjs');
+if (existsSync(preloadJsPath)) {
+  renameSync(preloadJsPath, preloadCjsPath);
+  console.log('Renamed preload.js to preload.cjs');
 }
 
 console.log('Electron build complete!');
