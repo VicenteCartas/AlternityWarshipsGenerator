@@ -9,11 +9,13 @@
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeightConfig } from '../types/armor';
 import type { PowerPlantType } from '../types/powerPlant';
+import type { EngineType } from '../types/engine';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
 import armorDataFallback from '../data/armor.json';
 import powerPlantDataFallback from '../data/powerPlants.json';
+import enginesDataFallback from '../data/engines.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -21,6 +23,7 @@ interface DataCache {
   armorTypes: ArmorType[] | null;
   armorWeights: ArmorWeightConfig[] | null;
   powerPlants: PowerPlantType[] | null;
+  engines: EngineType[] | null;
 }
 
 const cache: DataCache = {
@@ -28,6 +31,7 @@ const cache: DataCache = {
   armorTypes: null,
   armorWeights: null,
   powerPlants: null,
+  engines: null,
 };
 
 let dataLoaded = false;
@@ -77,10 +81,11 @@ export async function loadAllGameData(): Promise<void> {
     console.log('[DataLoader] Loading game data...');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, enginesData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
+      loadDataFile('engines.json', enginesDataFallback),
     ]);
 
     // Store in cache
@@ -88,6 +93,7 @@ export async function loadAllGameData(): Promise<void> {
     cache.armorTypes = (armorData as { armorTypes: ArmorType[] }).armorTypes;
     cache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
     cache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
+    cache.engines = (enginesData as { engines: EngineType[] }).engines;
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -148,6 +154,17 @@ export function getPowerPlantsData(): PowerPlantType[] {
 }
 
 /**
+ * Get all engine types (must call loadAllGameData first)
+ */
+export function getEnginesData(): EngineType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (enginesDataFallback as { engines: EngineType[] }).engines;
+  }
+  return cache.engines!;
+}
+
+/**
  * Reload all game data (e.g., after user edits data files)
  */
 export async function reloadAllGameData(): Promise<void> {
@@ -157,6 +174,7 @@ export async function reloadAllGameData(): Promise<void> {
   cache.armorTypes = null;
   cache.armorWeights = null;
   cache.powerPlants = null;
+  cache.engines = null;
   await loadAllGameData();
 }
 

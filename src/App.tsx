@@ -30,13 +30,16 @@ import { WelcomePage } from './components/WelcomePage';
 import { HullSelection } from './components/HullSelection';
 import { ArmorSelection } from './components/ArmorSelection';
 import { PowerPlantSelection } from './components/PowerPlantSelection';
+import { EngineSelection } from './components/EngineSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant } from './types/powerPlant';
+import type { InstalledEngine } from './types/engine';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
+import { calculateTotalEngineStats } from './services/engineService';
 import { loadAllGameData } from './services/dataLoader';
 import { 
   serializeWarship, 
@@ -65,6 +68,7 @@ function App() {
   const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
   const [selectedArmorType, setSelectedArmorType] = useState<ArmorType | null>(null);
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
+  const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   
   // Snackbar state for notifications
@@ -98,6 +102,7 @@ function App() {
     setSelectedArmorWeight(null);
     setSelectedArmorType(null);
     setInstalledPowerPlants([]);
+    setInstalledEngines([]);
     setWarshipName('New Ship');
     setMode('builder');
   }, []);
@@ -138,7 +143,8 @@ function App() {
       setSelectedHull(loadResult.state.hull);
       setSelectedArmorWeight(loadResult.state.armorWeight);
       setSelectedArmorType(loadResult.state.armorType);
-      setInstalledPowerPlants(loadResult.state.powerPlants);
+      setInstalledPowerPlants(loadResult.state.powerPlants || []);
+      setInstalledEngines(loadResult.state.engines || []);
       setWarshipName(loadResult.state.name);
       setActiveStep(0);
       setMode('builder');
@@ -170,6 +176,7 @@ function App() {
       armorWeight: selectedArmorWeight,
       armorType: selectedArmorType,
       powerPlants: installedPowerPlants,
+      engines: installedEngines,
     };
 
     try {
@@ -192,7 +199,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, warshipName]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName]);
 
   // Listen for Electron menu events
   useEffect(() => {
@@ -237,6 +244,10 @@ function App() {
     setInstalledPowerPlants(powerPlants);
   };
 
+  const handleEnginesChange = (engines: InstalledEngine[]) => {
+    setInstalledEngines(engines);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -260,6 +271,15 @@ function App() {
     return used;
   };
 
+  // Calculate used hull points before engines (armor + power plants)
+  const getUsedHullPointsBeforeEngines = () => {
+    if (!selectedHull) return 0;
+    let used = getUsedHullPointsBeforePowerPlants();
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    used += powerPlantStats.totalHullPoints;
+    return used;
+  };
+
   // Calculate remaining hull points
   const getRemainingHullPoints = () => {
     if (!selectedHull) return 0;
@@ -269,6 +289,8 @@ function App() {
     }
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
     remaining -= powerPlantStats.totalHullPoints;
+    const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
+    remaining -= engineStats.totalHullPoints;
     return remaining;
   };
 
@@ -287,6 +309,8 @@ function App() {
     }
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
     cost += powerPlantStats.totalCost;
+    const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
+    cost += engineStats.totalCost;
     return cost;
   };
 
@@ -311,6 +335,9 @@ function App() {
     installedPowerPlants.forEach((pp) => {
       levels.push(pp.type.progressLevel);
     });
+    installedEngines.forEach((eng) => {
+      levels.push(eng.type.progressLevel);
+    });
     return levels.length > 0 ? Math.max(...levels) : 0;
   };
 
@@ -323,6 +350,11 @@ function App() {
     installedPowerPlants.forEach((pp) => {
       if (pp.type.techTrack !== '-') {
         tracks.add(pp.type.techTrack);
+      }
+    });
+    installedEngines.forEach((eng) => {
+      if (eng.type.techTrack !== '-') {
+        tracks.add(eng.type.techTrack);
       }
     });
     return Array.from(tracks).sort();
@@ -368,6 +400,23 @@ function App() {
             installedPowerPlants={installedPowerPlants}
             usedHullPoints={getUsedHullPointsBeforePowerPlants()}
             onPowerPlantsChange={handlePowerPlantsChange}
+          />
+        );
+      case 3:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <EngineSelection
+            hull={selectedHull}
+            installedEngines={installedEngines}
+            usedHullPoints={getUsedHullPointsBeforeEngines()}
+            availablePower={getTotalPower()}
+            onEnginesChange={handleEnginesChange}
           />
         );
       default:

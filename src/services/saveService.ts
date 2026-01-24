@@ -1,11 +1,13 @@
-import type { WarshipSaveFile, SavedPowerPlant } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedEngine } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant } from '../types/powerPlant';
+import type { InstalledEngine } from '../types/engine';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
 import { getAllPowerPlantTypes } from './powerPlantService';
+import { getAllEngineTypes, generateEngineInstallationId } from './engineService';
 
 /**
  * State representing the current warship configuration
@@ -16,6 +18,7 @@ export interface WarshipState {
   armorWeight: ArmorWeight | null;
   armorType: ArmorType | null;
   powerPlants: InstalledPowerPlant[];
+  engines: InstalledEngine[];
 }
 
 /**
@@ -41,12 +44,16 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     modifiedAt: now,
     hull: state.hull ? { id: state.hull.id } : null,
     armor: state.armorType ? { id: state.armorType.id } : null,
-    powerPlants: state.powerPlants.map((pp): SavedPowerPlant => ({
+    powerPlants: (state.powerPlants || []).map((pp): SavedPowerPlant => ({
       typeId: pp.type.id,
       hullPoints: pp.hullPoints,
       fuelHullPoints: pp.fuelHullPoints,
     })),
-    engines: [],
+    engines: (state.engines || []).map((eng): SavedEngine => ({
+      typeId: eng.type.id,
+      hullPoints: eng.hullPoints,
+      fuelHullPoints: eng.fuelHullPoints,
+    })),
     ftlDrive: null,
     systems: [],
   };
@@ -117,7 +124,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   const powerPlants: InstalledPowerPlant[] = [];
   const allPowerPlantTypes = getAllPowerPlantTypes();
   
-  for (const savedPP of saveFile.powerPlants) {
+  for (const savedPP of (saveFile.powerPlants || [])) {
     const ppType = allPowerPlantTypes.find(t => t.id === savedPP.typeId);
     if (ppType) {
       powerPlants.push({
@@ -128,6 +135,24 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       });
     } else {
       warnings.push(`Power plant type not found: ${savedPP.typeId}`);
+    }
+  }
+  
+  // Load engines
+  const engines: InstalledEngine[] = [];
+  const allEngineTypes = getAllEngineTypes();
+  
+  for (const savedEngine of (saveFile.engines || [])) {
+    const engineType = allEngineTypes.find(t => t.id === savedEngine.typeId);
+    if (engineType) {
+      engines.push({
+        id: generateEngineInstallationId(),
+        type: engineType,
+        hullPoints: savedEngine.hullPoints,
+        fuelHullPoints: savedEngine.fuelHullPoints,
+      });
+    } else {
+      warnings.push(`Engine type not found: ${savedEngine.typeId}`);
     }
   }
   
@@ -144,6 +169,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       armorWeight,
       armorType,
       powerPlants,
+      engines,
     },
     warnings: warnings.length > 0 ? warnings : undefined,
   };

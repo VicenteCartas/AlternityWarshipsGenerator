@@ -22,23 +22,27 @@ src/
 │   ├── WelcomePage.tsx
 │   ├── HullSelection.tsx
 │   ├── ArmorSelection.tsx
-│   └── PowerPlantSelection.tsx
+│   ├── PowerPlantSelection.tsx
+│   └── EngineSelection.tsx
 ├── services/         # Business logic and calculations
 │   ├── dataLoader.ts      # Runtime data loading (externally editable)
 │   ├── hullService.ts
 │   ├── armorService.ts
 │   ├── powerPlantService.ts
+│   ├── engineService.ts
 │   └── saveService.ts
 ├── types/            # TypeScript type definitions
 │   ├── hull.ts
 │   ├── armor.ts
 │   ├── powerPlant.ts
+│   ├── engine.ts
 │   ├── saveFile.ts
 │   └── common.ts
 ├── data/             # JSON data files (externally editable in production)
 │   ├── hulls.json
 │   ├── armor.json
-│   └── powerPlants.json
+│   ├── powerPlants.json
+│   └── engines.json
 └── App.tsx           # Main app with stepper/wizard flow
 
 electron/
@@ -66,7 +70,7 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 1. **Hull** - Select ship class and hull type (required)
 2. **Armor** - Choose armor weight and type (optional)
 3. **Power Plant** - Install power plants for energy (required)
-4. **Engines** - Install engines for movement (required, not yet implemented)
+4. **Engines** - Install engines for movement (required)
 5. **FTL Drive** - Faster-than-light capability (optional, not yet implemented)
 6. **Systems** - Additional ship systems (optional, not yet implemented)
 
@@ -85,6 +89,7 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 - Keep calculations in service files, not components
 - All game data comes from JSON files in `src/data/`
 - Type definitions mirror the Warships rulebook terminology
+- **Defensive array access**: Always use `|| []` when accessing arrays that might be undefined/null (e.g., from save files, loaded state, or optional properties). This prevents crashes from older save files, corrupted data, or missing properties. Apply consistently to all similar array access patterns (e.g., `state.powerPlants || []`, `state.engines || []`).
 
 ## UI Conventions
 
@@ -107,12 +112,12 @@ npm run dist:win        # Create Windows installer
 - [x] Hull selection with stats display
 - [x] Armor selection (weight + type)
 - [x] Power plant installation (multiple plants, fuel tanks)
+- [x] Engine installation (multiple engines, fuel tanks, acceleration calculations)
 - [x] Save/Load warship to .warship.json files
 - [x] Electron menu with keyboard shortcuts
 - [x] Externally editable data files (loaded at runtime)
 
 ### Not Yet Implemented
-- [ ] Engines step
 - [ ] FTL Drive step
 - [ ] Systems step (weapons, defenses, sensors, etc.)
 - [ ] Final summary/export step

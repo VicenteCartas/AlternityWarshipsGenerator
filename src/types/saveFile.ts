@@ -15,6 +15,18 @@ export interface SavedPowerPlant {
 }
 
 /**
+ * Installed engine in save file (stores only IDs and config)
+ */
+export interface SavedEngine {
+  /** The engine type ID */
+  typeId: string;
+  /** Size in hull points */
+  hullPoints: number;
+  /** Fuel tank size in hull points */
+  fuelHullPoints: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -45,8 +57,8 @@ export interface WarshipSaveFile {
   /** Installed power plants */
   powerPlants: SavedPowerPlant[];
   
-  /** Installed engines (future) */
-  engines: unknown[];
+  /** Installed engines */
+  engines: SavedEngine[];
   
   /** FTL drive configuration (future) */
   ftlDrive: unknown | null;
