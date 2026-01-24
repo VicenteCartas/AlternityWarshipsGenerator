@@ -127,41 +127,39 @@ function App() {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* App Bar */}
       <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
+        <Toolbar sx={{ minHeight: 64 }}>
           <RocketLaunchIcon sx={{ mr: 2, color: 'primary.main' }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Alternity Warship Generator
           </Typography>
-          {selectedHull && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip
-                label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
-                color={getRemainingHullPoints() >= 0 ? 'success' : 'error'}
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`Power: 0 / 0`}
-                color="default"
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`Cost: ${formatCost(getTotalCost())}`}
-                color="default"
-                variant="outlined"
-                size="small"
-              />
-            </Box>
-          )}
+          <Box sx={{ display: 'flex', gap: 1, visibility: selectedHull ? 'visible' : 'hidden' }}>
+            <Chip
+              label={selectedHull ? `HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}` : 'HP: - / -'}
+              color={getRemainingHullPoints() >= 0 ? 'success' : 'error'}
+              variant="outlined"
+              size="small"
+            />
+            <Chip
+              label={`Power: 0 / 0`}
+              color="default"
+              variant="outlined"
+              size="small"
+            />
+            <Chip
+              label={selectedHull ? `Cost: ${formatCost(getTotalCost())}` : 'Cost: -'}
+              color="default"
+              variant="outlined"
+              size="small"
+            />
+          </Box>
         </Toolbar>
       </AppBar>
 
       {/* Stepper */}
-      <Paper sx={{ px: 3, py: 2 }} elevation={0}>
+      <Paper sx={{ px: 3, py: 2, minHeight: 72 }} elevation={0}>
         <Stepper activeStep={activeStep} nonLinear>
           {steps.map((label, index) => (
             <Step key={label} completed={false}>
@@ -174,8 +172,8 @@ function App() {
       </Paper>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ flex: 1, py: 2 }}>
-        <Paper sx={{ p: 3 }}>
+      <Container maxWidth="xl" sx={{ flex: 1, py: 2, width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Paper sx={{ p: 3, flex: 1, minHeight: 400, width: '100%', boxSizing: 'border-box' }}>
           {renderStepContent()}
         </Paper>
 
