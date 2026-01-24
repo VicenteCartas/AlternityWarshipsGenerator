@@ -1,12 +1,12 @@
 import type { PowerPlantType, InstalledPowerPlant, PowerPlantStats } from '../types/powerPlant';
 import type { Hull, ShipClass } from '../types/hull';
-import powerPlantData from '../data/powerPlants.json';
+import { getPowerPlantsData } from './dataLoader';
 
 /**
  * Get all power plant types
  */
 export function getAllPowerPlantTypes(): PowerPlantType[] {
-  return powerPlantData.powerPlants as PowerPlantType[];
+  return getPowerPlantsData();
 }
 
 /**

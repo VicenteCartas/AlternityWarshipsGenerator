@@ -204,3 +204,32 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
     return { success: false, error: (error as Error).message };
   }
 });
+
+// Data file loading - reads JSON files from the data directory
+// This allows users to edit data files externally
+ipcMain.handle('read-data-file', async (_event, fileName: string) => {
+  try {
+    // In development, read from src/data; in production, read from resources/data
+    let dataPath: string;
+    if (isDev) {
+      dataPath = path.join(__dirname, '../src/data', fileName);
+    } else {
+      // In production, data files are in resources/data alongside the app
+      dataPath = path.join(process.resourcesPath, 'data', fileName);
+    }
+    
+    const content = fs.readFileSync(dataPath, 'utf-8');
+    return { success: true, content, path: dataPath };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Get the data directory path for user reference
+ipcMain.handle('get-data-path', async () => {
+  if (isDev) {
+    return path.join(__dirname, '../src/data');
+  } else {
+    return path.join(process.resourcesPath, 'data');
+  }
+});

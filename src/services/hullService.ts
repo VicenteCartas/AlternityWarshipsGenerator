@@ -1,11 +1,11 @@
 import type { Hull, ShipClass, HullCategory } from '../types/hull';
-import hullsData from '../data/hulls.json';
+import { getHullsData } from './dataLoader';
 
 /**
  * Get all hulls from the data file
  */
 export function getAllHulls(): Hull[] {
-  return hullsData.hulls as Hull[];
+  return getHullsData();
 }
 
 /**

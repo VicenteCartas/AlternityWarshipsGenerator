@@ -1,19 +1,19 @@
 import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
-import armorData from '../data/armor.json';
+import { getArmorTypesData, getArmorWeightsData } from './dataLoader';
 
 /**
  * Get all armor weight configurations
  */
 export function getArmorWeights(): ArmorWeightConfig[] {
-  return armorData.armorWeights as ArmorWeightConfig[];
+  return getArmorWeightsData();
 }
 
 /**
  * Get all armor types
  */
 export function getAllArmorTypes(): ArmorType[] {
-  return armorData.armorTypes as ArmorType[];
+  return getArmorTypesData();
 }
 
 /**

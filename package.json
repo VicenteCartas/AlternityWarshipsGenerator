@@ -29,6 +29,13 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "src/data",
+        "to": "data",
+        "filter": ["**/*.json"]
+      }
+    ],
     "win": {
       "target": [
         "nsis"

@@ -18,6 +18,7 @@ import {
   Alert,
   TextField,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import EditIcon from '@mui/icons-material/Edit';
@@ -36,6 +37,7 @@ import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
+import { loadAllGameData } from './services/dataLoader';
 import { 
   serializeWarship, 
   saveFileToJson, 
@@ -45,7 +47,7 @@ import {
   type WarshipState 
 } from './services/saveService';
 
-type AppMode = 'welcome' | 'builder';
+type AppMode = 'welcome' | 'builder' | 'loading';
 
 const steps = [
   { label: 'Hull', required: true },
@@ -57,7 +59,7 @@ const steps = [
 ];
 
 function App() {
-  const [mode, setMode] = useState<AppMode>('welcome');
+  const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
   const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
   const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
@@ -71,6 +73,15 @@ function App() {
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
   }>({ open: false, message: '', severity: 'info' });
+
+  // Load game data on startup
+  useEffect(() => {
+    async function initializeApp() {
+      await loadAllGameData();
+      setMode('welcome');
+    }
+    initializeApp();
+  }, []);
 
   const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
     setSnackbar({ open: true, message, severity });
@@ -367,6 +378,27 @@ function App() {
         );
     }
   };
+
+  // Show loading screen while data is being loaded
+  if (mode === 'loading') {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '100vh',
+          gap: 2
+        }}
+      >
+        <CircularProgress size={48} />
+        <Typography variant="h6" color="text.secondary">
+          Loading game data...
+        </Typography>
+      </Box>
+    );
+  }
 
   // Show welcome page if in welcome mode
   if (mode === 'welcome') {

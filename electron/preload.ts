@@ -27,6 +27,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('save-file', filePath, content),
   readFile: (filePath: string) => 
     ipcRenderer.invoke('read-file', filePath),
+  
+  // Data file operations (for externally editable game data)
+  readDataFile: (fileName: string) => 
+    ipcRenderer.invoke('read-data-file', fileName),
+  getDataPath: () => 
+    ipcRenderer.invoke('get-data-path'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {
