@@ -14,26 +14,41 @@ import {
   Button,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { HullSelection } from './components/HullSelection';
 import { ArmorSelection } from './components/ArmorSelection';
+import { PowerPlantSelection } from './components/PowerPlantSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
+import type { InstalledPowerPlant } from './types/powerPlant';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
+import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 
-const steps = ['Hull', 'Armor', 'Power Plant', 'Engines', 'FTL Drive', 'Systems'];
+const steps = [
+  { label: 'Hull', required: true },
+  { label: 'Armor', required: false },
+  { label: 'Power Plant', required: true },
+  { label: 'Engines', required: true },
+  { label: 'FTL Drive', required: false },
+  { label: 'Systems', required: false },
+];
 
 function App() {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
   const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
   const [selectedArmorType, setSelectedArmorType] = useState<ArmorType | null>(null);
+  const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
-    // Reset armor if hull changes
+    // Reset armor and power plants if hull changes
     setSelectedArmorWeight(null);
     setSelectedArmorType(null);
+    setInstalledPowerPlants([]);
   };
 
   const handleArmorSelect = (weight: ArmorWeight, type: ArmorType) => {
@@ -44,6 +59,10 @@ function App() {
   const handleArmorClear = () => {
     setSelectedArmorWeight(null);
     setSelectedArmorType(null);
+  };
+
+  const handlePowerPlantsChange = (powerPlants: InstalledPowerPlant[]) => {
+    setInstalledPowerPlants(powerPlants);
   };
 
   const handleStepClick = (step: number) => {
@@ -59,6 +78,16 @@ function App() {
     setActiveStep((prev) => Math.max(prev - 1, 0));
   };
 
+  // Calculate used hull points (armor + power plants)
+  const getUsedHullPointsBeforePowerPlants = () => {
+    if (!selectedHull) return 0;
+    let used = 0;
+    if (selectedArmorWeight) {
+      used += calculateArmorHullPoints(selectedHull, selectedArmorWeight);
+    }
+    return used;
+  };
+
   // Calculate remaining hull points
   const getRemainingHullPoints = () => {
     if (!selectedHull) return 0;
@@ -66,7 +95,15 @@ function App() {
     if (selectedArmorWeight) {
       remaining -= calculateArmorHullPoints(selectedHull, selectedArmorWeight);
     }
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    remaining -= powerPlantStats.totalHullPoints;
     return remaining;
+  };
+
+  // Calculate total power generated
+  const getTotalPower = () => {
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    return powerPlantStats.totalPowerGenerated;
   };
 
   // Calculate total cost
@@ -76,6 +113,8 @@ function App() {
     if (selectedArmorWeight && selectedArmorType) {
       cost += calculateArmorCost(selectedHull, selectedArmorWeight, selectedArmorType);
     }
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    cost += powerPlantStats.totalCost;
     return cost;
   };
 
@@ -117,6 +156,22 @@ function App() {
             onArmorClear={handleArmorClear}
           />
         );
+      case 2:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <PowerPlantSelection
+            hull={selectedHull}
+            installedPowerPlants={installedPowerPlants}
+            usedHullPoints={getUsedHullPointsBeforePowerPlants()}
+            onPowerPlantsChange={handlePowerPlantsChange}
+          />
+        );
       default:
         return (
           <Typography color="text.secondary">
@@ -143,8 +198,8 @@ function App() {
               size="small"
             />
             <Chip
-              label={`Power: 0 / 0`}
-              color="default"
+              label={`Power: ${getTotalPower()}`}
+              color={getTotalPower() > 0 ? 'primary' : 'default'}
               variant="outlined"
               size="small"
             />
@@ -161,19 +216,50 @@ function App() {
       {/* Stepper */}
       <Paper sx={{ px: 3, py: 2, minHeight: 72 }} elevation={0}>
         <Stepper activeStep={activeStep} nonLinear>
-          {steps.map((label, index) => (
-            <Step key={label} completed={false}>
-              <StepButton onClick={() => handleStepClick(index)}>
-                <StepLabel>{label}</StepLabel>
-              </StepButton>
-            </Step>
-          ))}
+          {steps.map((step, index) => {
+            // Determine if step is completed
+            const isStepCompleted = (() => {
+              switch (index) {
+                case 0: return selectedHull !== null; // Hull
+                case 1: return selectedArmorWeight !== null; // Armor (optional)
+                case 2: return installedPowerPlants.length > 0; // Power Plant
+                case 3: return false; // Engines (not implemented yet)
+                case 4: return false; // FTL Drive (not implemented yet)
+                case 5: return false; // Systems (not implemented yet)
+                default: return false;
+              }
+            })();
+
+            // Determine icon based on required status and completion
+            const getStepIcon = () => {
+              if (isStepCompleted) {
+                // Completed (both mandatory and optional)
+                return <CheckCircleIcon color="success" />;
+              }
+              if (!step.required) {
+                // Optional and not completed - show neutral icon
+                return <RemoveCircleOutlineIcon color={activeStep === index ? 'primary' : 'disabled'} />;
+              }
+              // Mandatory but not completed
+              return <ErrorOutlineIcon color={activeStep === index ? 'warning' : 'error'} />;
+            };
+
+            return (
+              <Step key={step.label} completed={isStepCompleted}>
+                <StepButton onClick={() => handleStepClick(index)}>
+                  <StepLabel StepIconComponent={getStepIcon}>
+                    {step.label}
+                  </StepLabel>
+                </StepButton>
+              </Step>
+            );
+          })}
         </Stepper>
       </Paper>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ flex: 1, py: 2, width: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Paper sx={{ p: 3, flex: 1, minHeight: 400, width: '100%', boxSizing: 'border-box' }}>
+      <Container maxWidth="xl" sx={{ py: 2, width: '100%' }}>
+        <Paper sx={{ p: 3, minHeight: 400, width: '100%', boxSizing: 'border-box' }}>
           {renderStepContent()}
         </Paper>
 

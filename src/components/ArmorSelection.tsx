@@ -103,8 +103,8 @@ export function ArmorSelection({
       </Box>
 
       {/* Armor Type Selection */}
-      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 'calc(100vh - 350px)' }}>
-          <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined">
+          <Table size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Armor Type</TableCell>

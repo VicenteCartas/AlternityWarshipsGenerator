@@ -96,8 +96,8 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
       </Box>
 
       {/* Hull Table */}
-      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 'calc(100vh - 220px)' }}>
-        <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', width: 130, whiteSpace: 'nowrap' }}>Hull</TableCell>
