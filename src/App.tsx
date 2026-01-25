@@ -70,6 +70,7 @@ function App() {
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
   // Snackbar state for notifications
   const [snackbar, setSnackbar] = useState<{
@@ -104,6 +105,7 @@ function App() {
     setInstalledPowerPlants([]);
     setInstalledEngines([]);
     setWarshipName('New Ship');
+    setCurrentFilePath(null);
     setMode('builder');
   }, []);
 
@@ -146,6 +148,7 @@ function App() {
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
       setInstalledEngines(loadResult.state.engines || []);
       setWarshipName(loadResult.state.name);
+      setCurrentFilePath(filePath);
       setActiveStep(0);
       setMode('builder');
 
@@ -159,7 +162,40 @@ function App() {
     }
   }, []);
 
-  const handleSaveWarship = useCallback(async () => {
+  // Helper function to perform the actual save to a file path
+  const saveToFile = useCallback(async (filePath: string): Promise<boolean> => {
+    if (!window.electronAPI || !selectedHull) return false;
+
+    const state: WarshipState = {
+      name: warshipName,
+      hull: selectedHull,
+      armorWeight: selectedArmorWeight,
+      armorType: selectedArmorType,
+      powerPlants: installedPowerPlants,
+      engines: installedEngines,
+    };
+
+    try {
+      const saveFile = serializeWarship(state);
+      const json = saveFileToJson(saveFile);
+      const saveResult = await window.electronAPI.saveFile(filePath, json);
+
+      if (saveResult.success) {
+        setCurrentFilePath(filePath);
+        showNotification('Warship saved successfully', 'success');
+        return true;
+      } else {
+        showNotification(`Failed to save: ${saveResult.error}`, 'error');
+        return false;
+      }
+    } catch (error) {
+      showNotification(`Error saving file: ${error}`, 'error');
+      return false;
+    }
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName]);
+
+  // Save As - always prompts for file location
+  const handleSaveWarshipAs = useCallback(async () => {
     if (!window.electronAPI) {
       showNotification('Save functionality requires Electron', 'error');
       return;
@@ -187,19 +223,33 @@ function App() {
         return;
       }
 
-      const saveFile = serializeWarship(state);
-      const json = saveFileToJson(saveFile);
-      const saveResult = await window.electronAPI.saveFile(dialogResult.filePath, json);
-
-      if (saveResult.success) {
-        showNotification('Warship saved successfully', 'success');
-      } else {
-        showNotification(`Failed to save: ${saveResult.error}`, 'error');
-      }
+      await saveToFile(dialogResult.filePath);
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, saveToFile]);
+
+  // Save - saves to current file or prompts if no file yet
+  const handleSaveWarship = useCallback(async () => {
+    if (!window.electronAPI) {
+      showNotification('Save functionality requires Electron', 'error');
+      return;
+    }
+
+    if (!selectedHull) {
+      showNotification('Please select a hull before saving', 'warning');
+      return;
+    }
+
+    // If we have a current file path, save directly to it
+    if (currentFilePath) {
+      await saveToFile(currentFilePath);
+      return;
+    }
+
+    // Otherwise, behave like Save As
+    await handleSaveWarshipAs();
+  }, [selectedHull, currentFilePath, saveToFile, handleSaveWarshipAs]);
 
   // Listen for Electron menu events
   useEffect(() => {
@@ -213,14 +263,18 @@ function App() {
       window.electronAPI.onSaveWarship(() => {
         handleSaveWarship();
       });
+      window.electronAPI.onSaveWarshipAs(() => {
+        handleSaveWarshipAs();
+      });
 
       return () => {
         window.electronAPI?.removeAllListeners('menu-new-warship');
         window.electronAPI?.removeAllListeners('menu-load-warship');
         window.electronAPI?.removeAllListeners('menu-save-warship');
+        window.electronAPI?.removeAllListeners('menu-save-warship-as');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
@@ -351,9 +405,6 @@ function App() {
   // Get unique tech tracks across all components
   const getUniqueTechTracks = (): string[] => {
     const tracks = new Set<string>();
-    if (selectedHull) {
-      selectedHull.techTracks.forEach((track) => tracks.add(track));
-    }
     if (selectedArmorType) {
       selectedArmorType.techTracks.forEach((track) => tracks.add(track));
     }

@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSaveWarship: (callback: () => void) => {
     ipcRenderer.on('menu-save-warship', callback);
   },
+  onSaveWarshipAs: (callback: () => void) => {
+    ipcRenderer.on('menu-save-warship-as', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },

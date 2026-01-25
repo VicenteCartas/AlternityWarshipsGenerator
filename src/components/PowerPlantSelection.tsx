@@ -484,6 +484,16 @@ export function PowerPlantSelection({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Notes section */}
+      <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Power Plant Notes
+        </Typography>
+        <Typography variant="caption" color="text.secondary" component="div">
+          • A good guideline for a power plant is 10 to 15 percent of the hull, or a power output equal to about half the ship's hull
+        </Typography>
+      </Paper>
     </Box>
   );
 }

@@ -55,6 +55,13 @@ function createMenu() {
             mainWindow?.webContents.send('menu-save-warship');
           },
         },
+        {
+          label: 'Save Warship As...',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: () => {
+            mainWindow?.webContents.send('menu-save-warship-as');
+          },
+        },
         { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
