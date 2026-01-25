@@ -376,6 +376,7 @@ export function EngineSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Engine</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
@@ -390,7 +391,6 @@ export function EngineSelection({
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>15%</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>20%</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>30%</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -414,6 +414,18 @@ export function EngineSelection({
                   }}
                   onClick={() => handleTypeSelect(engine)}
                 >
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTypeSelect(engine);
+                      }}
+                    >
+                      <AddIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
                   <TableCell>
                     <Tooltip title={engine.description} placement="right">
                       <Typography
@@ -429,9 +441,9 @@ export function EngineSelection({
                     <Typography variant="body2">{engine.progressLevel}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Tooltip title={getTechTrackName(engine.techTrack)}>
+                    <Tooltip title={engine.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
                       <Typography variant="caption">
-                        {engine.techTrack === '-' ? 'None' : engine.techTrack}
+                        {engine.techTracks.length > 0 ? engine.techTracks.join(', ') : 'None'}
                       </Typography>
                     </Tooltip>
                   </TableCell>
@@ -489,18 +501,6 @@ export function EngineSelection({
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                       {ratings.at30Percent || '-'}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTypeSelect(engine);
-                      }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
                   </TableCell>
                 </TableRow>
               );

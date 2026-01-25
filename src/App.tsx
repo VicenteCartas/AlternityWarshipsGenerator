@@ -294,6 +294,13 @@ function App() {
     return remaining;
   };
 
+  // Calculate used hull points
+  const getUsedHullPoints = () => {
+    if (!selectedHull) return 0;
+    const total = selectedHull.hullPoints + selectedHull.bonusHullPoints;
+    return total - getRemainingHullPoints();
+  };
+
   // Calculate total power generated
   const getTotalPower = () => {
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
@@ -344,18 +351,17 @@ function App() {
   // Get unique tech tracks across all components
   const getUniqueTechTracks = (): string[] => {
     const tracks = new Set<string>();
-    if (selectedArmorType && selectedArmorType.techTrack !== '-') {
-      tracks.add(selectedArmorType.techTrack);
+    if (selectedHull) {
+      selectedHull.techTracks.forEach((track) => tracks.add(track));
+    }
+    if (selectedArmorType) {
+      selectedArmorType.techTracks.forEach((track) => tracks.add(track));
     }
     installedPowerPlants.forEach((pp) => {
-      if (pp.type.techTrack !== '-') {
-        tracks.add(pp.type.techTrack);
-      }
+      pp.type.techTracks.forEach((track) => tracks.add(track));
     });
     installedEngines.forEach((eng) => {
-      if (eng.type.techTrack !== '-') {
-        tracks.add(eng.type.techTrack);
-      }
+      eng.type.techTracks.forEach((track) => tracks.add(track));
     });
     return Array.from(tracks).sort();
   };
@@ -502,8 +508,14 @@ function App() {
                 size="small"
               />
               <Chip
-                label={`Power: ${getTotalPower()}`}
-                color={getTotalPower() > 0 ? 'primary' : 'default'}
+                label={`Power: ${getTotalPower()} / ${getTotalPower()}`}
+                color={getTotalPower() > 0 ? 'success' : 'default'}
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={`Crew: 0 / ${selectedHull.crew}`}
+                color={0 >= selectedHull.crew ? 'success' : 'error'}
                 variant="outlined"
                 size="small"
               />
@@ -565,8 +577,8 @@ function App() {
                 // Optional and not completed - show neutral icon
                 return <RemoveCircleOutlineIcon color={activeStep === index ? 'primary' : 'disabled'} />;
               }
-              // Mandatory but not completed
-              return <ErrorOutlineIcon color={activeStep === index ? 'warning' : 'error'} />;
+              // Mandatory but not completed - always show red error icon
+              return <ErrorOutlineIcon color="error" />;
             };
 
             return (

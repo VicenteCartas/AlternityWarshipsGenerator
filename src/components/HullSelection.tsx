@@ -19,6 +19,7 @@ import {
   getAllHulls,
   getShipClasses,
   getShipClassDisplayName,
+  formatTargetModifier,
 } from '../services/hullService';
 
 interface HullSelectionProps {
@@ -165,7 +166,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
                     <Typography variant="caption">{hull.toughness}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption">{hull.targetModifier}</Typography>
+                    <Typography variant="caption">{formatTargetModifier(hull.targetModifier)}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2">{hull.maneuverability}</Typography>

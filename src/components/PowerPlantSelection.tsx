@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant } from '../types/powerPlant';
@@ -51,6 +53,7 @@ export function PowerPlantSelection({
   const [selectedType, setSelectedType] = useState<PowerPlantType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
   const [fuelHullPointsInput, setFuelHullPointsInput] = useState<string>('');
+  const [editingInstallationId, setEditingInstallationId] = useState<string | null>(null);
 
   const availablePowerPlants = useMemo(
     () => getPowerPlantTypesForShipClass(hull.shipClass),
@@ -74,13 +77,22 @@ export function PowerPlantSelection({
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     const fuelHullPoints = parseInt(fuelHullPointsInput, 10) || 0;
 
+    // When editing, exclude the current installation from validation
+    const plantsForValidation = editingInstallationId
+      ? installedPowerPlants.filter((p) => p.installationId !== editingInstallationId)
+      : installedPowerPlants;
+    
+    const hpUsedByOtherPlants = editingInstallationId
+      ? calculateTotalPowerPlantStats(plantsForValidation).totalHullPoints
+      : totalStats.totalHullPoints;
+
     const validation = validatePowerPlantInstallation(
       selectedType,
       hullPoints,
       fuelHullPoints,
       hull,
-      installedPowerPlants,
-      usedHullPoints + totalStats.totalHullPoints
+      plantsForValidation,
+      usedHullPoints + hpUsedByOtherPlants
     );
 
     if (!validation.valid) {
@@ -88,19 +100,35 @@ export function PowerPlantSelection({
       return;
     }
 
-    const newInstallation: InstalledPowerPlant = {
-      installationId: generateInstallationId(),
-      type: selectedType,
-      hullPoints,
-      fuelHullPoints,
-    };
-
-    onPowerPlantsChange([...installedPowerPlants, newInstallation]);
+    if (editingInstallationId) {
+      // Update existing installation
+      const updatedInstallation: InstalledPowerPlant = {
+        installationId: editingInstallationId,
+        type: selectedType,
+        hullPoints,
+        fuelHullPoints,
+      };
+      onPowerPlantsChange(
+        installedPowerPlants.map((p) =>
+          p.installationId === editingInstallationId ? updatedInstallation : p
+        )
+      );
+    } else {
+      // Add new installation
+      const newInstallation: InstalledPowerPlant = {
+        installationId: generateInstallationId(),
+        type: selectedType,
+        hullPoints,
+        fuelHullPoints,
+      };
+      onPowerPlantsChange([...installedPowerPlants, newInstallation]);
+    }
     
     // Reset selection
     setSelectedType(null);
     setHullPointsInput('');
     setFuelHullPointsInput('');
+    setEditingInstallationId(null);
   };
 
   const handleRemovePowerPlant = (installationId: string) => {
@@ -109,11 +137,19 @@ export function PowerPlantSelection({
     );
   };
 
+  const handleEditPowerPlant = (installation: InstalledPowerPlant) => {
+    setSelectedType(installation.type);
+    setHullPointsInput(installation.hullPoints.toString());
+    setFuelHullPointsInput(installation.fuelHullPoints.toString());
+    setEditingInstallationId(installation.installationId);
+  };
+
   const handleClearAll = () => {
     onPowerPlantsChange([]);
     setSelectedType(null);
     setHullPointsInput('');
     setFuelHullPointsInput('');
+    setEditingInstallationId(null);
   };
 
   // Get validation errors for current selection
@@ -121,16 +157,26 @@ export function PowerPlantSelection({
     if (!selectedType) return [];
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     const fuelHullPoints = parseInt(fuelHullPointsInput, 10) || 0;
+    
+    // When editing, exclude the current installation from validation
+    const plantsForValidation = editingInstallationId
+      ? installedPowerPlants.filter((p) => p.installationId !== editingInstallationId)
+      : installedPowerPlants;
+    
+    const hpUsedByOtherPlants = editingInstallationId
+      ? calculateTotalPowerPlantStats(plantsForValidation).totalHullPoints
+      : totalStats.totalHullPoints;
+    
     const validation = validatePowerPlantInstallation(
       selectedType,
       hullPoints,
       fuelHullPoints,
       hull,
-      installedPowerPlants,
-      usedHullPoints + totalStats.totalHullPoints
+      plantsForValidation,
+      usedHullPoints + hpUsedByOtherPlants
     );
     return validation.errors;
-  }, [selectedType, hullPointsInput, fuelHullPointsInput, hull, installedPowerPlants, usedHullPoints, totalStats.totalHullPoints]);
+  }, [selectedType, hullPointsInput, fuelHullPointsInput, hull, installedPowerPlants, usedHullPoints, totalStats.totalHullPoints, editingInstallationId]);
 
   // Calculate preview stats for selected power plant
   const previewStats = useMemo(() => {
@@ -231,6 +277,13 @@ export function PowerPlantSelection({
                   )}
                   <IconButton
                     size="small"
+                    color="primary"
+                    onClick={() => handleEditPowerPlant(installation)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
                     color="error"
                     onClick={() => handleRemovePowerPlant(installation.installationId)}
                   >
@@ -246,8 +299,8 @@ export function PowerPlantSelection({
       {/* Add new power plant section */}
       {selectedType && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Configure {selectedType.name}
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+            {editingInstallationId ? 'Edit' : 'Configure'} {selectedType.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -286,16 +339,19 @@ export function PowerPlantSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={<AddIcon />}
+                  startIcon={editingInstallationId ? <SaveIcon /> : <AddIcon />}
                   onClick={handleAddPowerPlant}
                   disabled={validationErrors.length > 0}
                 >
-                  Add
+                  {editingInstallationId ? 'Update' : 'Add'}
                 </Button>
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => setSelectedType(null)}
+                  onClick={() => {
+                    setSelectedType(null);
+                    setEditingInstallationId(null);
+                  }}
                 >
                   Cancel
                 </Button>
@@ -317,6 +373,7 @@ export function PowerPlantSelection({
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
+              <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Action</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Power Plant</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
@@ -326,7 +383,6 @@ export function PowerPlantSelection({
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Min/Max</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Fuel</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -349,6 +405,18 @@ export function PowerPlantSelection({
                   }}
                   onClick={() => handleTypeSelect(plant)}
                 >
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTypeSelect(plant);
+                      }}
+                    >
+                      <AddIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"
@@ -361,9 +429,9 @@ export function PowerPlantSelection({
                     <Typography variant="body2">{plant.progressLevel}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Tooltip title={getTechTrackName(plant.techTrack)}>
+                    <Tooltip title={plant.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
                       <Typography variant="caption">
-                        {plant.techTrack === '-' ? 'None' : plant.techTrack}
+                        {plant.techTracks.length > 0 ? plant.techTracks.join(', ') : 'None'}
                       </Typography>
                     </Tooltip>
                   </TableCell>
@@ -409,18 +477,6 @@ export function PowerPlantSelection({
                         {plant.description}
                       </Typography>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTypeSelect(plant);
-                      }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
                   </TableCell>
                 </TableRow>
               );

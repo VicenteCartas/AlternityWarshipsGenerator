@@ -17,8 +17,8 @@ export interface PowerPlantType {
   /** Progress Level required */
   progressLevel: ProgressLevel;
   
-  /** Technology track required (dash means no special tech needed) */
-  techTrack: TechTrack;
+  /** Technology tracks required (empty array means no special tech needed) */
+  techTracks: TechTrack[];
   
   /** Power produced per hull point */
   powerPerHullPoint: number;

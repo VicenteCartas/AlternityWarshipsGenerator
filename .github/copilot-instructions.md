@@ -97,6 +97,28 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 - **Tables/Grids**: Should take all the horizontal space they need - avoid wrapping content awkwardly
 - **Single horizontal scrollbar**: When content overflows, use ONE horizontal scrollbar at the container level, not multiple nested scrollbars
 - **Responsive but desktop-first**: This is an Electron desktop app, so optimize for larger screens
+- **Action columns first**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the beginning (leftmost) so users don't need to scroll to access it
+
+## Data Format Conventions
+
+### Tech Tracks
+Technology tracks are represented as arrays in all data files (hulls, armor, power plants, engines):
+- **Empty array `[]`**: No special technology required
+- **Single tech `["G"]`**: Requires one technology track (e.g., Gravity Manipulation)
+- **Multiple techs `["P", "X"]`**: Requires multiple technology tracks
+
+Available tech track codes:
+- `G` - Gravity Manipulation
+- `D` - Dark Matter Tech
+- `A` - Antimatter Tech
+- `M` - Matter Coding
+- `F` - Fusion Tech
+- `Q` - Quantum Manipulation
+- `T` - Matter Transmission
+- `S` - Super-Materials
+- `P` - Psi-tech
+- `X` - Energy Transformation
+- `C` - Computer Tech
 
 ## Development Commands
 

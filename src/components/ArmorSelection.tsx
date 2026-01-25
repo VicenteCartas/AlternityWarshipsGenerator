@@ -160,9 +160,9 @@ export function ArmorSelection({
                       <Typography variant="body2">{armorType.progressLevel}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={getTechTrackName(armorType.techTrack)}>
+                      <Tooltip title={armorType.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
                         <Typography variant="caption">
-                          {armorType.techTrack === '-' ? 'None' : armorType.techTrack}
+                          {armorType.techTracks.length > 0 ? armorType.techTracks.join(', ') : 'None'}
                         </Typography>
                       </Tooltip>
                     </TableCell>

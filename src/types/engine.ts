@@ -38,8 +38,8 @@ export interface EngineType {
   /** Progress Level required */
   progressLevel: ProgressLevel;
   
-  /** Technology track required (dash means no special tech needed) */
-  techTrack: TechTrack;
+  /** Technology tracks required (empty array means no special tech needed) */
+  techTracks: TechTrack[];
   
   /** Power required per hull point of engine */
   powerPerHullPoint: number;

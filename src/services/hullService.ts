@@ -63,6 +63,19 @@ export function getShipClassDisplayName(shipClass: ShipClass): string {
 }
 
 /**
+ * Format target modifier number as display string
+ * 3 → "+3 steps", -1 → "-1 step", 0 → "0"
+ */
+export function formatTargetModifier(modifier: number): string {
+  if (modifier === 0) {
+    return '0';
+  }
+  const sign = modifier > 0 ? '+' : '';
+  const stepWord = Math.abs(modifier) === 1 ? 'step' : 'steps';
+  return `${sign}${modifier} ${stepWord}`;
+}
+
+/**
  * Format cost for display
  */
 export function formatCost(cost: number): string {

@@ -20,11 +20,6 @@ export type ToughnessRating = 'Good' | 'Small Craft' | 'Light' | 'Medium' | 'Hea
 export type ManeuverabilityClass = 0 | 1 | 2 | 3 | 4;
 
 /**
- * Target modifier - bonus/penalty steps to be hit
- */
-export type TargetModifier = '-4 steps' | '-3 steps' | '-2 steps' | '-1 step' | '0' | '+1 step' | '+2 steps' | '+3 steps';
-
-/**
  * Damage track values for a hull
  */
 export interface DamageTrack {
@@ -60,17 +55,11 @@ export interface Hull {
   /** Bonus hull points from economy of scale (doesn't count for % calculations) */
   bonusHullPoints: number;
   
-  /** 5% of base hull points (for armor/system calculations) */
-  fivePercent: number;
-  
-  /** 10% of base hull points (for armor/system calculations) */
-  tenPercent: number;
-  
   /** Ship's toughness rating */
   toughness: ToughnessRating;
   
-  /** Target modifier (resistance to enemy fire) */
-  targetModifier: TargetModifier;
+  /** Target modifier (resistance to enemy fire, in steps) */
+  targetModifier: number;
   
   /** Maneuverability class (0-4) */
   maneuverability: ManeuverabilityClass;
@@ -118,8 +107,8 @@ export function calculateHullStats(hull: Hull): HullStats {
   return {
     totalHullPoints: hull.hullPoints + hull.bonusHullPoints,
     lightArmorCost: 0,
-    mediumArmorCost: hull.fivePercent,
-    heavyArmorCost: hull.tenPercent,
-    superHeavyArmorCost: Math.floor(hull.hullPoints * 0.2),
+    mediumArmorCost: Math.ceil(hull.hullPoints * 0.05),
+    heavyArmorCost: Math.ceil(hull.hullPoints * 0.1),
+    superHeavyArmorCost: Math.ceil(hull.hullPoints * 0.2),
   };
 }
