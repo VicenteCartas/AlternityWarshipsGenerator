@@ -24,6 +24,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant } from '../types/powerPlant';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getPowerPlantTypesForShipClass,
   calculatePowerGenerated,
@@ -36,11 +37,14 @@ import {
   formatPowerPlantCost,
   getTechTrackName,
 } from '../services/powerPlantService';
+import { formatCost } from '../services/formatters';
 
 interface PowerPlantSelectionProps {
   hull: Hull;
   installedPowerPlants: InstalledPowerPlant[];
   usedHullPoints: number;
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
   onPowerPlantsChange: (powerPlants: InstalledPowerPlant[]) => void;
 }
 
@@ -48,6 +52,8 @@ export function PowerPlantSelection({
   hull,
   installedPowerPlants,
   usedHullPoints,
+  designProgressLevel,
+  designTechTracks,
   onPowerPlantsChange,
 }: PowerPlantSelectionProps) {
   const [selectedType, setSelectedType] = useState<PowerPlantType | null>(null);
@@ -55,10 +61,27 @@ export function PowerPlantSelection({
   const [fuelHullPointsInput, setFuelHullPointsInput] = useState<string>('');
   const [editingInstallationId, setEditingInstallationId] = useState<string | null>(null);
 
-  const availablePowerPlants = useMemo(
-    () => getPowerPlantTypesForShipClass(hull.shipClass),
-    [hull.shipClass]
-  );
+  // Get power plants filtered by ship class, then apply design constraints
+  const availablePowerPlants = useMemo(() => {
+    const byShipClass = getPowerPlantTypesForShipClass(hull.shipClass);
+    return byShipClass.filter((plant) => {
+      // Filter by progress level
+      if (plant.progressLevel > designProgressLevel) {
+        return false;
+      }
+      // Filter by tech tracks (if any are selected)
+      if (designTechTracks.length > 0 && plant.techTracks.length > 0) {
+        // Plant must have all its tech tracks in the allowed list
+        const hasAllowedTech = plant.techTracks.every((track) => 
+          designTechTracks.includes(track)
+        );
+        if (!hasAllowedTech) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [hull.shipClass, designProgressLevel, designTechTracks]);
 
   const totalStats = useMemo(
     () => calculateTotalPowerPlantStats(installedPowerPlants),
@@ -441,10 +464,10 @@ export function PowerPlantSelection({
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">{plant.baseCostDisplay}</Typography>
+                    <Typography variant="body2">{formatCost(plant.baseCost)}</Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">{plant.costPerHullPointDisplay}</Typography>
+                    <Typography variant="body2">{formatCost(plant.costPerHullPoint)}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2">
@@ -453,7 +476,7 @@ export function PowerPlantSelection({
                   </TableCell>
                   <TableCell align="center">
                     {plant.requiresFuel ? (
-                      <Tooltip title={`Efficiency: ${plant.fuelEfficiency} power-days/HP, Cost: ${plant.fuelCostDisplay}/HP`}>
+                      <Tooltip title={`Efficiency: ${plant.fuelEfficiency} power-days/HP, Cost: ${formatCost(plant.fuelCostPerHullPoint)}/HP`}>
                         <LocalGasStationIcon fontSize="small" color="warning" />
                       </Tooltip>
                     ) : (

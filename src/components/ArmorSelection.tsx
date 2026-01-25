@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getArmorWeightsForShipClass,
   getArmorTypesByWeight,
@@ -24,11 +25,14 @@ import {
   formatArmorCost,
   getTechTrackName,
 } from '../services/armorService';
+import { formatCost } from '../services/formatters';
 
 interface ArmorSelectionProps {
   hull: Hull;
   selectedWeight: ArmorWeight | null;
   selectedType: ArmorType | null;
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
   onArmorSelect: (weight: ArmorWeight, type: ArmorType) => void;
   onArmorClear: () => void;
 }
@@ -37,6 +41,8 @@ export function ArmorSelection({
   hull,
   selectedWeight,
   selectedType,
+  designProgressLevel,
+  designTechTracks,
   onArmorSelect,
   onArmorClear,
 }: ArmorSelectionProps) {
@@ -48,10 +54,27 @@ export function ArmorSelection({
     [hull.shipClass]
   );
 
-  const filteredTypes = useMemo(
-    () => getArmorTypesByWeight(hull.shipClass, weightFilter),
-    [hull.shipClass, weightFilter]
-  );
+  // Get armor types filtered by weight, then apply design constraints
+  const filteredTypes = useMemo(() => {
+    const byWeight = getArmorTypesByWeight(hull.shipClass, weightFilter);
+    return byWeight.filter((armor) => {
+      // Filter by progress level
+      if (armor.progressLevel > designProgressLevel) {
+        return false;
+      }
+      // Filter by tech tracks (if any are selected)
+      if (designTechTracks.length > 0 && armor.techTracks.length > 0) {
+        // Armor must have at least one tech track that's in the allowed list
+        const hasAllowedTech = armor.techTracks.every((track) => 
+          designTechTracks.includes(track)
+        );
+        if (!hasAllowedTech) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks]);
 
   const handleWeightFilterChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -114,8 +137,8 @@ export function ArmorSelection({
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>LI</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HI</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>En</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP Cost</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Total Cost</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
               </TableRow>
@@ -182,10 +205,10 @@ export function ArmorSelection({
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2">{armorType.costDisplay}</Typography>
+                      <Typography variant="body2">{hullPointsCost}</Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2">{hullPointsCost}</Typography>
+                      <Typography variant="body2">{formatCost(armorType.costPerHullPoint)}</Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2">{formatArmorCost(totalCost)}</Typography>

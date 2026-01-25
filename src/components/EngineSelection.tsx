@@ -23,6 +23,7 @@ import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SpeedIcon from '@mui/icons-material/Speed';
 import type { Hull } from '../types/hull';
 import type { EngineType, InstalledEngine } from '../types/engine';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getEngineTypesForShipClass,
   calculateEnginePowerRequired,
@@ -38,12 +39,15 @@ import {
   getTechTrackName,
   formatAcceleration,
 } from '../services/engineService';
+import { formatCost } from '../services/formatters';
 
 interface EngineSelectionProps {
   hull: Hull;
   installedEngines: InstalledEngine[];
   usedHullPoints: number;
   availablePower: number;
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
   onEnginesChange: (engines: InstalledEngine[]) => void;
 }
 
@@ -52,16 +56,35 @@ export function EngineSelection({
   installedEngines,
   usedHullPoints,
   availablePower,
+  designProgressLevel,
+  designTechTracks,
   onEnginesChange,
 }: EngineSelectionProps) {
   const [selectedType, setSelectedType] = useState<EngineType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
   const [fuelHullPointsInput, setFuelHullPointsInput] = useState<string>('');
 
-  const availableEngines = useMemo(
-    () => getEngineTypesForShipClass(hull.shipClass),
-    [hull.shipClass]
-  );
+  // Get engines filtered by ship class, then apply design constraints
+  const availableEngines = useMemo(() => {
+    const byShipClass = getEngineTypesForShipClass(hull.shipClass);
+    return byShipClass.filter((engine) => {
+      // Filter by progress level
+      if (engine.progressLevel > designProgressLevel) {
+        return false;
+      }
+      // Filter by tech tracks (if any are selected)
+      if (designTechTracks.length > 0 && engine.techTracks.length > 0) {
+        // Engine must have all its tech tracks in the allowed list
+        const hasAllowedTech = engine.techTracks.every((track) => 
+          designTechTracks.includes(track)
+        );
+        if (!hasAllowedTech) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [hull.shipClass, designProgressLevel, designTechTracks]);
 
   const totalStats = useMemo(
     () => calculateTotalEngineStats(installedEngines, hull),
@@ -453,17 +476,17 @@ export function EngineSelection({
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{engine.baseCostDisplay}</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{formatCost(engine.baseCost)}</Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{engine.costPerHullPointDisplay}</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{formatCost(engine.costPerHullPoint)}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2">{engine.minSize}</Typography>
                   </TableCell>
                   <TableCell align="center">
                     {engine.requiresFuel ? (
-                      <Tooltip title={`Efficiency: ${engine.fuelEfficiency} thrust-days/HP, Cost: ${engine.fuelCostDisplay}/HP`}>
+                      <Tooltip title={`Efficiency: ${engine.fuelEfficiency} thrust-days/HP, Cost: ${formatCost(engine.fuelCostPerHullPoint)}/HP`}>
                         <LocalGasStationIcon fontSize="small" color="warning" />
                       </Tooltip>
                     ) : (

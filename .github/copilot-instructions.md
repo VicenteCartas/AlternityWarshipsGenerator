@@ -80,6 +80,15 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 - **Ship Classes**: small-craft, light, medium, heavy, super-heavy
 - **Damage Track**: stun → wound → mortal → critical
 - **Toughness Rating**: Determines weapon effectiveness against the ship
+- **Progress Level (PL)**: Technology era (6=Fusion, 7=Gravity, 8=Energy, 9=Matter)
+- **Tech Tracks**: Specialized technology fields (G, D, A, M, F, Q, T, S, P, X, C)
+
+### Design Constraints
+The app bar contains global design constraints that filter available components:
+- **Progress Level**: Maximum PL allowed for components (components with higher PL are hidden)
+- **Tech Tracks**: When tech tracks are selected, only components that require those techs (or no tech) are shown
+- **All component grids** (Armor, Power Plant, Engines, and future grids) must be filtered by these constraints
+- Components receive `designProgressLevel` and `designTechTracks` props and filter their available options accordingly
 
 ## Coding Conventions
 
@@ -100,6 +109,15 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 - **Action columns first**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the beginning (leftmost) so users don't need to scroll to access it
 
 ## Data Format Conventions
+
+### General Principles
+- **No derived/display fields**: JSON data files should never contain fields that are simple transformations of other fields (e.g., no `costDisplay: "$500 K"` when `cost: 500000` exists). Display formatting is done at render time.
+- **Raw values only**: Store raw numeric values, enums, and IDs. Let the UI layer handle formatting.
+
+### UI Formatting
+- All helper functions that transform data into UI representation belong in `src/services/formatters.ts`
+- Examples: `formatCost()` for currency display, `formatTargetModifier()` for step modifiers
+- Components import formatting functions from `formatters.ts`, not from domain services
 
 ### Tech Tracks
 Technology tracks are represented as arrays in all data files (hulls, armor, power plants, engines):

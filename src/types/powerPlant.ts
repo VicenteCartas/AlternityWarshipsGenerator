@@ -26,14 +26,8 @@ export interface PowerPlantType {
   /** Base cost for each power plant installed */
   baseCost: number;
   
-  /** Base cost display string */
-  baseCostDisplay: string;
-  
   /** Cost per hull point of the power plant */
   costPerHullPoint: number;
-  
-  /** Cost per hull point display string */
-  costPerHullPointDisplay: string;
   
   /** Minimum size in hull points */
   minSize: number;
@@ -46,9 +40,6 @@ export interface PowerPlantType {
   
   /** Cost per hull point of fuel (if fuel required) */
   fuelCostPerHullPoint: number;
-  
-  /** Fuel cost display string */
-  fuelCostDisplay: string;
   
   /** Efficiency: power-days per hull point of fuel */
   fuelEfficiency: number;

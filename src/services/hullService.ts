@@ -61,30 +61,3 @@ export function getShipClassDisplayName(shipClass: ShipClass): string {
   };
   return names[shipClass];
 }
-
-/**
- * Format target modifier number as display string
- * 3 → "+3 steps", -1 → "-1 step", 0 → "0"
- */
-export function formatTargetModifier(modifier: number): string {
-  if (modifier === 0) {
-    return '0';
-  }
-  const sign = modifier > 0 ? '+' : '';
-  const stepWord = Math.abs(modifier) === 1 ? 'step' : 'steps';
-  return `${sign}${modifier} ${stepWord}`;
-}
-
-/**
- * Format cost for display
- */
-export function formatCost(cost: number): string {
-  if (cost >= 1_000_000_000) {
-    return `$${(cost / 1_000_000_000).toFixed(1)} B`;
-  } else if (cost >= 1_000_000) {
-    return `$${(cost / 1_000_000).toFixed(0)} M`;
-  } else if (cost >= 1_000) {
-    return `$${(cost / 1_000).toFixed(0)} K`;
-  }
-  return `$${cost}`;
-}

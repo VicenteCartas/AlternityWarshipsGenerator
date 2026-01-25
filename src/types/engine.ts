@@ -50,14 +50,8 @@ export interface EngineType {
   /** Base cost for each engine installation */
   baseCost: number;
   
-  /** Base cost display string */
-  baseCostDisplay: string;
-  
   /** Cost per hull point of the engine */
   costPerHullPoint: number;
-  
-  /** Cost per hull point display string */
-  costPerHullPointDisplay: string;
   
   /** Acceleration ratings at different hull percentage allocations */
   accelerationRatings: AccelerationRatings;
@@ -73,9 +67,6 @@ export interface EngineType {
   
   /** Cost per hull point of fuel (if fuel required) */
   fuelCostPerHullPoint: number;
-  
-  /** Fuel cost display string */
-  fuelCostDisplay: string;
   
   /** Description of the engine */
   description: string;

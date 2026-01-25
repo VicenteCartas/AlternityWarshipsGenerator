@@ -3,6 +3,7 @@ import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant } from '../types/powerPlant';
 import type { InstalledEngine } from '../types/engine';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
@@ -19,6 +20,8 @@ export interface WarshipState {
   armorType: ArmorType | null;
   powerPlants: InstalledPowerPlant[];
   engines: InstalledEngine[];
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
 }
 
 /**
@@ -44,6 +47,8 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     modifiedAt: now,
     hull: state.hull ? { id: state.hull.id } : null,
     armor: state.armorType ? { id: state.armorType.id } : null,
+    designProgressLevel: state.designProgressLevel,
+    designTechTracks: state.designTechTracks,
     powerPlants: (state.powerPlants || []).map((pp): SavedPowerPlant => ({
       typeId: pp.type.id,
       hullPoints: pp.hullPoints,
@@ -170,6 +175,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       armorType,
       powerPlants,
       engines,
+      designProgressLevel: saveFile.designProgressLevel || 7,
+      designTechTracks: saveFile.designTechTracks || [],
     },
     warnings: warnings.length > 0 ? warnings : undefined,
   };

@@ -19,8 +19,14 @@ import {
   TextField,
   InputAdornment,
   CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  Popover,
+  Checkbox,
+  FormControlLabel,
+  Divider,
 } from '@mui/material';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -35,11 +41,13 @@ import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant } from './types/powerPlant';
 import type { InstalledEngine } from './types/engine';
+import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
+import { formatCost } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
   serializeWarship, 
@@ -61,6 +69,29 @@ const steps = [
   { label: 'Systems', required: false },
 ];
 
+// All available tech tracks with display names
+const ALL_TECH_TRACKS: { code: TechTrack; name: string }[] = [
+  { code: 'G', name: 'Gravity' },
+  { code: 'D', name: 'Dimensional' },
+  { code: 'A', name: 'Antimatter' },
+  { code: 'M', name: 'Matter' },
+  { code: 'F', name: 'Fusion' },
+  { code: 'Q', name: 'Quantum' },
+  { code: 'T', name: 'Transport' },
+  { code: 'S', name: 'Structural' },
+  { code: 'P', name: 'Psionic' },
+  { code: 'X', name: 'Exotic' },
+  { code: 'C', name: 'Computer' },
+];
+
+// Progress level display names
+const PL_NAMES: Record<ProgressLevel, string> = {
+  6: 'PL6 - Fusion Age',
+  7: 'PL7 - Gravity Age',
+  8: 'PL8 - Energy Age',
+  9: 'PL9 - Matter Age',
+};
+
 function App() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
@@ -71,6 +102,13 @@ function App() {
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  
+  // Design constraints - filter available components
+  const [designProgressLevel, setDesignProgressLevel] = useState<ProgressLevel>(9);
+  const [designTechTracks, setDesignTechTracks] = useState<TechTrack[]>([]);
+  
+  // Tech track popover anchor
+  const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
   
   // Snackbar state for notifications
   const [snackbar, setSnackbar] = useState<{
@@ -106,6 +144,8 @@ function App() {
     setInstalledEngines([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
+    setDesignProgressLevel(9);
+    setDesignTechTracks([]);
     setMode('builder');
   }, []);
 
@@ -148,6 +188,8 @@ function App() {
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
       setInstalledEngines(loadResult.state.engines || []);
       setWarshipName(loadResult.state.name);
+      setDesignProgressLevel(loadResult.state.designProgressLevel);
+      setDesignTechTracks(loadResult.state.designTechTracks);
       setCurrentFilePath(filePath);
       setActiveStep(0);
       setMode('builder');
@@ -173,6 +215,8 @@ function App() {
       armorType: selectedArmorType,
       powerPlants: installedPowerPlants,
       engines: installedEngines,
+      designProgressLevel,
+      designTechTracks,
     };
 
     try {
@@ -192,7 +236,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -213,6 +257,8 @@ function App() {
       armorType: selectedArmorType,
       powerPlants: installedPowerPlants,
       engines: installedEngines,
+      designProgressLevel,
+      designTechTracks,
     };
 
     try {
@@ -227,7 +273,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -348,13 +394,6 @@ function App() {
     return remaining;
   };
 
-  // Calculate used hull points
-  const getUsedHullPoints = () => {
-    if (!selectedHull) return 0;
-    const total = selectedHull.hullPoints + selectedHull.bonusHullPoints;
-    return total - getRemainingHullPoints();
-  };
-
   // Calculate total power generated
   const getTotalPower = () => {
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
@@ -373,48 +412,6 @@ function App() {
     const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
     cost += engineStats.totalCost;
     return cost;
-  };
-
-  // Format cost for display
-  const formatCost = (cost: number): string => {
-    if (cost >= 1_000_000_000) {
-      return `$${(cost / 1_000_000_000).toFixed(1)}B`;
-    } else if (cost >= 1_000_000) {
-      return `$${(cost / 1_000_000).toFixed(1)}M`;
-    } else if (cost >= 1_000) {
-      return `$${(cost / 1_000).toFixed(0)}K`;
-    }
-    return `$${cost}`;
-  };
-
-  // Get maximum progress level across all components
-  const getMaxProgressLevel = (): number => {
-    const levels: number[] = [];
-    if (selectedArmorType) {
-      levels.push(selectedArmorType.progressLevel);
-    }
-    installedPowerPlants.forEach((pp) => {
-      levels.push(pp.type.progressLevel);
-    });
-    installedEngines.forEach((eng) => {
-      levels.push(eng.type.progressLevel);
-    });
-    return levels.length > 0 ? Math.max(...levels) : 0;
-  };
-
-  // Get unique tech tracks across all components
-  const getUniqueTechTracks = (): string[] => {
-    const tracks = new Set<string>();
-    if (selectedArmorType) {
-      selectedArmorType.techTracks.forEach((track) => tracks.add(track));
-    }
-    installedPowerPlants.forEach((pp) => {
-      pp.type.techTracks.forEach((track) => tracks.add(track));
-    });
-    installedEngines.forEach((eng) => {
-      eng.type.techTracks.forEach((track) => tracks.add(track));
-    });
-    return Array.from(tracks).sort();
   };
 
   const renderStepContent = () => {
@@ -439,6 +436,8 @@ function App() {
             hull={selectedHull}
             selectedWeight={selectedArmorWeight}
             selectedType={selectedArmorType}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
             onArmorSelect={handleArmorSelect}
             onArmorClear={handleArmorClear}
           />
@@ -456,6 +455,8 @@ function App() {
             hull={selectedHull}
             installedPowerPlants={installedPowerPlants}
             usedHullPoints={getUsedHullPointsBeforePowerPlants()}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
             onPowerPlantsChange={handlePowerPlantsChange}
           />
         );
@@ -473,6 +474,8 @@ function App() {
             installedEngines={installedEngines}
             usedHullPoints={getUsedHullPointsBeforeEngines()}
             availablePower={getTotalPower()}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
             onEnginesChange={handleEnginesChange}
           />
         );
@@ -521,15 +524,13 @@ function App() {
       {/* App Bar */}
       <AppBar position="sticky" color="default" elevation={1} sx={{ top: 0, zIndex: 1200 }}>
         <Toolbar sx={{ minHeight: 64 }}>
-          <RocketLaunchIcon sx={{ mr: 2, color: 'primary.main' }} />
           <TextField
             value={warshipName}
             onChange={(e) => setWarshipName(e.target.value)}
             variant="standard"
             placeholder="Ship Name"
             sx={{
-              flexGrow: 1,
-              maxWidth: 300,
+              maxWidth: 250,
               '& .MuiInput-root': {
                 fontSize: '1.25rem',
                 fontWeight: 500,
@@ -549,6 +550,87 @@ function App() {
               ),
             }}
           />
+          
+          {/* Divider */}
+          <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
+          
+          {/* Progress Level selector */}
+          <FormControl size="small" sx={{ minWidth: 90 }}>
+            <Select
+              value={designProgressLevel}
+              onChange={(e) => setDesignProgressLevel(e.target.value as ProgressLevel)}
+              variant="outlined"
+              sx={{ 
+                '& .MuiSelect-select': { py: 0.75 },
+                fontSize: '0.875rem',
+              }}
+            >
+              {([6, 7, 8, 9] as ProgressLevel[]).map((pl) => (
+                <MenuItem key={pl} value={pl}>
+                  <Tooltip title={PL_NAMES[pl]} placement="right">
+                    <span>PL {pl}</span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          {/* Tech Track selector */}
+          <Tooltip title="Select available technology tracks">
+            <Chip
+              label={designTechTracks.length > 0 
+                ? `Tech: ${designTechTracks.join(', ')}` 
+                : 'Tech: All'}
+              onClick={(e) => setTechAnchorEl(e.currentTarget)}
+              variant="outlined"
+              size="small"
+              sx={{ ml: 1, cursor: 'pointer' }}
+            />
+          </Tooltip>
+          <Popover
+            open={Boolean(techAnchorEl)}
+            anchorEl={techAnchorEl}
+            onClose={() => setTechAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          >
+            <Box sx={{ p: 2, minWidth: 200 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Technology Tracks
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                Leave all unchecked to show all components
+              </Typography>
+              {ALL_TECH_TRACKS.map(({ code, name }) => (
+                <FormControlLabel
+                  key={code}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={designTechTracks.includes(code)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setDesignTechTracks([...designTechTracks, code]);
+                        } else {
+                          setDesignTechTracks(designTechTracks.filter((t) => t !== code));
+                        }
+                      }}
+                    />
+                  }
+                  label={`${code} - ${name}`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+              ))}
+              <Button 
+                size="small" 
+                onClick={() => setDesignTechTracks([])}
+                sx={{ mt: 1 }}
+              >
+                Clear All
+              </Button>
+            </Box>
+          </Popover>
+          
           <Box sx={{ flexGrow: 1 }} />
           {selectedHull && (
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
@@ -572,18 +654,6 @@ function App() {
               />
               <Chip
                 label={`Cost: ${formatCost(getTotalCost())}`}
-                color="default"
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`PL: ${getMaxProgressLevel()}`}
-                color="default"
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`Tech: ${getUniqueTechTracks().length > 0 ? getUniqueTechTracks().join(', ') : 'None'}`}
                 color="default"
                 variant="outlined"
                 size="small"

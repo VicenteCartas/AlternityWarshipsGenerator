@@ -1,3 +1,5 @@
+import type { ProgressLevel, TechTrack } from './common';
+
 /**
  * Save file format for Alternity Warships
  */
@@ -53,6 +55,12 @@ export interface WarshipSaveFile {
     /** Armor type ID (includes weight in the ID) */
     id: string;
   } | null;
+  
+  /** Design progress level constraint */
+  designProgressLevel: ProgressLevel;
+  
+  /** Design tech tracks constraint (empty means all allowed) */
+  designTechTracks: TechTrack[];
   
   /** Installed power plants */
   powerPlants: SavedPowerPlant[];

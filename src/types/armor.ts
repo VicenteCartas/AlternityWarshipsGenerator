@@ -39,9 +39,6 @@ export interface ArmorType {
   /** Cost per hull point of armor */
   costPerHullPoint: number;
   
-  /** Cost display string */
-  costDisplay: string;
-  
   /** Description */
   description: string;
 }

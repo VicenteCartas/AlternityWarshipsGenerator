@@ -19,8 +19,8 @@ import {
   getAllHulls,
   getShipClasses,
   getShipClassDisplayName,
-  formatTargetModifier,
 } from '../services/hullService';
+import { formatCost, formatTargetModifier } from '../services/formatters';
 
 interface HullSelectionProps {
   selectedHull: Hull | null;
@@ -182,7 +182,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
                     <Typography variant="body2">{hull.crew.toLocaleString()}</Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">{hull.costDisplay}</Typography>
+                    <Typography variant="body2">{formatCost(hull.cost)}</Typography>
                   </TableCell>
                   <TableCell>
                     <Tooltip title={hull.description} placement="left">

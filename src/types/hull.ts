@@ -73,9 +73,6 @@ export interface Hull {
   /** Hull cost in credits */
   cost: number;
   
-  /** Cost display string (e.g., "$300 K", "$20 M") */
-  costDisplay: string;
-  
   /** Description of the hull type */
   description: string;
 }
