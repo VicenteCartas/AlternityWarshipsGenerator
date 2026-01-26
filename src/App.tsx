@@ -712,7 +712,7 @@ function App() {
                 case 0: return selectedHull !== null; // Hull
                 case 1: return selectedArmorWeight !== null; // Armor (optional)
                 case 2: return installedPowerPlants.length > 0; // Power Plant
-                case 3: return false; // Engines (not implemented yet)
+                case 3: return installedEngines.length > 0; // Engines
                 case 4: return false; // FTL Drive (not implemented yet)
                 case 5: return false; // Systems (not implemented yet)
                 default: return false;
