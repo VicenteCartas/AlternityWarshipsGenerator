@@ -55,6 +55,36 @@ export interface SavedFTLDrive {
 }
 
 /**
+ * Installed life support in save file
+ */
+export interface SavedLifeSupport {
+  /** The life support type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+}
+
+/**
+ * Installed accommodation in save file
+ */
+export interface SavedAccommodation {
+  /** The accommodation type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+}
+
+/**
+ * Installed store system in save file
+ */
+export interface SavedStoreSystem {
+  /** The store system type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -102,6 +132,15 @@ export interface WarshipSaveFile {
 
   /** FTL drive configuration */
   ftlDrive: SavedFTLDrive | null;
+  
+  /** Installed life support units */
+  lifeSupport: SavedLifeSupport[];
+  
+  /** Installed accommodations */
+  accommodations: SavedAccommodation[];
+  
+  /** Installed store systems */
+  storeSystems: SavedStoreSystem[];
   
   /** Installed systems (future) */
   systems: unknown[];

@@ -51,8 +51,8 @@ interface FTLDriveSelectionProps {
 export function FTLDriveSelection({
   hull,
   installedFTLDrive,
-  usedHullPoints,
-  availablePower,
+  usedHullPoints: _usedHullPoints,
+  availablePower: _availablePower,
   designProgressLevel,
   designTechTracks,
   onFTLDriveChange,

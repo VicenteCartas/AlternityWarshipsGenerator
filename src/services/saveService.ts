@@ -1,9 +1,10 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive } from '../types/ftlDrive';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from '../types/supportSystem';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -11,6 +12,7 @@ import { getAllArmorTypes } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
 import { getAllFTLDriveTypes, generateFTLInstallationId } from './ftlDriveService';
+import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId } from './supportSystemService';
 
 /**
  * State representing the current warship configuration
@@ -25,6 +27,9 @@ export interface WarshipState {
   engines: InstalledEngine[];
   engineFuelTanks: InstalledEngineFuelTank[];
   ftlDrive: InstalledFTLDrive | null;
+  lifeSupport: InstalledLifeSupport[];
+  accommodations: InstalledAccommodation[];
+  storeSystems: InstalledStoreSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -74,6 +79,18 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       typeId: state.ftlDrive.type.id,
       hullPoints: state.ftlDrive.hullPoints,
     } as SavedFTLDrive : null,
+    lifeSupport: (state.lifeSupport || []).map((ls): SavedLifeSupport => ({
+      typeId: ls.type.id,
+      quantity: ls.quantity,
+    })),
+    accommodations: (state.accommodations || []).map((acc): SavedAccommodation => ({
+      typeId: acc.type.id,
+      quantity: acc.quantity,
+    })),
+    storeSystems: (state.storeSystems || []).map((ss): SavedStoreSystem => ({
+      typeId: ss.type.id,
+      quantity: ss.quantity,
+    })),
     systems: [],
   };
 }
@@ -221,6 +238,57 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load life support
+  const lifeSupport: InstalledLifeSupport[] = [];
+  const allLifeSupportTypes = getAllLifeSupportTypes();
+  
+  for (const savedLS of (saveFile.lifeSupport || [])) {
+    const lsType = allLifeSupportTypes.find(t => t.id === savedLS.typeId);
+    if (lsType) {
+      lifeSupport.push({
+        id: generateLifeSupportId(),
+        type: lsType,
+        quantity: savedLS.quantity,
+      });
+    } else {
+      warnings.push(`Life support type not found: ${savedLS.typeId}`);
+    }
+  }
+  
+  // Load accommodations
+  const accommodations: InstalledAccommodation[] = [];
+  const allAccommodationTypes = getAllAccommodationTypes();
+  
+  for (const savedAcc of (saveFile.accommodations || [])) {
+    const accType = allAccommodationTypes.find(t => t.id === savedAcc.typeId);
+    if (accType) {
+      accommodations.push({
+        id: generateAccommodationId(),
+        type: accType,
+        quantity: savedAcc.quantity,
+      });
+    } else {
+      warnings.push(`Accommodation type not found: ${savedAcc.typeId}`);
+    }
+  }
+  
+  // Load store systems
+  const storeSystems: InstalledStoreSystem[] = [];
+  const allStoreSystemTypes = getAllStoreSystemTypes();
+  
+  for (const savedSS of (saveFile.storeSystems || [])) {
+    const ssType = allStoreSystemTypes.find(t => t.id === savedSS.typeId);
+    if (ssType) {
+      storeSystems.push({
+        id: generateStoreSystemId(),
+        type: ssType,
+        quantity: savedSS.quantity,
+      });
+    } else {
+      warnings.push(`Store system type not found: ${savedSS.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -238,6 +306,9 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       engines,
       engineFuelTanks,
       ftlDrive,
+      lifeSupport,
+      accommodations,
+      storeSystems,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

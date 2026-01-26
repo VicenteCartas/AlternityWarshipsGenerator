@@ -13,7 +13,7 @@ export function getAllEngineTypes(): EngineType[] {
  * Get engine types available for a specific ship class
  * Currently all engines are available for all ship classes
  */
-export function getEngineTypesForShipClass(shipClass: ShipClass): EngineType[] {
+export function getEngineTypesForShipClass(_shipClass: ShipClass): EngineType[] {
   // All engines are available for all ship classes
   return getAllEngineTypes();
 }

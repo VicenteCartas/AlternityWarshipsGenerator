@@ -38,11 +38,13 @@ import { ArmorSelection } from './components/ArmorSelection';
 import { PowerPlantSelection } from './components/PowerPlantSelection';
 import { EngineSelection } from './components/EngineSelection';
 import { FTLDriveSelection } from './components/FTLDriveSelection';
+import { SupportSystemsSelection } from './components/SupportSystemsSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
 import type { InstalledFTLDrive } from './types/ftlDrive';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from './types/supportSystem';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -50,6 +52,7 @@ import { calculateArmorHullPoints, calculateArmorCost } from './services/armorSe
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
 import { calculateTotalFTLStats } from './services/ftlDriveService';
+import { calculateSupportSystemsStats } from './services/supportSystemService';
 import { formatCost } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
@@ -69,7 +72,7 @@ const steps = [
   { label: 'Power Plant', required: true },
   { label: 'Engines', required: true },
   { label: 'FTL Drive', required: false },
-  { label: 'Systems', required: false },
+  { label: 'Support Systems', required: false },
 ];
 
 // All available tech tracks with display names
@@ -106,6 +109,9 @@ function App() {
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [installedEngineFuelTanks, setInstalledEngineFuelTanks] = useState<InstalledEngineFuelTank[]>([]);
   const [installedFTLDrive, setInstalledFTLDrive] = useState<InstalledFTLDrive | null>(null);
+  const [installedLifeSupport, setInstalledLifeSupport] = useState<InstalledLifeSupport[]>([]);
+  const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
+  const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -151,6 +157,9 @@ function App() {
     setInstalledEngines([]);
     setInstalledEngineFuelTanks([]);
     setInstalledFTLDrive(null);
+    setInstalledLifeSupport([]);
+    setInstalledAccommodations([]);
+    setInstalledStoreSystems([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -199,6 +208,10 @@ function App() {
       setInstalledEngines(loadResult.state.engines || []);
       setInstalledEngineFuelTanks(loadResult.state.engineFuelTanks || []);
       setInstalledFTLDrive(loadResult.state.ftlDrive || null);
+      setInstalledLifeSupport(loadResult.state.lifeSupport || []);
+      setInstalledAccommodations(loadResult.state.accommodations || []);
+      setInstalledStoreSystems(loadResult.state.storeSystems || []);
+      setInstalledFTLDrive(loadResult.state.ftlDrive || null);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -230,6 +243,9 @@ function App() {
       engines: installedEngines,
       engineFuelTanks: installedEngineFuelTanks,
       ftlDrive: installedFTLDrive,
+      lifeSupport: installedLifeSupport,
+      accommodations: installedAccommodations,
+      storeSystems: installedStoreSystems,
       designProgressLevel,
       designTechTracks,
     };
@@ -251,7 +267,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedLifeSupport, installedAccommodations, installedStoreSystems, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -275,6 +291,9 @@ function App() {
       engines: installedEngines,
       engineFuelTanks: installedEngineFuelTanks,
       ftlDrive: installedFTLDrive,
+      lifeSupport: installedLifeSupport,
+      accommodations: installedAccommodations,
+      storeSystems: installedStoreSystems,
       designProgressLevel,
       designTechTracks,
     };
@@ -291,7 +310,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedLifeSupport, installedAccommodations, installedStoreSystems, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -370,6 +389,18 @@ function App() {
     setInstalledFTLDrive(drive);
   };
 
+  const handleLifeSupportChange = (lifeSupport: InstalledLifeSupport[]) => {
+    setInstalledLifeSupport(lifeSupport);
+  };
+
+  const handleAccommodationsChange = (accommodations: InstalledAccommodation[]) => {
+    setInstalledAccommodations(accommodations);
+  };
+
+  const handleStoreSystemsChange = (storeSystems: InstalledStoreSystem[]) => {
+    setInstalledStoreSystems(storeSystems);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -411,6 +442,17 @@ function App() {
     return used;
   };
 
+  // Calculate used hull points before support systems (armor + power plants + engines + FTL)
+  const getUsedHullPointsBeforeSupportSystems = () => {
+    if (!selectedHull) return 0;
+    let used = getUsedHullPointsBeforeFTL();
+    if (installedFTLDrive) {
+      const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
+      used += ftlStats.totalHullPoints;
+    }
+    return used;
+  };
+
   // Calculate remaining hull points
   const getRemainingHullPoints = () => {
     if (!selectedHull) return 0;
@@ -426,6 +468,8 @@ function App() {
       const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
       remaining -= ftlStats.totalHullPoints;
     }
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+    remaining -= supportStats.totalHullPoints;
     return remaining;
   };
 
@@ -450,6 +494,8 @@ function App() {
       const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
       cost += ftlStats.totalCost;
     }
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+    cost += supportStats.totalCost;
     return cost;
   };
 
@@ -468,6 +514,15 @@ function App() {
     if (installedFTLDrive) {
       installedFTLDrive.type.techTracks.forEach((t) => tracks.add(t));
     }
+    installedLifeSupport.forEach((ls) => {
+      ls.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedAccommodations.forEach((acc) => {
+      acc.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedStoreSystems.forEach((ss) => {
+      ss.type.techTracks.forEach((t) => tracks.add(t));
+    });
     return Array.from(tracks).sort();
   };
 
@@ -557,6 +612,29 @@ function App() {
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onFTLDriveChange={handleFTLDriveChange}
+          />
+        );
+      case 5:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <SupportSystemsSelection
+            hull={selectedHull}
+            installedLifeSupport={installedLifeSupport}
+            installedAccommodations={installedAccommodations}
+            installedStoreSystems={installedStoreSystems}
+            usedHullPoints={getUsedHullPointsBeforeSupportSystems()}
+            availablePower={getTotalPower()}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onLifeSupportChange={handleLifeSupportChange}
+            onAccommodationsChange={handleAccommodationsChange}
+            onStoreSystemsChange={handleStoreSystemsChange}
           />
         );
       default:
@@ -765,7 +843,7 @@ function App() {
                 case 2: return installedPowerPlants.length > 0; // Power Plant
                 case 3: return installedEngines.length > 0; // Engines
                 case 4: return installedFTLDrive !== null; // FTL Drive (optional)
-                case 5: return false; // Systems (not implemented yet)
+                case 5: return installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0; // Support Systems (optional)
                 default: return false;
               }
             })();

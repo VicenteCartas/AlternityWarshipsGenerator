@@ -1,0 +1,170 @@
+{
+  "lifeSupport": [
+    {
+      "id": "life-support-unit",
+      "name": "Life Support Unit",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 1,
+      "cost": 100000,
+      "hullPointsCovered": 20,
+      "description": "Basic life support providing heat, oxygen, and a safe environment for 20 hull points of ship space."
+    },
+    {
+      "id": "autosupport",
+      "name": "Autosupport Unit",
+      "progressLevel": 7,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 1,
+      "cost": 200000,
+      "hullPointsCovered": 40,
+      "description": "Advanced automated life support system covering 40 hull points of ship space."
+    },
+    {
+      "id": "symbiotic-hull",
+      "name": "Symbiotic Hull",
+      "progressLevel": 8,
+      "techTracks": ["P", "M"],
+      "hullPoints": 1,
+      "powerRequired": 1,
+      "cost": 250000,
+      "hullPointsCovered": 100,
+      "recyclingCapacity": 20,
+      "description": "Biomechanical life support covering 100 hull points and providing recycling for 20 people."
+    }
+  ],
+  "accommodations": [
+    {
+      "id": "crew-bunkroom",
+      "name": "Crew/Troop Bunkroom",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 0,
+      "cost": 40000,
+      "capacity": 20,
+      "category": "crew",
+      "includesAirlock": true,
+      "description": "Basic berthing for 20 crewmen with bunks, includes one airlock."
+    },
+    {
+      "id": "cabin",
+      "name": "Cabin",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 0,
+      "cost": 20000,
+      "capacity": 2,
+      "category": "crew",
+      "includesAirlock": false,
+      "description": "Small private cabin for 2 crewmen."
+    },
+    {
+      "id": "crew-quarters",
+      "name": "Crew Quarters",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 20000,
+      "capacity": 6,
+      "category": "crew",
+      "includesAirlock": true,
+      "description": "Shared quarters for 6 crewmen with common facilities, includes one airlock."
+    },
+    {
+      "id": "seating-deck",
+      "name": "Seating Deck",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 10000,
+      "capacity": 20,
+      "category": "passenger",
+      "includesAirlock": false,
+      "description": "Short-term seating for 20 passengers, suitable for brief trips."
+    },
+    {
+      "id": "passenger-quarters",
+      "name": "Passenger Quarters",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 2,
+      "category": "passenger",
+      "includesAirlock": false,
+      "description": "Comfortable staterooms for 2 passengers."
+    },
+    {
+      "id": "cryogenics-unit",
+      "name": "Cryogenics Unit",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 1,
+      "cost": 100000,
+      "capacity": 12,
+      "category": "suspended",
+      "includesAirlock": false,
+      "description": "Cryogenic suspension pods for 12 people in frozen stasis."
+    },
+    {
+      "id": "life-suspension-unit",
+      "name": "Life Suspension Unit",
+      "progressLevel": 7,
+      "techTracks": ["S"],
+      "hullPoints": 1,
+      "powerRequired": 1,
+      "cost": 250000,
+      "capacity": 12,
+      "category": "suspended",
+      "includesAirlock": false,
+      "description": "Advanced suspended animation for 12 people who don't age or require provisions."
+    }
+  ],
+  "storeSystems": [
+    {
+      "id": "hydroponics-bay",
+      "name": "Hydroponics Bay",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 1,
+      "cost": 75000,
+      "effect": "feeds",
+      "effectValue": 10,
+      "description": "Self-sustaining ecosystem that feeds 10 people, reducing stores consumption."
+    },
+    {
+      "id": "recycler-unit",
+      "name": "Recycler Unit",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 1,
+      "cost": 300000,
+      "effect": "reduces-consumption",
+      "effectValue": 10,
+      "affectedPeople": 20,
+      "description": "Recaptures biomass to reduce stores consumption to 10% for 20 people."
+    },
+    {
+      "id": "deep-stores",
+      "name": "Deep Stores",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 0,
+      "cost": 5000,
+      "effect": "adds-stores",
+      "effectValue": 1000,
+      "description": "Additional storage capacity adding 1,000 days of stores."
+    }
+  ]
+}
