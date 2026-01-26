@@ -1,6 +1,6 @@
-import type { PowerPlantType, InstalledPowerPlant, PowerPlantStats } from '../types/powerPlant';
+import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull, ShipClass } from '../types/hull';
-import { getPowerPlantsData } from './dataLoader';
+import { getPowerPlantsData, getFuelTankData } from './dataLoader';
 
 /**
  * Get all power plant types
@@ -10,16 +10,17 @@ export function getAllPowerPlantTypes(): PowerPlantType[] {
 }
 
 /**
+ * Get the fuel tank type definition
+ */
+export function getFuelTankType(): FuelTankType {
+  return getFuelTankData();
+}
+
+/**
  * Get power plant types available for a specific ship class
  */
-export function getPowerPlantTypesForShipClass(shipClass: ShipClass): PowerPlantType[] {
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const classIndex = classOrder.indexOf(shipClass);
-  
-  return getAllPowerPlantTypes().filter((plant) => {
-    const minIndex = classOrder.indexOf(plant.minShipClass);
-    return classIndex >= minIndex;
-  });
+export function getPowerPlantTypesForShipClass(_shipClass: ShipClass): PowerPlantType[] {
+  return getAllPowerPlantTypes();
 }
 
 /**
@@ -27,6 +28,13 @@ export function getPowerPlantTypesForShipClass(shipClass: ShipClass): PowerPlant
  */
 export function getPowerPlantTypeById(id: string): PowerPlantType | undefined {
   return getAllPowerPlantTypes().find((plant) => plant.id === id);
+}
+
+/**
+ * Get power plant types that require fuel
+ */
+export function getFuelRequiringPlantTypes(): PowerPlantType[] {
+  return getAllPowerPlantTypes().filter(plant => plant.requiresFuel);
 }
 
 /**
@@ -44,76 +52,109 @@ export function calculatePowerPlantCost(plant: PowerPlantType, hullPoints: numbe
 }
 
 /**
- * Calculate fuel cost
+ * Calculate total cost for a fuel tank installation
+ * Cost = tank base cost + tank cost per HP + fuel cost per HP (from power plant)
  */
-export function calculateFuelCost(plant: PowerPlantType, fuelHullPoints: number): number {
-  if (!plant.requiresFuel || fuelHullPoints === 0) return 0;
-  return plant.fuelCostPerHullPoint * fuelHullPoints;
+export function calculateFuelTankCost(forPlantType: PowerPlantType, hullPoints: number): number {
+  const fuelTankType = getFuelTankType();
+  const tankCost = fuelTankType.baseCost + (fuelTankType.costPerHullPoint * hullPoints);
+  const fuelCost = forPlantType.fuelCostPerHullPoint * hullPoints;
+  return tankCost + fuelCost;
 }
 
 /**
- * Calculate endurance in days for a power plant with fuel
+ * Calculate endurance in days for a fuel tank
+ * Fuel efficiency is power-days per hull point of fuel for a 1-hull-point plant
  */
-export function calculateEnduranceDays(
-  plant: PowerPlantType, 
-  powerPlantHullPoints: number, 
-  fuelHullPoints: number
-): number | null {
-  if (!plant.requiresFuel || fuelHullPoints === 0) return null;
-  
-  // Fuel efficiency is power-days per hull point of fuel for a 1-hull-point plant
-  // For larger plants, divide by plant size
-  const powerDaysPerFuelHP = plant.fuelEfficiency / powerPlantHullPoints;
-  return Math.floor(powerDaysPerFuelHP * fuelHullPoints);
+export function calculateFuelTankEndurance(
+  forPlantType: PowerPlantType,
+  fuelTankHullPoints: number,
+  plantHullPoints: number
+): number {
+  if (plantHullPoints === 0) return 0;
+  const powerDaysPerFuelHP = forPlantType.fuelEfficiency / plantHullPoints;
+  return Math.floor(powerDaysPerFuelHP * fuelTankHullPoints);
+}
+
+/**
+ * Get total fuel tank HP for a specific power plant type
+ */
+export function getTotalFuelTankHPForPlantType(
+  fuelTanks: InstalledFuelTank[],
+  plantTypeId: string
+): number {
+  return fuelTanks
+    .filter(tank => tank.forPowerPlantType.id === plantTypeId)
+    .reduce((sum, tank) => sum + tank.hullPoints, 0);
+}
+
+/**
+ * Get total fuel tank HP across all fuel tanks
+ */
+export function getTotalFuelTankHP(fuelTanks: InstalledFuelTank[]): number {
+  return fuelTanks.reduce((sum, tank) => sum + tank.hullPoints, 0);
+}
+
+/**
+ * Check if any installed power plant requires fuel
+ */
+export function hasFuelRequiringPlants(installations: InstalledPowerPlant[]): boolean {
+  return installations.some(inst => inst.type.requiresFuel);
+}
+
+/**
+ * Get installed power plants that require fuel
+ */
+export function getFuelRequiringInstallations(installations: InstalledPowerPlant[]): InstalledPowerPlant[] {
+  return installations.filter(inst => inst.type.requiresFuel);
 }
 
 /**
  * Calculate total stats for an installed power plant
  */
 export function calculatePowerPlantStats(installation: InstalledPowerPlant): PowerPlantStats {
-  const { type, hullPoints, fuelHullPoints } = installation;
+  const { type, hullPoints } = installation;
   
   return {
     powerGenerated: calculatePowerGenerated(type, hullPoints),
-    totalHullPoints: hullPoints + fuelHullPoints,
-    totalCost: calculatePowerPlantCost(type, hullPoints) + calculateFuelCost(type, fuelHullPoints),
-    enduranceDays: calculateEnduranceDays(type, hullPoints, fuelHullPoints),
+    totalHullPoints: hullPoints,
+    totalCost: calculatePowerPlantCost(type, hullPoints),
   };
 }
 
 /**
- * Calculate total stats for all installed power plants
+ * Calculate total stats for all installed power plants and fuel tanks
  */
-export function calculateTotalPowerPlantStats(installations: InstalledPowerPlant[]): {
+export function calculateTotalPowerPlantStats(
+  installations: InstalledPowerPlant[],
+  fuelTanks: InstalledFuelTank[]
+): {
   totalPowerGenerated: number;
   totalHullPoints: number;
   totalCost: number;
-  minEnduranceDays: number | null;
 } {
   let totalPowerGenerated = 0;
   let totalHullPoints = 0;
   let totalCost = 0;
-  let minEnduranceDays: number | null = null;
   
+  // Add power plant stats
   for (const installation of installations) {
     const stats = calculatePowerPlantStats(installation);
     totalPowerGenerated += stats.powerGenerated;
     totalHullPoints += stats.totalHullPoints;
     totalCost += stats.totalCost;
-    
-    // Track minimum endurance (fuel-limited plants)
-    if (stats.enduranceDays !== null) {
-      if (minEnduranceDays === null || stats.enduranceDays < minEnduranceDays) {
-        minEnduranceDays = stats.enduranceDays;
-      }
-    }
+  }
+  
+  // Add fuel tank stats
+  for (const tank of fuelTanks) {
+    totalHullPoints += tank.hullPoints;
+    totalCost += calculateFuelTankCost(tank.forPowerPlantType, tank.hullPoints);
   }
   
   return {
     totalPowerGenerated,
     totalHullPoints,
     totalCost,
-    minEnduranceDays,
   };
 }
 
@@ -123,7 +164,6 @@ export function calculateTotalPowerPlantStats(installations: InstalledPowerPlant
 export function validatePowerPlantInstallation(
   plant: PowerPlantType,
   hullPoints: number,
-  fuelHullPoints: number,
   hull: Hull,
   _existingInstallations: InstalledPowerPlant[],
   usedHullPoints: number
@@ -135,29 +175,10 @@ export function validatePowerPlantInstallation(
     errors.push(`${plant.name} requires a minimum of ${plant.minSize} hull points.`);
   }
   
-  // Check maximum size
-  if (plant.maxSize > 0 && hullPoints > plant.maxSize) {
-    errors.push(`${plant.name} has a maximum size of ${plant.maxSize} hull points.`);
-  }
-  
-  // Check ship class
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const shipClassIndex = classOrder.indexOf(hull.shipClass);
-  const minClassIndex = classOrder.indexOf(plant.minShipClass);
-  if (shipClassIndex < minClassIndex) {
-    errors.push(`${plant.name} cannot be installed on ${hull.shipClass} ships.`);
-  }
-  
   // Check available hull points
-  const totalHullPointsNeeded = hullPoints + fuelHullPoints;
   const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (totalHullPointsNeeded > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${totalHullPointsNeeded}, have ${availableHullPoints}.`);
-  }
-  
-  // Check fuel requirement
-  if (plant.requiresFuel && fuelHullPoints === 0) {
-    errors.push(`${plant.name} requires fuel. Please allocate fuel hull points.`);
+  if (hullPoints > availableHullPoints) {
+    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
   }
   
   return {
@@ -167,10 +188,69 @@ export function validatePowerPlantInstallation(
 }
 
 /**
- * Generate a unique installation ID
+ * Validate a fuel tank installation
+ */
+export function validateFuelTankInstallation(
+  hullPoints: number,
+  hull: Hull,
+  usedHullPoints: number
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Check minimum size (fuel tanks have min 1 HP)
+  if (hullPoints < 1) {
+    errors.push('Fuel tank requires at least 1 hull point.');
+  }
+  
+  // Check available hull points
+  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
+  if (hullPoints > availableHullPoints) {
+    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate all power plant installations together (design-level validation)
+ */
+export function validatePowerPlantDesign(
+  installations: InstalledPowerPlant[],
+  fuelTanks: InstalledFuelTank[]
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Check if fuel-requiring plants exist without fuel tanks
+  const fuelRequiringPlants = getFuelRequiringInstallations(installations);
+  
+  for (const plant of fuelRequiringPlants) {
+    const fuelTankHP = getTotalFuelTankHPForPlantType(fuelTanks, plant.type.id);
+    if (fuelTankHP === 0) {
+      errors.push(`Power plant "${plant.type.name}" requires fuel. Install at least one fuel tank for it.`);
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Generate a unique installation ID for power plants
  */
 export function generateInstallationId(): string {
   return `pp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Generate a unique installation ID for fuel tanks
+ */
+export function generateFuelTankId(): string {
+  return `ft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
@@ -185,25 +265,4 @@ export function formatPowerPlantCost(cost: number): string {
     return `$${(cost / 1_000).toFixed(0)}K`;
   }
   return `$${cost}`;
-}
-
-/**
- * Get tech track display name
- */
-export function getTechTrackName(track: string): string {
-  const names: Record<string, string> = {
-    '-': 'None',
-    'G': 'Gravity Manipulation',
-    'D': 'Dark Matter Tech',
-    'A': 'Antimatter Tech',
-    'M': 'Matter Coding',
-    'F': 'Fusion Tech',
-    'Q': 'Quantum Manipulation',
-    'T': 'Matter Transmission',
-    'S': 'Super-Materials',
-    'P': 'Psi-tech',
-    'X': 'Energy Transformation',
-    'C': 'Computer Tech',
-  };
-  return names[track] || track;
 }

@@ -39,7 +39,7 @@ import { PowerPlantSelection } from './components/PowerPlantSelection';
 import { EngineSelection } from './components/EngineSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
-import type { InstalledPowerPlant } from './types/powerPlant';
+import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine } from './types/engine';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
@@ -99,6 +99,7 @@ function App() {
   const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
   const [selectedArmorType, setSelectedArmorType] = useState<ArmorType | null>(null);
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
+  const [installedFuelTanks, setInstalledFuelTanks] = useState<InstalledFuelTank[]>([]);
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
@@ -141,6 +142,7 @@ function App() {
     setSelectedArmorWeight(null);
     setSelectedArmorType(null);
     setInstalledPowerPlants([]);
+    setInstalledFuelTanks([]);
     setInstalledEngines([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
@@ -186,6 +188,7 @@ function App() {
       setSelectedArmorWeight(loadResult.state.armorWeight);
       setSelectedArmorType(loadResult.state.armorType);
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
+      setInstalledFuelTanks(loadResult.state.fuelTanks || []);
       setInstalledEngines(loadResult.state.engines || []);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
@@ -214,6 +217,7 @@ function App() {
       armorWeight: selectedArmorWeight,
       armorType: selectedArmorType,
       powerPlants: installedPowerPlants,
+      fuelTanks: installedFuelTanks,
       engines: installedEngines,
       designProgressLevel,
       designTechTracks,
@@ -236,7 +240,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -256,6 +260,7 @@ function App() {
       armorWeight: selectedArmorWeight,
       armorType: selectedArmorType,
       powerPlants: installedPowerPlants,
+      fuelTanks: installedFuelTanks,
       engines: installedEngines,
       designProgressLevel,
       designTechTracks,
@@ -273,7 +278,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedEngines, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -375,7 +380,7 @@ function App() {
   const getUsedHullPointsBeforeEngines = () => {
     if (!selectedHull) return 0;
     let used = getUsedHullPointsBeforePowerPlants();
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     used += powerPlantStats.totalHullPoints;
     return used;
   };
@@ -387,7 +392,7 @@ function App() {
     if (selectedArmorWeight) {
       remaining -= calculateArmorHullPoints(selectedHull, selectedArmorWeight);
     }
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     remaining -= powerPlantStats.totalHullPoints;
     const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
     remaining -= engineStats.totalHullPoints;
@@ -396,7 +401,7 @@ function App() {
 
   // Calculate total power generated
   const getTotalPower = () => {
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     return powerPlantStats.totalPowerGenerated;
   };
 
@@ -407,7 +412,7 @@ function App() {
     if (selectedArmorWeight && selectedArmorType) {
       cost += calculateArmorCost(selectedHull, selectedArmorWeight, selectedArmorType);
     }
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants);
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     cost += powerPlantStats.totalCost;
     const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
     cost += engineStats.totalCost;
@@ -454,10 +459,12 @@ function App() {
           <PowerPlantSelection
             hull={selectedHull}
             installedPowerPlants={installedPowerPlants}
+            installedFuelTanks={installedFuelTanks}
             usedHullPoints={getUsedHullPointsBeforePowerPlants()}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onPowerPlantsChange={handlePowerPlantsChange}
+            onFuelTanksChange={setInstalledFuelTanks}
           />
         );
       case 3:

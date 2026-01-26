@@ -47,17 +47,3 @@ export function getHullById(id: string): Hull | undefined {
 export function getShipClasses(): ShipClass[] {
   return ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
 }
-
-/**
- * Get display name for a ship class
- */
-export function getShipClassDisplayName(shipClass: ShipClass): string {
-  const names: Record<ShipClass, string> = {
-    'small-craft': 'Small Craft',
-    light: 'Light Ships',
-    medium: 'Medium Ships',
-    heavy: 'Heavy Ships',
-    'super-heavy': 'Super-Heavy Ships',
-  };
-  return names[shipClass];
-}

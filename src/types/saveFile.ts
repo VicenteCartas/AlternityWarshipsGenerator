@@ -12,8 +12,16 @@ export interface SavedPowerPlant {
   typeId: string;
   /** Size in hull points */
   hullPoints: number;
-  /** Fuel tank size in hull points */
-  fuelHullPoints: number;
+}
+
+/**
+ * Installed fuel tank in save file
+ */
+export interface SavedFuelTank {
+  /** The power plant type ID this fuel is for */
+  forPowerPlantTypeId: string;
+  /** Size in hull points */
+  hullPoints: number;
 }
 
 /**
@@ -65,9 +73,9 @@ export interface WarshipSaveFile {
   /** Installed power plants */
   powerPlants: SavedPowerPlant[];
   
-  /** Installed engines */
-  engines: SavedEngine[];
-  
+  /** Installed fuel tanks for power plants */
+  fuelTanks: SavedFuelTank[];
+
   /** FTL drive configuration (future) */
   ftlDrive: unknown | null;
   

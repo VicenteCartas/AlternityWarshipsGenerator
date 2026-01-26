@@ -29,7 +29,7 @@
                              "minShipClass":  "medium"
                          }
                      ],
-    "armorTypes":  [
+    "armors":  [
                        {
                            "id":  "polymeric-light",
                            "name":  "Polymeric",

@@ -93,24 +93,3 @@ export function formatArmorCost(cost: number): string {
   }
   return `$${cost}`;
 }
-
-/**
- * Get tech track display name
- */
-export function getTechTrackName(track: string): string {
-  const names: Record<string, string> = {
-    '-': 'None',
-    'G': 'Gravity Manipulation',
-    'D': 'Dark Matter Tech',
-    'A': 'Antimatter Tech',
-    'M': 'Matter Coding',
-    'F': 'Fusion Tech',
-    'Q': 'Quantum Manipulation',
-    'T': 'Matter Transmission',
-    'S': 'Super-Materials',
-    'P': 'Psi-tech',
-    'X': 'Energy Transformation',
-    'C': 'Computer Tech',
-  };
-  return names[track] || track;
-}

@@ -23,9 +23,8 @@ import {
   calculateArmorHullPoints,
   calculateArmorCost,
   formatArmorCost,
-  getTechTrackName,
 } from '../services/armorService';
-import { formatCost } from '../services/formatters';
+import { formatCost, getTechTrackName } from '../services/formatters';
 
 interface ArmorSelectionProps {
   hull: Hull;

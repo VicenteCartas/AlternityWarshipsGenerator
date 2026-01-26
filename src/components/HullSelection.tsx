@@ -18,9 +18,8 @@ import type { Hull, ShipClass, HullCategory } from '../types/hull';
 import {
   getAllHulls,
   getShipClasses,
-  getShipClassDisplayName,
 } from '../services/hullService';
-import { formatCost, formatTargetModifier } from '../services/formatters';
+import { formatCost, formatTargetModifier, getShipClassDisplayName } from '../services/formatters';
 
 interface HullSelectionProps {
   selectedHull: Hull | null;

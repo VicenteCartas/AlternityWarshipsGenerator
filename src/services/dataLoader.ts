@@ -8,7 +8,7 @@
 
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeightConfig } from '../types/armor';
-import type { PowerPlantType } from '../types/powerPlant';
+import type { PowerPlantType, FuelTankType } from '../types/powerPlant';
 import type { EngineType } from '../types/engine';
 
 // Bundled data as fallback (imported at build time)
@@ -20,17 +20,19 @@ import enginesDataFallback from '../data/engines.json';
 // Cache for loaded data
 interface DataCache {
   hulls: Hull[] | null;
-  armorTypes: ArmorType[] | null;
+  armors: ArmorType[] | null;
   armorWeights: ArmorWeightConfig[] | null;
   powerPlants: PowerPlantType[] | null;
+  fuelTank: FuelTankType | null;
   engines: EngineType[] | null;
 }
 
 const cache: DataCache = {
   hulls: null,
-  armorTypes: null,
+  armors: null,
   armorWeights: null,
   powerPlants: null,
+  fuelTank: null,
   engines: null,
 };
 
@@ -90,9 +92,10 @@ export async function loadAllGameData(): Promise<void> {
 
     // Store in cache
     cache.hulls = (hullsData as { hulls: Hull[] }).hulls;
-    cache.armorTypes = (armorData as { armorTypes: ArmorType[] }).armorTypes;
+    cache.armors = (armorData as { armors: ArmorType[] }).armors;
     cache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
     cache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
+    cache.fuelTank = (powerPlantsData as { fuelTank: FuelTankType }).fuelTank;
     cache.engines = (enginesData as { engines: EngineType[] }).engines;
 
     dataLoaded = true;
@@ -126,9 +129,9 @@ export function getHullsData(): Hull[] {
 export function getArmorTypesData(): ArmorType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
-    return (armorDataFallback as { armorTypes: ArmorType[] }).armorTypes;
+    return (armorDataFallback as { armors: ArmorType[] }).armors;
   }
-  return cache.armorTypes!;
+  return cache.armors!;
 }
 
 /**
@@ -154,6 +157,17 @@ export function getPowerPlantsData(): PowerPlantType[] {
 }
 
 /**
+ * Get the fuel tank type (must call loadAllGameData first)
+ */
+export function getFuelTankData(): FuelTankType {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (powerPlantDataFallback as { fuelTank: FuelTankType }).fuelTank;
+  }
+  return cache.fuelTank!;
+}
+
+/**
  * Get all engine types (must call loadAllGameData first)
  */
 export function getEnginesData(): EngineType[] {
@@ -171,9 +185,10 @@ export async function reloadAllGameData(): Promise<void> {
   dataLoaded = false;
   loadPromise = null;
   cache.hulls = null;
-  cache.armorTypes = null;
+  cache.armors = null;
   cache.armorWeights = null;
   cache.powerPlants = null;
+  cache.fuelTank = null;
   cache.engines = null;
   await loadAllGameData();
 }

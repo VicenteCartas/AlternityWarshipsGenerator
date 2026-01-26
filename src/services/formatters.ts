@@ -1,3 +1,6 @@
+import type { ShipClass } from '../types/hull';
+import type { TechTrack } from '../types/common';
+
 /**
  * Shared formatting utility functions
  */
@@ -37,4 +40,50 @@ export function formatTargetModifier(modifier: number): string {
   const sign = modifier > 0 ? '+' : '';
   const stepWord = Math.abs(modifier) === 1 ? 'step' : 'steps';
   return `${sign}${modifier} ${stepWord}`;
+}
+
+/**
+ * Get tech track display name
+ */
+export function getTechTrackName(track: TechTrack): string {
+  const names: Record<TechTrack, string> = {
+    '-': 'None',
+    'G': 'Gravity Manipulation',
+    'D': 'Dark Matter Tech',
+    'A': 'Antimatter Tech',
+    'M': 'Matter Coding',
+    'F': 'Fusion Tech',
+    'Q': 'Quantum Manipulation',
+    'T': 'Matter Transmission',
+    'S': 'Super-Materials',
+    'P': 'Psi-tech',
+    'X': 'Energy Transformation',
+    'C': 'Computer Tech',
+  };
+  return names[track];
+}
+
+/**
+ * Get display name for a ship class
+ */
+export function getShipClassDisplayName(shipClass: ShipClass): string {
+  const names: Record<ShipClass, string> = {
+    'small-craft': 'Small Craft',
+    light: 'Light Ships',
+    medium: 'Medium Ships',
+    heavy: 'Heavy Ships',
+    'super-heavy': 'Super-Heavy Ships',
+  };
+  return names[shipClass];
+}
+
+/**
+ * Format acceleration for display
+ */
+export function formatAcceleration(acceleration: number, usesPL6Scale: boolean): string {
+  if (acceleration === 0) return '-';
+  if (usesPL6Scale) {
+    return `${acceleration} (PL6)`;
+  }
+  return `${acceleration} Mpp`;
 }

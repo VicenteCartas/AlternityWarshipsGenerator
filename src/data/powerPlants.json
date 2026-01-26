@@ -1,4 +1,15 @@
 {
+    "fuelTank": {
+        "id":  "fuel-tank",
+        "name":  "Fuel Tank",
+        "progressLevel":  6,
+        "techTracks":  [],
+        "powerPerHullPoint":  0,
+        "baseCost":  50000,
+        "costPerHullPoint":  10000,
+        "minSize":  0,
+        "description":  "A fuel tank stores fuel for power plants that require it. It does not generate power itself."
+    },
     "powerPlants":  [
                         {
                             "id":  "solar-cell",
@@ -10,13 +21,11 @@
                             "powerPerHullPoint":  1.5,
                             "baseCost":  500000,
                             "costPerHullPoint":  200000,
-                            "minSize":  1,
-                            "maxSize":  0,
+                            "minSize":  4,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "The solar cell converts light and heat energy from a nearby star into shipboard power through large banks of highly efficient photovoltaic cells and heat exchangers. Power generation varies based on distance from the star.",
-                            "minShipClass":  "small-craft"
+                            "description":  "The solar cell converts light and heat energy from a nearby star into shipboard power through large banks of highly efficient photovoltaic cells and heat exchangers. Power generation varies based on distance from the star."
                         },
                         {
                             "id":  "fission-generator",
@@ -26,15 +35,13 @@
 
                                            ],
                             "powerPerHullPoint":  1.5,
-                            "baseCost":  200000,
-                            "costPerHullPoint":  50000,
+                            "baseCost":  1000000,
+                            "costPerHullPoint":  100000,
                             "minSize":  4,
-                            "maxSize":  0,
-                            "requiresFuel":  true,
-                            "fuelCostPerHullPoint":  5000,
-                            "fuelEfficiency":  100,
-                            "description":  "Also known as an atomic or nuclear power plant, the fission generator extracts energy from a controlled chain reaction of uranium or plutonium. Requires heavy shielding, so small installations are very difficult.",
-                            "minShipClass":  "light"
+                            "requiresFuel":  false,
+                            "fuelCostPerHullPoint":  0,
+                            "fuelEfficiency":  0,
+                            "description":  "Also known as an atomic or nuclear power plant, the fission generator extracts energy from a controlled chain reaction of uranium or plutonium. Requires heavy shielding, so small installations are very difficult."
                         },
                         {
                             "id":  "fusion-generator",
@@ -44,15 +51,13 @@
                                                "F"
                                            ],
                             "powerPerHullPoint":  2.0,
-                            "baseCost":  300000,
-                            "costPerHullPoint":  75000,
+                            "baseCost":  1000000,
+                            "costPerHullPoint":  200000,
                             "minSize":  2,
-                            "maxSize":  0,
                             "requiresFuel":  true,
                             "fuelCostPerHullPoint":  1000,
                             "fuelEfficiency":  200,
-                            "description":  "A fusion generator harnesses the power of nuclear fusion to create shipboard power. A containment device \u0027bottles\u0027 the reaction in magnetic fields, since the generator\u0027s core burns at temperatures as hot as the surface of a star.",
-                            "minShipClass":  "small-craft"
+                            "description":  "A fusion generator harnesses the power of nuclear fusion to create shipboard power. A containment device \u0027bottles\u0027 the reaction in magnetic fields, since the generator\u0027s core burns at temperatures as hot as the surface of a star."
                         },
                         {
                             "id":  "grav-fusion-cell",
@@ -62,15 +67,29 @@
                                                "G"
                                            ],
                             "powerPerHullPoint":  2.5,
-                            "baseCost":  400000,
-                            "costPerHullPoint":  100000,
-                            "minSize":  1,
-                            "maxSize":  0,
+                            "baseCost":  2000000,
+                            "costPerHullPoint":  200000,
+                            "minSize":  4,
                             "requiresFuel":  true,
-                            "fuelCostPerHullPoint":  2000,
-                            "fuelEfficiency":  250,
-                            "description":  "Based on a fraal device, the grav-fusion cell employs artificial gravity fields to contain and enhance the performance of a fusion reaction. It\u0027s otherwise similar to the fusion generator.",
-                            "minShipClass":  "small-craft"
+                            "fuelCostPerHullPoint":  1000,
+                            "fuelEfficiency":  300,
+                            "description":  "Based on a fraal device, the grav-fusion cell employs artificial gravity fields to contain and enhance the performance of a fusion reaction. It\u0027s otherwise similar to the fusion generator."
+                        },
+                        {
+                            "id":  "tachyonic-collider",
+                            "name":  "Tachyonic Collider",
+                            "progressLevel":  7,
+                            "techTracks":  [
+                                               "Q"
+                                           ],
+                            "powerPerHullPoint":  2.5,
+                            "baseCost":  1000000,
+                            "costPerHullPoint":  100000,
+                            "minSize":  2,
+                            "requiresFuel":  false,
+                            "fuelCostPerHullPoint":  0,
+                            "fuelEfficiency":  0,
+                            "description":  "A tachyonic collider manipulates tachyons to generate power. It does not require fuel."
                         },
                         {
                             "id":  "antimatter-reactor",
@@ -80,15 +99,13 @@
                                                "A"
                                            ],
                             "powerPerHullPoint":  3.0,
-                            "baseCost":  500000,
-                            "costPerHullPoint":  150000,
-                            "minSize":  1,
-                            "maxSize":  0,
+                            "baseCost":  4000000,
+                            "costPerHullPoint":  400000,
+                            "minSize":  3,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "The antimatter reactor annihilates particles of antimatter to create vast amounts of power. Requires careful containment procedures. No fuel tank is required - the antimatter and its containment device are included.",
-                            "minShipClass":  "small-craft"
+                            "description":  "The antimatter reactor annihilates particles of antimatter to create vast amounts of power. Requires careful containment procedures. No fuel tank is required - the antimatter and its containment device are included."
                         },
                         {
                             "id":  "mass-reactor",
@@ -97,34 +114,14 @@
                             "techTracks":  [
                                                "D"
                                            ],
-                            "powerPerHullPoint":  2.5,
-                            "baseCost":  100000,
-                            "costPerHullPoint":  100000,
-                            "minSize":  1,
-                            "maxSize":  0,
-                            "requiresFuel":  false,
-                            "fuelCostPerHullPoint":  0,
-                            "fuelEfficiency":  0,
-                            "description":  "Dark matter technology presumes that nonbaryonic dark matter may have properties unknown to 20th century science. The decay of dark matter into \u0027normal\u0027 matter releases immense amounts of energy.",
-                            "minShipClass":  "small-craft"
-                        },
-                        {
-                            "id":  "tachyonic-collider",
-                            "name":  "Tachyonic Collider",
-                            "progressLevel":  7,
-                            "techTracks":  [
-                                               "Q"
-                                           ],
-                            "powerPerHullPoint":  2.0,
-                            "baseCost":  800000,
-                            "costPerHullPoint":  200000,
+                            "powerPerHullPoint":  3.5,
+                            "baseCost":  2000000,
+                            "costPerHullPoint":  250000,
                             "minSize":  2,
-                            "maxSize":  0,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "Tachyons are particles that move faster than the speed of light. The tachyonic collider slows these particles and harnesses their energy. While expensive and doesn\u0027t provide as much power, it has one significant advantage: no fuel required.",
-                            "minShipClass":  "small-craft"
+                            "description":  "Dark matter technology presumes that nonbaryonic dark matter may have properties unknown to 20th century science. The decay of dark matter into \u0027normal\u0027 matter releases immense amounts of energy."
                         },
                         {
                             "id":  "dynamic-mass-reactor",
@@ -133,34 +130,31 @@
                             "techTracks":  [
                                                "D"
                                            ],
-                            "powerPerHullPoint":  3.5,
-                            "baseCost":  200000,
-                            "costPerHullPoint":  150000,
+                            "powerPerHullPoint":  4.0,
+                            "baseCost":  3000000,
+                            "costPerHullPoint":  200000,
                             "minSize":  1,
-                            "maxSize":  0,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "Basically a refinement of the PL 7 mass reactor, the dynamic mass reactor accelerates the decay process, releasing more energy than its predecessor. It\u0027s also a smaller and safer installation.",
-                            "minShipClass":  "small-craft"
+                            "description":  "Basically a refinement of the PL 7 mass reactor, the dynamic mass reactor accelerates the decay process, releasing more energy than its predecessor. It\u0027s also a smaller and safer installation."
                         },
                         {
                             "id":  "matter-converter",
                             "name":  "Matter Converter",
                             "progressLevel":  8,
                             "techTracks":  [
+                                               "M",
                                                "X"
                                            ],
-                            "powerPerHullPoint":  4.0,
-                            "baseCost":  1000000,
-                            "costPerHullPoint":  250000,
+                            "powerPerHullPoint":  4.5,
+                            "baseCost":  4000000,
+                            "costPerHullPoint":  200000,
                             "minSize":  2,
-                            "maxSize":  0,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "This device produces energy through the total conversion of matter. Literally anything can be used as fuel. While expensive, it produces an immense amount of power and requires no significant fuel source.",
-                            "minShipClass":  "small-craft"
+                            "description":  "This device produces energy through the total conversion of matter. Literally anything can be used as fuel. While expensive, it produces an immense amount of power and requires no significant fuel source."
                         },
                         {
                             "id":  "quantum-cell",
@@ -170,33 +164,29 @@
                                                "Q"
                                            ],
                             "powerPerHullPoint":  5.0,
-                            "baseCost":  2000000,
-                            "costPerHullPoint":  500000,
-                            "minSize":  1,
-                            "maxSize":  20,
+                            "baseCost":  5000000,
+                            "costPerHullPoint":  400000,
+                            "minSize":  3,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "Harnessing the Holy Grail of energy sources - the quantum fluctuation or zero-point energy observed in vacuum - the quantum cell produces an enormous amount of energy from no fuel source at all.",
-                            "minShipClass":  "small-craft"
+                            "description":  "Harnessing the Holy Grail of energy sources - the quantum fluctuation or zero-point energy observed in vacuum - the quantum cell produces an enormous amount of energy from no fuel source at all."
                         },
                         {
                             "id":  "singularity-generator",
                             "name":  "Singularity Generator",
                             "progressLevel":  9,
                             "techTracks":  [
-                                               "X"
+                                               "G"
                                            ],
                             "powerPerHullPoint":  6.0,
-                            "baseCost":  5000000,
-                            "costPerHullPoint":  1000000,
-                            "minSize":  4,
-                            "maxSize":  0,
+                            "baseCost":  10000000,
+                            "costPerHullPoint":  5000000,
+                            "minSize":  20,
                             "requiresFuel":  false,
                             "fuelCostPerHullPoint":  0,
                             "fuelEfficiency":  0,
-                            "description":  "The singularity generator is an incredibly powerful device that taps the power of a small black hole. It\u0027s not a generator so much as an extremely capacious battery, but the energy contained in a tiny black hole is staggering.",
-                            "minShipClass":  "light"
+                            "description":  "The singularity generator is an incredibly powerful device that taps the power of a small black hole. It\u0027s not a generator so much as an extremely capacious battery, but the energy contained in a tiny black hole is staggering."
                         }
                     ]
 }

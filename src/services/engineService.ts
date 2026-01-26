@@ -227,38 +227,6 @@ export function formatEngineCost(cost: number): string {
 }
 
 /**
- * Get tech track display name
- */
-export function getTechTrackName(track: string): string {
-  const names: Record<string, string> = {
-    '-': 'None',
-    'G': 'Gravity Manipulation',
-    'D': 'Dark Matter Tech',
-    'A': 'Antimatter Tech',
-    'M': 'Matter Coding',
-    'F': 'Fusion Tech',
-    'Q': 'Quantum Manipulation',
-    'T': 'Matter Transmission',
-    'S': 'Super-Materials',
-    'P': 'Psi-tech',
-    'X': 'Energy Transformation',
-    'C': 'Computer Tech',
-  };
-  return names[track] || track;
-}
-
-/**
- * Format acceleration for display
- */
-export function formatAcceleration(acceleration: number, usesPL6Scale: boolean): string {
-  if (acceleration === 0) return '-';
-  if (usesPL6Scale) {
-    return `${acceleration} (PL6)`;
-  }
-  return `${acceleration} Mpp`;
-}
-
-/**
  * Get the percentage bracket labels for display
  */
 export function getPercentageBrackets(): string[] {

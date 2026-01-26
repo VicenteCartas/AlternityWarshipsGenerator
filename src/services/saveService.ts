@@ -1,13 +1,13 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedEngine } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
-import type { InstalledPowerPlant } from '../types/powerPlant';
+import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine } from '../types/engine';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
-import { getAllPowerPlantTypes } from './powerPlantService';
+import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId } from './engineService';
 
 /**
@@ -19,6 +19,7 @@ export interface WarshipState {
   armorWeight: ArmorWeight | null;
   armorType: ArmorType | null;
   powerPlants: InstalledPowerPlant[];
+  fuelTanks: InstalledFuelTank[];
   engines: InstalledEngine[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
@@ -52,7 +53,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     powerPlants: (state.powerPlants || []).map((pp): SavedPowerPlant => ({
       typeId: pp.type.id,
       hullPoints: pp.hullPoints,
-      fuelHullPoints: pp.fuelHullPoints,
+    })),
+    fuelTanks: (state.fuelTanks || []).map((ft): SavedFuelTank => ({
+      forPowerPlantTypeId: ft.forPowerPlantType.id,
+      hullPoints: ft.hullPoints,
     })),
     engines: (state.engines || []).map((eng): SavedEngine => ({
       typeId: eng.type.id,
@@ -136,10 +140,25 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         installationId: crypto.randomUUID(),
         type: ppType,
         hullPoints: savedPP.hullPoints,
-        fuelHullPoints: savedPP.fuelHullPoints,
       });
     } else {
       warnings.push(`Power plant type not found: ${savedPP.typeId}`);
+    }
+  }
+  
+  // Load fuel tanks
+  const fuelTanks: InstalledFuelTank[] = [];
+  
+  for (const savedFT of (saveFile.fuelTanks || [])) {
+    const ppType = allPowerPlantTypes.find(t => t.id === savedFT.forPowerPlantTypeId);
+    if (ppType) {
+      fuelTanks.push({
+        installationId: generateFuelTankId(),
+        forPowerPlantType: ppType,
+        hullPoints: savedFT.hullPoints,
+      });
+    } else {
+      warnings.push(`Power plant type not found for fuel tank: ${savedFT.forPowerPlantTypeId}`);
     }
   }
   
@@ -174,6 +193,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       armorWeight,
       armorType,
       powerPlants,
+      fuelTanks,
       engines,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],

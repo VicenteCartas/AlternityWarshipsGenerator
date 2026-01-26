@@ -5,6 +5,35 @@ import type { ShipClass } from './hull';
 export type { ProgressLevel, TechTrack, ShipClass };
 
 /**
+ * Fuel tank type definition (the generic fuel tank, not an installation)
+ */
+export interface FuelTankType {
+  /** Unique identifier */
+  id: string;
+  
+  /** Display name */
+  name: string;
+  
+  /** Progress Level required */
+  progressLevel: ProgressLevel;
+  
+  /** Technology tracks required (empty array means no special tech needed) */
+  techTracks: TechTrack[];
+  
+  /** Base cost for each fuel tank installed */
+  baseCost: number;
+  
+  /** Cost per hull point of the fuel tank */
+  costPerHullPoint: number;
+  
+  /** Minimum size in hull points (0 = no minimum) */
+  minSize: number;
+  
+  /** Description */
+  description: string;
+}
+
+/**
  * Power plant type definition
  */
 export interface PowerPlantType {
@@ -32,9 +61,6 @@ export interface PowerPlantType {
   /** Minimum size in hull points */
   minSize: number;
   
-  /** Maximum size in hull points (0 = no maximum) */
-  maxSize: number;
-  
   /** Whether fuel is required */
   requiresFuel: boolean;
   
@@ -46,9 +72,6 @@ export interface PowerPlantType {
   
   /** Description of the power plant */
   description: string;
-  
-  /** Minimum ship class that can use this power plant */
-  minShipClass: ShipClass;
 }
 
 /**
@@ -63,9 +86,20 @@ export interface InstalledPowerPlant {
   
   /** Size in hull points */
   hullPoints: number;
+}
+
+/**
+ * An installed fuel tank on a ship
+ */
+export interface InstalledFuelTank {
+  /** Unique ID for this fuel tank installation */
+  installationId: string;
   
-  /** Fuel tank size in hull points (0 if no fuel required) */
-  fuelHullPoints: number;
+  /** The power plant type this fuel is for (determines fuel cost and efficiency) */
+  forPowerPlantType: PowerPlantType;
+  
+  /** Size in hull points */
+  hullPoints: number;
 }
 
 /**
@@ -75,12 +109,9 @@ export interface PowerPlantStats {
   /** Total power generated */
   powerGenerated: number;
   
-  /** Total hull points used (power plant + fuel) */
+  /** Total hull points used */
   totalHullPoints: number;
   
-  /** Total cost (power plant + fuel) */
+  /** Total cost */
   totalCost: number;
-  
-  /** Endurance in days (if fuel required) */
-  enduranceDays: number | null;
 }

@@ -36,10 +36,8 @@ import {
   validateEngineInstallation,
   generateEngineInstallationId,
   formatEngineCost,
-  getTechTrackName,
-  formatAcceleration,
 } from '../services/engineService';
-import { formatCost } from '../services/formatters';
+import { formatCost, getTechTrackName, formatAcceleration } from '../services/formatters';
 
 interface EngineSelectionProps {
   hull: Hull;
