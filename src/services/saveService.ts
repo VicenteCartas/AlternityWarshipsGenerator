@@ -1,14 +1,16 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
+import type { InstalledFTLDrive } from '../types/ftlDrive';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
+import { getAllFTLDriveTypes, generateFTLInstallationId } from './ftlDriveService';
 
 /**
  * State representing the current warship configuration
@@ -22,6 +24,7 @@ export interface WarshipState {
   fuelTanks: InstalledFuelTank[];
   engines: InstalledEngine[];
   engineFuelTanks: InstalledEngineFuelTank[];
+  ftlDrive: InstalledFTLDrive | null;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -67,7 +70,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       forEngineTypeId: ft.forEngineType.id,
       hullPoints: ft.hullPoints,
     })),
-    ftlDrive: null,
+    ftlDrive: state.ftlDrive ? {
+      typeId: state.ftlDrive.type.id,
+      hullPoints: state.ftlDrive.hullPoints,
+    } as SavedFTLDrive : null,
     systems: [],
   };
 }
@@ -199,6 +205,22 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load FTL drive
+  let ftlDrive: InstalledFTLDrive | null = null;
+  if (saveFile.ftlDrive) {
+    const allFTLTypes = getAllFTLDriveTypes();
+    const ftlType = allFTLTypes.find(t => t.id === saveFile.ftlDrive!.typeId);
+    if (ftlType) {
+      ftlDrive = {
+        id: generateFTLInstallationId(),
+        type: ftlType,
+        hullPoints: saveFile.ftlDrive.hullPoints,
+      };
+    } else {
+      warnings.push(`FTL drive type not found: ${saveFile.ftlDrive.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -215,6 +237,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       fuelTanks,
       engines,
       engineFuelTanks,
+      ftlDrive,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

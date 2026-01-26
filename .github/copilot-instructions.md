@@ -107,6 +107,11 @@ The app bar contains global design constraints that filter available components:
 - **Single horizontal scrollbar**: When content overflows, use ONE horizontal scrollbar at the container level, not multiple nested scrollbars
 - **Responsive but desktop-first**: This is an Electron desktop app, so optimize for larger screens
 - **Action columns first**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the beginning (leftmost) so users don't need to scroll to access it
+- **Consistent styling across steps**: New step components (like FTL Drive, Systems) must match the styling of existing steps (Engines, Power Plants). Reference existing components for:
+  - Table header styling: `sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}`
+  - TableContainer with minWidth: `sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: X } }}`
+  - No `stickyHeader` on Table component
+  - Summary chips at top of section using the chip color scheme below
 
 ### Chip Color Scheme
 MUI Chips are used throughout the app to display stats. Follow this consistent color scheme:

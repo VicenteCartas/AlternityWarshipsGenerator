@@ -717,7 +717,7 @@ export function EngineSelection({
       {/* Add/Edit Engine Section */}
       {selectedType && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             {editingInstallationId ? 'Edit' : 'Configure'} {selectedType.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>

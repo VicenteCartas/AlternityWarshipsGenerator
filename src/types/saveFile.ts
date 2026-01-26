@@ -45,6 +45,16 @@ export interface SavedEngineFuelTank {
 }
 
 /**
+ * Installed FTL drive in save file
+ */
+export interface SavedFTLDrive {
+  /** The FTL drive type ID */
+  typeId: string;
+  /** Size in hull points (determines hull percentage) */
+  hullPoints: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -90,8 +100,8 @@ export interface WarshipSaveFile {
   /** Installed fuel tanks for engines */
   engineFuelTanks: SavedEngineFuelTank[];
 
-  /** FTL drive configuration (future) */
-  ftlDrive: unknown | null;
+  /** FTL drive configuration */
+  ftlDrive: SavedFTLDrive | null;
   
   /** Installed systems (future) */
   systems: unknown[];
