@@ -73,7 +73,7 @@ export function ArmorSelection({
         }
       }
       return true;
-    });
+    }).sort((a, b) => a.progressLevel - b.progressLevel);
   }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks]);
 
   const handleWeightFilterChange = (

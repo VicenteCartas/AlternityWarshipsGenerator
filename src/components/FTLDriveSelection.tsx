@@ -20,7 +20,6 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import type { Hull } from '../types/hull';
 import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -80,7 +79,7 @@ export function FTLDriveSelection({
         }
       }
       return true;
-    });
+    }).sort((a, b) => a.progressLevel - b.progressLevel);
   }, [designProgressLevel, designTechTracks]);
 
   const totalStats = useMemo(
@@ -180,12 +179,6 @@ export function FTLDriveSelection({
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           {installedFTLDrive ? (
             <>
-              <Chip
-                icon={<RocketLaunchIcon />}
-                label={installedFTLDrive.type.name}
-                color="primary"
-                variant="outlined"
-              />
               <Chip
                 label={`HP: ${totalStats.totalHullPoints} (${totalStats.hullPercentage.toFixed(1)}%)`}
                 color="default"
@@ -347,7 +340,7 @@ export function FTLDriveSelection({
       )}
 
       {/* Available FTL Drives Table */}
-      {!installedFTLDrive && !selectedType && (
+      {!installedFTLDrive && (
         <TableContainer
           component={Paper}
           variant="outlined"
@@ -361,7 +354,6 @@ export function FTLDriveSelection({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
@@ -383,18 +375,6 @@ export function FTLDriveSelection({
                     sx={{ cursor: 'pointer' }}
                     onClick={() => handleTypeSelect(drive)}
                   >
-                    <TableCell align="center">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTypeSelect(drive);
-                        }}
-                      >
-                        <AddIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
                         {drive.name}

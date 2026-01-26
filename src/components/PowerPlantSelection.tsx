@@ -93,7 +93,7 @@ export function PowerPlantSelection({
         }
       }
       return true;
-    });
+    }).sort((a, b) => a.progressLevel - b.progressLevel);
   }, [hull.shipClass, designProgressLevel, designTechTracks]);
 
   // Get installed power plants that require fuel (for the fuel tank dropdown)

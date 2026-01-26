@@ -100,7 +100,7 @@ export function EngineSelection({
         }
       }
       return true;
-    });
+    }).sort((a, b) => a.progressLevel - b.progressLevel);
   }, [hull.shipClass, designProgressLevel, designTechTracks]);
 
   // Get unique engine types that require fuel (from installed engines)
