@@ -71,9 +71,6 @@ export interface EngineType {
   /** Description of the engine */
   description: string;
   
-  /** Minimum ship class that can use this engine */
-  minShipClass: ShipClass;
-  
   /** Whether engine is safe for atmospheric use */
   atmosphereSafe: boolean;
   
@@ -93,9 +90,20 @@ export interface InstalledEngine {
   
   /** Size in hull points */
   hullPoints: number;
+}
+
+/**
+ * An installed fuel tank for an engine
+ */
+export interface InstalledEngineFuelTank {
+  /** Unique ID for this fuel tank installation */
+  installationId: string;
   
-  /** Fuel tank size in hull points (if engine requires fuel) */
-  fuelHullPoints: number;
+  /** The engine type this fuel is for (determines fuel cost and efficiency) */
+  forEngineType: EngineType;
+  
+  /** Size in hull points */
+  hullPoints: number;
 }
 
 /**
@@ -105,10 +113,10 @@ export interface EngineStats {
   /** Total power required */
   powerRequired: number;
   
-  /** Total hull points used (engine + fuel) */
+  /** Total hull points used (engine only, not fuel) */
   totalHullPoints: number;
   
-  /** Total cost (engine + fuel) */
+  /** Total cost (engine only, not fuel) */
   totalCost: number;
   
   /** Hull percentage this engine represents */
@@ -116,7 +124,4 @@ export interface EngineStats {
   
   /** Acceleration rating based on hull percentage */
   acceleration: number;
-  
-  /** Endurance in thrust-days (null if no fuel needed) */
-  enduranceDays: number | null;
 }

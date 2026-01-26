@@ -1,6 +1,6 @@
-import type { EngineType, InstalledEngine, EngineStats, AccelerationRatings } from '../types/engine';
+import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
 import type { Hull, ShipClass } from '../types/hull';
-import { getEnginesData } from './dataLoader';
+import { getEnginesData, getFuelTankData } from './dataLoader';
 
 /**
  * Get all engine types
@@ -11,15 +11,11 @@ export function getAllEngineTypes(): EngineType[] {
 
 /**
  * Get engine types available for a specific ship class
+ * Currently all engines are available for all ship classes
  */
 export function getEngineTypesForShipClass(shipClass: ShipClass): EngineType[] {
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const classIndex = classOrder.indexOf(shipClass);
-  
-  return getAllEngineTypes().filter((engine) => {
-    const minIndex = classOrder.indexOf(engine.minShipClass);
-    return classIndex >= minIndex;
-  });
+  // All engines are available for all ship classes
+  return getAllEngineTypes();
 }
 
 /**
@@ -71,79 +67,140 @@ export function calculateEngineCost(engine: EngineType, hullPoints: number): num
 }
 
 /**
- * Calculate fuel cost for an engine
+ * Calculate total cost for an engine fuel tank installation
+ * Cost = tank base cost + tank cost per HP + fuel cost per HP (from engine type)
  */
-export function calculateEngineFuelCost(engine: EngineType, fuelHullPoints: number): number {
-  if (!engine.requiresFuel || fuelHullPoints === 0) return 0;
-  return engine.fuelCostPerHullPoint * fuelHullPoints;
+export function calculateEngineFuelTankCost(forEngineType: EngineType, hullPoints: number): number {
+  const fuelTankType = getFuelTankData();
+  const tankCost = fuelTankType.baseCost + (fuelTankType.costPerHullPoint * hullPoints);
+  const fuelCost = forEngineType.fuelCostPerHullPoint * hullPoints;
+  return tankCost + fuelCost;
 }
 
 /**
- * Calculate endurance in thrust-days for an engine with fuel
+ * Calculate endurance in thrust-days for an engine fuel tank
  * Fuel efficiency is thrust-days per hull point of fuel for a 1-HP engine
  * Larger engines burn fuel faster proportionally
  */
-export function calculateEngineEndurance(
-  engine: EngineType,
-  engineHullPoints: number,
-  fuelHullPoints: number
-): number | null {
-  if (!engine.requiresFuel || fuelHullPoints === 0) return null;
-  
+export function calculateEngineFuelTankEndurance(
+  forEngineType: EngineType,
+  fuelTankHullPoints: number,
+  engineHullPoints: number
+): number {
+  if (engineHullPoints === 0) return 0;
   // Fuel efficiency is for a 1-HP engine
   // Larger engines burn fuel proportionally faster
-  const thrustDaysPerFuelHP = engine.fuelEfficiency / engineHullPoints;
-  return Math.floor(thrustDaysPerFuelHP * fuelHullPoints);
+  const thrustDaysPerFuelHP = forEngineType.fuelEfficiency / engineHullPoints;
+  return Math.floor(thrustDaysPerFuelHP * fuelTankHullPoints);
+}
+
+/**
+ * Get total fuel tank HP for a specific engine type
+ */
+export function getTotalEngineFuelTankHPForEngineType(
+  fuelTanks: InstalledEngineFuelTank[],
+  engineTypeId: string
+): number {
+  return fuelTanks
+    .filter(tank => tank.forEngineType.id === engineTypeId)
+    .reduce((sum, tank) => sum + tank.hullPoints, 0);
+}
+
+/**
+ * Get total engine HP for a specific engine type
+ */
+export function getTotalEngineHPForEngineType(
+  engines: InstalledEngine[],
+  engineTypeId: string
+): number {
+  return engines
+    .filter(engine => engine.type.id === engineTypeId)
+    .reduce((sum, engine) => sum + engine.hullPoints, 0);
+}
+
+/**
+ * Get total fuel tank HP across all engine fuel tanks
+ */
+export function getTotalEngineFuelTankHP(fuelTanks: InstalledEngineFuelTank[]): number {
+  return fuelTanks.reduce((sum, tank) => sum + tank.hullPoints, 0);
+}
+
+/**
+ * Check if any installed engine requires fuel
+ */
+export function hasFuelRequiringEngines(installations: InstalledEngine[]): boolean {
+  return installations.some(inst => inst.type.requiresFuel);
+}
+
+/**
+ * Get installed engines that require fuel
+ */
+export function getFuelRequiringInstallations(installations: InstalledEngine[]): InstalledEngine[] {
+  return installations.filter(inst => inst.type.requiresFuel);
+}
+
+/**
+ * Get unique engine types that require fuel (from installed engines)
+ */
+export function getUniqueFuelRequiringEngineTypes(installations: InstalledEngine[]): EngineType[] {
+  const uniqueTypes = new Map<string, EngineType>();
+  for (const inst of installations) {
+    if (inst.type.requiresFuel && !uniqueTypes.has(inst.type.id)) {
+      uniqueTypes.set(inst.type.id, inst.type);
+    }
+  }
+  return Array.from(uniqueTypes.values());
 }
 
 /**
  * Calculate total stats for an installed engine
  */
 export function calculateEngineStats(installation: InstalledEngine, hull: Hull): EngineStats {
-  const { type, hullPoints, fuelHullPoints } = installation;
+  const { type, hullPoints } = installation;
   
   const hullPercentage = calculateHullPercentage(hull, hullPoints);
   const acceleration = getAccelerationForPercentage(type.accelerationRatings, hullPercentage);
   
   return {
     powerRequired: calculateEnginePowerRequired(type, hullPoints),
-    totalHullPoints: hullPoints + fuelHullPoints,
-    totalCost: calculateEngineCost(type, hullPoints) + calculateEngineFuelCost(type, fuelHullPoints),
+    totalHullPoints: hullPoints,
+    totalCost: calculateEngineCost(type, hullPoints),
     hullPercentage,
     acceleration,
-    enduranceDays: calculateEngineEndurance(type, hullPoints, fuelHullPoints),
   };
 }
 
 /**
- * Calculate total stats for all installed engines
+ * Calculate total stats for all installed engines and fuel tanks
  */
-export function calculateTotalEngineStats(installations: InstalledEngine[], hull: Hull): {
+export function calculateTotalEngineStats(
+  installations: InstalledEngine[],
+  fuelTanks: InstalledEngineFuelTank[],
+  hull: Hull
+): {
   totalPowerRequired: number;
   totalHullPoints: number;
   totalCost: number;
   totalAcceleration: number;
-  minEnduranceDays: number | null;
 } {
   let totalPowerRequired = 0;
   let totalHullPoints = 0;
   let totalCost = 0;
   let totalAcceleration = 0;
-  let minEnduranceDays: number | null = null;
   
+  // Add engine stats
   for (const installation of installations) {
     const stats = calculateEngineStats(installation, hull);
     totalPowerRequired += stats.powerRequired;
     totalHullPoints += stats.totalHullPoints;
     totalCost += stats.totalCost;
     totalAcceleration += stats.acceleration;
-    
-    // Track minimum endurance (fuel-limited engines)
-    if (stats.enduranceDays !== null) {
-      if (minEnduranceDays === null || stats.enduranceDays < minEnduranceDays) {
-        minEnduranceDays = stats.enduranceDays;
-      }
-    }
+  }
+  
+  // Add fuel tank stats
+  for (const tank of fuelTanks) {
+    totalHullPoints += tank.hullPoints;
+    totalCost += calculateEngineFuelTankCost(tank.forEngineType, tank.hullPoints);
   }
   
   return {
@@ -151,7 +208,6 @@ export function calculateTotalEngineStats(installations: InstalledEngine[], hull
     totalHullPoints,
     totalCost,
     totalAcceleration,
-    minEnduranceDays,
   };
 }
 
@@ -161,7 +217,6 @@ export function calculateTotalEngineStats(installations: InstalledEngine[], hull
 export function validateEngineInstallation(
   engine: EngineType,
   hullPoints: number,
-  fuelHullPoints: number,
   hull: Hull,
   usedHullPoints: number,
   availablePower: number
@@ -173,19 +228,10 @@ export function validateEngineInstallation(
     errors.push(`${engine.name} requires a minimum of ${engine.minSize} hull points.`);
   }
   
-  // Check ship class
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const shipClassIndex = classOrder.indexOf(hull.shipClass);
-  const minClassIndex = classOrder.indexOf(engine.minShipClass);
-  if (shipClassIndex < minClassIndex) {
-    errors.push(`${engine.name} cannot be installed on ${hull.shipClass} ships.`);
-  }
-  
   // Check available hull points
-  const totalHullPointsNeeded = hullPoints + fuelHullPoints;
   const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (totalHullPointsNeeded > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${totalHullPointsNeeded}, have ${availableHullPoints}.`);
+  if (hullPoints > availableHullPoints) {
+    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
   }
   
   // Check power requirement
@@ -194,9 +240,56 @@ export function validateEngineInstallation(
     errors.push(`Not enough power available. Need ${powerRequired}, have ${availablePower}.`);
   }
   
-  // Check fuel requirement
-  if (engine.requiresFuel && fuelHullPoints === 0) {
-    errors.push(`${engine.name} requires fuel. Please allocate fuel hull points.`);
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate an engine fuel tank installation
+ */
+export function validateEngineFuelTankInstallation(
+  hullPoints: number,
+  hull: Hull,
+  usedHullPoints: number
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Check minimum size (fuel tanks have min 1 HP)
+  if (hullPoints < 1) {
+    errors.push('Fuel tank requires at least 1 hull point.');
+  }
+  
+  // Check available hull points
+  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
+  if (hullPoints > availableHullPoints) {
+    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate all engine installations together (design-level validation)
+ */
+export function validateEngineDesign(
+  installations: InstalledEngine[],
+  fuelTanks: InstalledEngineFuelTank[]
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Check if fuel-requiring engines exist without fuel tanks
+  const uniqueFuelRequiringTypes = getUniqueFuelRequiringEngineTypes(installations);
+  
+  for (const engineType of uniqueFuelRequiringTypes) {
+    const fuelTankHP = getTotalEngineFuelTankHPForEngineType(fuelTanks, engineType.id);
+    if (fuelTankHP === 0) {
+      errors.push(`Engine "${engineType.name}" requires fuel. Install at least one fuel tank for it.`);
+    }
   }
   
   return {
@@ -210,6 +303,13 @@ export function validateEngineInstallation(
  */
 export function generateEngineInstallationId(): string {
   return `eng-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Generate a unique installation ID for engine fuel tanks
+ */
+export function generateEngineFuelTankId(): string {
+  return `eft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**

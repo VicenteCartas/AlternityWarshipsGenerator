@@ -40,7 +40,7 @@ import { EngineSelection } from './components/EngineSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
-import type { InstalledEngine } from './types/engine';
+import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -101,6 +101,7 @@ function App() {
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
   const [installedFuelTanks, setInstalledFuelTanks] = useState<InstalledFuelTank[]>([]);
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
+  const [installedEngineFuelTanks, setInstalledEngineFuelTanks] = useState<InstalledEngineFuelTank[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -144,6 +145,7 @@ function App() {
     setInstalledPowerPlants([]);
     setInstalledFuelTanks([]);
     setInstalledEngines([]);
+    setInstalledEngineFuelTanks([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -190,6 +192,7 @@ function App() {
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
       setInstalledFuelTanks(loadResult.state.fuelTanks || []);
       setInstalledEngines(loadResult.state.engines || []);
+      setInstalledEngineFuelTanks(loadResult.state.engineFuelTanks || []);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -219,6 +222,7 @@ function App() {
       powerPlants: installedPowerPlants,
       fuelTanks: installedFuelTanks,
       engines: installedEngines,
+      engineFuelTanks: installedEngineFuelTanks,
       designProgressLevel,
       designTechTracks,
     };
@@ -240,7 +244,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -262,6 +266,7 @@ function App() {
       powerPlants: installedPowerPlants,
       fuelTanks: installedFuelTanks,
       engines: installedEngines,
+      engineFuelTanks: installedEngineFuelTanks,
       designProgressLevel,
       designTechTracks,
     };
@@ -278,7 +283,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -394,7 +399,7 @@ function App() {
     }
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     remaining -= powerPlantStats.totalHullPoints;
-    const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
+    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull);
     remaining -= engineStats.totalHullPoints;
     return remaining;
   };
@@ -414,9 +419,24 @@ function App() {
     }
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     cost += powerPlantStats.totalCost;
-    const engineStats = calculateTotalEngineStats(installedEngines, selectedHull);
+    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull);
     cost += engineStats.totalCost;
     return cost;
+  };
+
+  // Get unique tech tracks required by all selected components
+  const getUniqueTechTracks = (): TechTrack[] => {
+    const tracks = new Set<TechTrack>();
+    if (selectedArmorType) {
+      selectedArmorType.techTracks.forEach((t) => tracks.add(t));
+    }
+    installedPowerPlants.forEach((pp) => {
+      pp.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedEngines.forEach((eng) => {
+      eng.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    return Array.from(tracks).sort();
   };
 
   const renderStepContent = () => {
@@ -479,11 +499,13 @@ function App() {
           <EngineSelection
             hull={selectedHull}
             installedEngines={installedEngines}
+            installedFuelTanks={installedEngineFuelTanks}
             usedHullPoints={getUsedHullPointsBeforeEngines()}
             availablePower={getTotalPower()}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onEnginesChange={handleEnginesChange}
+            onFuelTanksChange={setInstalledEngineFuelTanks}
           />
         );
       default:
@@ -665,6 +687,14 @@ function App() {
                 variant="outlined"
                 size="small"
               />
+              {getUniqueTechTracks().length > 0 && (
+                <Chip
+                  label={`Tech: ${getUniqueTechTracks().join(', ')}`}
+                  color="default"
+                  variant="outlined"
+                  size="small"
+                />
+              )}
             </Box>
           )}
           <Tooltip title="Save Warship (Ctrl+S)">

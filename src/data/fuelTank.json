@@ -1,0 +1,12 @@
+{
+  "fuelTank": {
+    "id": "fuel-tank",
+    "name": "Fuel Tank",
+    "progressLevel": 6,
+    "techTracks": [],
+    "baseCost": 50000,
+    "costPerHullPoint": 10000,
+    "minSize": 0,
+    "description": "A fuel tank stores fuel for power plants that require it. It does not generate power itself."
+  }
+}

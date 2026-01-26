@@ -21,7 +21,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -426,7 +426,7 @@ export function PowerPlantSelection({
                   {installation.type.requiresFuel && (
                     <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} days)` : 'No fuel tank installed'}>
                       <Chip
-                        icon={<LocalGasStationIcon />}
+                        icon={<BatteryChargingFullIcon />}
                         label={fuelTankHP > 0 ? `${endurance} days` : 'Need fuel'}
                         size="small"
                         color={fuelTankHP > 0 ? 'success' : 'warning'}
@@ -482,7 +482,6 @@ export function PowerPlantSelection({
                     borderRadius: 1,
                   }}
                 >
-                  <LocalGasStationIcon fontSize="small" color="warning" />
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     Fuel Tank ({fuelTank.forPowerPlantType.name})
                   </Typography>
@@ -583,7 +582,7 @@ export function PowerPlantSelection({
       {fuelRequiringTypes.length > 0 && !addingFuelTankForType && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <LocalGasStationIcon color="warning" />
+            <BatteryChargingFullIcon color="warning" />
             <Typography variant="body2" sx={{ flex: 1 }}>
               Add fuel tank for:
             </Typography>
@@ -747,7 +746,7 @@ export function PowerPlantSelection({
                   <TableCell align="center">
                     {plant.requiresFuel ? (
                       <Tooltip title={`Requires fuel - Efficiency: ${plant.fuelEfficiency} power-days/HP, Fuel cost: ${formatCost(plant.fuelCostPerHullPoint)}/HP`}>
-                        <LocalGasStationIcon fontSize="small" color="warning" />
+                        <BatteryChargingFullIcon fontSize="small" color="warning" />
                       </Tooltip>
                     ) : (
                       <Typography variant="caption" color="text.secondary">No</Typography>

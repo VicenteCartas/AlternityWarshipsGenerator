@@ -25,7 +25,6 @@
                         "fuelEfficiency":  10,
                         "fuelCostPerHullPoint":  10000,
                         "description":  "A backup engine system designed specifically for use when the ship\u0027s main drives must be shut down to make planetfall. Common varieties include scramjet, chemical rocket, or powered airfoil.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "Can use either fuel or power, but not both. Maximum 20% hull allocation."
                     },
@@ -54,7 +53,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "An immense but incredibly fragile foil structure only a few molecules thick. Uses light pressure from a nearby star for motive force. Acceleration varies with distance from star.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  false,
                         "notes":  "Useless in atmosphere. Any weapon hit destroys deployed sail. Takes hours to deploy/stow. Class 1 maneuverability only."
                     },
@@ -83,7 +81,6 @@
                         "fuelEfficiency":  200,
                         "fuelCostPerHullPoint":  1000,
                         "description":  "Basically a fusion reactor with one wall of the magnetic bottle missing; the exhaust is incredibly hot plasma. Intended for space-only work.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  false,
                         "notes":  "Exhaust would slag anything it landed on. Dangerous for atmospheric use."
                     },
@@ -112,7 +109,6 @@
                         "fuelEfficiency":  400,
                         "fuelCostPerHullPoint":  5000,
                         "description":  "Uses power to break down molecules of a fuel material to create ions, then expels them by means of a magnetic impeller. More fuel efficient than fusion torch.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  false,
                         "notes":  "Does not function in atmosphere. Requires Super-Materials tech track."
                     },
@@ -141,7 +137,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "An improved version of the PL 6 ion engine. Uses magnetic fields to produce a constant stream of high-energy particles. Collects fuel from interplanetary/interstellar space.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "No fuel tank required. Capable of atmospheric entry."
                     },
@@ -170,7 +165,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "The best engine available at PL 7. Uses artificial gravity to provide incredible thrust and maneuverability. No fuel required and produces no exhaust.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "Requires Gravity Manipulation tech track. Ideal for atmospheric, orbital, or deep-space work."
                     },
@@ -199,7 +193,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "Controls the quantum energy level of every atom on the ship simultaneously, assuming the inertial states necessary to produce motion in any direction.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "Requires Energy Transformation tech track. Safe for atmospheric work."
                     },
@@ -228,7 +221,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "A refinement of the induction engine. Changes the ambient gravity in the vicinity of the ship to produce motive force. More powerful and efficient.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "Requires Gravity Manipulation tech track."
                     },
@@ -257,7 +249,6 @@
                         "fuelEfficiency":  0,
                         "fuelCostPerHullPoint":  0,
                         "description":  "Surrounds the ship in a field that \u0027folds\u0027 space, resulting in a continuous series of micro-jumps. Can instantaneously stop or change direction without maneuvering.",
-                        "minShipClass":  "small-craft",
                         "atmosphereSafe":  true,
                         "notes":  "Requires Matter Transmission tech track. Safe for atmospheric flight. Still accelerates normally."
                     }

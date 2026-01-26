@@ -15,6 +15,7 @@ import type { EngineType } from '../types/engine';
 import hullsDataFallback from '../data/hulls.json';
 import armorDataFallback from '../data/armor.json';
 import powerPlantDataFallback from '../data/powerPlants.json';
+import fuelTankDataFallback from '../data/fuelTank.json';
 import enginesDataFallback from '../data/engines.json';
 
 // Cache for loaded data
@@ -83,10 +84,11 @@ export async function loadAllGameData(): Promise<void> {
     console.log('[DataLoader] Loading game data...');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, enginesData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
+      loadDataFile('fuelTank.json', fuelTankDataFallback),
       loadDataFile('engines.json', enginesDataFallback),
     ]);
 
@@ -95,7 +97,7 @@ export async function loadAllGameData(): Promise<void> {
     cache.armors = (armorData as { armors: ArmorType[] }).armors;
     cache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
     cache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
-    cache.fuelTank = (powerPlantsData as { fuelTank: FuelTankType }).fuelTank;
+    cache.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
     cache.engines = (enginesData as { engines: EngineType[] }).engines;
 
     dataLoaded = true;
@@ -162,7 +164,7 @@ export function getPowerPlantsData(): PowerPlantType[] {
 export function getFuelTankData(): FuelTankType {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
-    return (powerPlantDataFallback as { fuelTank: FuelTankType }).fuelTank;
+    return (fuelTankDataFallback as { fuelTank: FuelTankType }).fuelTank;
   }
   return cache.fuelTank!;
 }
