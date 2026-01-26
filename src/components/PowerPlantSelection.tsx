@@ -371,6 +371,44 @@ export function PowerPlantSelection({
         )}
       </Box>
 
+      {/* Power Plant Summary */}
+      <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip
+            label={`HP: ${totalStats.totalHullPoints}`}
+            color="default"
+            variant="outlined"
+          />
+          <Chip
+            label={`Power: ${totalStats.totalPowerGenerated}`}
+            color="primary"
+            variant="outlined"
+          />
+          <Chip
+            label={`Cost: ${formatPowerPlantCost(totalStats.totalCost)}`}
+            color="default"
+            variant="outlined"
+          />
+          {/* Fuel chips for each power plant type that requires fuel */}
+          {fuelRequiringTypes.map((plantType) => {
+            const plantTypeHP = installedPowerPlants
+              .filter(p => p.type.id === plantType.id)
+              .reduce((sum, p) => sum + p.hullPoints, 0);
+            const totalFuelHP = getTotalFuelTankHPForPlantType(installedFuelTanks, plantType.id);
+            const endurance = totalFuelHP > 0 ? calculateFuelTankEndurance(plantType, totalFuelHP, plantTypeHP) : 0;
+            return (
+              <Chip
+                key={plantType.id}
+                icon={<BatteryChargingFullIcon />}
+                label={`${plantType.name}: ${totalFuelHP > 0 ? `${endurance} days` : 'No fuel'}`}
+                color={totalFuelHP > 0 ? 'success' : 'error'}
+                variant="outlined"
+              />
+            );
+          })}
+        </Box>
+      </Paper>
+
       {/* Summary of installed power plants */}
       {installedPowerPlants.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -417,6 +455,7 @@ export function PowerPlantSelection({
                     label={`${power} Power`}
                     size="small"
                     color="primary"
+                    variant="outlined"
                   />
                   <Chip
                     label={formatPowerPlantCost(cost)}
@@ -429,7 +468,7 @@ export function PowerPlantSelection({
                         icon={<BatteryChargingFullIcon />}
                         label={fuelTankHP > 0 ? `${endurance} days` : 'Need fuel'}
                         size="small"
-                        color={fuelTankHP > 0 ? 'success' : 'warning'}
+                        color={fuelTankHP > 0 ? 'success' : 'error'}
                         variant="outlined"
                         onClick={() => handleStartAddFuelTank(installation.type)}
                       />
@@ -493,7 +532,7 @@ export function PowerPlantSelection({
                   <Chip
                     label={`${endurance} days`}
                     size="small"
-                    color="info"
+                    color="success"
                     variant="outlined"
                   />
                   <Chip

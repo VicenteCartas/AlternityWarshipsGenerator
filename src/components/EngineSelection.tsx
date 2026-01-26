@@ -393,25 +393,52 @@ export function EngineSelection({
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chip
             label={`HP: ${totalStats.totalHullPoints}`}
+            color="default"
             variant="outlined"
           />
           <Chip
             label={`Power: ${totalStats.totalPowerRequired}`}
-            color={totalStats.totalPowerRequired > availablePower ? 'error' : 'default'}
+            color="default"
             variant="outlined"
           />
           <Chip
             label={`Cost: ${formatEngineCost(totalStats.totalCost)}`}
+            color="default"
             variant="outlined"
           />
-          {totalStats.totalAcceleration > 0 && (() => {
-            const hasPL6Engine = installedEngines.some(e => e.type.usesPL6Scale);
+          {/* Separate acceleration chips for PL6 and non-PL6 engines */}
+          {(() => {
+            const pl6Accel = installedEngines
+              .filter(e => e.type.usesPL6Scale)
+              .reduce((sum, e) => {
+                const percentage = calculateHullPercentage(e.hullPoints, hull);
+                return sum + getAccelerationForPercentage(e.type, percentage);
+              }, 0);
+            const nonPL6Accel = installedEngines
+              .filter(e => !e.type.usesPL6Scale)
+              .reduce((sum, e) => {
+                const percentage = calculateHullPercentage(e.hullPoints, hull);
+                return sum + getAccelerationForPercentage(e.type, percentage);
+              }, 0);
             return (
-              <Chip
-                icon={<SpeedIcon />}
-                label={`Accel: ${formatAcceleration(totalStats.totalAcceleration, hasPL6Engine)}`}
-                color="info"
-              />
+              <>
+                {pl6Accel > 0 && (
+                  <Chip
+                    icon={<SpeedIcon />}
+                    label={`Accel: ${formatAcceleration(pl6Accel, true)}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {nonPL6Accel > 0 && (
+                  <Chip
+                    icon={<SpeedIcon />}
+                    label={`Accel: ${formatAcceleration(nonPL6Accel, false)}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+              </>
             );
           })()}
           {/* Fuel chips for each engine type that requires fuel */}
@@ -424,7 +451,7 @@ export function EngineSelection({
                 key={engineType.id}
                 icon={<BatteryChargingFullIcon />}
                 label={`${engineType.name}: ${totalFuelHP > 0 ? `${endurance} thrust-days` : 'No fuel'}`}
-                color={totalFuelHP > 0 ? 'success' : 'warning'}
+                color={totalFuelHP > 0 ? 'success' : 'error'}
                 variant="outlined"
               />
             );
@@ -481,13 +508,14 @@ export function EngineSelection({
                   <Chip
                     label={`${powerRequired} Power`}
                     size="small"
-                    color="secondary"
+                    variant="outlined"
                   />
                   <Chip
                     icon={<SpeedIcon />}
                     label={formatAcceleration(acceleration, installation.type.usesPL6Scale)}
                     size="small"
-                    color="info"
+                    color="primary"
+                    variant="outlined"
                   />
                   <Chip
                     label={formatEngineCost(cost)}
@@ -500,7 +528,7 @@ export function EngineSelection({
                         icon={<BatteryChargingFullIcon />}
                         label={fuelTankHP > 0 ? `${endurance} thrust-days` : 'Need fuel'}
                         size="small"
-                        color={fuelTankHP > 0 ? 'success' : 'warning'}
+                        color={fuelTankHP > 0 ? 'success' : 'error'}
                         variant="outlined"
                         onClick={() => handleStartAddFuelTank(installation.type)}
                       />
@@ -565,7 +593,7 @@ export function EngineSelection({
                   <Chip
                     label={`${endurance} thrust-days`}
                     size="small"
-                    color="info"
+                    color="success"
                     variant="outlined"
                   />
                   <Chip

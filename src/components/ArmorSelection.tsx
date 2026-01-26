@@ -13,6 +13,7 @@ import {
   Paper,
   Tooltip,
   Button,
+  Chip,
 } from '@mui/material';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
@@ -106,6 +107,22 @@ export function ArmorSelection({
           </Button>
         )}
       </Box>
+
+      {/* Armor Summary */}
+      <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip
+            label={`HP: ${selectedWeight ? calculateArmorHullPoints(hull, selectedWeight) : 0}`}
+            color="default"
+            variant="outlined"
+          />
+          <Chip
+            label={`Cost: ${selectedWeight && selectedType ? formatArmorCost(calculateArmorCost(hull, selectedWeight, selectedType)) : '$0'}`}
+            color="default"
+            variant="outlined"
+          />
+        </Box>
+      </Paper>
 
       {/* Weight Filter */}
       <Box sx={{ mb: 2 }}>

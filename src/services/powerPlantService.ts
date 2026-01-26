@@ -164,21 +164,15 @@ export function calculateTotalPowerPlantStats(
 export function validatePowerPlantInstallation(
   plant: PowerPlantType,
   hullPoints: number,
-  hull: Hull,
+  _hull: Hull,
   _existingInstallations: InstalledPowerPlant[],
-  usedHullPoints: number
+  _usedHullPoints: number
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   // Check minimum size
   if (hullPoints < plant.minSize) {
     errors.push(`${plant.name} requires a minimum of ${plant.minSize} hull points.`);
-  }
-  
-  // Check available hull points
-  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (hullPoints > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
   }
   
   return {

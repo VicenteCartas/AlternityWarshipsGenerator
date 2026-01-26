@@ -217,27 +217,15 @@ export function calculateTotalEngineStats(
 export function validateEngineInstallation(
   engine: EngineType,
   hullPoints: number,
-  hull: Hull,
-  usedHullPoints: number,
-  availablePower: number
+  _hull: Hull,
+  _usedHullPoints: number,
+  _availablePower: number
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   // Check minimum size
   if (hullPoints < engine.minSize) {
     errors.push(`${engine.name} requires a minimum of ${engine.minSize} hull points.`);
-  }
-  
-  // Check available hull points
-  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (hullPoints > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
-  }
-  
-  // Check power requirement
-  const powerRequired = calculateEnginePowerRequired(engine, hullPoints);
-  if (powerRequired > availablePower) {
-    errors.push(`Not enough power available. Need ${powerRequired}, have ${availablePower}.`);
   }
   
   return {

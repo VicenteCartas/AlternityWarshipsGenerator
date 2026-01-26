@@ -108,6 +108,25 @@ The app bar contains global design constraints that filter available components:
 - **Responsive but desktop-first**: This is an Electron desktop app, so optimize for larger screens
 - **Action columns first**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the beginning (leftmost) so users don't need to scroll to access it
 
+### Chip Color Scheme
+MUI Chips are used throughout the app to display stats. Follow this consistent color scheme:
+
+**Section Page Chips** (Armor, PowerPlant, Engines summary sections):
+- **Gray (default, outlined)**: Consumption metrics - HP used, Power consumed, Cost
+- **Blue (primary, outlined)**: Production metrics - Power generated, Acceleration
+- **Green (success, outlined)**: Fuel available (has fuel installed)
+- **Red (error, outlined)**: Fuel missing (no fuel installed)
+
+**App Bar Chips** (validation indicators):
+- **Green (success)**: Validation passed - HP within budget, Power sufficient
+- **Red (error)**: Critical problem - HP over budget
+- **Orange (warning)**: Warning - Power consumption exceeds production
+- **Gray (default)**: Informational - Cost, Tech tracks
+
+**Acceleration Notes**:
+- PL6 engines (hexes/round) and non-PL6 engines (km/s²) should display as separate chips, never summed together
+- Use `formatAcceleration()` from formatters.ts with the appropriate `isPL6` flag
+
 ## Data Format Conventions
 
 ### General Principles

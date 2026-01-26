@@ -665,19 +665,13 @@ function App() {
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
               <Chip
                 label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
-                color={getRemainingHullPoints() >= 0 ? 'success' : 'error'}
+                color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
                 variant="outlined"
                 size="small"
               />
               <Chip
-                label={`Power: ${getTotalPower()} / ${getTotalPower()}`}
-                color={getTotalPower() > 0 ? 'success' : 'default'}
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`Crew: 0 / ${selectedHull.crew}`}
-                color={0 >= selectedHull.crew ? 'success' : 'error'}
+                label={`Power: ${getTotalPower() - calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired} / ${getTotalPower()}`}
+                color={calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired > getTotalPower() ? 'warning' : 'success'}
                 variant="outlined"
                 size="small"
               />
