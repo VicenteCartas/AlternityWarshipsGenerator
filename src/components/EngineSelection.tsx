@@ -411,14 +411,14 @@ export function EngineSelection({
             const pl6Accel = installedEngines
               .filter(e => e.type.usesPL6Scale)
               .reduce((sum, e) => {
-                const percentage = calculateHullPercentage(e.hullPoints, hull);
-                return sum + getAccelerationForPercentage(e.type, percentage);
+                const percentage = calculateHullPercentage(hull, e.hullPoints);
+                return sum + getAccelerationForPercentage(e.type.accelerationRatings, percentage);
               }, 0);
             const nonPL6Accel = installedEngines
               .filter(e => !e.type.usesPL6Scale)
               .reduce((sum, e) => {
-                const percentage = calculateHullPercentage(e.hullPoints, hull);
-                return sum + getAccelerationForPercentage(e.type, percentage);
+                const percentage = calculateHullPercentage(hull, e.hullPoints);
+                return sum + getAccelerationForPercentage(e.type.accelerationRatings, percentage);
               }, 0);
             return (
               <>
