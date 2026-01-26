@@ -22,6 +22,7 @@
                                                 },
                         "usesPL6Scale":  true,
                         "requiresFuel":  true,
+                        "fuelOptional":  true,
                         "fuelEfficiency":  10,
                         "fuelCostPerHullPoint":  10000,
                         "description":  "A backup engine system designed specifically for use when the ship\u0027s main drives must be shut down to make planetfall. Common varieties include scramjet, chemical rocket, or powered airfoil.",

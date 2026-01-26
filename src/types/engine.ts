@@ -62,6 +62,9 @@ export interface EngineType {
   /** Whether fuel is required */
   requiresFuel: boolean;
   
+  /** Whether fuel is optional (can use power instead) */
+  fuelOptional?: boolean;
+  
   /** Fuel efficiency: thrust-days per hull point of fuel (for 1 HP engine) */
   fuelEfficiency: number;
   

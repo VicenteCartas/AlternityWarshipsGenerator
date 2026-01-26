@@ -407,19 +407,31 @@ export function EngineSelection({
             variant="outlined"
           />
           {/* Separate acceleration chips for PL6 and non-PL6 engines */}
+          {/* Engines of the same type have their HP combined before calculating acceleration */}
           {(() => {
-            const pl6Accel = installedEngines
-              .filter(e => e.type.usesPL6Scale)
-              .reduce((sum, e) => {
-                const percentage = calculateHullPercentage(hull, e.hullPoints);
-                return sum + getAccelerationForPercentage(e.type.accelerationRatings, percentage);
-              }, 0);
-            const nonPL6Accel = installedEngines
-              .filter(e => !e.type.usesPL6Scale)
-              .reduce((sum, e) => {
-                const percentage = calculateHullPercentage(hull, e.hullPoints);
-                return sum + getAccelerationForPercentage(e.type.accelerationRatings, percentage);
-              }, 0);
+            // Group engines by type and sum their HP, then calculate acceleration per type
+            const enginesByType = new Map<string, { type: typeof installedEngines[0]['type'], totalHP: number }>();
+            for (const e of installedEngines) {
+              const existing = enginesByType.get(e.type.id);
+              if (existing) {
+                existing.totalHP += e.hullPoints;
+              } else {
+                enginesByType.set(e.type.id, { type: e.type, totalHP: e.hullPoints });
+              }
+            }
+            
+            let pl6Accel = 0;
+            let nonPL6Accel = 0;
+            for (const { type, totalHP } of enginesByType.values()) {
+              const percentage = calculateHullPercentage(hull, totalHP);
+              const accel = getAccelerationForPercentage(type.accelerationRatings, percentage);
+              if (type.usesPL6Scale) {
+                pl6Accel += accel;
+              } else {
+                nonPL6Accel += accel;
+              }
+            }
+            
             return (
               <>
                 {pl6Accel > 0 && (
@@ -446,12 +458,13 @@ export function EngineSelection({
             const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, engineType.id);
             const totalFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, engineType.id);
             const endurance = totalFuelHP > 0 ? calculateEngineFuelTankEndurance(engineType, totalFuelHP, totalEngineHP) : 0;
+            const noFuelColor = engineType.fuelOptional ? 'default' : 'error';
             return (
               <Chip
                 key={engineType.id}
                 icon={<BatteryChargingFullIcon />}
                 label={`${engineType.name}: ${totalFuelHP > 0 ? `${endurance} thrust-days` : 'No fuel'}`}
-                color={totalFuelHP > 0 ? 'success' : 'error'}
+                color={totalFuelHP > 0 ? 'success' : noFuelColor}
                 variant="outlined"
               />
             );
@@ -523,12 +536,12 @@ export function EngineSelection({
                     variant="outlined"
                   />
                   {needsFuel && (
-                    <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days)` : 'No fuel tank installed'}>
+                    <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
                       <Chip
                         icon={<BatteryChargingFullIcon />}
-                        label={fuelTankHP > 0 ? `${endurance} thrust-days` : 'Need fuel'}
+                        label={fuelTankHP > 0 ? `${endurance} thrust-days` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
                         size="small"
-                        color={fuelTankHP > 0 ? 'success' : 'error'}
+                        color={fuelTankHP > 0 ? 'success' : (installation.type.fuelOptional ? 'default' : 'error')}
                         variant="outlined"
                         onClick={() => handleStartAddFuelTank(installation.type)}
                       />
@@ -723,7 +736,7 @@ export function EngineSelection({
                 <Typography variant="caption" color="text.secondary">
                   {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
                   Power: {previewStats.powerRequired} | Cost: {formatEngineCost(previewStats.engineCost)}
-                  {selectedType.requiresFuel && ' | Needs fuel tank'}
+                  {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -860,8 +873,8 @@ export function EngineSelection({
                   </TableCell>
                   <TableCell align="center">
                     {engine.requiresFuel ? (
-                      <Tooltip title={`Efficiency: ${engine.fuelEfficiency} thrust-days/HP, Cost: ${formatCost(engine.fuelCostPerHullPoint)}/HP`}>
-                        <BatteryChargingFullIcon fontSize="small" color="warning" />
+                      <Tooltip title={`Efficiency: ${engine.fuelEfficiency} thrust-days/HP, Cost: ${formatCost(engine.fuelCostPerHullPoint)}/HP${engine.fuelOptional ? ' (fuel optional, can use power)' : ''}`}>
+                        <BatteryChargingFullIcon fontSize="small" color={engine.fuelOptional ? 'disabled' : 'warning'} />
                       </Tooltip>
                     ) : (
                       <Typography variant="caption" color="text.secondary">No</Typography>

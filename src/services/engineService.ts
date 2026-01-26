@@ -35,21 +35,42 @@ export function calculateHullPercentage(hull: Hull, engineHullPoints: number): n
 
 /**
  * Get acceleration rating based on hull percentage
- * Returns the acceleration for the nearest lower percentage bracket
+ * Interpolates linearly between breakpoints (5%, 10%, 15%, 20%, 30%, 40%, 50%)
+ * Below 5% returns 0, at or above 50% returns the 50% value
  */
 export function getAccelerationForPercentage(
   ratings: AccelerationRatings,
   percentage: number
 ): number {
-  // Percentage brackets from the rulebook
+  // Below 5% - no meaningful acceleration
+  if (percentage < 5) return 0;
+  
+  // At or above 50% - cap at 50% value
   if (percentage >= 50) return ratings.at50Percent;
-  if (percentage >= 40) return ratings.at40Percent;
-  if (percentage >= 30) return ratings.at30Percent;
-  if (percentage >= 20) return ratings.at20Percent;
-  if (percentage >= 15) return ratings.at15Percent;
-  if (percentage >= 10) return ratings.at10Percent;
-  if (percentage >= 5) return ratings.at5Percent;
-  return 0; // Below 5% - no meaningful acceleration
+  
+  // Define breakpoints and their values
+  const breakpoints = [
+    { pct: 5, value: ratings.at5Percent },
+    { pct: 10, value: ratings.at10Percent },
+    { pct: 15, value: ratings.at15Percent },
+    { pct: 20, value: ratings.at20Percent },
+    { pct: 30, value: ratings.at30Percent },
+    { pct: 40, value: ratings.at40Percent },
+    { pct: 50, value: ratings.at50Percent },
+  ];
+  
+  // Find the two breakpoints to interpolate between
+  for (let i = 0; i < breakpoints.length - 1; i++) {
+    const lower = breakpoints[i];
+    const upper = breakpoints[i + 1];
+    if (percentage >= lower.pct && percentage < upper.pct) {
+      // Linear interpolation
+      const ratio = (percentage - lower.pct) / (upper.pct - lower.pct);
+      return lower.value + ratio * (upper.value - lower.value);
+    }
+  }
+  
+  return 0;
 }
 
 /**
@@ -271,9 +292,11 @@ export function validateEngineDesign(
   const errors: string[] = [];
   
   // Check if fuel-requiring engines exist without fuel tanks
+  // Skip engines where fuel is optional (they can use power instead)
   const uniqueFuelRequiringTypes = getUniqueFuelRequiringEngineTypes(installations);
   
   for (const engineType of uniqueFuelRequiringTypes) {
+    if (engineType.fuelOptional) continue; // Fuel is optional, no error needed
     const fuelTankHP = getTotalEngineFuelTankHPForEngineType(fuelTanks, engineType.id);
     if (fuelTankHP === 0) {
       errors.push(`Engine "${engineType.name}" requires fuel. Install at least one fuel tank for it.`);
