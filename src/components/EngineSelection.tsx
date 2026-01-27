@@ -727,13 +727,13 @@ export function EngineSelection({
               value={hullPointsInput}
               onChange={(e) => setHullPointsInput(e.target.value)}
               inputProps={{ min: selectedType.minSize }}
-              helperText={`Min: ${selectedType.minSize}, Power: ${selectedType.powerPerHullPoint}/HP`}
+              helperText={<>Min: {selectedType.minSize}<br />Power: {selectedType.powerPerHullPoint}/HP</>}
               sx={{ width: 140 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  {previewStats.hullPercentage.toFixed(1)}% hull â†’ {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
+                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
                   Power: {previewStats.powerRequired} | Cost: {formatCost(previewStats.engineCost)}
                   {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                 </Typography>
@@ -785,7 +785,6 @@ export function EngineSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Engine</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
@@ -823,18 +822,6 @@ export function EngineSelection({
                   }}
                   onClick={() => handleTypeSelect(engine)}
                 >
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTypeSelect(engine);
-                      }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
                   <TableCell>
                     <Tooltip title={engine.description} placement="right">
                       <Typography

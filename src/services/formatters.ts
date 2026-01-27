@@ -6,6 +6,11 @@ import type { TechTrack } from '../types/common';
  */
 
 /**
+ * All available tech track codes for iteration
+ */
+export const ALL_TECH_TRACK_CODES: TechTrack[] = ['G', 'D', 'A', 'M', 'F', 'Q', 'T', 'S', 'P', 'X', 'C'];
+
+/**
  * Format a cost number for display
  * @param cost - Cost in credits
  * @returns Formatted string like "$350 K", "$1.5 M", "$2 B"

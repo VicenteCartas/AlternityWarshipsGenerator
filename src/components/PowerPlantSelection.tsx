@@ -703,7 +703,6 @@ export function PowerPlantSelection({
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Action</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Power Plant</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
@@ -735,18 +734,6 @@ export function PowerPlantSelection({
                   }}
                   onClick={() => handleTypeSelect(plant)}
                 >
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTypeSelect(plant);
-                      }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"

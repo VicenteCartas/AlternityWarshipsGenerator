@@ -53,7 +53,7 @@ import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
 import { calculateTotalFTLStats } from './services/ftlDriveService';
 import { calculateSupportSystemsStats } from './services/supportSystemService';
-import { formatCost } from './services/formatters';
+import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
   serializeWarship, 
@@ -75,20 +75,7 @@ const steps = [
   { label: 'Support Systems', required: false },
 ];
 
-// All available tech tracks with display names
-const ALL_TECH_TRACKS: { code: TechTrack; name: string }[] = [
-  { code: 'G', name: 'Gravity' },
-  { code: 'D', name: 'Dimensional' },
-  { code: 'A', name: 'Antimatter' },
-  { code: 'M', name: 'Matter' },
-  { code: 'F', name: 'Fusion' },
-  { code: 'Q', name: 'Quantum' },
-  { code: 'T', name: 'Transport' },
-  { code: 'S', name: 'Structural' },
-  { code: 'P', name: 'Psionic' },
-  { code: 'X', name: 'Exotic' },
-  { code: 'C', name: 'Computer' },
-];
+
 
 // Progress level display names
 const PL_NAMES: Record<ProgressLevel, string> = {
@@ -121,6 +108,14 @@ function App() {
   
   // Tech track popover anchor
   const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
+  
+  // Power scenario popover and toggles
+  const [powerAnchorEl, setPowerAnchorEl] = useState<HTMLElement | null>(null);
+  const [powerScenario, setPowerScenario] = useState({
+    engines: true,
+    ftlDrive: true,
+    supportSystems: true,
+  });
   
   // Snackbar state for notifications
   const [snackbar, setSnackbar] = useState<{
@@ -479,6 +474,35 @@ function App() {
     return powerPlantStats.totalPowerGenerated;
   };
 
+  // Calculate total power consumed by selected systems (based on scenario)
+  const getTotalPowerConsumed = () => {
+    if (!selectedHull) return 0;
+    let consumed = 0;
+    // Engines
+    if (powerScenario.engines) {
+      consumed += calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired;
+    }
+    // FTL Drive
+    if (powerScenario.ftlDrive && installedFTLDrive) {
+      consumed += calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired;
+    }
+    // Support Systems
+    if (powerScenario.supportSystems) {
+      consumed += calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks).totalPowerRequired;
+    }
+    return consumed;
+  };
+
+  // Get individual power consumption values for display
+  const getPowerBreakdown = () => {
+    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0 };
+    return {
+      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
+      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
+      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks).totalPowerRequired,
+    };
+  };
+
   // Calculate total cost
   const getTotalCost = () => {
     if (!selectedHull) return 0;
@@ -759,7 +783,7 @@ function App() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 Leave all unchecked to show all components
               </Typography>
-              {ALL_TECH_TRACKS.map(({ code, name }) => (
+              {ALL_TECH_TRACK_CODES.map((code) => (
                 <FormControlLabel
                   key={code}
                   control={
@@ -775,7 +799,7 @@ function App() {
                       }}
                     />
                   }
-                  label={`${code} - ${name}`}
+                  label={`${code} - ${getTechTrackName(code)}`}
                   sx={{ display: 'block', m: 0 }}
                 />
               ))}
@@ -799,11 +823,91 @@ function App() {
                 size="small"
               />
               <Chip
-                label={`Power: ${getTotalPower() - calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired} / ${getTotalPower()}`}
-                color={calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired > getTotalPower() ? 'warning' : 'success'}
+                label={`Power: ${getTotalPower() - getTotalPowerConsumed()} / ${getTotalPower()}`}
+                color={getTotalPowerConsumed() > getTotalPower() ? 'warning' : 'success'}
                 variant="outlined"
                 size="small"
+                onClick={(e) => setPowerAnchorEl(e.currentTarget)}
+                sx={{ cursor: 'pointer' }}
               />
+              <Popover
+                open={Boolean(powerAnchorEl)}
+                anchorEl={powerAnchorEl}
+                onClose={() => setPowerAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                <Box sx={{ p: 2, minWidth: 220 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Power Scenario
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    Select which systems to include in power calculations
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.engines}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, engines: e.target.checked })}
+                      />
+                    }
+                    label={`Engines (${getPowerBreakdown().engines} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.ftlDrive}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, ftlDrive: e.target.checked })}
+                      />
+                    }
+                    label={`FTL Drive (${getPowerBreakdown().ftlDrive} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.supportSystems}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, supportSystems: e.target.checked })}
+                      />
+                    }
+                    label={`Support Systems (${getPowerBreakdown().supportSystems} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                </Box>
+              </Popover>
+              {/* Life Support chip */}
+              {(() => {
+                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+                const totalHP = calculateHullStats(selectedHull).totalHullPoints;
+                const covered = supportStats.totalHullPointsCovered;
+                const isFullCoverage = covered >= totalHP;
+                return (
+                  <Chip
+                    label={`Life: ${covered} / ${totalHP} HP`}
+                    color={isFullCoverage ? 'success' : 'warning'}
+                    variant="outlined"
+                    size="small"
+                  />
+                );
+              })()}
+              {/* Crew Accommodations chip */}
+              {(() => {
+                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+                const requiredCrew = selectedHull.crew;
+                const crewCapacity = supportStats.crewCapacity;
+                const isFullCoverage = crewCapacity >= requiredCrew;
+                return (
+                  <Chip
+                    label={`Crew: ${crewCapacity} / ${requiredCrew}`}
+                    color={isFullCoverage ? 'success' : 'warning'}
+                    variant="outlined"
+                    size="small"
+                  />
+                );
+              })()}
               <Chip
                 label={`Cost: ${formatCost(getTotalCost())}`}
                 color="default"
