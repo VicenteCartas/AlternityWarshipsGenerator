@@ -179,7 +179,7 @@ export function FTLDriveSelection({
           {installedFTLDrive ? (
             <>
               <Chip
-                label={`HP: ${totalStats.totalHullPoints} (${totalStats.hullPercentage.toFixed(1)}%)`}
+                label={`HP: ${totalStats.totalHullPoints}`}
                 color="default"
                 variant="outlined"
               />

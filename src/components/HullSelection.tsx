@@ -67,6 +67,29 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
         Step 1: Select Hull
       </Typography>
 
+      {/* Hull Summary */}
+      {selectedHull && (
+        <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Chip
+              label={`HP: ${selectedHull.hullPoints + selectedHull.bonusHullPoints}`}
+              color="default"
+              variant="outlined"
+            />
+            <Chip
+              label={`Crew: ${selectedHull.crew}`}
+              color="default"
+              variant="outlined"
+            />
+            <Chip
+              label={`Cost: ${formatCost(selectedHull.cost)}`}
+              color="default"
+              variant="outlined"
+            />
+          </Box>
+        </Paper>
+      )}
+
       {/* Filters */}
       <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <ToggleButtonGroup
