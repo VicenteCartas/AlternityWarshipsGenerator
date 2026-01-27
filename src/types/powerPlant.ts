@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+﻿import type { ProgressLevel, TechTrack } from './common';
 import type { ShipClass } from './hull';
 
 // Re-export for convenience
@@ -79,7 +79,7 @@ export interface PowerPlantType {
  */
 export interface InstalledPowerPlant {
   /** Unique ID for this installation */
-  installationId: string;
+  id: string;
   
   /** The power plant type */
   type: PowerPlantType;
@@ -93,7 +93,7 @@ export interface InstalledPowerPlant {
  */
 export interface InstalledFuelTank {
   /** Unique ID for this fuel tank installation */
-  installationId: string;
+  id: string;
   
   /** The power plant type this fuel is for (determines fuel cost and efficiency) */
   forPowerPlantType: PowerPlantType;

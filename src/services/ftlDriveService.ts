@@ -1,12 +1,12 @@
-import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
+﻿import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
-import ftlDrivesData from '../data/ftlDrives.json';
+import { getFTLDrivesData } from './dataLoader';
 
 /**
  * Get all FTL drive types
  */
 export function getAllFTLDriveTypes(): FTLDriveType[] {
-  return ftlDrivesData.ftlDrives as FTLDriveType[];
+  return getFTLDrivesData();
 }
 
 /**
@@ -152,20 +152,6 @@ export function validateFTLInstallation(
  */
 export function generateFTLInstallationId(): string {
   return `ftl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-/**
- * Format cost for display
- */
-export function formatFTLCost(cost: number): string {
-  if (cost >= 1_000_000_000) {
-    return `$${(cost / 1_000_000_000).toFixed(1)}B`;
-  } else if (cost >= 1_000_000) {
-    return `$${(cost / 1_000_000).toFixed(1)}M`;
-  } else if (cost >= 1_000) {
-    return `$${(cost / 1_000).toFixed(0)}K`;
-  }
-  return `$${cost}`;
 }
 
 /**

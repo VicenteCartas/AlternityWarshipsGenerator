@@ -1,4 +1,4 @@
-import type { ShipClass } from '../types/hull';
+﻿import type { ShipClass } from '../types/hull';
 import type { TechTrack } from '../types/common';
 
 /**

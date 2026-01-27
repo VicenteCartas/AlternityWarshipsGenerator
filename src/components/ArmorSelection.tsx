@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -23,7 +23,6 @@ import {
   getArmorTypesByWeight,
   calculateArmorHullPoints,
   calculateArmorCost,
-  formatArmorCost,
 } from '../services/armorService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
@@ -117,7 +116,7 @@ export function ArmorSelection({
             variant="outlined"
           />
           <Chip
-            label={`Cost: ${selectedWeight && selectedType ? formatArmorCost(calculateArmorCost(hull, selectedWeight, selectedType)) : '$0'}`}
+            label={`Cost: ${selectedWeight && selectedType ? formatCost(calculateArmorCost(hull, selectedWeight, selectedType)) : '$0'}`}
             color="default"
             variant="outlined"
           />
@@ -227,7 +226,7 @@ export function ArmorSelection({
                       <Typography variant="body2">{formatCost(armorType.costPerHullPoint)}</Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2">{formatArmorCost(totalCost)}</Typography>
+                      <Typography variant="body2">{formatCost(totalCost)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Tooltip title={armorType.description} placement="left">

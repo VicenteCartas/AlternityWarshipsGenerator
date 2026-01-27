@@ -1,4 +1,4 @@
-# Alternity Warships Generator - TODO & Technical Debt
+﻿# Alternity Warships Generator - TODO & Technical Debt
 
 This document tracks technical debt, refactoring opportunities, and planned features.
 
@@ -6,7 +6,7 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ## 1. Code Logic Cleanup & Refactoring
 
-### 🔴 High Priority
+### ðŸ”´ High Priority
 
 | Issue | Impact | Recommendation |
 |-------|--------|----------------|
@@ -15,7 +15,7 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 | **ID property naming inconsistent** | `installationId` vs `id` across types | Standardize to `id` everywhere |
 | **Percentage interpolation duplicated** | Same algorithm in engine + FTL services (~60 lines) | Extract to shared utility in formatters.ts |
 
-### 🟡 Medium Priority
+### ðŸŸ¡ Medium Priority
 
 | Issue | Recommendation |
 |-------|----------------|
@@ -24,7 +24,7 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 | `calculateHullStats` in type file | Move to hullService.ts per project conventions |
 | Unused underscore-prefixed params | Either implement validation or remove from signatures |
 
-### 🟢 Low Priority - Type Improvements
+### ðŸŸ¢ Low Priority - Type Improvements
 
 ```typescript
 // Create shared base types in common.ts
@@ -55,7 +55,7 @@ interface PercentageRatings<T = number> {
 
 ## 2. UI Code Cleanup & Unification
 
-### 🔴 High Priority - Extract Shared Components
+### ðŸ”´ High Priority - Extract Shared Components
 
 | Pattern | Files Affected | Lines Duplicated |
 |---------|---------------|------------------|
@@ -68,17 +68,17 @@ interface PercentageRatings<T = number> {
 **Suggested shared components structure:**
 ```
 src/components/shared/
-├── DataTable/
-│   ├── HeaderCell.tsx          # Bold, nowrap header styling
-│   ├── TechTrackCell.tsx       # Tech tracks with tooltip
-│   └── TruncatedCell.tsx       # Description with ellipsis
-├── ConfigurationForm.tsx       # Add/Edit form wrapper
-├── InstalledItemRow.tsx        # Item with chips + edit/delete
-├── StatsSummary.tsx            # Summary chips panel
-└── SectionHeader.tsx           # Step title + clear button
+â”œâ”€â”€ DataTable/
+â”‚   â”œâ”€â”€ HeaderCell.tsx          # Bold, nowrap header styling
+â”‚   â”œâ”€â”€ TechTrackCell.tsx       # Tech tracks with tooltip
+â”‚   â””â”€â”€ TruncatedCell.tsx       # Description with ellipsis
+â”œâ”€â”€ ConfigurationForm.tsx       # Add/Edit form wrapper
+â”œâ”€â”€ InstalledItemRow.tsx        # Item with chips + edit/delete
+â”œâ”€â”€ StatsSummary.tsx            # Summary chips panel
+â””â”€â”€ SectionHeader.tsx           # Step title + clear button
 ```
 
-### 🟡 Medium Priority - Style Inconsistencies
+### ðŸŸ¡ Medium Priority - Style Inconsistencies
 
 | Issue | Fix |
 |-------|-----|
@@ -86,7 +86,7 @@ src/components/shared/
 | Selected row styling repeated 4x | Extract to `selectableRowSx` constant |
 | Summary chip patterns vary slightly | Create `StatsSummary` component |
 
-### 🟢 Quick Wins (Immediate)
+### ðŸŸ¢ Quick Wins (Immediate)
 
 1. Create `src/constants/tableStyles.ts`:
 ```typescript
@@ -104,7 +104,7 @@ export const selectableRowSx = {
 
 ## 3. Missing Features
 
-### 🔴 Critical - Incomplete Rulebook Implementation
+### ðŸ”´ Critical - Incomplete Rulebook Implementation
 
 | Missing Step | Description | Data File Needed |
 |--------------|-------------|------------------|
@@ -116,7 +116,7 @@ export const selectableRowSx = {
 | **Step 12: Miscellaneous** | Labs, workshops, cargo, fuel scoops | `miscSystems.json` |
 | **Step 13: Summary** | Final stats, fire diagram, damage diagram | N/A |
 
-### 🔴 High Value - UX Features
+### ðŸ”´ High Value - UX Features
 
 | Feature | Description |
 |---------|-------------|
@@ -125,7 +125,7 @@ export const selectableRowSx = {
 | **Damage Diagram** | Hit location/damage track visual |
 | **Validation System** | HP/Power budget enforcement with warnings |
 
-### 🟡 Medium Value - Quality of Life
+### ðŸŸ¡ Medium Value - Quality of Life
 
 | Feature | Description |
 |---------|-------------|
@@ -140,7 +140,7 @@ export const selectableRowSx = {
 | Copy to Clipboard | Quick copy of ship stats for forums/chat |
 | Cost Breakdown | Expandable cost summary by category |
 
-### 🟡 Validation Gaps
+### ðŸŸ¡ Validation Gaps
 
 | Gap | Impact |
 |-----|--------|
@@ -179,11 +179,11 @@ export const selectableRowSx = {
 ## 5. Recommended Action Plan
 
 ### Phase 1: Code Cleanup (Low Risk)
-- [ ] Consolidate cost formatters to formatters.ts
-- [ ] Fix FTL service to use dataLoader
-- [ ] Create tableStyles.ts constants
-- [ ] Extract TechTrackCell and TruncatedDescription components
-- [ ] Standardize ID property naming
+- [x] Consolidate cost formatters to formatters.ts
+- [x] Fix FTL service to use dataLoader
+- [x] Create tableStyles.ts constants
+- [x] Extract TechTrackCell and TruncatedDescription components
+- [x] Standardize ID property naming
 
 ### Phase 2: Complete Core Features
 - [ ] Implement Step 7: Weapons
@@ -212,7 +212,7 @@ export const selectableRowSx = {
 
 ## 6. Estimated Impact
 
-**UI Refactoring:** ~700-900 lines of duplicated JSX → ~150-200 lines of shared components
+**UI Refactoring:** ~700-900 lines of duplicated JSX â†’ ~150-200 lines of shared components
 
 **Service Consolidation:** ~100 lines of duplicated logic removed
 

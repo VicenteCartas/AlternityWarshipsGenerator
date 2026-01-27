@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Data Loader Service
  * 
  * Handles runtime loading of game data files, allowing users to edit
@@ -204,6 +204,17 @@ export function getEnginesData(): EngineType[] {
     return (enginesDataFallback as { engines: EngineType[] }).engines;
   }
   return cache.engines!;
+}
+
+/**
+ * Get all FTL drive types (must call loadAllGameData first)
+ */
+export function getFTLDrivesData(): FTLDriveType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (ftlDrivesDataFallback as { ftlDrives: FTLDriveType[] }).ftlDrives;
+  }
+  return cache.ftlDrives!;
 }
 
 /**

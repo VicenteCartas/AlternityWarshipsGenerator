@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -40,7 +40,6 @@ import {
   generateLifeSupportId,
   generateAccommodationId,
   generateStoreSystemId,
-  formatSupportSystemCost,
 } from '../services/supportSystemService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
@@ -311,7 +310,7 @@ export function SupportSystemsSelection({
               <Typography variant="caption" color="text.secondary">
                 HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1)} |
                 Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
-                Cost: {formatSupportSystemCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))} |
+                Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))} |
                 Covers: {selectedLifeSupport.hullPointsCovered * (parseInt(lifeSupportQuantity, 10) || 1)} HP
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -378,7 +377,7 @@ export function SupportSystemsSelection({
                 variant="outlined"
               />
               <Chip
-                label={formatSupportSystemCost(installed.type.cost * installed.quantity)}
+                label={formatCost(installed.type.cost * installed.quantity)}
                 size="small"
                 variant="outlined"
               />
@@ -479,7 +478,7 @@ export function SupportSystemsSelection({
               <Typography variant="caption" color="text.secondary">
                 HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1)} |
                 Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
-                Cost: {formatSupportSystemCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1))} |
+                Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1))} |
                 Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1)}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -549,7 +548,7 @@ export function SupportSystemsSelection({
                 />
               )}
               <Chip
-                label={formatSupportSystemCost(installed.type.cost * installed.quantity)}
+                label={formatCost(installed.type.cost * installed.quantity)}
                 size="small"
                 variant="outlined"
               />
@@ -662,7 +661,7 @@ export function SupportSystemsSelection({
               <Typography variant="caption" color="text.secondary">
                 HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1)} |
                 Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
-                Cost: {formatSupportSystemCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
+                Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -741,7 +740,7 @@ export function SupportSystemsSelection({
                 />
               )}
               <Chip
-                label={formatSupportSystemCost(installed.type.cost * installed.quantity)}
+                label={formatCost(installed.type.cost * installed.quantity)}
                 size="small"
                 variant="outlined"
               />
@@ -876,7 +875,7 @@ export function SupportSystemsSelection({
             variant="outlined"
           />
           <Chip
-            label={`Cost: ${formatSupportSystemCost(stats.totalCost)}`}
+            label={`Cost: ${formatCost(stats.totalCost)}`}
             color="default"
             variant="outlined"
           />

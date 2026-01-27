@@ -1,4 +1,4 @@
-import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
+﻿import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
 import { getArmorTypesData, getArmorWeightsData } from './dataLoader';
 
@@ -80,16 +80,4 @@ export function calculateArmorCost(hull: Hull, weight: ArmorWeight, armorType: A
   // Minimum 1 hull point worth of armor for cost calculation
   const costHullPoints = Math.max(1, hullPoints);
   return costHullPoints * armorType.costPerHullPoint;
-}
-
-/**
- * Format cost for display
- */
-export function formatArmorCost(cost: number): string {
-  if (cost >= 1_000_000) {
-    return `$${(cost / 1_000_000).toFixed(1)} M`;
-  } else if (cost >= 1_000) {
-    return `$${(cost / 1_000).toFixed(0)} K`;
-  }
-  return `$${cost}`;
 }

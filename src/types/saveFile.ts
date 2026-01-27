@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+﻿import type { ProgressLevel, TechTrack } from './common';
 
 /**
  * Save file format for Alternity Warships

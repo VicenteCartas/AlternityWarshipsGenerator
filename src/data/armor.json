@@ -1,4 +1,4 @@
-{
+﻿{
     "armorWeights":  [
                          {
                              "weight":  "light",
@@ -100,7 +100,7 @@
                            "protectionHI":  "d8-1",
                            "protectionEn":  "d8",
                            "costPerHullPoint":  500000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armor—it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
                        },
                        {
                            "id":  "alloy-medium",
@@ -214,7 +214,7 @@
                            "protectionHI":  "2d4",
                            "protectionEn":  "2d4",
                            "costPerHullPoint":  1000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armor—it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
                        },
                        {
                            "id":  "alloy-heavy",
@@ -299,7 +299,7 @@
                            "protectionHI":  "2d4+2",
                            "protectionEn":  "2d4+1",
                            "costPerHullPoint":  2000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armor—it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
                        },
                        {
                            "id":  "alloy-super-heavy",
@@ -356,7 +356,7 @@
                            "protectionHI":  "2d4+4",
                            "protectionEn":  "2d4+3",
                            "costPerHullPoint":  4000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armor—it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
                        }
                    ]
 }

@@ -1,4 +1,4 @@
-// Type declarations for Electron API exposed via preload
+﻿// Type declarations for Electron API exposed via preload
 
 export interface SaveDialogResult {
   canceled: boolean;

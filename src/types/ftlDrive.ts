@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+﻿import type { ProgressLevel, TechTrack } from './common';
 import type { ShipClass } from './hull';
 
 // Re-export for convenience

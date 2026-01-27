@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -38,7 +38,6 @@ import {
   validatePowerPlantDesign,
   generateInstallationId,
   generateFuelTankId,
-  formatPowerPlantCost,
   getFuelRequiringInstallations,
 } from '../services/powerPlantService';
 import { formatCost, getTechTrackName } from '../services/formatters';
@@ -67,7 +66,7 @@ export function PowerPlantSelection({
   // Power plant state
   const [selectedType, setSelectedType] = useState<PowerPlantType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
-  const [editingInstallationId, setEditingInstallationId] = useState<string | null>(null);
+  const [editingInstallationId, seteditingInstallationId] = useState<string | null>(null);
 
   // Fuel tank state
   const [addingFuelTankForType, setAddingFuelTankForType] = useState<PowerPlantType | null>(null);
@@ -136,7 +135,7 @@ export function PowerPlantSelection({
 
     // When editing, exclude the current installation from validation
     const plantsForValidation = editingInstallationId
-      ? installedPowerPlants.filter((p) => p.installationId !== editingInstallationId)
+      ? installedPowerPlants.filter((p) => p.id !== editingInstallationId)
       : installedPowerPlants;
     
     const hpUsedByOtherPlants = editingInstallationId
@@ -157,18 +156,18 @@ export function PowerPlantSelection({
 
     if (editingInstallationId) {
       const updatedInstallation: InstalledPowerPlant = {
-        installationId: editingInstallationId,
+        id: editingInstallationId,
         type: selectedType,
         hullPoints,
       };
       onPowerPlantsChange(
         installedPowerPlants.map((p) =>
-          p.installationId === editingInstallationId ? updatedInstallation : p
+          p.id === editingInstallationId ? updatedInstallation : p
         )
       );
     } else {
       const newInstallation: InstalledPowerPlant = {
-        installationId: generateInstallationId(),
+        id: generateInstallationId(),
         type: selectedType,
         hullPoints,
       };
@@ -177,18 +176,18 @@ export function PowerPlantSelection({
     
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingInstallationId(null);
+    seteditingInstallationId(null);
   };
 
-  const handleRemovePowerPlant = (installationId: string) => {
-    const plantToRemove = installedPowerPlants.find(p => p.installationId === installationId);
+  const handleRemovePowerPlant = (id: string) => {
+    const plantToRemove = installedPowerPlants.find(p => p.id === id);
     onPowerPlantsChange(
-      installedPowerPlants.filter((p) => p.installationId !== installationId)
+      installedPowerPlants.filter((p) => p.id !== id)
     );
     // Also remove any fuel tanks associated with this power plant type if no other plants of that type exist
     if (plantToRemove) {
       const otherPlantsOfSameType = installedPowerPlants.filter(
-        p => p.installationId !== installationId && p.type.id === plantToRemove.type.id
+        p => p.id !== id && p.type.id === plantToRemove.type.id
       );
       if (otherPlantsOfSameType.length === 0) {
         onFuelTanksChange(
@@ -201,7 +200,7 @@ export function PowerPlantSelection({
   const handleEditPowerPlant = (installation: InstalledPowerPlant) => {
     setSelectedType(installation.type);
     setHullPointsInput(installation.hullPoints.toString());
-    setEditingInstallationId(installation.installationId);
+    seteditingInstallationId(installation.id);
   };
 
   const handleClearAll = () => {
@@ -209,7 +208,7 @@ export function PowerPlantSelection({
     onFuelTanksChange([]);
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingInstallationId(null);
+    seteditingInstallationId(null);
     setAddingFuelTankForType(null);
     setEditingFuelTankId(null);
   };
@@ -229,7 +228,7 @@ export function PowerPlantSelection({
 
     // When editing, exclude the current fuel tank from HP calculation
     const tanksForValidation = editingFuelTankId
-      ? installedFuelTanks.filter(ft => ft.installationId !== editingFuelTankId)
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
       : installedFuelTanks;
     
     const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
@@ -247,18 +246,18 @@ export function PowerPlantSelection({
 
     if (editingFuelTankId) {
       const updatedFuelTank: InstalledFuelTank = {
-        installationId: editingFuelTankId,
+        id: editingFuelTankId,
         forPowerPlantType: addingFuelTankForType,
         hullPoints,
       };
       onFuelTanksChange(
         installedFuelTanks.map(ft =>
-          ft.installationId === editingFuelTankId ? updatedFuelTank : ft
+          ft.id === editingFuelTankId ? updatedFuelTank : ft
         )
       );
     } else {
       const newFuelTank: InstalledFuelTank = {
-        installationId: generateFuelTankId(),
+        id: generateFuelTankId(),
         forPowerPlantType: addingFuelTankForType,
         hullPoints,
       };
@@ -273,12 +272,12 @@ export function PowerPlantSelection({
   const handleEditFuelTank = (fuelTank: InstalledFuelTank) => {
     setAddingFuelTankForType(fuelTank.forPowerPlantType);
     setFuelTankHullPointsInput(fuelTank.hullPoints.toString());
-    setEditingFuelTankId(fuelTank.installationId);
+    setEditingFuelTankId(fuelTank.id);
   };
 
-  const handleRemoveFuelTank = (installationId: string) => {
+  const handleRemoveFuelTank = (id: string) => {
     onFuelTanksChange(
-      installedFuelTanks.filter(ft => ft.installationId !== installationId)
+      installedFuelTanks.filter(ft => ft.id !== id)
     );
   };
 
@@ -289,7 +288,7 @@ export function PowerPlantSelection({
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     
     const plantsForValidation = editingInstallationId
-      ? installedPowerPlants.filter((p) => p.installationId !== editingInstallationId)
+      ? installedPowerPlants.filter((p) => p.id !== editingInstallationId)
       : installedPowerPlants;
     
     const hpUsedByOtherPlants = editingInstallationId
@@ -311,7 +310,7 @@ export function PowerPlantSelection({
     const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
     
     const tanksForValidation = editingFuelTankId
-      ? installedFuelTanks.filter(ft => ft.installationId !== editingFuelTankId)
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
       : installedFuelTanks;
     
     const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
@@ -385,7 +384,7 @@ export function PowerPlantSelection({
             variant="outlined"
           />
           <Chip
-            label={`Cost: ${formatPowerPlantCost(totalStats.totalCost)}`}
+            label={`Cost: ${formatCost(totalStats.totalCost)}`}
             color="default"
             variant="outlined"
           />
@@ -433,7 +432,7 @@ export function PowerPlantSelection({
               
               return (
                 <Box
-                  key={installation.installationId}
+                  key={installation.id}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -458,7 +457,7 @@ export function PowerPlantSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={formatPowerPlantCost(cost)}
+                    label={formatCost(cost)}
                     size="small"
                     variant="outlined"
                   />
@@ -484,7 +483,7 @@ export function PowerPlantSelection({
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => handleRemovePowerPlant(installation.installationId)}
+                    onClick={() => handleRemovePowerPlant(installation.id)}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -511,7 +510,7 @@ export function PowerPlantSelection({
               
               return (
                 <Box
-                  key={fuelTank.installationId}
+                  key={fuelTank.id}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -536,7 +535,7 @@ export function PowerPlantSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={formatPowerPlantCost(cost)}
+                    label={formatCost(cost)}
                     size="small"
                     variant="outlined"
                   />
@@ -550,7 +549,7 @@ export function PowerPlantSelection({
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => handleRemoveFuelTank(fuelTank.installationId)}
+                    onClick={() => handleRemoveFuelTank(fuelTank.id)}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -581,7 +580,7 @@ export function PowerPlantSelection({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {fuelTankPreviewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  Cost: {formatPowerPlantCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} days
+                  Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} days
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -662,7 +661,7 @@ export function PowerPlantSelection({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  Power: {previewStats.power} | Cost: {formatPowerPlantCost(previewStats.totalCost)}
+                  Power: {previewStats.power} | Cost: {formatCost(previewStats.totalCost)}
                   {selectedType.requiresFuel && ' | Requires fuel tank'}
                 </Typography>
               )}
@@ -681,7 +680,7 @@ export function PowerPlantSelection({
                   size="small"
                   onClick={() => {
                     setSelectedType(null);
-                    setEditingInstallationId(null);
+                    seteditingInstallationId(null);
                   }}
                 >
                   Cancel
@@ -822,13 +821,13 @@ export function PowerPlantSelection({
           Power Plant Notes
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          • A good guideline for a power plant is 10 to 15% of the hull, or a power output equal to about half the ship's hull
+          â€¢ A good guideline for a power plant is 10 to 15% of the hull, or a power output equal to about half the ship's hull
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          • Power plants that require fuel also require one or more fuel tanks (5 to 10% of the hull is recommended)
+          â€¢ Power plants that require fuel also require one or more fuel tanks (5 to 10% of the hull is recommended)
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          • Each fuel tank is associated with a specific power plant type and uses that plant's fuel cost and efficiency
+          â€¢ Each fuel tank is associated with a specific power plant type and uses that plant's fuel cost and efficiency
         </Typography>
       </Paper>
     </Box>

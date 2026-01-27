@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
+﻿import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
   LifeSupportType,
   AccommodationType,
@@ -216,13 +216,4 @@ export function calculateSupportSystemsStats(
     
     hasArtificialGravity,
   };
-}
-
-// ============== Formatting ==============
-
-export function formatSupportSystemCost(cost: number): string {
-  if (cost >= 1000000) {
-    return `$${(cost / 1000000).toFixed(1)} M`;
-  }
-  return `$${(cost / 1000).toFixed(0)} K`;
 }

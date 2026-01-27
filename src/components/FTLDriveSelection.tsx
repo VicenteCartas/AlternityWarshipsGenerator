@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -33,7 +33,6 @@ import {
   calculateTotalFTLStats,
   validateFTLInstallation,
   generateFTLInstallationId,
-  formatFTLCost,
   formatFTLRating,
 } from '../services/ftlDriveService';
 import { formatCost, getTechTrackName } from '../services/formatters';
@@ -190,7 +189,7 @@ export function FTLDriveSelection({
                 variant="outlined"
               />
               <Chip
-                label={`Cost: ${formatFTLCost(totalStats.totalCost)}`}
+                label={`Cost: ${formatCost(totalStats.totalCost)}`}
                 color="default"
                 variant="outlined"
               />
@@ -253,7 +252,7 @@ export function FTLDriveSelection({
               variant="outlined"
             />
             <Chip
-              label={formatFTLCost(totalStats.totalCost)}
+              label={formatCost(totalStats.totalCost)}
               size="small"
               variant="outlined"
             />
@@ -302,7 +301,7 @@ export function FTLDriveSelection({
                 <Typography variant="caption" color="text.secondary">
                   {previewStats.hullPercentage.toFixed(1)}% hull | 
                   Power: {previewStats.powerRequired} | 
-                  Cost: {formatFTLCost(previewStats.cost)} | 
+                  Cost: {formatCost(previewStats.cost)} | 
                   {formatFTLRating(previewStats.ftlRating, selectedType.performanceUnit)}
                 </Typography>
               )}

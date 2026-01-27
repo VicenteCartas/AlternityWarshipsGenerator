@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -41,7 +41,6 @@ import {
   validateEngineDesign,
   generateEngineInstallationId,
   generateEngineFuelTankId,
-  formatEngineCost,
   getUniqueFuelRequiringEngineTypes,
   getTotalEngineFuelTankHPForEngineType,
   getTotalEngineHPForEngineType,
@@ -74,7 +73,7 @@ export function EngineSelection({
   // Engine state
   const [selectedType, setSelectedType] = useState<EngineType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
-  const [editingInstallationId, setEditingInstallationId] = useState<string | null>(null);
+  const [editingid, setEditingid] = useState<string | null>(null);
 
   // Fuel tank state
   const [addingFuelTankForType, setAddingFuelTankForType] = useState<EngineType | null>(null);
@@ -125,7 +124,7 @@ export function EngineSelection({
   const handleTypeSelect = (engine: EngineType) => {
     setSelectedType(engine);
     setHullPointsInput(engine.minSize.toString());
-    setEditingInstallationId(null);
+    setEditingid(null);
   };
 
   const handleAddEngine = () => {
@@ -134,11 +133,11 @@ export function EngineSelection({
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
 
     // When editing, exclude the current installation from validation
-    const enginesForValidation = editingInstallationId
-      ? installedEngines.filter((e) => e.id !== editingInstallationId)
+    const enginesForValidation = editingid
+      ? installedEngines.filter((e) => e.id !== editingid)
       : installedEngines;
     
-    const hpUsedByOtherEngines = editingInstallationId
+    const hpUsedByOtherEngines = editingid
       ? calculateTotalEngineStats(enginesForValidation, installedFuelTanks, hull).totalHullPoints
       : totalStats.totalHullPoints;
 
@@ -161,15 +160,15 @@ export function EngineSelection({
       return;
     }
 
-    if (editingInstallationId) {
+    if (editingid) {
       const updatedInstallation: InstalledEngine = {
-        id: editingInstallationId,
+        id: editingid,
         type: selectedType,
         hullPoints,
       };
       onEnginesChange(
         installedEngines.map((e) =>
-          e.id === editingInstallationId ? updatedInstallation : e
+          e.id === editingid ? updatedInstallation : e
         )
       );
     } else {
@@ -183,7 +182,7 @@ export function EngineSelection({
     
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingInstallationId(null);
+    setEditingid(null);
   };
 
   const handleRemoveEngine = (id: string) => {
@@ -206,7 +205,7 @@ export function EngineSelection({
   const handleEditEngine = (installation: InstalledEngine) => {
     setSelectedType(installation.type);
     setHullPointsInput(installation.hullPoints.toString());
-    setEditingInstallationId(installation.id);
+    setEditingid(installation.id);
   };
 
   const handleClearAll = () => {
@@ -214,7 +213,7 @@ export function EngineSelection({
     onFuelTanksChange([]);
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingInstallationId(null);
+    setEditingid(null);
     setAddingFuelTankForType(null);
     setEditingFuelTankId(null);
   };
@@ -234,7 +233,7 @@ export function EngineSelection({
 
     // When editing, exclude the current fuel tank from HP calculation
     const tanksForValidation = editingFuelTankId
-      ? installedFuelTanks.filter(ft => ft.installationId !== editingFuelTankId)
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
       : installedFuelTanks;
     
     const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
@@ -252,18 +251,18 @@ export function EngineSelection({
 
     if (editingFuelTankId) {
       const updatedFuelTank: InstalledEngineFuelTank = {
-        installationId: editingFuelTankId,
+        id: editingFuelTankId,
         forEngineType: addingFuelTankForType,
         hullPoints,
       };
       onFuelTanksChange(
         installedFuelTanks.map(ft =>
-          ft.installationId === editingFuelTankId ? updatedFuelTank : ft
+          ft.id === editingFuelTankId ? updatedFuelTank : ft
         )
       );
     } else {
       const newFuelTank: InstalledEngineFuelTank = {
-        installationId: generateEngineFuelTankId(),
+        id: generateEngineFuelTankId(),
         forEngineType: addingFuelTankForType,
         hullPoints,
       };
@@ -278,12 +277,12 @@ export function EngineSelection({
   const handleEditFuelTank = (fuelTank: InstalledEngineFuelTank) => {
     setAddingFuelTankForType(fuelTank.forEngineType);
     setFuelTankHullPointsInput(fuelTank.hullPoints.toString());
-    setEditingFuelTankId(fuelTank.installationId);
+    setEditingFuelTankId(fuelTank.id);
   };
 
-  const handleRemoveFuelTank = (installationId: string) => {
+  const handleRemoveFuelTank = (id: string) => {
     onFuelTanksChange(
-      installedFuelTanks.filter(ft => ft.installationId !== installationId)
+      installedFuelTanks.filter(ft => ft.id !== id)
     );
   };
 
@@ -293,11 +292,11 @@ export function EngineSelection({
     if (!selectedType) return [];
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     
-    const enginesForValidation = editingInstallationId
-      ? installedEngines.filter((e) => e.id !== editingInstallationId)
+    const enginesForValidation = editingid
+      ? installedEngines.filter((e) => e.id !== editingid)
       : installedEngines;
     
-    const hpUsedByOtherEngines = editingInstallationId
+    const hpUsedByOtherEngines = editingid
       ? calculateTotalEngineStats(enginesForValidation, installedFuelTanks, hull).totalHullPoints
       : totalStats.totalHullPoints;
     
@@ -315,14 +314,14 @@ export function EngineSelection({
       remainingPower
     );
     return validation.errors;
-  }, [selectedType, hullPointsInput, hull, usedHullPoints, totalStats.totalHullPoints, availablePower, installedEngines, installedFuelTanks, editingInstallationId]);
+  }, [selectedType, hullPointsInput, hull, usedHullPoints, totalStats.totalHullPoints, availablePower, installedEngines, installedFuelTanks, editingid]);
 
   const fuelTankValidationErrors = useMemo(() => {
     if (!addingFuelTankForType) return [];
     const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
     
     const tanksForValidation = editingFuelTankId
-      ? installedFuelTanks.filter(ft => ft.installationId !== editingFuelTankId)
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
       : installedFuelTanks;
     
     const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
@@ -360,7 +359,7 @@ export function EngineSelection({
     const existingFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, addingFuelTankForType.id);
     // Exclude current tank HP if editing
     const effectiveExistingFuelHP = editingFuelTankId
-      ? existingFuelHP - (installedFuelTanks.find(ft => ft.installationId === editingFuelTankId)?.hullPoints || 0)
+      ? existingFuelHP - (installedFuelTanks.find(ft => ft.id === editingFuelTankId)?.hullPoints || 0)
       : existingFuelHP;
     const totalFuelHP = effectiveExistingFuelHP + hullPoints;
     
@@ -402,7 +401,7 @@ export function EngineSelection({
             variant="outlined"
           />
           <Chip
-            label={`Cost: ${formatEngineCost(totalStats.totalCost)}`}
+            label={`Cost: ${formatCost(totalStats.totalCost)}`}
             color="default"
             variant="outlined"
           />
@@ -531,7 +530,7 @@ export function EngineSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={formatEngineCost(cost)}
+                    label={formatCost(cost)}
                     size="small"
                     variant="outlined"
                   />
@@ -585,7 +584,7 @@ export function EngineSelection({
               
               return (
                 <Box
-                  key={fuelTank.installationId}
+                  key={fuelTank.id}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -610,7 +609,7 @@ export function EngineSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={formatEngineCost(cost)}
+                    label={formatCost(cost)}
                     size="small"
                     variant="outlined"
                   />
@@ -624,7 +623,7 @@ export function EngineSelection({
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => handleRemoveFuelTank(fuelTank.installationId)}
+                    onClick={() => handleRemoveFuelTank(fuelTank.id)}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -655,7 +654,7 @@ export function EngineSelection({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {fuelTankPreviewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  Cost: {formatEngineCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} thrust-days
+                  Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} thrust-days
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -718,7 +717,7 @@ export function EngineSelection({
       {selectedType && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingInstallationId ? 'Edit' : 'Configure'} {selectedType.name}
+            {editingid ? 'Edit' : 'Configure'} {selectedType.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -734,8 +733,8 @@ export function EngineSelection({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
-                  Power: {previewStats.powerRequired} | Cost: {formatEngineCost(previewStats.engineCost)}
+                  {previewStats.hullPercentage.toFixed(1)}% hull â†’ {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
+                  Power: {previewStats.powerRequired} | Cost: {formatCost(previewStats.engineCost)}
                   {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                 </Typography>
               )}
@@ -743,18 +742,18 @@ export function EngineSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingInstallationId ? <SaveIcon /> : <AddIcon />}
+                  startIcon={editingid ? <SaveIcon /> : <AddIcon />}
                   onClick={handleAddEngine}
                   disabled={validationErrors.length > 0}
                 >
-                  {editingInstallationId ? 'Save' : 'Add'}
+                  {editingid ? 'Save' : 'Add'}
                 </Button>
                 <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
                     setSelectedType(null);
-                    setEditingInstallationId(null);
+                    setEditingid(null);
                   }}
                 >
                   Cancel
@@ -925,15 +924,15 @@ export function EngineSelection({
           Engine Notes
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          • Acceleration is based on the percentage of hull points allocated to engines (using base hull, not bonus)
+          â€¢ Acceleration is based on the percentage of hull points allocated to engines (using base hull, not bonus)
           <br />
-          • Multiple engines can be installed - their accelerations add together
+          â€¢ Multiple engines can be installed - their accelerations add together
           <br />
-          • PL6 scale engines use a slower acceleration scale suitable for early tech levels
+          â€¢ PL6 scale engines use a slower acceleration scale suitable for early tech levels
           <br />
-          • Engines require power from your power plants to operate
+          â€¢ Engines require power from your power plants to operate
           <br />
-          • Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
+          â€¢ Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
         </Typography>
       </Paper>
     </Box>

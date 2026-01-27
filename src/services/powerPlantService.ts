@@ -1,4 +1,4 @@
-import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
+﻿import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull, ShipClass } from '../types/hull';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
 
@@ -245,18 +245,4 @@ export function generateInstallationId(): string {
  */
 export function generateFuelTankId(): string {
   return `ft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-/**
- * Format cost for display
- */
-export function formatPowerPlantCost(cost: number): string {
-  if (cost >= 1_000_000_000) {
-    return `$${(cost / 1_000_000_000).toFixed(1)}B`;
-  } else if (cost >= 1_000_000) {
-    return `$${(cost / 1_000_000).toFixed(1)}M`;
-  } else if (cost >= 1_000) {
-    return `$${(cost / 1_000).toFixed(0)}K`;
-  }
-  return `$${cost}`;
 }

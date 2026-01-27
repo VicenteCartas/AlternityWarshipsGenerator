@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ship class determines overall size, toughness, and firepower category
  */
 export type ShipClass = 'small-craft' | 'light' | 'medium' | 'heavy' | 'super-heavy';

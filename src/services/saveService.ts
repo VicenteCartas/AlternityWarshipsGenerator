@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
+﻿import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -164,7 +164,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ppType = allPowerPlantTypes.find(t => t.id === savedPP.typeId);
     if (ppType) {
       powerPlants.push({
-        installationId: crypto.randomUUID(),
+        id: crypto.randomUUID(),
         type: ppType,
         hullPoints: savedPP.hullPoints,
       });
@@ -180,7 +180,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ppType = allPowerPlantTypes.find(t => t.id === savedFT.forPowerPlantTypeId);
     if (ppType) {
       fuelTanks.push({
-        installationId: generateFuelTankId(),
+        id: generateFuelTankId(),
         forPowerPlantType: ppType,
         hullPoints: savedFT.hullPoints,
       });
@@ -213,7 +213,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const engineType = allEngineTypes.find(t => t.id === savedFT.forEngineTypeId);
     if (engineType) {
       engineFuelTanks.push({
-        installationId: generateEngineFuelTankId(),
+        id: generateEngineFuelTankId(),
         forEngineType: engineType,
         hullPoints: savedFT.hullPoints,
       });

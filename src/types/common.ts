@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Common types shared across multiple modules
  */
 

@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, DamageType } from './common';
+﻿import type { ProgressLevel, TechTrack, DamageType } from './common';
 
 // Re-export for convenience
 export type { ProgressLevel, TechTrack, DamageType };
