@@ -1,9 +1,9 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
-import type { InstalledFTLDrive } from '../types/ftlDrive';
+import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from '../types/supportSystem';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
@@ -11,7 +11,7 @@ import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
-import { getAllFTLDriveTypes, generateFTLInstallationId } from './ftlDriveService';
+import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId } from './supportSystemService';
 
 /**
@@ -27,6 +27,7 @@ export interface WarshipState {
   engines: InstalledEngine[];
   engineFuelTanks: InstalledEngineFuelTank[];
   ftlDrive: InstalledFTLDrive | null;
+  ftlFuelTanks: InstalledFTLFuelTank[];
   lifeSupport: InstalledLifeSupport[];
   accommodations: InstalledAccommodation[];
   storeSystems: InstalledStoreSystem[];
@@ -79,6 +80,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       typeId: state.ftlDrive.type.id,
       hullPoints: state.ftlDrive.hullPoints,
     } as SavedFTLDrive : null,
+    ftlFuelTanks: (state.ftlFuelTanks || []).map((ft): SavedFTLFuelTank => ({
+      forFTLDriveTypeId: ft.forFTLDriveType.id,
+      hullPoints: ft.hullPoints,
+    })),
     lifeSupport: (state.lifeSupport || []).map((ls): SavedLifeSupport => ({
       typeId: ls.type.id,
       quantity: ls.quantity,
@@ -224,8 +229,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   
   // Load FTL drive
   let ftlDrive: InstalledFTLDrive | null = null;
+  const allFTLTypes = getAllFTLDriveTypes();
   if (saveFile.ftlDrive) {
-    const allFTLTypes = getAllFTLDriveTypes();
     const ftlType = allFTLTypes.find(t => t.id === saveFile.ftlDrive!.typeId);
     if (ftlType) {
       ftlDrive = {
@@ -235,6 +240,22 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       };
     } else {
       warnings.push(`FTL drive type not found: ${saveFile.ftlDrive.typeId}`);
+    }
+  }
+  
+  // Load FTL fuel tanks
+  const ftlFuelTanks: InstalledFTLFuelTank[] = [];
+  
+  for (const savedFT of (saveFile.ftlFuelTanks || [])) {
+    const ftlType = allFTLTypes.find(t => t.id === savedFT.forFTLDriveTypeId);
+    if (ftlType) {
+      ftlFuelTanks.push({
+        id: generateFTLFuelTankId(),
+        forFTLDriveType: ftlType,
+        hullPoints: savedFT.hullPoints,
+      });
+    } else {
+      warnings.push(`FTL drive type not found for fuel tank: ${savedFT.forFTLDriveTypeId}`);
     }
   }
   
@@ -306,6 +327,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       engines,
       engineFuelTanks,
       ftlDrive,
+      ftlFuelTanks,
       lifeSupport,
       accommodations,
       storeSystems,

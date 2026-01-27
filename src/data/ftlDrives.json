@@ -6,7 +6,7 @@
       "progressLevel": 6,
       "techTracks": ["T"],
       "powerPerHullPoint": 1,
-      "fixedHullPercentage": 10,
+      "fixedHullPercentage": 5,
       "minSize": 5,
       "baseCost": 4000000,
       "costPerHullPoint": 1000000,
@@ -22,7 +22,10 @@
       },
       "performanceUnit": "LY/jump",
       "description": "The jump drive relies on matter transmission technology. It requires enormous power, annihilating massive amounts of hydrogen fuel for a single jump. Distance depends on fuel expended.",
-      "notes": "Requires fuel tank (5-50% of hull). Takes 1d4 hours to cycle between jumps."
+      "notes": "Requires fuel tank (5-50% of hull). Takes 1d4 hours to cycle between jumps.",
+      "requiresFuel": true,
+      "fuelCostPerHullPoint": 10000,
+      "fuelEfficiencyNote": "1 LY per 5% hull in fuel"
     },
     {
       "id": "wormhole-screen",

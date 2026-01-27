@@ -15,13 +15,16 @@ import {
   TextField,
   Chip,
   Alert,
+  Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import WarningIcon from '@mui/icons-material/Warning';
 import type { Hull } from '../types/hull';
-import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
+import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getAllFTLDriveTypes,
@@ -34,31 +37,46 @@ import {
   validateFTLInstallation,
   generateFTLInstallationId,
   formatFTLRating,
+  generateFTLFuelTankId,
+  calculateFTLFuelTankCost,
+  getTotalFTLFuelTankHP,
+  calculateTotalFTLFuelTankStats,
+  calculateJumpDriveMaxDistance,
 } from '../services/ftlDriveService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
 interface FTLDriveSelectionProps {
   hull: Hull;
   installedFTLDrive: InstalledFTLDrive | null;
+  installedFTLFuelTanks: InstalledFTLFuelTank[];
   usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onFTLDriveChange: (drive: InstalledFTLDrive | null) => void;
+  onFTLFuelTanksChange: (fuelTanks: InstalledFTLFuelTank[]) => void;
 }
 
 export function FTLDriveSelection({
   hull,
   installedFTLDrive,
+  installedFTLFuelTanks,
   usedHullPoints: _usedHullPoints,
   availablePower: _availablePower,
   designProgressLevel,
   designTechTracks,
   onFTLDriveChange,
+  onFTLFuelTanksChange,
 }: FTLDriveSelectionProps) {
+  // FTL Drive state
   const [selectedType, setSelectedType] = useState<FTLDriveType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
+
+  // Fuel tank state
+  const [addingFuelTank, setAddingFuelTank] = useState(false);
+  const [fuelTankHullPointsInput, setFuelTankHullPointsInput] = useState<string>('1');
+  const [editingFuelTankId, setEditingFuelTankId] = useState<string | null>(null);
 
   // Get all FTL drives, then filter by design constraints
   const availableDrives = useMemo(() => {
@@ -85,6 +103,23 @@ export function FTLDriveSelection({
     () => calculateTotalFTLStats(installedFTLDrive, hull),
     [installedFTLDrive, hull]
   );
+
+  const fuelTankStats = useMemo(
+    () => calculateTotalFTLFuelTankStats(installedFTLFuelTanks),
+    [installedFTLFuelTanks]
+  );
+
+  // Check if installed drive requires fuel
+  const driveRequiresFuel = installedFTLDrive?.type.requiresFuel ?? false;
+
+  // Design-level validation (e.g., fuel-requiring drive needs fuel tanks)
+  const designValidation = useMemo(() => {
+    const errors: string[] = [];
+    if (installedFTLDrive?.type.requiresFuel && installedFTLFuelTanks.length === 0) {
+      errors.push(`${installedFTLDrive.type.name} requires a fuel tank to operate.`);
+    }
+    return { valid: errors.length === 0, errors };
+  }, [installedFTLDrive, installedFTLFuelTanks]);
 
   // ============== Handlers ==============
 
@@ -120,9 +155,13 @@ export function FTLDriveSelection({
 
   const handleRemoveFTLDrive = () => {
     onFTLDriveChange(null);
+    // Also remove any fuel tanks associated with this FTL drive
+    onFTLFuelTanksChange([]);
     setSelectedType(null);
     setHullPointsInput('');
     setIsEditing(false);
+    setAddingFuelTank(false);
+    setEditingFuelTankId(null);
   };
 
   const handleEditFTLDrive = () => {
@@ -130,6 +169,57 @@ export function FTLDriveSelection({
     setSelectedType(installedFTLDrive.type);
     setHullPointsInput(installedFTLDrive.hullPoints.toString());
     setIsEditing(true);
+  };
+
+  // ============== Fuel Tank Handlers ==============
+
+  const handleStartAddFuelTank = () => {
+    setAddingFuelTank(true);
+    setFuelTankHullPointsInput('1');
+    setEditingFuelTankId(null);
+  };
+
+  const handleAddFuelTank = () => {
+    if (!installedFTLDrive) return;
+
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+    if (hullPoints < 1) return;
+
+    if (editingFuelTankId) {
+      const updatedFuelTank: InstalledFTLFuelTank = {
+        id: editingFuelTankId,
+        forFTLDriveType: installedFTLDrive.type,
+        hullPoints,
+      };
+      onFTLFuelTanksChange(
+        installedFTLFuelTanks.map(ft =>
+          ft.id === editingFuelTankId ? updatedFuelTank : ft
+        )
+      );
+    } else {
+      const newFuelTank: InstalledFTLFuelTank = {
+        id: generateFTLFuelTankId(),
+        forFTLDriveType: installedFTLDrive.type,
+        hullPoints,
+      };
+      onFTLFuelTanksChange([...installedFTLFuelTanks, newFuelTank]);
+    }
+
+    setAddingFuelTank(false);
+    setFuelTankHullPointsInput('1');
+    setEditingFuelTankId(null);
+  };
+
+  const handleEditFuelTank = (fuelTank: InstalledFTLFuelTank) => {
+    setAddingFuelTank(true);
+    setFuelTankHullPointsInput(fuelTank.hullPoints.toString());
+    setEditingFuelTankId(fuelTank.id);
+  };
+
+  const handleRemoveFuelTank = (id: string) => {
+    onFTLFuelTanksChange(
+      installedFTLFuelTanks.filter(ft => ft.id !== id)
+    );
   };
 
   // ============== Validation ==============
@@ -140,6 +230,16 @@ export function FTLDriveSelection({
     const validation = validateFTLInstallation(selectedType, hullPoints, hull);
     return validation.errors;
   }, [selectedType, hullPointsInput, hull]);
+
+  const fuelTankValidationErrors = useMemo(() => {
+    if (!addingFuelTank) return [];
+    const errors: string[] = [];
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+    if (hullPoints < 1) {
+      errors.push('Fuel tank must be at least 1 HP.');
+    }
+    return errors;
+  }, [addingFuelTank, fuelTankHullPointsInput]);
 
   // Preview stats for selected FTL drive
   const previewStats = useMemo(() => {
@@ -154,6 +254,17 @@ export function FTLDriveSelection({
       ftlRating: getFTLRatingForPercentage(selectedType, hullPercentage),
     };
   }, [selectedType, hullPointsInput, hull]);
+
+  // Preview stats for fuel tank being added/edited
+  const fuelTankPreviewStats = useMemo(() => {
+    if (!addingFuelTank || !installedFTLDrive) return null;
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+    const cost = calculateFTLFuelTankCost(installedFTLDrive.type, hullPoints);
+    const totalFuelHP = getTotalFTLFuelTankHP(installedFTLFuelTanks, installedFTLDrive.type.id)
+      + (editingFuelTankId ? -installedFTLFuelTanks.find(ft => ft.id === editingFuelTankId)!.hullPoints : 0)
+      + hullPoints;
+    return { cost, totalFuelHP };
+  }, [addingFuelTank, installedFTLDrive, fuelTankHullPointsInput, installedFTLFuelTanks, editingFuelTankId]);
 
   return (
     <Box>
@@ -179,7 +290,7 @@ export function FTLDriveSelection({
           {installedFTLDrive ? (
             <>
               <Chip
-                label={`HP: ${totalStats.totalHullPoints}`}
+                label={`HP: ${totalStats.totalHullPoints + fuelTankStats.totalHullPoints}`}
                 color="default"
                 variant="outlined"
               />
@@ -189,7 +300,7 @@ export function FTLDriveSelection({
                 variant="outlined"
               />
               <Chip
-                label={`Cost: ${formatCost(totalStats.totalCost)}`}
+                label={`Cost: ${formatCost(totalStats.totalCost + fuelTankStats.totalCost)}`}
                 color="default"
                 variant="outlined"
               />
@@ -207,6 +318,17 @@ export function FTLDriveSelection({
                   variant="outlined"
                 />
               )}
+              {/* Fuel chip for drives that require fuel */}
+              {driveRequiresFuel && (
+                <Chip
+                  icon={<BatteryChargingFullIcon />}
+                  label={fuelTankStats.totalHullPoints > 0 
+                    ? `Fuel: ${fuelTankStats.totalHullPoints} HP` 
+                    : 'No fuel'}
+                  color={fuelTankStats.totalHullPoints > 0 ? 'success' : 'error'}
+                  variant="outlined"
+                />
+              )}
             </>
           ) : (
             <Typography variant="body2" color="text.secondary">
@@ -215,6 +337,15 @@ export function FTLDriveSelection({
           )}
         </Box>
       </Paper>
+
+      {/* Design validation warnings (e.g., missing fuel) */}
+      {!designValidation.valid && (
+        <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
+          {designValidation.errors.map((error, index) => (
+            <div key={index}>{error}</div>
+          ))}
+        </Alert>
+      )}
 
       {/* Installed FTL Drive */}
       {installedFTLDrive && !isEditing && (
@@ -245,12 +376,22 @@ export function FTLDriveSelection({
               size="small"
               variant="outlined"
             />
-            <Chip
-              label={formatFTLRating(totalStats.ftlRating, installedFTLDrive.type.performanceUnit)}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
+            {/* For fuel-requiring drives, show fuel efficiency note instead of ftlRating */}
+            {installedFTLDrive.type.requiresFuel && installedFTLDrive.type.fuelEfficiencyNote ? (
+              <Chip
+                label={installedFTLDrive.type.fuelEfficiencyNote}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            ) : (
+              <Chip
+                label={formatFTLRating(totalStats.ftlRating, installedFTLDrive.type.performanceUnit)}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            )}
             <Chip
               label={formatCost(totalStats.totalCost)}
               size="small"
@@ -276,6 +417,150 @@ export function FTLDriveSelection({
               Note: {installedFTLDrive.type.notes}
             </Typography>
           )}
+        </Paper>
+      )}
+
+      {/* Installed Fuel Tanks Section */}
+      {installedFTLFuelTanks.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed FTL Fuel Tanks
+          </Typography>
+          <Stack spacing={1}>
+            {installedFTLFuelTanks.map((fuelTank) => {
+              const cost = calculateFTLFuelTankCost(fuelTank.forFTLDriveType, fuelTank.hullPoints);
+              const fuelPercentage = (fuelTank.hullPoints / hull.hullPoints) * 100;
+              const maxJumpDistance = calculateJumpDriveMaxDistance(fuelTank.forFTLDriveType, fuelTank.hullPoints, hull.hullPoints);
+              
+              return (
+                <Box
+                  key={fuelTank.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    FTL Fuel Tank ({fuelTank.forFTLDriveType.name})
+                  </Typography>
+                  <Chip
+                    label={`${fuelTank.hullPoints} HP (${fuelPercentage.toFixed(1)}%)`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {maxJumpDistance !== null && maxJumpDistance > 0 && (
+                    <Chip
+                      label={`Max ${maxJumpDistance.toFixed(1)} LY/jump`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
+                  <Chip
+                    label={formatCost(cost)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => handleEditFuelTank(fuelTank)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveFuelTank(fuelTank.id)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Add Fuel Tank Form */}
+      {addingFuelTank && installedFTLDrive && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+            {editingFuelTankId ? 'Edit' : 'Add'} FTL Fuel Tank for {installedFTLDrive.type.name}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <TextField
+              label="Hull Points"
+              type="number"
+              size="small"
+              value={fuelTankHullPointsInput}
+              onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
+              inputProps={{ min: 1 }}
+              helperText={installedFTLDrive.type.fuelEfficiencyNote ? `Efficiency: ${installedFTLDrive.type.fuelEfficiencyNote}` : undefined}
+              sx={{ width: 140 }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {fuelTankPreviewStats && (
+                <Typography variant="caption" color="text.secondary">
+                  Cost: {formatCost(fuelTankPreviewStats.cost)} | Total Fuel: {fuelTankPreviewStats.totalFuelHP} HP
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={editingFuelTankId ? <SaveIcon /> : <AddIcon />}
+                  onClick={handleAddFuelTank}
+                  disabled={fuelTankValidationErrors.length > 0}
+                >
+                  {editingFuelTankId ? 'Update' : 'Add'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setAddingFuelTank(false);
+                    setEditingFuelTankId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          {fuelTankValidationErrors.length > 0 && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {fuelTankValidationErrors.map((error, index) => (
+                <div key={index}>{error}</div>
+              ))}
+            </Alert>
+          )}
+        </Paper>
+      )}
+
+      {/* Quick Add Fuel Tank (when fuel-requiring drive is installed but no form is open) */}
+      {driveRequiresFuel && !addingFuelTank && installedFTLDrive && !isEditing && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <BatteryChargingFullIcon color={installedFTLFuelTanks.length === 0 ? 'error' : 'warning'} />
+            <Typography variant="body2" sx={{ flex: 1 }}>
+              {installedFTLFuelTanks.length === 0 
+                ? `${installedFTLDrive.type.name} requires fuel to operate.`
+                : 'Add more fuel tank capacity:'}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleStartAddFuelTank}
+            >
+              Add Fuel Tank
+            </Button>
+          </Box>
         </Paper>
       )}
 
@@ -346,7 +631,7 @@ export function FTLDriveSelection({
           sx={{
             overflowX: 'auto',
             '& .MuiTable-root': {
-              minWidth: 1000,
+              minWidth: 1100,
             }
           }}
         >
@@ -357,9 +642,10 @@ export function FTLDriveSelection({
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Performance</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
               </TableRow>
@@ -396,11 +682,6 @@ export function FTLDriveSelection({
                     <TableCell align="right">
                       <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{drive.powerPerHullPoint}</Typography>
                     </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2">
-                        {minHP}{drive.fixedHullPercentage ? ` (${drive.fixedHullPercentage}%)` : ''}
-                      </Typography>
-                    </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>
                         {formatCost(drive.baseCost)}
@@ -411,20 +692,37 @@ export function FTLDriveSelection({
                         {formatCost(drive.costPerHullPoint)}
                       </Typography>
                     </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="body2">
+                        {minHP}{drive.fixedHullPercentage ? ` (${drive.fixedHullPercentage}%)` : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      {drive.requiresFuel ? (
+                        <Tooltip title={drive.fuelEfficiencyNote || 'Requires fuel tank'}>
+                          <BatteryChargingFullIcon fontSize="small" color="warning" />
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">No</Typography>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Typography variant="body2">
                         {drive.performanceUnit}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={drive.description + (drive.notes ? ` (${drive.notes})` : '')}>
+                      <Tooltip title={drive.description + (drive.notes ? ` (${drive.notes})` : '')} placement="left">
                         <Typography
-                          variant="body2"
+                          variant="caption"
+                          color="text.secondary"
                           sx={{
-                            maxWidth: 200,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            lineHeight: 1.3,
                           }}
                         >
                           {drive.description}
@@ -451,7 +749,7 @@ export function FTLDriveSelection({
             sx={{
               overflowX: 'auto',
               '& .MuiTable-root': {
-                minWidth: 700,
+                minWidth: 900,
               }
             }}
           >
@@ -462,9 +760,12 @@ export function FTLDriveSelection({
                   <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Performance</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -497,19 +798,51 @@ export function FTLDriveSelection({
                       <TableCell align="right">
                         <Typography variant="body2">{drive.powerPerHullPoint}</Typography>
                       </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>
+                          {formatCost(drive.baseCost)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>
+                          {formatCost(drive.costPerHullPoint)}
+                        </Typography>
+                      </TableCell>
                       <TableCell align="center">
                         <Typography variant="body2">
                           {minHP}
                           {drive.fixedHullPercentage && ` (${drive.fixedHullPercentage}%)`}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>
-                          {formatCost(drive.baseCost)}
-                        </Typography>
+                      <TableCell align="center">
+                        {drive.requiresFuel ? (
+                          <Tooltip title={drive.fuelEfficiencyNote || 'Requires fuel tank'}>
+                            <BatteryChargingFullIcon fontSize="small" color="warning" />
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">No</Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">{drive.performanceUnit}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title={drive.description + (drive.notes ? ` (${drive.notes})` : '')} placement="left">
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {drive.description}
+                          </Typography>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );

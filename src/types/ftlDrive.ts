@@ -85,6 +85,29 @@ export interface FTLDriveType {
   
   /** Special notes about the drive */
   notes?: string;
+  
+  /** Whether fuel is required */
+  requiresFuel?: boolean;
+  
+  /** Cost per hull point of fuel (if fuel required) */
+  fuelCostPerHullPoint?: number;
+  
+  /** Fuel efficiency description or factor (optional) */
+  fuelEfficiencyNote?: string;
+}
+
+/**
+ * An installed FTL fuel tank on a ship
+ */
+export interface InstalledFTLFuelTank {
+  /** Unique ID for this fuel tank installation */
+  id: string;
+  
+  /** The FTL drive type this fuel is for */
+  forFTLDriveType: FTLDriveType;
+  
+  /** Size in hull points */
+  hullPoints: number;
 }
 
 /**

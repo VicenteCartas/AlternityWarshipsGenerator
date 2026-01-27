@@ -43,7 +43,7 @@ import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
-import type { InstalledFTLDrive } from './types/ftlDrive';
+import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from './types/supportSystem';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
@@ -51,7 +51,7 @@ import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
-import { calculateTotalFTLStats } from './services/ftlDriveService';
+import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './services/ftlDriveService';
 import { calculateSupportSystemsStats } from './services/supportSystemService';
 import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
@@ -96,6 +96,7 @@ function App() {
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
   const [installedEngineFuelTanks, setInstalledEngineFuelTanks] = useState<InstalledEngineFuelTank[]>([]);
   const [installedFTLDrive, setInstalledFTLDrive] = useState<InstalledFTLDrive | null>(null);
+  const [installedFTLFuelTanks, setInstalledFTLFuelTanks] = useState<InstalledFTLFuelTank[]>([]);
   const [installedLifeSupport, setInstalledLifeSupport] = useState<InstalledLifeSupport[]>([]);
   const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
   const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
@@ -152,6 +153,7 @@ function App() {
     setInstalledEngines([]);
     setInstalledEngineFuelTanks([]);
     setInstalledFTLDrive(null);
+    setInstalledFTLFuelTanks([]);
     setInstalledLifeSupport([]);
     setInstalledAccommodations([]);
     setInstalledStoreSystems([]);
@@ -203,10 +205,10 @@ function App() {
       setInstalledEngines(loadResult.state.engines || []);
       setInstalledEngineFuelTanks(loadResult.state.engineFuelTanks || []);
       setInstalledFTLDrive(loadResult.state.ftlDrive || null);
+      setInstalledFTLFuelTanks(loadResult.state.ftlFuelTanks || []);
       setInstalledLifeSupport(loadResult.state.lifeSupport || []);
       setInstalledAccommodations(loadResult.state.accommodations || []);
       setInstalledStoreSystems(loadResult.state.storeSystems || []);
-      setInstalledFTLDrive(loadResult.state.ftlDrive || null);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -238,6 +240,7 @@ function App() {
       engines: installedEngines,
       engineFuelTanks: installedEngineFuelTanks,
       ftlDrive: installedFTLDrive,
+      ftlFuelTanks: installedFTLFuelTanks,
       lifeSupport: installedLifeSupport,
       accommodations: installedAccommodations,
       storeSystems: installedStoreSystems,
@@ -262,7 +265,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedLifeSupport, installedAccommodations, installedStoreSystems, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -286,6 +289,7 @@ function App() {
       engines: installedEngines,
       engineFuelTanks: installedEngineFuelTanks,
       ftlDrive: installedFTLDrive,
+      ftlFuelTanks: installedFTLFuelTanks,
       lifeSupport: installedLifeSupport,
       accommodations: installedAccommodations,
       storeSystems: installedStoreSystems,
@@ -463,6 +467,9 @@ function App() {
       const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
       remaining -= ftlStats.totalHullPoints;
     }
+    // FTL fuel tanks
+    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
+    remaining -= ftlFuelStats.totalHullPoints;
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
     remaining -= supportStats.totalHullPoints;
     return remaining;
@@ -518,6 +525,9 @@ function App() {
       const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
       cost += ftlStats.totalCost;
     }
+    // FTL fuel tanks
+    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
+    cost += ftlFuelStats.totalCost;
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
     cost += supportStats.totalCost;
     return cost;
@@ -631,11 +641,13 @@ function App() {
           <FTLDriveSelection
             hull={selectedHull}
             installedFTLDrive={installedFTLDrive}
+            installedFTLFuelTanks={installedFTLFuelTanks}
             usedHullPoints={getUsedHullPointsBeforeFTL()}
             availablePower={getTotalPower()}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onFTLDriveChange={handleFTLDriveChange}
+            onFTLFuelTanksChange={setInstalledFTLFuelTanks}
           />
         );
       case 5:

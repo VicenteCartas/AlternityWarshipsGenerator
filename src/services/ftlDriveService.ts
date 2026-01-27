@@ -1,4 +1,4 @@
-import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
+import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
 import { getFTLDrivesData } from './dataLoader';
 
@@ -162,4 +162,74 @@ export function formatFTLRating(rating: number | null, unit: string): string {
   // Round to 1 decimal place if needed
   const displayRating = Number.isInteger(rating) ? rating : rating.toFixed(1);
   return `${displayRating} ${unit}`;
+}
+
+// ============== FTL Fuel Tank Functions ==============
+
+/**
+ * Generate a unique FTL fuel tank ID
+ */
+let ftlFuelTankCounter = 0;
+export function generateFTLFuelTankId(): string {
+  return `ftl-fuel-${Date.now()}-${++ftlFuelTankCounter}`;
+}
+
+/**
+ * Calculate the cost of an FTL fuel tank
+ */
+export function calculateFTLFuelTankCost(driveType: FTLDriveType, hullPoints: number): number {
+  if (!driveType.fuelCostPerHullPoint) return 0;
+  return driveType.fuelCostPerHullPoint * hullPoints;
+}
+
+/**
+ * Get total fuel tank HP for a specific FTL drive type
+ */
+export function getTotalFTLFuelTankHP(
+  fuelTanks: InstalledFTLFuelTank[],
+  driveTypeId: string
+): number {
+  return fuelTanks
+    .filter((tank) => tank.forFTLDriveType.id === driveTypeId)
+    .reduce((sum, tank) => sum + tank.hullPoints, 0);
+}
+
+/**
+ * Calculate total FTL fuel tank stats
+ */
+export function calculateTotalFTLFuelTankStats(
+  fuelTanks: InstalledFTLFuelTank[]
+): {
+  totalHullPoints: number;
+  totalCost: number;
+} {
+  let totalHullPoints = 0;
+  let totalCost = 0;
+  
+  for (const tank of fuelTanks) {
+    totalHullPoints += tank.hullPoints;
+    totalCost += calculateFTLFuelTankCost(tank.forFTLDriveType, tank.hullPoints);
+  }
+  
+  return {
+    totalHullPoints,
+    totalCost,
+  };
+}
+
+/**
+ * Calculate Jump Drive max distance based on fuel tank percentage of hull.
+ * Jump Drive: 1 LY per 5% of hull in fuel, minimum 1 LY (5%), maximum 10 LY (50%).
+ * Uses linear interpolation based on the ftlRatings table.
+ */
+export function calculateJumpDriveMaxDistance(
+  driveType: FTLDriveType,
+  fuelTankHP: number,
+  hullHP: number
+): number | null {
+  if (!driveType.requiresFuel || !driveType.ftlRatings) return null;
+  if (fuelTankHP <= 0 || hullHP <= 0) return 0;
+  
+  const fuelPercentage = (fuelTankHP / hullHP) * 100;
+  return getFTLRatingForPercentage(driveType, fuelPercentage);
 }
