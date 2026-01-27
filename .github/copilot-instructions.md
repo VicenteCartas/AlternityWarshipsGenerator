@@ -108,6 +108,7 @@ The app bar contains global design constraints that filter available components:
 ## Coding Conventions
 
 - Use TypeScript strict mode
+- **Line endings**: All files must use LF (Unix-style) line endings, not CRLF. This applies to all source files (.ts, .tsx, .json, .md, .css, .html).
 - Prefer functional React components with hooks
 - Use MUI components for consistent UI
 - Keep calculations in service files, not components
