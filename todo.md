@@ -1,4 +1,4 @@
-﻿# Alternity Warships Generator - TODO & Technical Debt
+# Alternity Warships Generator - TODO & Technical Debt
 
 This document tracks technical debt, refactoring opportunities, and planned features.
 

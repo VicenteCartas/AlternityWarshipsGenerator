@@ -1,4 +1,4 @@
-﻿import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
+import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
 import { getArmorTypesData, getArmorWeightsData } from './dataLoader';
 

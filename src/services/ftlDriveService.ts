@@ -1,4 +1,4 @@
-﻿import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
+import type { FTLDriveType, InstalledFTLDrive } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
 import { getFTLDrivesData } from './dataLoader';
 

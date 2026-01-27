@@ -1,4 +1,4 @@
-﻿import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack } from './common';
 
 // ============== Life Support Types ==============
 

@@ -1,4 +1,4 @@
-﻿import { Tooltip, Typography, type SxProps, type Theme } from '@mui/material';
+import { Tooltip, Typography, type SxProps, type Theme } from '@mui/material';
 import { truncatedDescriptionSx } from '../../constants/tableStyles';
 
 interface TruncatedDescriptionProps {

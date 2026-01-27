@@ -1,4 +1,4 @@
-﻿import type { Hull, ShipClass, HullCategory } from '../types/hull';
+import type { Hull, ShipClass, HullCategory } from '../types/hull';
 import { getHullsData } from './dataLoader';
 
 /**

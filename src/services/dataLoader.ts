@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Data Loader Service
  * 
  * Handles runtime loading of game data files, allowing users to edit

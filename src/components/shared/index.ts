@@ -1,2 +1,2 @@
-﻿export { TechTrackCell } from './TechTrackCell';
+export { TechTrackCell } from './TechTrackCell';
 export { TruncatedDescription } from './TruncatedDescription';

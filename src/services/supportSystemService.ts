@@ -1,4 +1,4 @@
-﻿import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
   LifeSupportType,
   AccommodationType,

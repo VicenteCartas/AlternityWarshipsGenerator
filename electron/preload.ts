@@ -1,4 +1,4 @@
-﻿// Preload script for exposing safe APIs to the renderer process
+// Preload script for exposing safe APIs to the renderer process
 // Must use CommonJS - Electron preload doesn't support ES modules
 const { contextBridge, ipcRenderer } = require('electron');
 

@@ -1,4 +1,4 @@
-﻿import { TableCell, Tooltip, Typography } from '@mui/material';
+import { TableCell, Tooltip, Typography } from '@mui/material';
 import type { TechTrack } from '../../types/common';
 import { getTechTrackName } from '../../services/formatters';
 

@@ -1,4 +1,4 @@
-﻿import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
+import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull, ShipClass } from '../types/hull';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
 

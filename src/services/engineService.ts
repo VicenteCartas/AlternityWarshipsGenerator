@@ -1,4 +1,4 @@
-﻿import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
+import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
 import type { Hull, ShipClass } from '../types/hull';
 import { getEnginesData, getFuelTankData } from './dataLoader';
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Shared table styling constants for consistent UI across all components
  */
 

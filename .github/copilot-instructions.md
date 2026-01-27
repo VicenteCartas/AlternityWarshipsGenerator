@@ -1,4 +1,4 @@
-﻿# Alternity Warships Generator - Copilot Instructions
+# Alternity Warships Generator - Copilot Instructions
 
 ## Project Overview
 
