@@ -149,8 +149,8 @@ export function validateFTLInstallation(
   // Check minimum size
   const minHP = calculateMinHullPointsForDrive(drive, hull);
   if (hullPoints < minHP) {
-    if (drive.fixedHullPercentage) {
-      errors.push(`${drive.name} requires at least ${minHP} hull points (${drive.fixedHullPercentage}% of hull).`);
+    if (drive.isFixedSize && drive.hullPercentage) {
+      errors.push(`${drive.name} requires at least ${minHP} hull points (${drive.hullPercentage}% of hull).`);
     } else {
       errors.push(`${drive.name} requires a minimum of ${minHP} hull points.`);
     }

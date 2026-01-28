@@ -44,7 +44,7 @@ import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from './types/supportSystem';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from './types/supportSystem';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -100,6 +100,7 @@ function App() {
   const [installedLifeSupport, setInstalledLifeSupport] = useState<InstalledLifeSupport[]>([]);
   const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
   const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
+  const [installedGravitySystems, setInstalledGravitySystems] = useState<InstalledGravitySystem[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -157,6 +158,7 @@ function App() {
     setInstalledLifeSupport([]);
     setInstalledAccommodations([]);
     setInstalledStoreSystems([]);
+    setInstalledGravitySystems([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -209,6 +211,7 @@ function App() {
       setInstalledLifeSupport(loadResult.state.lifeSupport || []);
       setInstalledAccommodations(loadResult.state.accommodations || []);
       setInstalledStoreSystems(loadResult.state.storeSystems || []);
+      setInstalledGravitySystems(loadResult.state.gravitySystems || []);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -244,6 +247,7 @@ function App() {
       lifeSupport: installedLifeSupport,
       accommodations: installedAccommodations,
       storeSystems: installedStoreSystems,
+      gravitySystems: installedGravitySystems,
       designProgressLevel,
       designTechTracks,
     };
@@ -293,6 +297,7 @@ function App() {
       lifeSupport: installedLifeSupport,
       accommodations: installedAccommodations,
       storeSystems: installedStoreSystems,
+      gravitySystems: installedGravitySystems,
       designProgressLevel,
       designTechTracks,
     };
@@ -400,6 +405,10 @@ function App() {
     setInstalledStoreSystems(storeSystems);
   };
 
+  const handleGravitySystemsChange = (gravitySystems: InstalledGravitySystem[]) => {
+    setInstalledGravitySystems(gravitySystems);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -470,7 +479,7 @@ function App() {
     // FTL fuel tanks
     const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
     remaining -= ftlFuelStats.totalHullPoints;
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
     remaining -= supportStats.totalHullPoints;
     return remaining;
   };
@@ -495,7 +504,7 @@ function App() {
     }
     // Support Systems
     if (powerScenario.supportSystems) {
-      consumed += calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks).totalPowerRequired;
+      consumed += calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired;
     }
     return consumed;
   };
@@ -506,7 +515,7 @@ function App() {
     return {
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
-      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks).totalPowerRequired,
+      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired,
     };
   };
 
@@ -528,7 +537,7 @@ function App() {
     // FTL fuel tanks
     const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
     cost += ftlFuelStats.totalCost;
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
     cost += supportStats.totalCost;
     return cost;
   };
@@ -665,6 +674,7 @@ function App() {
             installedLifeSupport={installedLifeSupport}
             installedAccommodations={installedAccommodations}
             installedStoreSystems={installedStoreSystems}
+            installedGravitySystems={installedGravitySystems}
             usedHullPoints={getUsedHullPointsBeforeSupportSystems()}
             availablePower={getTotalPower()}
             designProgressLevel={designProgressLevel}
@@ -672,6 +682,7 @@ function App() {
             onLifeSupportChange={handleLifeSupportChange}
             onAccommodationsChange={handleAccommodationsChange}
             onStoreSystemsChange={handleStoreSystemsChange}
+            onGravitySystemsChange={handleGravitySystemsChange}
           />
         );
       default:
@@ -893,13 +904,13 @@ function App() {
               </Popover>
               {/* Life Support chip */}
               {(() => {
-                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
-                const totalHP = calculateHullStats(selectedHull).totalHullPoints;
+                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+                const baseHP = selectedHull.hullPoints;
                 const covered = supportStats.totalHullPointsCovered;
-                const isFullCoverage = covered >= totalHP;
+                const isFullCoverage = covered >= baseHP;
                 return (
                   <Chip
-                    label={`Life: ${covered} / ${totalHP} HP`}
+                    label={`Life: ${covered} / ${baseHP} HP`}
                     color={isFullCoverage ? 'success' : 'warning'}
                     variant="outlined"
                     size="small"
@@ -908,7 +919,7 @@ function App() {
               })()}
               {/* Crew Accommodations chip */}
               {(() => {
-                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks);
+                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
                 const requiredCrew = selectedHull.crew;
                 const crewCapacity = supportStats.crewCapacity;
                 const isFullCoverage = crewCapacity >= requiredCrew;

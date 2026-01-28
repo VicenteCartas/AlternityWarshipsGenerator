@@ -3,9 +3,11 @@ import type {
   LifeSupportType,
   AccommodationType,
   StoreSystemType,
+  GravitySystemType,
   InstalledLifeSupport,
   InstalledAccommodation,
   InstalledStoreSystem,
+  InstalledGravitySystem,
   SupportSystemsStats,
 } from '../types/supportSystem';
 
@@ -14,15 +16,18 @@ import type {
 let lifeSupportTypes: LifeSupportType[] = [];
 let accommodationTypes: AccommodationType[] = [];
 let storeSystemTypes: StoreSystemType[] = [];
+let gravitySystemTypes: GravitySystemType[] = [];
 
 export function loadSupportSystemsData(data: {
   lifeSupport: LifeSupportType[];
   accommodations: AccommodationType[];
   storeSystems: StoreSystemType[];
+  gravitySystems?: GravitySystemType[];
 }): void {
   lifeSupportTypes = data.lifeSupport;
   accommodationTypes = data.accommodations;
   storeSystemTypes = data.storeSystems;
+  gravitySystemTypes = data.gravitySystems || [];
 }
 
 // ============== Getters ==============
@@ -39,6 +44,10 @@ export function getAllStoreSystemTypes(): StoreSystemType[] {
   return storeSystemTypes;
 }
 
+export function getAllGravitySystemTypes(): GravitySystemType[] {
+  return gravitySystemTypes;
+}
+
 export function getLifeSupportTypeById(id: string): LifeSupportType | undefined {
   return lifeSupportTypes.find((t) => t.id === id);
 }
@@ -49,6 +58,10 @@ export function getAccommodationTypeById(id: string): AccommodationType | undefi
 
 export function getStoreSystemTypeById(id: string): StoreSystemType | undefined {
   return storeSystemTypes.find((t) => t.id === id);
+}
+
+export function getGravitySystemTypeById(id: string): GravitySystemType | undefined {
+  return gravitySystemTypes.find((t) => t.id === id);
 }
 
 // ============== Filtering ==============
@@ -81,6 +94,7 @@ export function filterByDesignConstraints<T extends { progressLevel: ProgressLev
 let lifeSupportCounter = 0;
 let accommodationCounter = 0;
 let storeSystemCounter = 0;
+let gravitySystemCounter = 0;
 
 export function generateLifeSupportId(): string {
   return `ls-${Date.now()}-${++lifeSupportCounter}`;
@@ -94,12 +108,33 @@ export function generateStoreSystemId(): string {
   return `store-${Date.now()}-${++storeSystemCounter}`;
 }
 
+export function generateGravitySystemId(): string {
+  return `grav-${Date.now()}-${++gravitySystemCounter}`;
+}
+
+// ============== Gravity System Calculations ==============
+
+export function calculateGravitySystemHullPoints(
+  gravityType: GravitySystemType,
+  totalHullPoints: number
+): number {
+  return Math.ceil(totalHullPoints * (gravityType.hullPercentage / 100));
+}
+
+export function calculateGravitySystemCost(
+  gravityType: GravitySystemType,
+  hullPoints: number
+): number {
+  return hullPoints * gravityType.costPerHullPoint;
+}
+
 // ============== Calculations ==============
 
 export function calculateSupportSystemsStats(
   lifeSupport: InstalledLifeSupport[],
   accommodations: InstalledAccommodation[],
   storeSystems: InstalledStoreSystem[],
+  gravitySystems: InstalledGravitySystem[],
   designProgressLevel: ProgressLevel,
   designTechTracks: TechTrack[]
 ): SupportSystemsStats {
@@ -179,7 +214,18 @@ export function calculateSupportSystemsStats(
     }
   }
 
-  // Artificial gravity: available at PL7+ with G-tech, or PL8+ with X-tech
+  // Gravity System stats
+  let gravitySystemsHP = 0;
+  let gravitySystemsPower = 0;
+  let gravitySystemsCost = 0;
+
+  for (const grav of gravitySystems) {
+    gravitySystemsHP += grav.hullPoints;
+    gravitySystemsPower += grav.type.powerRequired;
+    gravitySystemsCost += grav.cost;
+  }
+
+  // Artificial gravity: available at PL7+ with G-tech, or PL8+ with X-tech, or via spin system
   const hasGravityTech = designTechTracks.length === 0 || designTechTracks.includes('G');
   const hasEnergyTech = designTechTracks.length === 0 || designTechTracks.includes('X');
   const hasArtificialGravity = 
@@ -190,17 +236,20 @@ export function calculateSupportSystemsStats(
     lifeSupportHP,
     accommodationsHP,
     storeSystemsHP,
-    totalHullPoints: lifeSupportHP + accommodationsHP + storeSystemsHP,
+    gravitySystemsHP,
+    totalHullPoints: lifeSupportHP + accommodationsHP + storeSystemsHP + gravitySystemsHP,
     
     lifeSupportPower,
     accommodationsPower,
     storeSystemsPower,
-    totalPowerRequired: lifeSupportPower + accommodationsPower + storeSystemsPower,
+    gravitySystemsPower,
+    totalPowerRequired: lifeSupportPower + accommodationsPower + storeSystemsPower + gravitySystemsPower,
     
     lifeSupportCost,
     accommodationsCost,
     storeSystemsCost,
-    totalCost: lifeSupportCost + accommodationsCost + storeSystemsCost,
+    gravitySystemsCost,
+    totalCost: lifeSupportCost + accommodationsCost + storeSystemsCost + gravitySystemsCost,
     
     totalHullPointsCovered,
     

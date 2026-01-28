@@ -41,6 +41,8 @@ export interface AccommodationType {
   category: AccommodationCategory;
   /** Whether this accommodation includes a free airlock */
   includesAirlock: boolean;
+  /** Days of stores included per person (0 for suspended animation) */
+  storesDaysPerPerson: number;
   description: string;
 }
 
@@ -77,12 +79,39 @@ export interface InstalledStoreSystem {
   quantity: number;
 }
 
+// ============== Gravity Systems Types ==============
+
+export interface GravitySystemType {
+  id: string;
+  name: string;
+  progressLevel: ProgressLevel;
+  techTracks: TechTrack[];
+  /** Percentage of hull required for this system */
+  hullPercentage: number;
+  /** Whether the size is fixed (true) or scales with hull (false) */
+  isFixedSize: boolean;
+  /** Cost per hull point of the system */
+  costPerHullPoint: number;
+  powerRequired: number;
+  description: string;
+}
+
+export interface InstalledGravitySystem {
+  id: string;
+  type: GravitySystemType;
+  /** Calculated hull points based on hull size and hullPercentage */
+  hullPoints: number;
+  /** Calculated cost based on hull points and costPerHullPoint */
+  cost: number;
+}
+
 // ============== Combined Support Systems State ==============
 
 export interface SupportSystemsState {
   lifeSupport: InstalledLifeSupport[];
   accommodations: InstalledAccommodation[];
   storeSystems: InstalledStoreSystem[];
+  gravitySystems: InstalledGravitySystem[];
 }
 
 // ============== Calculated Stats ==============
@@ -92,18 +121,21 @@ export interface SupportSystemsStats {
   lifeSupportHP: number;
   accommodationsHP: number;
   storeSystemsHP: number;
+  gravitySystemsHP: number;
   totalHullPoints: number;
   
   // Power
   lifeSupportPower: number;
   accommodationsPower: number;
   storeSystemsPower: number;
+  gravitySystemsPower: number;
   totalPowerRequired: number;
   
   // Cost
   lifeSupportCost: number;
   accommodationsCost: number;
   storeSystemsCost: number;
+  gravitySystemsCost: number;
   totalCost: number;
   
   // Life support coverage

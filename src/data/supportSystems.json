@@ -47,6 +47,7 @@
       "capacity": 20,
       "category": "crew",
       "includesAirlock": true,
+      "storesDaysPerPerson": 100,
       "description": "Basic berthing for 20 crewmen with bunks, includes one airlock."
     },
     {
@@ -60,6 +61,7 @@
       "capacity": 2,
       "category": "crew",
       "includesAirlock": false,
+      "storesDaysPerPerson": 100,
       "description": "Small private cabin for 2 crewmen."
     },
     {
@@ -73,7 +75,22 @@
       "capacity": 6,
       "category": "crew",
       "includesAirlock": true,
+      "storesDaysPerPerson": 100,
       "description": "Shared quarters for 6 crewmen with common facilities, includes one airlock."
+    },
+    {
+      "id": "staterooms",
+      "name": "Staterooms",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 2,
+      "category": "crew",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Staterooms for 2 crewmen with common facilities, includes one airlock."
     },
     {
       "id": "seating-deck",
@@ -86,11 +103,40 @@
       "capacity": 20,
       "category": "passenger",
       "includesAirlock": false,
+      "storesDaysPerPerson": 100,
       "description": "Short-term seating for 20 passengers, suitable for brief trips."
     },
     {
-      "id": "passenger-quarters",
-      "name": "Passenger Quarters",
+      "id": "passenger-bunkroom-3rd-class",
+      "name": "Passenger Bunkroom (3rd class)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 0,
+      "cost": 40000,
+      "capacity": 20,
+      "category": "passenger",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Basic berthing for 20 passengers with bunks, includes one airlock."
+    },
+    {
+      "id": "passenger-suite-2nd-class",
+      "name": "Passenger Suite (2nd class)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 4,
+      "category": "passenger",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Comfortable staterooms for 4 passengers."
+    },
+    {
+      "id": "passenger-suite-1st-class",
+      "name": "Passenger Suite (1st class)",
       "progressLevel": 6,
       "techTracks": [],
       "hullPoints": 2,
@@ -98,7 +144,8 @@
       "cost": 50000,
       "capacity": 2,
       "category": "passenger",
-      "includesAirlock": false,
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
       "description": "Comfortable staterooms for 2 passengers."
     },
     {
@@ -112,6 +159,7 @@
       "capacity": 12,
       "category": "suspended",
       "includesAirlock": false,
+      "storesDaysPerPerson": 0,
       "description": "Cryogenic suspension pods for 12 people in frozen stasis."
     },
     {
@@ -125,6 +173,7 @@
       "capacity": 12,
       "category": "suspended",
       "includesAirlock": false,
+      "storesDaysPerPerson": 0,
       "description": "Advanced suspended animation for 12 people who don't age or require provisions."
     }
   ],
@@ -165,6 +214,19 @@
       "effect": "adds-stores",
       "effectValue": 1000,
       "description": "Additional storage capacity adding 1,000 days of stores."
+    }
+  ],
+  "gravitySystems": [
+    {
+      "id": "spin-system",
+      "name": "Spin System",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPercentage": 5,
+      "isFixedSize": true,
+      "costPerHullPoint": 50000,
+      "powerRequired": 0,
+      "description": "A ship designed to spin on its axis as it travels forward, using centrifugal force to simulate the force of gravity. This acceleration is toward the skin of the ship, so the ship must be designed so that the 'floor' is the outside surface of the spinning hull sections."
     }
   ]
 }

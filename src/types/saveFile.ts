@@ -95,6 +95,16 @@ export interface SavedStoreSystem {
 }
 
 /**
+ * Installed gravity system in save file
+ */
+export interface SavedGravitySystem {
+  /** The gravity system type ID */
+  typeId: string;
+  /** Calculated hull points used */
+  hullPoints: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -154,6 +164,9 @@ export interface WarshipSaveFile {
   
   /** Installed store systems */
   storeSystems: SavedStoreSystem[];
+  
+  /** Installed gravity systems */
+  gravitySystems: SavedGravitySystem[];
   
   /** Installed systems (future) */
   systems: unknown[];

@@ -1,10 +1,10 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem } from '../types/supportSystem';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -12,7 +12,7 @@ import { getAllArmorTypes } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
 import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
-import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId } from './supportSystemService';
+import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 
 /**
  * State representing the current warship configuration
@@ -31,6 +31,7 @@ export interface WarshipState {
   lifeSupport: InstalledLifeSupport[];
   accommodations: InstalledAccommodation[];
   storeSystems: InstalledStoreSystem[];
+  gravitySystems: InstalledGravitySystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -95,6 +96,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     storeSystems: (state.storeSystems || []).map((ss): SavedStoreSystem => ({
       typeId: ss.type.id,
       quantity: ss.quantity,
+    })),
+    gravitySystems: (state.gravitySystems || []).map((gs): SavedGravitySystem => ({
+      typeId: gs.type.id,
+      hullPoints: gs.hullPoints,
     })),
     systems: [],
   };
@@ -310,6 +315,24 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load gravity systems
+  const gravitySystems: InstalledGravitySystem[] = [];
+  const allGravitySystemTypes = getAllGravitySystemTypes();
+  
+  for (const savedGS of (saveFile.gravitySystems || [])) {
+    const gsType = allGravitySystemTypes.find(t => t.id === savedGS.typeId);
+    if (gsType) {
+      gravitySystems.push({
+        id: generateGravitySystemId(),
+        type: gsType,
+        hullPoints: savedGS.hullPoints,
+        cost: savedGS.hullPoints * gsType.costPerHullPoint,
+      });
+    } else {
+      warnings.push(`Gravity system type not found: ${savedGS.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -331,6 +354,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       lifeSupport,
       accommodations,
       storeSystems,
+      gravitySystems,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

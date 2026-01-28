@@ -27,19 +27,25 @@ import type {
   LifeSupportType,
   AccommodationType,
   StoreSystemType,
+  GravitySystemType,
   InstalledLifeSupport,
   InstalledAccommodation,
   InstalledStoreSystem,
+  InstalledGravitySystem,
 } from '../types/supportSystem';
 import {
   getAllLifeSupportTypes,
   getAllAccommodationTypes,
   getAllStoreSystemTypes,
+  getAllGravitySystemTypes,
   filterByDesignConstraints,
   calculateSupportSystemsStats,
   generateLifeSupportId,
   generateAccommodationId,
   generateStoreSystemId,
+  generateGravitySystemId,
+  calculateGravitySystemHullPoints,
+  calculateGravitySystemCost,
 } from '../services/supportSystemService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
@@ -48,6 +54,7 @@ interface SupportSystemsSelectionProps {
   installedLifeSupport: InstalledLifeSupport[];
   installedAccommodations: InstalledAccommodation[];
   installedStoreSystems: InstalledStoreSystem[];
+  installedGravitySystems: InstalledGravitySystem[];
   usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
@@ -55,6 +62,7 @@ interface SupportSystemsSelectionProps {
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
+  onGravitySystemsChange: (gravitySystems: InstalledGravitySystem[]) => void;
 }
 
 interface TabPanelProps {
@@ -72,10 +80,11 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 }
 
 export function SupportSystemsSelection({
-  hull: _hull,
+  hull,
   installedLifeSupport,
   installedAccommodations,
   installedStoreSystems,
+  installedGravitySystems,
   usedHullPoints: _usedHullPoints,
   availablePower: _availablePower,
   designProgressLevel,
@@ -83,6 +92,7 @@ export function SupportSystemsSelection({
   onLifeSupportChange,
   onAccommodationsChange,
   onStoreSystemsChange,
+  onGravitySystemsChange,
 }: SupportSystemsSelectionProps) {
   const [activeTab, setActiveTab] = useState(0);
 
@@ -114,16 +124,21 @@ export function SupportSystemsSelection({
     return filterByDesignConstraints(getAllStoreSystemTypes(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
+  const availableGravitySystems = useMemo(() => {
+    return filterByDesignConstraints(getAllGravitySystemTypes(), designProgressLevel, designTechTracks);
+  }, [designProgressLevel, designTechTracks]);
+
   // Calculate stats
   const stats = useMemo(
     () => calculateSupportSystemsStats(
       installedLifeSupport,
       installedAccommodations,
       installedStoreSystems,
+      installedGravitySystems,
       designProgressLevel,
       designTechTracks
     ),
-    [installedLifeSupport, installedAccommodations, installedStoreSystems, designProgressLevel, designTechTracks]
+    [installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks]
   );
 
   // ============== Life Support Handlers ==============
@@ -536,7 +551,7 @@ export function SupportSystemsSelection({
               <Chip
                 label={`${installed.type.capacity * installed.quantity} ${installed.type.category}`}
                 size="small"
-                color="primary"
+                color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
                 variant="outlined"
               />
               {installed.type.includesAirlock && (
@@ -612,7 +627,12 @@ export function SupportSystemsSelection({
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
                 <TableCell align="right">{type.capacity}</TableCell>
                 <TableCell align="center">
-                  <Chip label={type.category} size="small" variant="outlined" />
+                  <Chip
+                    label={type.category}
+                    size="small"
+                    color={type.category === 'crew' ? 'error' : type.category === 'passenger' ? 'primary' : 'secondary'}
+                    variant="outlined"
+                  />
                 </TableCell>
                 <TableCell align="center">
                   {type.includesAirlock ? (
@@ -823,37 +843,184 @@ export function SupportSystemsSelection({
     </Box>
   );
 
-  const renderGravityTab = () => (
-    <Box>
-      <Paper variant="outlined" sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Artificial Gravity Status
-        </Typography>
-        {stats.hasArtificialGravity ? (
-          <Box>
-            <Chip label="Artificial Gravity Available" color="success" sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              At Progress Level {designProgressLevel} with {designTechTracks.length > 0 ? `Tech Tracks: ${designTechTracks.join(', ')}` : 'all tech tracks available'},
-              artificial gravity is automatically included in your life support systems at no extra cost.
-              This protects crew from deadly accelerations and provides normal gravity throughout the ship.
+  // ============== Gravity System Handlers ==============
+
+  const handleAddGravitySystem = (gravityType: GravitySystemType) => {
+    const hullPoints = calculateGravitySystemHullPoints(gravityType, hull.hullPoints);
+    const cost = calculateGravitySystemCost(gravityType, hullPoints);
+    
+    const newSystem: InstalledGravitySystem = {
+      id: generateGravitySystemId(),
+      type: gravityType,
+      hullPoints,
+      cost,
+    };
+    onGravitySystemsChange([...installedGravitySystems, newSystem]);
+  };
+
+  const handleRemoveGravitySystem = (id: string) => {
+    onGravitySystemsChange(installedGravitySystems.filter((gs) => gs.id !== id));
+  };
+
+  const renderGravityTab = () => {
+    // Check if a gravity system is already installed
+    const hasInstalledGravitySystem = installedGravitySystems.length > 0;
+    
+    return (
+      <Box>
+        <Paper variant="outlined" sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Artificial Gravity Status
+          </Typography>
+          {stats.hasArtificialGravity ? (
+            <Box>
+              <Chip label="Artificial Gravity Available" color="success" sx={{ mb: 2 }} />
+              <Typography variant="body2" color="text.secondary">
+                At Progress Level {designProgressLevel} with {designTechTracks.length > 0 ? `Tech Tracks: ${designTechTracks.join(', ')}` : 'all tech tracks available'},
+                artificial gravity is automatically included in your life support systems at no extra cost.
+                This protects crew from deadly accelerations and provides normal gravity throughout the ship.
+              </Typography>
+            </Box>
+          ) : hasInstalledGravitySystem ? (
+            <Box>
+              <Chip label="Centrifugal Gravity Installed" color="info" sx={{ mb: 2 }} />
+              <Typography variant="body2" color="text.secondary">
+                Your ship uses centrifugal force (spin gravity) to simulate artificial gravity.
+              </Typography>
+            </Box>
+          ) : (
+            <Box>
+              <Chip label="No Artificial Gravity" color="warning" sx={{ mb: 2 }} />
+              <Typography variant="body2" color="text.secondary">
+                Artificial gravity requires Progress Level 7+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Without artificial gravity, the ship can simulate gravity through constant acceleration (thrust gravity)
+                or by installing a spin system.
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+
+        {/* Installed Gravity Systems */}
+        {installedGravitySystems.length > 0 && (
+          <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Installed Gravity Systems
             </Typography>
-          </Box>
-        ) : (
-          <Box>
-            <Chip label="No Artificial Gravity" color="warning" sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              Artificial gravity requires Progress Level 7+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Without artificial gravity, the ship can simulate gravity through constant acceleration (thrust gravity).
-              Maintaining 1G acceleration provides gravity equivalent to standing on Earth's surface.
-              Acceleration couches in life support systems protect crew from acceleration effects.
-            </Typography>
-          </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Hull %</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP Used</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {installedGravitySystems.map((gs) => (
+                    <TableRow key={gs.id}>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleRemoveGravitySystem(gs.id)}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>{gs.type.name}</TableCell>
+                      <TableCell>{gs.type.progressLevel}</TableCell>
+                      <TableCell>{gs.type.hullPercentage}%</TableCell>
+                      <TableCell>{gs.hullPoints}</TableCell>
+                      <TableCell>{formatCost(gs.cost)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
         )}
-      </Paper>
-    </Box>
-  );
+
+        {/* Available Gravity Systems - only show when artificial gravity is NOT available */}
+        {!stats.hasArtificialGravity && !hasInstalledGravitySystem && availableGravitySystems.length > 0 && (
+          <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Available Gravity Systems
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Hull %</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Est. HP</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Est. Cost</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {availableGravitySystems.map((gt) => {
+                    const estHP = calculateGravitySystemHullPoints(gt, hull.hullPoints);
+                    const estCost = calculateGravitySystemCost(gt, estHP);
+                    return (
+                      <TableRow key={gt.id} hover>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleAddGravitySystem(gt)}
+                            color="primary"
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>{gt.name}</TableCell>
+                        <TableCell>{gt.progressLevel}</TableCell>
+                        <TableCell>
+                          {gt.techTracks.length > 0 ? (
+                            <Tooltip title={gt.techTracks.map(getTechTrackName).join(', ')}>
+                              <span>{gt.techTracks.join(', ')}</span>
+                            </Tooltip>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>{gt.hullPercentage}%</TableCell>
+                        <TableCell>{estHP}</TableCell>
+                        <TableCell>{formatCost(gt.costPerHullPoint)}</TableCell>
+                        <TableCell>{formatCost(estCost)}</TableCell>
+                        <TableCell sx={{ maxWidth: 300 }}>
+                          <Tooltip title={gt.description}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {gt.description}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        )}
+      </Box>
+    );
+  };
 
   return (
     <Box>
