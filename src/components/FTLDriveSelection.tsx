@@ -42,6 +42,9 @@ import {
   getTotalFTLFuelTankHP,
   calculateTotalFTLFuelTankStats,
   calculateJumpDriveMaxDistance,
+  isFixedSizeDrive,
+  calculateFixedSizeHullPoints,
+  calculateMinFuelTankHP,
 } from '../services/ftlDriveService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
@@ -124,6 +127,22 @@ export function FTLDriveSelection({
   // ============== Handlers ==============
 
   const handleTypeSelect = (drive: FTLDriveType) => {
+    // For fixed-size drives, install immediately without showing the config form
+    if (isFixedSizeDrive(drive)) {
+      const hullPoints = calculateFixedSizeHullPoints(drive, hull);
+      const newInstallation: InstalledFTLDrive = {
+        id: generateFTLInstallationId(),
+        type: drive,
+        hullPoints,
+      };
+      onFTLDriveChange(newInstallation);
+      setSelectedType(null);
+      setHullPointsInput('');
+      setIsEditing(false);
+      return;
+    }
+    
+    // For variable-size drives, show the config form
     setSelectedType(drive);
     const minHP = calculateMinHullPointsForDrive(drive, hull);
     setHullPointsInput(minHP.toString());
@@ -166,6 +185,9 @@ export function FTLDriveSelection({
 
   const handleEditFTLDrive = () => {
     if (!installedFTLDrive) return;
+    // Fixed-size drives cannot be edited (their size is determined by hull)
+    if (isFixedSizeDrive(installedFTLDrive.type)) return;
+    
     setSelectedType(installedFTLDrive.type);
     setHullPointsInput(installedFTLDrive.hullPoints.toString());
     setIsEditing(true);
@@ -175,7 +197,9 @@ export function FTLDriveSelection({
 
   const handleStartAddFuelTank = () => {
     setAddingFuelTank(true);
-    setFuelTankHullPointsInput('1');
+    // Use minimum fuel tank HP if specified, otherwise default to 1
+    const minHP = installedFTLDrive ? calculateMinFuelTankHP(installedFTLDrive.type, hull) : 1;
+    setFuelTankHullPointsInput(minHP.toString());
     setEditingFuelTankId(null);
   };
 
@@ -232,11 +256,16 @@ export function FTLDriveSelection({
   }, [selectedType, hullPointsInput, hull]);
 
   const fuelTankValidationErrors = useMemo(() => {
-    if (!addingFuelTank) return [];
+    if (!addingFuelTank || !installedFTLDrive) return [];
     const errors: string[] = [];
     const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
-    if (hullPoints < 1) {
-      errors.push('Fuel tank must be at least 1 HP.');
+    const minHP = calculateMinFuelTankHP(installedFTLDrive.type, hull);
+    if (hullPoints < minHP) {
+      if (installedFTLDrive.type.minFuelHullPercentage) {
+        errors.push(`Fuel tank must be at least ${minHP} HP (${installedFTLDrive.type.minFuelHullPercentage}% of hull).`);
+      } else {
+        errors.push(`Fuel tank must be at least ${minHP} HP.`);
+      }
     }
     return errors;
   }, [addingFuelTank, fuelTankHullPointsInput]);
@@ -311,7 +340,7 @@ export function FTLDriveSelection({
                   variant="outlined"
                 />
               )}
-              {totalStats.ftlRating === null && installedFTLDrive.type.performanceType === 'variable' && (
+              {totalStats.ftlRating === null && installedFTLDrive.type.performanceUnit === 'variable' && (
                 <Chip
                   label={`Performance: ${installedFTLDrive.type.performanceUnit}`}
                   color="default"
@@ -397,13 +426,16 @@ export function FTLDriveSelection({
               size="small"
               variant="outlined"
             />
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={handleEditFTLDrive}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
+            {/* Only show edit button for variable-size drives */}
+            {!isFixedSizeDrive(installedFTLDrive.type) && (
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={handleEditFTLDrive}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
             <IconButton
               size="small"
               color="error"
@@ -499,9 +531,19 @@ export function FTLDriveSelection({
               size="small"
               value={fuelTankHullPointsInput}
               onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
-              inputProps={{ min: 1 }}
-              helperText={installedFTLDrive.type.fuelEfficiencyNote ? `Efficiency: ${installedFTLDrive.type.fuelEfficiencyNote}` : undefined}
-              sx={{ width: 140 }}
+              inputProps={{ min: calculateMinFuelTankHP(installedFTLDrive.type, hull) }}
+              helperText={
+                installedFTLDrive.type.minFuelHullPercentage || installedFTLDrive.type.fuelEfficiencyNote ? (
+                  <>
+                    {installedFTLDrive.type.minFuelHullPercentage && (
+                      <>Min: {calculateMinFuelTankHP(installedFTLDrive.type, hull)} HP ({installedFTLDrive.type.minFuelHullPercentage}%)</>
+                    )}
+                    {installedFTLDrive.type.minFuelHullPercentage && installedFTLDrive.type.fuelEfficiencyNote && <br />}
+                    {installedFTLDrive.type.fuelEfficiencyNote}
+                  </>
+                ) : undefined
+              }
+              sx={{ width: 160 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {fuelTankPreviewStats && (
@@ -564,8 +606,8 @@ export function FTLDriveSelection({
         </Paper>
       )}
 
-      {/* Configure FTL Drive Form */}
-      {selectedType && (
+      {/* Configure FTL Drive Form (only shown for variable-size drives) */}
+      {selectedType && !isFixedSizeDrive(selectedType) && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             {isEditing ? 'Edit' : 'Configure'} {selectedType.name}
@@ -578,7 +620,7 @@ export function FTLDriveSelection({
               value={hullPointsInput}
               onChange={(e) => setHullPointsInput(e.target.value)}
               inputProps={{ min: calculateMinHullPointsForDrive(selectedType, hull) }}
-              helperText={`Min: ${calculateMinHullPointsForDrive(selectedType, hull)}${selectedType.fixedHullPercentage ? ` (${selectedType.fixedHullPercentage}% of hull)` : ''}`}
+              helperText={`Min: ${calculateMinHullPointsForDrive(selectedType, hull)} (${selectedType.hullPercentage}% of hull)`}
               sx={{ width: 160 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -638,13 +680,13 @@ export function FTLDriveSelection({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>FTL Drive</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Size</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Performance</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
@@ -693,9 +735,11 @@ export function FTLDriveSelection({
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Typography variant="body2">
-                        {minHP}{drive.fixedHullPercentage ? ` (${drive.fixedHullPercentage}%)` : ''}
-                      </Typography>
+                      <Tooltip title={isFixedSizeDrive(drive) ? 'Fixed size - cannot be resized' : 'Variable size - can be increased'}>
+                        <Typography variant="body2">
+                          {minHP} ({drive.hullPercentage}%){isFixedSizeDrive(drive) ? '' : '+'}
+                        </Typography>
+                      </Tooltip>
                     </TableCell>
                     <TableCell align="center">
                       {drive.requiresFuel ? (
@@ -810,8 +854,7 @@ export function FTLDriveSelection({
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="body2">
-                          {minHP}
-                          {drive.fixedHullPercentage && ` (${drive.fixedHullPercentage}%)`}
+                          {minHP} ({drive.hullPercentage}%){isFixedSizeDrive(drive) ? '' : '+'}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">

@@ -5,7 +5,6 @@ import {
   Paper,
   Stack,
 } from '@mui/material';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AddIcon from '@mui/icons-material/Add';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 
@@ -36,7 +35,12 @@ export function WelcomePage({ onNewWarship, onLoadWarship }: WelcomePageProps) {
           width: '100%',
         }}
       >
-        <RocketLaunchIcon sx={{ fontSize: 80, color: 'primary.main', mb: 2 }} />
+        <Box
+          component="img"
+          src="/logo.png"
+          alt="Alternity Warship Generator"
+          sx={{ width: 80, height: 80, mb: 2 }}
+        />
         
         <Typography variant="h3" component="h1" gutterBottom>
           Alternity Warship Generator
@@ -53,6 +57,7 @@ export function WelcomePage({ onNewWarship, onLoadWarship }: WelcomePageProps) {
             startIcon={<AddIcon />}
             onClick={onNewWarship}
             fullWidth
+            disableRipple
             sx={{ py: 1.5 }}
           >
             New Warship

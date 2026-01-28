@@ -26,18 +26,6 @@ export interface FTLRatings {
 }
 
 /**
- * FTL Drive performance type - how the drive's speed is measured
- */
-export type FTLPerformanceType = 
-  | 'ly-per-day'       // Light-years per day (Hyperdrive)
-  | 'ly-per-hour'      // Light-years per hour (Warpdrive)
-  | 'ly-per-jump'      // Light-years per jump (Jump Drive - fuel-based)
-  | 'ly-per-power'     // Light-years per power point (Spacefold)
-  | 'fixed-distance'   // Fixed distance based on ship class (Stardrive, Drivewave)
-  | 'variable'         // Variable/special (Wormhole, Gate, Psionic drives)
-  ;
-
-/**
  * FTL Drive type definition from the Warships sourcebook
  */
 export interface FTLDriveType {
@@ -59,11 +47,22 @@ export interface FTLDriveType {
   /** Whether this drive requires a specific power plant type */
   requiresPowerPlantType?: string;
   
-  /** Minimum size in hull points */
+  /** Minimum size in hull points (absolute minimum) */
   minSize: number;
   
-  /** Whether size is fixed as percentage of hull (e.g., 5%, 10%) */
-  fixedHullPercentage?: number;
+  /** 
+   * Whether the drive has a fixed size (percentage of hull). 
+   * If true, the drive cannot be resized - it's always exactly hullPercentage% of the hull.
+   * If false, the drive can be resized starting from hullPercentage% minimum.
+   */
+  isFixedSize: boolean;
+  
+  /** 
+   * Hull percentage for the drive.
+   * If isFixedSize is true: the exact percentage of hull the drive occupies.
+   * If isFixedSize is false: the minimum percentage of hull required.
+   */
+  hullPercentage: number;
   
   /** Base cost for the drive installation */
   baseCost: number;
@@ -71,13 +70,10 @@ export interface FTLDriveType {
   /** Cost per hull point of the drive */
   costPerHullPoint: number;
   
-  /** How the FTL performance is measured */
-  performanceType: FTLPerformanceType;
-  
   /** FTL ratings at different hull percentage allocations (if applicable) */
   ftlRatings?: FTLRatings;
   
-  /** Performance unit label (e.g., "LY/day", "LY/jump") */
+  /** Performance unit label (e.g., "LY/day", "LY/jump", "variable") */
   performanceUnit: string;
   
   /** Description of the drive */
@@ -91,6 +87,9 @@ export interface FTLDriveType {
   
   /** Cost per hull point of fuel (if fuel required) */
   fuelCostPerHullPoint?: number;
+  
+  /** Minimum fuel tank size as percentage of hull (if fuel required) */
+  minFuelHullPercentage?: number;
   
   /** Fuel efficiency description or factor (optional) */
   fuelEfficiencyNote?: string;

@@ -111,7 +111,7 @@ export function ArmorSelection({
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chip
-            label={`HP: ${selectedWeight ? calculateArmorHullPoints(hull, selectedWeight) : 0}`}
+            label={`HP: ${selectedWeight ? `${calculateArmorHullPoints(hull, selectedWeight)} (${((calculateArmorHullPoints(hull, selectedWeight) / hull.hullPoints) * 100).toFixed(1)}%)` : '0'}`}
             color="default"
             variant="outlined"
           />

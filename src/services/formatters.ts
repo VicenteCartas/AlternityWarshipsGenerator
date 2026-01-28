@@ -87,8 +87,10 @@ export function getShipClassDisplayName(shipClass: ShipClass): string {
  */
 export function formatAcceleration(acceleration: number, usesPL6Scale: boolean): string {
   if (acceleration === 0) return '-';
+  // Cap at 2 decimal places, removing trailing zeros
+  const formatted = Number(acceleration.toFixed(2)).toString();
   if (usesPL6Scale) {
-    return `${acceleration} (PL6)`;
+    return `${formatted} (PL6)`;
   }
-  return `${acceleration} Mpp`;
+  return `${formatted} Mpp`;
 }

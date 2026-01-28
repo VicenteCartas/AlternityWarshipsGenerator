@@ -77,14 +77,28 @@ export function calculateFTLCost(drive: FTLDriveType, hullPoints: number): numbe
 }
 
 /**
- * Calculate the minimum hull points required for a drive based on fixed percentage
+ * Check if a drive has a fixed size (cannot be resized)
+ */
+export function isFixedSizeDrive(drive: FTLDriveType): boolean {
+  return drive.isFixedSize;
+}
+
+/**
+ * Calculate the hull points for a fixed-size drive
+ */
+export function calculateFixedSizeHullPoints(drive: FTLDriveType, hull: Hull): number {
+  const percentageHP = Math.ceil((drive.hullPercentage / 100) * hull.hullPoints);
+  return Math.max(drive.minSize, percentageHP);
+}
+
+/**
+ * Calculate the minimum hull points required for a drive
  */
 export function calculateMinHullPointsForDrive(drive: FTLDriveType, hull: Hull): number {
-  if (drive.fixedHullPercentage) {
-    const percentageHP = Math.ceil((drive.fixedHullPercentage / 100) * hull.hullPoints);
-    return Math.max(drive.minSize, percentageHP);
-  }
-  return drive.minSize;
+  // Both fixed and variable drives use hullPercentage
+  // For fixed: it's the exact size, for variable: it's the minimum
+  const percentageHP = Math.ceil((drive.hullPercentage / 100) * hull.hullPoints);
+  return Math.max(drive.minSize, percentageHP);
 }
 
 /**
@@ -172,6 +186,14 @@ export function formatFTLRating(rating: number | null, unit: string): string {
 let ftlFuelTankCounter = 0;
 export function generateFTLFuelTankId(): string {
   return `ftl-fuel-${Date.now()}-${++ftlFuelTankCounter}`;
+}
+
+/**
+ * Calculate the minimum fuel tank HP required for a drive
+ */
+export function calculateMinFuelTankHP(driveType: FTLDriveType, hull: Hull): number {
+  if (!driveType.minFuelHullPercentage) return 1;
+  return Math.max(1, Math.ceil((driveType.minFuelHullPercentage / 100) * hull.hullPoints));
 }
 
 /**

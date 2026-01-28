@@ -73,7 +73,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <Chip
               label={`HP: ${selectedHull.hullPoints + selectedHull.bonusHullPoints}`}
-              color="default"
+              color="primary"
               variant="outlined"
             />
             <Chip
