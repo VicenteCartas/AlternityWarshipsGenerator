@@ -49,13 +49,14 @@ export function getFTLRatingForPercentage(
     const lower = breakpoints[i];
     const upper = breakpoints[i + 1];
     if (percentage >= lower.pct && percentage < upper.pct) {
-      // If either value is null, return the non-null one or null
-      if (lower.value === null) return null;
+      // If upper value is null, return lower value (or null if also null)
       if (upper.value === null) return lower.value;
+      // If lower value is null, treat it as 0 for interpolation
+      const lowerValue = lower.value ?? 0;
       
       // Linear interpolation
       const ratio = (percentage - lower.pct) / (upper.pct - lower.pct);
-      return lower.value + ratio * (upper.value - lower.value);
+      return lowerValue + ratio * (upper.value - lowerValue);
     }
   }
   

@@ -642,6 +642,7 @@ function App() {
             hull={selectedHull}
             installedFTLDrive={installedFTLDrive}
             installedFTLFuelTanks={installedFTLFuelTanks}
+            installedPowerPlants={installedPowerPlants}
             usedHullPoints={getUsedHullPointsBeforeFTL()}
             availablePower={getTotalPower()}
             designProgressLevel={designProgressLevel}

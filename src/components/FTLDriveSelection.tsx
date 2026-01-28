@@ -25,6 +25,7 @@ import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { Hull } from '../types/hull';
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
+import type { InstalledPowerPlant } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getAllFTLDriveTypes,
@@ -47,11 +48,13 @@ import {
   calculateMinFuelTankHP,
 } from '../services/ftlDriveService';
 import { formatCost, getTechTrackName } from '../services/formatters';
+import { getPowerPlantTypeById } from '../services/powerPlantService';
 
 interface FTLDriveSelectionProps {
   hull: Hull;
   installedFTLDrive: InstalledFTLDrive | null;
   installedFTLFuelTanks: InstalledFTLFuelTank[];
+  installedPowerPlants: InstalledPowerPlant[];
   usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
@@ -64,8 +67,9 @@ export function FTLDriveSelection({
   hull,
   installedFTLDrive,
   installedFTLFuelTanks,
+  installedPowerPlants,
   usedHullPoints: _usedHullPoints,
-  availablePower: _availablePower,
+  availablePower,
   designProgressLevel,
   designTechTracks,
   onFTLDriveChange,
@@ -115,14 +119,58 @@ export function FTLDriveSelection({
   // Check if installed drive requires fuel
   const driveRequiresFuel = installedFTLDrive?.type.requiresFuel ?? false;
 
+  // Check if the required power plant type is installed
+  const requiredPowerPlantMissing = useMemo(() => {
+    if (!installedFTLDrive?.type.requiresPowerPlantType) return null;
+    const requiredType = installedFTLDrive.type.requiresPowerPlantType;
+    const hasRequiredPlant = installedPowerPlants.some(p => p.type.id === requiredType);
+    if (hasRequiredPlant) return null;
+    // Return the name of the required power plant type
+    const plantType = getPowerPlantTypeById(requiredType);
+    return plantType?.name ?? requiredType;
+  }, [installedFTLDrive, installedPowerPlants]);
+
+  // Calculate power available for the FTL drive
+  // If the drive requires a specific power plant type, only count power from those plants
+  const powerAvailableForFTL = useMemo(() => {
+    if (!installedFTLDrive) return availablePower;
+    
+    const requiredType = installedFTLDrive.type.requiresPowerPlantType;
+    if (!requiredType) {
+      // No specific plant required - use all available power
+      return availablePower;
+    }
+    
+    // Only count power from the required power plant type
+    return installedPowerPlants
+      .filter(p => p.type.id === requiredType)
+      .reduce((sum, p) => sum + Math.round(p.type.powerPerHullPoint * p.hullPoints), 0);
+  }, [installedFTLDrive, installedPowerPlants, availablePower]);
+
+  // Get name of required power plant type for error messages
+  const requiredPowerPlantName = useMemo(() => {
+    if (!installedFTLDrive?.type.requiresPowerPlantType) return null;
+    const plantType = getPowerPlantTypeById(installedFTLDrive.type.requiresPowerPlantType);
+    return plantType?.name ?? installedFTLDrive.type.requiresPowerPlantType;
+  }, [installedFTLDrive]);
+
   // Design-level validation (e.g., fuel-requiring drive needs fuel tanks)
   const designValidation = useMemo(() => {
     const errors: string[] = [];
     if (installedFTLDrive?.type.requiresFuel && installedFTLFuelTanks.length === 0) {
       errors.push(`${installedFTLDrive.type.name} requires a fuel tank to operate.`);
     }
+    if (requiredPowerPlantMissing) {
+      errors.push(`${installedFTLDrive?.type.name} requires a ${requiredPowerPlantMissing} to operate.`);
+    }
+    if (installedFTLDrive && totalStats.totalPowerRequired > powerAvailableForFTL) {
+      const powerSource = requiredPowerPlantName 
+        ? `${requiredPowerPlantName}s`
+        : 'power plants';
+      errors.push(`${installedFTLDrive.type.name} requires ${totalStats.totalPowerRequired} power from ${powerSource}, but only ${powerAvailableForFTL} is available.`);
+    }
     return { valid: errors.length === 0, errors };
-  }, [installedFTLDrive, installedFTLFuelTanks]);
+  }, [installedFTLDrive, installedFTLFuelTanks, requiredPowerPlantMissing, totalStats.totalPowerRequired, powerAvailableForFTL, requiredPowerPlantName]);
 
   // ============== Handlers ==============
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import {
   Box,
   Typography,
@@ -24,6 +24,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
+import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -496,71 +497,127 @@ export function EngineSelection({
               const fuelTankHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, installation.type.id);
               const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, installation.type.id);
               const endurance = fuelTankHP > 0 ? calculateEngineFuelTankEndurance(installation.type, fuelTankHP, totalEngineHP) : 0;
+              const isEditing = editingid === installation.id;
               
               return (
-                <Box
-                  key={installation.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    p: 1,
-                    bgcolor: 'action.hover',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installation.type.name}
-                  </Typography>
-                  <Chip
-                    label={`${installation.hullPoints} HP (${hullPercentage.toFixed(1)}%)`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${powerRequired} Power`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    icon={<SpeedIcon />}
-                    label={formatAcceleration(acceleration, installation.type.usesPL6Scale)}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={formatCost(cost)}
-                    size="small"
-                    variant="outlined"
-                  />
-                  {needsFuel && (
-                    <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
-                      <Chip
-                        icon={<BatteryChargingFullIcon />}
-                        label={fuelTankHP > 0 ? `${endurance} thrust-days` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
-                        size="small"
-                        color={fuelTankHP > 0 ? 'success' : (installation.type.fuelOptional ? 'default' : 'error')}
-                        variant="outlined"
-                        onClick={() => handleStartAddFuelTank(installation.type)}
-                      />
-                    </Tooltip>
+                <Fragment key={installation.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {installation.type.name}
+                    </Typography>
+                    <Chip
+                      label={`${installation.hullPoints} HP (${hullPercentage.toFixed(1)}%)`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`${powerRequired} Power`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      icon={<SpeedIcon />}
+                      label={formatAcceleration(acceleration, installation.type.usesPL6Scale)}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatCost(cost)}
+                      size="small"
+                      variant="outlined"
+                    />
+                    {needsFuel && (
+                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
+                        <Chip
+                          icon={<BatteryChargingFullIcon />}
+                          label={fuelTankHP > 0 ? `${endurance} thrust-days` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
+                          size="small"
+                          color={fuelTankHP > 0 ? 'success' : (installation.type.fuelOptional ? 'default' : 'error')}
+                          variant="outlined"
+                          onClick={() => handleStartAddFuelTank(installation.type)}
+                        />
+                      </Tooltip>
+                    )}
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleEditEngine(installation)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveEngine(installation.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {/* Inline edit form when editing this engine */}
+                  {isEditing && selectedType && (
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <TextField
+                          label="Hull Points"
+                          type="number"
+                          size="small"
+                          value={hullPointsInput}
+                          onChange={(e) => setHullPointsInput(e.target.value)}
+                          inputProps={{ min: selectedType.minSize }}
+                          helperText={<>Min: {selectedType.minSize}<br />Power: {selectedType.powerPerHullPoint}/HP</>}
+                          sx={{ width: 140 }}
+                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {previewStats && (
+                            <Typography variant="caption" color="text.secondary">
+                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
+                              Power: {previewStats.powerRequired} | Cost: {formatCost(previewStats.engineCost)}
+                              {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddEngine}
+                              disabled={validationErrors.length > 0}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setSelectedType(null);
+                                setEditingid(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Box>
+                      {validationErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mt: 1 }}>
+                          {validationErrors.map((error, index) => (
+                            <div key={index}>{error}</div>
+                          ))}
+                        </Alert>
+                      )}
+                    </Box>
                   )}
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleEditEngine(installation)}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemoveEngine(installation.id)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                </Fragment>
               );
             })}
           </Stack>
@@ -581,64 +638,118 @@ export function EngineSelection({
                 .reduce((sum, e) => sum + e.hullPoints, 0);
               const totalFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, fuelTank.forEngineType.id);
               const endurance = calculateEngineFuelTankEndurance(fuelTank.forEngineType, totalFuelHP, engineHP);
+              const isEditing = editingFuelTankId === fuelTank.id;
               
               return (
-                <Box
-                  key={fuelTank.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    p: 1,
-                    bgcolor: 'action.hover',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    Fuel Tank ({fuelTank.forEngineType.name})
-                  </Typography>
-                  <Chip
-                    label={`${fuelTank.hullPoints} HP`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${endurance} thrust-days`}
-                    size="small"
-                    color="success"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={formatCost(cost)}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleEditFuelTank(fuelTank)}
+                <Fragment key={fuelTank.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemoveFuelTank(fuelTank.id)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      Fuel Tank ({fuelTank.forEngineType.name})
+                    </Typography>
+                    <Chip
+                      label={`${fuelTank.hullPoints} HP`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`${endurance} thrust-days`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatCost(cost)}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleEditFuelTank(fuelTank)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveFuelTank(fuelTank.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {/* Inline edit form when editing this fuel tank */}
+                  {isEditing && addingFuelTankForType && (
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <TextField
+                          label="Hull Points"
+                          type="number"
+                          size="small"
+                          value={fuelTankHullPointsInput}
+                          onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
+                          inputProps={{ min: 1 }}
+                          helperText={`Efficiency: ${addingFuelTankForType.fuelEfficiency} thrust-days/HP`}
+                          sx={{ width: 140 }}
+                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {fuelTankPreviewStats && (
+                            <Typography variant="caption" color="text.secondary">
+                              Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} thrust-days
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddFuelTank}
+                              disabled={fuelTankValidationErrors.length > 0}
+                            >
+                              Update
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setAddingFuelTankForType(null);
+                                setEditingFuelTankId(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Box>
+                      {fuelTankValidationErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mt: 1 }}>
+                          {fuelTankValidationErrors.map((error, index) => (
+                            <div key={index}>{error}</div>
+                          ))}
+                        </Alert>
+                      )}
+                    </Box>
+                  )}
+                </Fragment>
               );
             })}
           </Stack>
         </Paper>
       )}
 
-      {/* Add Fuel Tank Form */}
-      {addingFuelTankForType && (
+      {/* Add Fuel Tank Form (only when adding, not editing) */}
+      {addingFuelTankForType && !editingFuelTankId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingFuelTankId ? 'Edit' : 'Add'} Fuel Tank for {addingFuelTankForType.name}
+            Add Fuel Tank for {addingFuelTankForType.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -661,11 +772,11 @@ export function EngineSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingFuelTankId ? <SaveIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                   onClick={handleAddFuelTank}
                   disabled={fuelTankValidationErrors.length > 0}
                 >
-                  {editingFuelTankId ? 'Update' : 'Add'}
+                  Add
                 </Button>
                 <Button
                   variant="outlined"
@@ -713,11 +824,11 @@ export function EngineSelection({
         </Paper>
       )}
 
-      {/* Add/Edit Engine Section */}
-      {selectedType && (
+      {/* Add Engine Section (only when adding, not editing) */}
+      {selectedType && !editingid && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingid ? 'Edit' : 'Configure'} {selectedType.name}
+            Configure {selectedType.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -742,11 +853,11 @@ export function EngineSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingid ? <SaveIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                   onClick={handleAddEngine}
                   disabled={validationErrors.length > 0}
                 >
-                  {editingid ? 'Save' : 'Add'}
+                  Add
                 </Button>
                 <Button
                   variant="outlined"
@@ -799,6 +910,7 @@ export function EngineSelection({
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>15%</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>20%</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>30%</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -823,15 +935,13 @@ export function EngineSelection({
                   onClick={() => handleTypeSelect(engine)}
                 >
                   <TableCell>
-                    <Tooltip title={engine.description} placement="right">
-                      <Typography
-                        variant="body2"
-                        fontWeight={isSelected ? 'bold' : 'normal'}
-                        sx={{ whiteSpace: 'nowrap' }}
-                      >
-                        {engine.name}
-                      </Typography>
-                    </Tooltip>
+                    <Typography
+                      variant="body2"
+                      fontWeight={isSelected ? 'bold' : 'normal'}
+                      sx={{ whiteSpace: 'nowrap' }}
+                    >
+                      {engine.name}
+                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2">{engine.progressLevel}</Typography>
@@ -897,6 +1007,9 @@ export function EngineSelection({
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                       {ratings.at30Percent || '-'}
                     </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <TruncatedDescription text={engine.description} />
                   </TableCell>
                 </TableRow>
               );
