@@ -13,6 +13,7 @@ import type { EngineType } from '../types/engine';
 import type { FTLDriveType } from '../types/ftlDrive';
 import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystemType } from '../types/supportSystem';
 import type { DefenseSystemType } from '../types/defense';
+import type { CommandControlSystemType } from '../types/commandControl';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -23,6 +24,7 @@ import enginesDataFallback from '../data/engines.json';
 import ftlDrivesDataFallback from '../data/ftlDrives.json';
 import supportSystemsDataFallback from '../data/supportSystems.json';
 import defensesDataFallback from '../data/defenses.json';
+import commandControlDataFallback from '../data/commandControl.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -40,6 +42,7 @@ interface DataCache {
     gravitySystems: GravitySystemType[];
   } | null;
   defenseSystems: DefenseSystemType[] | null;
+  commandControlSystems: CommandControlSystemType[] | null;
 }
 
 const cache: DataCache = {
@@ -52,6 +55,7 @@ const cache: DataCache = {
   ftlDrives: null,
   supportSystems: null,
   defenseSystems: null,
+  commandControlSystems: null,
 };
 
 let dataLoaded = false;
@@ -103,9 +107,10 @@ export async function loadAllGameData(): Promise<void> {
     // Import services that need data
     const { loadSupportSystemsData } = await import('./supportSystemService');
     const { loadDefenseSystemsData } = await import('./defenseService');
+    const { loadCommandControlSystemsData } = await import('./commandControlService');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
@@ -114,6 +119,7 @@ export async function loadAllGameData(): Promise<void> {
       loadDataFile('ftlDrives.json', ftlDrivesDataFallback),
       loadDataFile('supportSystems.json', supportSystemsDataFallback),
       loadDataFile('defenses.json', defensesDataFallback),
+      loadDataFile('commandControl.json', commandControlDataFallback),
     ]);
 
     // Store in cache
@@ -131,10 +137,12 @@ export async function loadAllGameData(): Promise<void> {
       gravitySystems: GravitySystemType[];
     };
     cache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
+    cache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
 
     // Load data into services
     loadSupportSystemsData(cache.supportSystems);
     loadDefenseSystemsData({ defenseSystems: cache.defenseSystems });
+    loadCommandControlSystemsData({ commandSystems: cache.commandControlSystems });
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -241,6 +249,8 @@ export async function reloadAllGameData(): Promise<void> {
   cache.engines = null;
   cache.ftlDrives = null;
   cache.supportSystems = null;
+  cache.defenseSystems = null;
+  cache.commandControlSystems = null;
   await loadAllGameData();
 }
 

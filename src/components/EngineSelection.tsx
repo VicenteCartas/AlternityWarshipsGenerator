@@ -896,7 +896,7 @@ export function EngineSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Engine</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>

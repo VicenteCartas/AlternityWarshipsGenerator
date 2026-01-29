@@ -123,7 +123,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 130, whiteSpace: 'nowrap' }}>Hull</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 130, whiteSpace: 'nowrap' }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }}>Class</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Type</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>HP</TableCell>

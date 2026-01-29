@@ -1,10 +1,12 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
+import type { InstalledDefenseSystem } from '../types/defense';
+import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -13,6 +15,8 @@ import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
 import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
+import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
+import { getAllCommandControlSystemTypes, generateCommandControlId, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
 
 /**
  * State representing the current warship configuration
@@ -32,6 +36,8 @@ export interface WarshipState {
   accommodations: InstalledAccommodation[];
   storeSystems: InstalledStoreSystem[];
   gravitySystems: InstalledGravitySystem[];
+  defenses: InstalledDefenseSystem[];
+  commandControl: InstalledCommandControlSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -100,6 +106,14 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     gravitySystems: (state.gravitySystems || []).map((gs): SavedGravitySystem => ({
       typeId: gs.type.id,
       hullPoints: gs.hullPoints,
+    })),
+    defenses: (state.defenses || []).map((def): SavedDefenseSystem => ({
+      typeId: def.type.id,
+      quantity: def.quantity,
+    })),
+    commandControl: (state.commandControl || []).map((cc): SavedCommandControlSystem => ({
+      typeId: cc.type.id,
+      quantity: cc.quantity,
     })),
     systems: [],
   };
@@ -333,6 +347,53 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load defense systems
+  const defenses: InstalledDefenseSystem[] = [];
+  const allDefenseTypes = getAllDefenseSystemTypes();
+  const shipHullPoints = hull?.hullPoints || 100; // Default for calculation purposes
+  
+  for (const savedDef of (saveFile.defenses || [])) {
+    const defType = allDefenseTypes.find(t => t.id === savedDef.typeId);
+    if (defType) {
+      const hullPts = calculateDefenseHullPoints(defType, shipHullPoints, savedDef.quantity);
+      const power = calculateDefensePower(defType, shipHullPoints, savedDef.quantity);
+      const cost = calculateDefenseCost(defType, shipHullPoints, savedDef.quantity);
+      defenses.push({
+        id: generateDefenseId(),
+        type: defType,
+        quantity: savedDef.quantity,
+        hullPoints: hullPts,
+        powerRequired: power,
+        cost,
+      });
+    } else {
+      warnings.push(`Defense system type not found: ${savedDef.typeId}`);
+    }
+  }
+  
+  // Load command & control systems
+  const commandControl: InstalledCommandControlSystem[] = [];
+  const allCCTypes = getAllCommandControlSystemTypes();
+  
+  for (const savedCC of (saveFile.commandControl || [])) {
+    const ccType = allCCTypes.find(t => t.id === savedCC.typeId);
+    if (ccType) {
+      const hullPts = calculateCommandControlHullPoints(ccType, shipHullPoints, savedCC.quantity);
+      const power = calculateCommandControlPower(ccType, savedCC.quantity);
+      const cost = calculateCommandControlCost(ccType, shipHullPoints, savedCC.quantity);
+      commandControl.push({
+        id: generateCommandControlId(),
+        type: ccType,
+        quantity: savedCC.quantity,
+        hullPoints: hullPts,
+        powerRequired: power,
+        cost,
+      });
+    } else {
+      warnings.push(`Command & control system type not found: ${savedCC.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -355,6 +416,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       accommodations,
       storeSystems,
       gravitySystems,
+      defenses,
+      commandControl,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

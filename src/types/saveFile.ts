@@ -105,6 +105,26 @@ export interface SavedGravitySystem {
 }
 
 /**
+ * Installed defense system in save file
+ */
+export interface SavedDefenseSystem {
+  /** The defense system type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+}
+
+/**
+ * Installed command & control system in save file
+ */
+export interface SavedCommandControlSystem {
+  /** The C&C system type ID */
+  typeId: string;
+  /** Quantity installed (stations for cockpit, HP for computer core, etc.) */
+  quantity: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -167,6 +187,12 @@ export interface WarshipSaveFile {
   
   /** Installed gravity systems */
   gravitySystems: SavedGravitySystem[];
+  
+  /** Installed defense systems */
+  defenses: SavedDefenseSystem[];
+  
+  /** Installed command & control systems */
+  commandControl: SavedCommandControlSystem[];
   
   /** Installed systems (future) */
   systems: unknown[];

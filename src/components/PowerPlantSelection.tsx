@@ -814,7 +814,7 @@ export function PowerPlantSelection({
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Power Plant</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Name</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Power/HP</TableCell>

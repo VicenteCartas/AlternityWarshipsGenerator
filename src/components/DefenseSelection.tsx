@@ -533,18 +533,18 @@ export function DefenseSelection({
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
               {getCategoryLabel(category)}
             </Typography>
-            <TableContainer sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 900 } }}>
-              <Table size="small">
+            <TableContainer sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }} align="center">PL</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">HP</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Power</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Cost</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Coverage</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Effect</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }} align="center">PL</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">HP</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">Power</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }} align="right">Cost</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }} align="right">Coverage</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 250, whiteSpace: 'nowrap' }}>Effect</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
                   </TableRow>
                 </TableHead>

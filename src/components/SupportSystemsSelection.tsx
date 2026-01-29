@@ -1075,7 +1075,7 @@ export function SupportSystemsSelection({
             variant="outlined"
           />
           <Chip
-            label={`Life Support: ${stats.totalHullPointsCovered} HP covered`}
+            label={`Life Support: ${stats.totalHullPointsCovered} HP`}
             color="primary"
             variant="outlined"
           />
