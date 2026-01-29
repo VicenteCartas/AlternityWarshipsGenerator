@@ -454,10 +454,18 @@ export function SupportSystemsSelection({
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
                 <TableCell align="right">{type.hullPointsCovered} HP</TableCell>
                 <TableCell>
-                  <Tooltip title={type.description}>
+                  <Tooltip title={type.description} placement="left">
                     <Typography
-                      variant="body2"
-                      sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.3,
+                      }}
                     >
                       {type.description}
                     </Typography>
@@ -642,10 +650,18 @@ export function SupportSystemsSelection({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Tooltip title={type.description}>
+                  <Tooltip title={type.description} placement="left">
                     <Typography
-                      variant="body2"
-                      sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.3,
+                      }}
                     >
                       {type.description}
                     </Typography>
@@ -826,10 +842,18 @@ export function SupportSystemsSelection({
                   {type.effect === 'adds-stores' && `+${type.effectValue.toLocaleString()} days`}
                 </TableCell>
                 <TableCell>
-                  <Tooltip title={type.description}>
+                  <Tooltip title={type.description} placement="left">
                     <Typography
-                      variant="body2"
-                      sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.3,
+                      }}
                     >
                       {type.description}
                     </Typography>
@@ -996,14 +1020,18 @@ export function SupportSystemsSelection({
                         <TableCell>{estHP}</TableCell>
                         <TableCell>{formatCost(gt.costPerHullPoint)}</TableCell>
                         <TableCell>{formatCost(estCost)}</TableCell>
-                        <TableCell sx={{ maxWidth: 300 }}>
-                          <Tooltip title={gt.description}>
+                        <TableCell>
+                          <Tooltip title={gt.description} placement="left">
                             <Typography
-                              variant="body2"
+                              variant="caption"
+                              color="text.secondary"
                               sx={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                lineHeight: 1.3,
                               }}
                             >
                               {gt.description}

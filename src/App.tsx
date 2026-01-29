@@ -39,12 +39,14 @@ import { PowerPlantSelection } from './components/PowerPlantSelection';
 import { EngineSelection } from './components/EngineSelection';
 import { FTLDriveSelection } from './components/FTLDriveSelection';
 import { SupportSystemsSelection } from './components/SupportSystemsSelection';
+import { DefenseSelection } from './components/DefenseSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from './types/supportSystem';
+import type { InstalledDefenseSystem } from './types/defense';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -53,6 +55,7 @@ import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './services/ftlDriveService';
 import { calculateSupportSystemsStats } from './services/supportSystemService';
+import { calculateDefenseStats } from './services/defenseService';
 import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
@@ -101,6 +104,7 @@ function App() {
   const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
   const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
   const [installedGravitySystems, setInstalledGravitySystems] = useState<InstalledGravitySystem[]>([]);
+  const [installedDefenses, setInstalledDefenses] = useState<InstalledDefenseSystem[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -117,6 +121,7 @@ function App() {
     engines: true,
     ftlDrive: true,
     supportSystems: true,
+    defenses: true,
   });
   
   // Snackbar state for notifications
@@ -159,6 +164,7 @@ function App() {
     setInstalledAccommodations([]);
     setInstalledStoreSystems([]);
     setInstalledGravitySystems([]);
+    setInstalledDefenses([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -409,6 +415,10 @@ function App() {
     setInstalledGravitySystems(gravitySystems);
   };
 
+  const handleDefensesChange = (defenses: InstalledDefenseSystem[]) => {
+    setInstalledDefenses(defenses);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -461,6 +471,15 @@ function App() {
     return used;
   };
 
+  // Calculate used hull points before defenses (armor + power plants + engines + FTL + support)
+  const getUsedHullPointsBeforeDefenses = () => {
+    if (!selectedHull) return 0;
+    let used = getUsedHullPointsBeforeSupportSystems();
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+    used += supportStats.totalHullPoints;
+    return used;
+  };
+
   // Calculate remaining hull points
   const getRemainingHullPoints = () => {
     if (!selectedHull) return 0;
@@ -481,6 +500,8 @@ function App() {
     remaining -= ftlFuelStats.totalHullPoints;
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
     remaining -= supportStats.totalHullPoints;
+    const defenseStats = calculateDefenseStats(installedDefenses, selectedHull.hullPoints);
+    remaining -= defenseStats.totalHullPoints;
     return remaining;
   };
 
@@ -506,16 +527,21 @@ function App() {
     if (powerScenario.supportSystems) {
       consumed += calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired;
     }
+    // Defenses
+    if (powerScenario.defenses) {
+      consumed += calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalPowerRequired;
+    }
     return consumed;
   };
 
   // Get individual power consumption values for display
   const getPowerBreakdown = () => {
-    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0 };
+    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0 };
     return {
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
       supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired,
+      defenses: calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalPowerRequired,
     };
   };
 
@@ -539,6 +565,8 @@ function App() {
     cost += ftlFuelStats.totalCost;
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
     cost += supportStats.totalCost;
+    const defenseStats = calculateDefenseStats(installedDefenses, selectedHull.hullPoints);
+    cost += defenseStats.totalCost;
     return cost;
   };
 
@@ -565,6 +593,9 @@ function App() {
     });
     installedStoreSystems.forEach((ss) => {
       ss.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedDefenses.forEach((def) => {
+      def.type.techTracks.forEach((t) => tracks.add(t));
     });
     return Array.from(tracks).sort();
   };
@@ -683,6 +714,25 @@ function App() {
             onAccommodationsChange={handleAccommodationsChange}
             onStoreSystemsChange={handleStoreSystemsChange}
             onGravitySystemsChange={handleGravitySystemsChange}
+          />
+        );
+      case 7:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <DefenseSelection
+            hull={selectedHull}
+            installedDefenses={installedDefenses}
+            usedHullPoints={getUsedHullPointsBeforeDefenses()}
+            availablePower={getTotalPower()}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onDefensesChange={handleDefensesChange}
           />
         );
       default:
@@ -898,6 +948,17 @@ function App() {
                       />
                     }
                     label={`Support Systems (${getPowerBreakdown().supportSystems} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.defenses}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, defenses: e.target.checked })}
+                      />
+                    }
+                    label={`Defenses (${getPowerBreakdown().defenses} PP)`}
                     sx={{ display: 'block', m: 0 }}
                   />
                 </Box>
