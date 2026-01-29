@@ -163,6 +163,7 @@ export function calculateSupportSystemsStats(
   let passengerCapacity = 0;
   let suspendedCapacity = 0;
   let freeAirlocks = 0;
+  let baseStoreDays = 0;
 
   for (const acc of accommodations) {
     accommodationsHP += acc.type.hullPoints * acc.quantity;
@@ -173,9 +174,13 @@ export function calculateSupportSystemsStats(
     switch (acc.type.category) {
       case 'crew':
         crewCapacity += capacity;
+        // Only crew and passengers count for stores (not suspended/cryo)
+        baseStoreDays += capacity * acc.type.storesDaysPerPerson;
         break;
       case 'passenger':
         passengerCapacity += capacity;
+        // Only crew and passengers count for stores (not suspended/cryo)
+        baseStoreDays += capacity * acc.type.storesDaysPerPerson;
         break;
       case 'suspended':
         suspendedCapacity += capacity;
@@ -192,7 +197,9 @@ export function calculateSupportSystemsStats(
   let storeSystemsPower = 0;
   let storeSystemsCost = 0;
   let peopleFed = 0;
-  let recyclingFromStores = 0;
+  let feedsReduction = 0;
+  let recyclingCapacity = 0;
+  let recyclingReduction = 0;
   let additionalStoresDays = 0;
 
   for (const store of storeSystems) {
@@ -201,13 +208,26 @@ export function calculateSupportSystemsStats(
     storeSystemsCost += store.type.cost * store.quantity;
     
     switch (store.type.effect) {
-      case 'feeds':
-        peopleFed += store.type.effectValue * store.quantity;
+      case 'feeds': {
+        // effectValue people are considered as 1 for stores calculation
+        // So if effectValue=10 and quantity=2, 20 people are fed but count as 2 for stores
+        // Reduction = peopleFed - (peopleFed / effectValue) = peopleFed * (effectValue - 1) / effectValue
+        const fed = store.type.effectValue * store.quantity;
+        peopleFed += fed;
+        feedsReduction += fed - (fed / store.type.effectValue);
         break;
-      case 'reduces-consumption':
-        // Recycling capacity is cumulative
-        recyclingFromStores += (store.type.affectedPeople || 0) * store.quantity;
+      }
+      case 'reduces-consumption': {
+        // effectValue is the % consumption rate (e.g., 10 = 10% consumption)
+        // affectedPeople is how many people each unit affects
+        // Example: 15 recyclers * 20 affectedPeople = 300 people at 10% consumption
+        // Those 300 people consume like 30 people, saving 270 person-equivalents
+        const affected = (store.type.affectedPeople || 0) * store.quantity;
+        const reductionRate = 1 - (store.type.effectValue / 100);
+        recyclingCapacity += affected;
+        recyclingReduction += affected * reductionRate;
         break;
+      }
       case 'adds-stores':
         additionalStoresDays += store.type.effectValue * store.quantity;
         break;
@@ -225,6 +245,9 @@ export function calculateSupportSystemsStats(
     gravitySystemsCost += grav.cost;
   }
 
+  // Gravity system check
+  const hasGravitySystemInstalled = gravitySystems.length > 0;
+  
   // Artificial gravity: available at PL7+ with G-tech, or PL8+ with X-tech, or via spin system
   const hasGravityTech = designTechTracks.length === 0 || designTechTracks.includes('G');
   const hasEnergyTech = designTechTracks.length === 0 || designTechTracks.includes('X');
@@ -260,9 +283,13 @@ export function calculateSupportSystemsStats(
     freeAirlocks,
     
     peopleFed,
-    recyclingCapacity: recyclingFromLifeSupport + recyclingFromStores,
+    feedsReduction,
+    recyclingCapacity: recyclingFromLifeSupport + recyclingCapacity,
+    recyclingReduction,
     additionalStoresDays,
+    baseStoreDays,
     
     hasArtificialGravity,
+    hasGravitySystemInstalled,
   };
 }

@@ -150,9 +150,18 @@ export interface SupportSystemsStats {
   
   // Stores
   peopleFed: number;
+  /** Number of people-equivalents saved by 'feeds' systems (e.g., hydroponics) */
+  feedsReduction: number;
   recyclingCapacity: number;
+  /** Number of people-equivalents saved by 'reduces-consumption' systems (e.g., recyclers) */
+  recyclingReduction: number;
   additionalStoresDays: number;
+  /** Base store days from accommodations (weighted by person and their storesDaysPerPerson) */
+  baseStoreDays: number;
   
-  // Artificial gravity (derived from PL and tech)
+  // Gravity
+  /** Whether artificial gravity is available based on PL and tech */
   hasArtificialGravity: boolean;
+  /** Whether at least one gravity system is installed */
+  hasGravitySystemInstalled: boolean;
 }

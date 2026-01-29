@@ -11,7 +11,7 @@ import type { ArmorType, ArmorWeightConfig } from '../types/armor';
 import type { PowerPlantType, FuelTankType } from '../types/powerPlant';
 import type { EngineType } from '../types/engine';
 import type { FTLDriveType } from '../types/ftlDrive';
-import type { LifeSupportType, AccommodationType, StoreSystemType } from '../types/supportSystem';
+import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystemType } from '../types/supportSystem';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -35,6 +35,7 @@ interface DataCache {
     lifeSupport: LifeSupportType[];
     accommodations: AccommodationType[];
     storeSystems: StoreSystemType[];
+    gravitySystems: GravitySystemType[];
   } | null;
 }
 
@@ -121,6 +122,7 @@ export async function loadAllGameData(): Promise<void> {
       lifeSupport: LifeSupportType[];
       accommodations: AccommodationType[];
       storeSystems: StoreSystemType[];
+      gravitySystems: GravitySystemType[];
     };
 
     // Load data into services

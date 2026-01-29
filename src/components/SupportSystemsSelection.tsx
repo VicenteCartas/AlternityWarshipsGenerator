@@ -1052,7 +1052,7 @@ export function SupportSystemsSelection({
             variant="outlined"
           />
           <Chip
-            label={`Crew: ${stats.crewCapacity}`}
+            label={`Accommodations: ${stats.crewCapacity}`}
             color="primary"
             variant="outlined"
           />
@@ -1070,14 +1070,36 @@ export function SupportSystemsSelection({
               variant="outlined"
             />
           )}
-          {stats.freeAirlocks > 0 && (
+          {(() => {
+            // Calculate stores per person (only crew and passengers count, not cryo)
+            // feedsReduction: "feeds" systems (e.g., hydroponics) where X people count as 1
+            // recyclingReduction: "reduces-consumption" systems (e.g., recyclers) reduce consumption to Y%
+            const activePersons = stats.crewCapacity + stats.passengerCapacity;
+            // Cap recycling to not exceed remaining people after feeds
+            const remainingAfterFeeds = Math.max(0, activePersons - stats.feedsReduction);
+            const cappedRecyclingReduction = Math.min(stats.recyclingReduction, remainingAfterFeeds);
+            const effectivePersons = Math.max(1, activePersons - stats.feedsReduction - cappedRecyclingReduction);
+            if (activePersons > 0) {
+              const totalStoreDays = stats.baseStoreDays + stats.additionalStoresDays;
+              const storesPerPerson = Math.floor(totalStoreDays / effectivePersons);
+              return (
+                <Chip
+                  label={`Stores: ${storesPerPerson} days/person`}
+                  color="primary"
+                  variant="outlined"
+                />
+              );
+            }
+            return null;
+          })()}
+          {!stats.hasArtificialGravity && !stats.hasGravitySystemInstalled && (
             <Chip
-              label={`Airlocks: ${stats.freeAirlocks}`}
-              color="success"
+              label="No Gravity"
+              color="warning"
               variant="outlined"
             />
           )}
-          {stats.hasArtificialGravity && (
+          {(stats.hasArtificialGravity || stats.hasGravitySystemInstalled) && (
             <Chip
               label="Artificial Gravity"
               color="success"

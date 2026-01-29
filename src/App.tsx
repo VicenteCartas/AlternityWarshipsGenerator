@@ -69,13 +69,13 @@ type AppMode = 'welcome' | 'builder' | 'loading';
 const steps = [
   { label: 'Hull', required: true },
   { label: 'Armor', required: false },
-  { label: 'Power Plant', required: true },
+  { label: 'Power', required: true },
   { label: 'Engines', required: true },
-  { label: 'FTL Drive', required: false },
-  { label: 'Support Systems', required: false },
+  { label: 'FTL', required: false },
+  { label: 'Support', required: false },
+  { label: 'Weapons', required: false },
+  { label: 'Defense', required: false },
 ];
-
-
 
 // Progress level display names
 const PL_NAMES: Record<ProgressLevel, string> = {
@@ -902,36 +902,6 @@ function App() {
                   />
                 </Box>
               </Popover>
-              {/* Life Support chip */}
-              {(() => {
-                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-                const baseHP = selectedHull.hullPoints;
-                const covered = supportStats.totalHullPointsCovered;
-                const isFullCoverage = covered >= baseHP;
-                return (
-                  <Chip
-                    label={`Life: ${covered} / ${baseHP} HP`}
-                    color={isFullCoverage ? 'success' : 'warning'}
-                    variant="outlined"
-                    size="small"
-                  />
-                );
-              })()}
-              {/* Crew Accommodations chip */}
-              {(() => {
-                const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-                const requiredCrew = selectedHull.crew;
-                const crewCapacity = supportStats.crewCapacity;
-                const isFullCoverage = crewCapacity >= requiredCrew;
-                return (
-                  <Chip
-                    label={`Crew: ${crewCapacity} / ${requiredCrew}`}
-                    color={isFullCoverage ? 'success' : 'warning'}
-                    variant="outlined"
-                    size="small"
-                  />
-                );
-              })()}
               <Chip
                 label={`Cost: ${formatCost(getTotalCost())}`}
                 color="default"
@@ -960,7 +930,7 @@ function App() {
       </AppBar>
 
       {/* Stepper */}
-      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider' }} elevation={0}>
+      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }} elevation={0}>
         <Stepper activeStep={activeStep} nonLinear sx={{ '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
           {steps.map((step, index) => {
             // Determine if step is completed
@@ -972,6 +942,8 @@ function App() {
                 case 3: return installedEngines.length > 0; // Engines
                 case 4: return installedFTLDrive !== null; // FTL Drive (optional)
                 case 5: return installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0; // Support Systems (optional)
+                case 6: return false; // Weapons (optional) - TODO
+                case 7: return false; // Defenses (optional) - TODO
                 default: return false;
               }
             })();
