@@ -94,3 +94,66 @@ export function formatAcceleration(acceleration: number, usesPL6Scale: boolean):
   }
   return `${formatted} Mpp`;
 }
+
+/**
+ * Format command control system cost for table display
+ * Shows unit cost with indicator for per-station, per-HP, or per-linked-system costs
+ */
+export function formatCommandControlCost(system: {
+  cost: number;
+  maxQuantity?: number;
+  costPerHull?: boolean;
+  coveragePerHullPoint?: number;
+  linkedSystemType?: 'weapon' | 'sensor';
+}): string {
+  const baseCost = formatCost(system.cost);
+  
+  // Cockpit and similar per-station systems
+  if (system.maxQuantity && system.maxQuantity > 1) {
+    return `${baseCost}/station`;
+  }
+  
+  // Coverage-based systems with costPerHull - cost per HP of the system itself
+  if (system.coveragePerHullPoint && system.costPerHull) {
+    return `${baseCost}/HP`;
+  }
+  
+  // Linked systems - cost per HP of the linked weapon/sensor
+  if (system.linkedSystemType) {
+    return `${baseCost}/${system.linkedSystemType} HP`;
+  }
+  
+  return baseCost;
+}
+
+/**
+ * Format sensor range for display
+ * Shows short/medium/long ranges in Mm, or special range text
+ */
+export function formatSensorRange(sensor: {
+  rangeShort: number;
+  rangeMedium: number;
+  rangeLong: number;
+  rangeSpecial?: string;
+}): string {
+  if (sensor.rangeSpecial) {
+    return sensor.rangeSpecial;
+  }
+  return `${sensor.rangeShort}/${sensor.rangeMedium}/${sensor.rangeLong} Mm`;
+}
+
+/**
+ * Format step modifier for display (for sensors)
+ * @param modifier - The accuracy modifier (positive = penalty, negative = bonus)
+ * @returns Formatted string like "+2 step penalty", "-1 step bonus", "Normal"
+ */
+export function formatAccuracyModifier(modifier: number): string {
+  if (modifier === 0) {
+    return 'Normal';
+  }
+  const stepWord = Math.abs(modifier) === 1 ? 'step' : 'steps';
+  if (modifier > 0) {
+    return `+${modifier} ${stepWord} penalty`;
+  }
+  return `${modifier} ${stepWord} bonus`;
+}

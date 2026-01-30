@@ -125,6 +125,18 @@ export interface SavedCommandControlSystem {
 }
 
 /**
+ * Installed sensor system in save file
+ */
+export interface SavedSensor {
+  /** The sensor type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+  /** ID of the assigned sensor control computer (references commandControl installation ID) */
+  assignedSensorControlId?: string;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -193,6 +205,9 @@ export interface WarshipSaveFile {
   
   /** Installed command & control systems */
   commandControl: SavedCommandControlSystem[];
+  
+  /** Installed sensor systems */
+  sensors: SavedSensor[];
   
   /** Installed systems (future) */
   systems: unknown[];

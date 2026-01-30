@@ -10,9 +10,8 @@
       "powerRequired": 0,
       "cost": 100000,
       "costPerHull": false,
-      "maxQuantity": 3,
-      "effect": "Per station (max 3 stations)",
-      "description": "The cockpit is the nerve center of a small ship. For half a hull point, it includes one control station or seat. The maximum size of a cockpit is three seats or stations (1.5 hull points). Anything larger is more accurately described as a small command deck. A cockpit is limited to ships of 50 hull points or less.",
+      "maxQuantity": 4,
+      "description": "The cockpit is the nerve center of a small ship. For half a hull point, it includes one control station or seat. The maximum size of a cockpit is four seats or stations (2 hull points). Anything larger is more accurately described as a small command deck. A cockpit is limited to ships of 50 hull points or less.",
       "isRequired": true,
       "maxShipHullPoints": 50
     },
@@ -23,13 +22,12 @@
       "techTracks": [],
       "category": "command",
       "hullPoints": 2,
-      "hullPerShipSize": 1,
+      "coveragePerHullPoint": 100,
       "maxHullPoints": 10,
       "powerRequired": 0,
       "cost": 300000,
       "costPerHull": true,
-      "effect": "+1 HP per 100 hull (max 10)",
-      "description": "Every ship requires either a cockpit or a command deck. A command deck begins at 2 hull points, and requires 1 extra hull point for each 100 hull points after the first 100 (a total of 3 hull points for a ship of 100 or more hull points, 4 for a ship of 200 or more, and so on). The command deck is large enough to accommodate the pilot, the commander, and any specialists necessary to operate the ship's systems.",
+      "description": "Every ship requires either a cockpit or a command deck. A command deck has a base size of 2 hull points, plus 1 extra hull point per 100 hull points of ship (max 10 HP total). Cost is $300K per hull point of the command deck itself.",
       "isRequired": true
     },
     {
@@ -42,7 +40,6 @@
       "powerRequired": 0,
       "cost": 50000,
       "costPerHull": false,
-      "effect": "Admiral's command center",
       "description": "A flag bridge is an auxiliary command deck used by an admiral or squadron commander and their staff. It duplicates the communications and sensors available on the main command deck, allowing the flag officer to concentrate on directing multiple ships while the captain handles the flagship."
     },
     {
@@ -55,7 +52,6 @@
       "powerRequired": 0,
       "cost": 50000,
       "costPerHull": false,
-      "effect": "Small craft traffic control",
       "description": "Carriers and other ships that carry a large number of embarked small craft usually set aside special facilities for controlling the launch and recovery of their fighters and shuttles. The launch tower provides traffic control, strike communications, and patrol command and control."
     },
     {
@@ -68,7 +64,6 @@
       "powerRequired": 1,
       "cost": 25000,
       "costPerHull": false,
-      "effect": "Basic communications",
       "description": "Standard radio communications equipment for ship-to-ship and ship-to-ground communications. Limited to light-speed transmission."
     },
     {
@@ -81,7 +76,6 @@
       "powerRequired": 1,
       "cost": 50000,
       "costPerHull": false,
-      "effect": "Tight-beam communications",
       "description": "A laser transceiver uses a focused beam of light for communications. It's harder to intercept than radio but requires precise aiming between the transmitter and receiver."
     },
     {
@@ -94,7 +88,6 @@
       "powerRequired": 1,
       "cost": 100000,
       "costPerHull": false,
-      "effect": "Gravity-based communications",
       "description": "The mass transceiver uses gravity manipulation technology to communicate by modulating gravitational fields. A large ship may require dozens of transceivers to coordinate with other ships and maintain control over distant flights of strike craft."
     },
     {
@@ -107,7 +100,6 @@
       "powerRequired": 300,
       "cost": 2000000000,
       "costPerHull": false,
-      "effect": "Interstellar communications",
       "description": "The drivesat comm array is a massive installation that permits communication across interstellar distances. It requires a network of relay satellites at stardrive emergence points to function."
     },
     {
@@ -120,7 +112,6 @@
       "powerRequired": 2,
       "cost": 200000,
       "costPerHull": false,
-      "effect": "FTL message drone control",
       "description": "A drive transceiver is capable of controlling and directing FTL message drones, enabling communication across star systems without requiring the massive drivesat array."
     },
     {
@@ -133,7 +124,6 @@
       "powerRequired": 2,
       "cost": 150000,
       "costPerHull": false,
-      "effect": "Psionic communications",
       "description": "The psionic transceiver amplifies and transmits psionic signals, allowing telepathic communication between ships equipped with similar devices."
     },
     {
@@ -146,7 +136,6 @@
       "powerRequired": 4,
       "cost": 1000000,
       "costPerHull": false,
-      "effect": "Instantaneous interstellar communications",
       "description": "The ansible is a device that induces precise energy state changes in atomic nuclei without regard to distance or time. In effect, it permits instantaneous interstellar communications—voice, video, or data transfer—to any other ship or station equipped with an ansible."
     },
     {
@@ -155,12 +144,12 @@
       "progressLevel": 6,
       "techTracks": ["C"],
       "category": "computer",
-      "hullPoints": 1,
-      "hullPer200": 1,
+      "hullPoints": 0,
+      "coveragePerHullPoint": 200,
       "powerRequired": 1,
       "cost": 500000,
       "costPerHull": true,
-      "effect": "1 required per 200 hull points",
+      "effect": "Allows dedicated computer systems",
       "description": "An Ordinary computer core provides the minimum computing power necessary for dedicated control systems to function. Computer cores require 1 hull point per 200 hull points of ship size.",
       "quality": "Ordinary"
     },
@@ -170,12 +159,12 @@
       "progressLevel": 7,
       "techTracks": ["C"],
       "category": "computer",
-      "hullPoints": 1,
-      "hullPer200": 1,
+      "hullPoints": 0,
+      "coveragePerHullPoint": 200,
       "powerRequired": 1,
       "cost": 1000000,
       "costPerHull": true,
-      "effect": "1 required per 200 hull points",
+      "effect": "Allows dedicated computer systems",
       "description": "A Good computer core is more advanced, supporting Good-quality dedicated control computers that provide better bonuses. Computer cores require 1 hull point per 200 hull points of ship size.",
       "quality": "Good"
     },
@@ -185,12 +174,12 @@
       "progressLevel": 8,
       "techTracks": ["C"],
       "category": "computer",
-      "hullPoints": 1,
-      "hullPer200": 1,
+      "hullPoints": 0,
+      "coveragePerHullPoint": 200,
       "powerRequired": 1,
       "cost": 2000000,
       "costPerHull": true,
-      "effect": "1 required per 200 hull points",
+      "effect": "Allows dedicated computer systems",
       "description": "An Amazing computer core is the most advanced available, supporting Amazing-quality dedicated control computers that provide the best bonuses. Computer cores require 1 hull point per 200 hull points of ship size.",
       "quality": "Amazing"
     },
@@ -203,12 +192,14 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 200000,
-      "costPerHull": true,
-      "effect": "-1 step bonus to dedicated weapon",
+      "linkedSystemType": "weapon",
+      "effect": "-1 step to dedicated weapon",
       "description": "An Ordinary fire control computer provides a -1 step bonus to attack rolls for a single dedicated weapon system. The cost is per hull point of the dedicated weapon.",
       "quality": "Ordinary",
       "stepBonus": -1,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Ordinary"
     },
     {
       "id": "fire-control-good",
@@ -219,12 +210,14 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 300000,
-      "costPerHull": true,
-      "effect": "-2 step bonus to dedicated weapon",
+      "linkedSystemType": "weapon",
+      "effect": "-2 steps to dedicated weapon",
       "description": "A Good fire control computer provides a -2 step bonus to attack rolls for a single dedicated weapon system. The cost is per hull point of the dedicated weapon.",
       "quality": "Good",
       "stepBonus": -2,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Good"
     },
     {
       "id": "fire-control-amazing",
@@ -236,11 +229,13 @@
       "powerRequired": 0,
       "cost": 300000,
       "costPerHull": false,
-      "effect": "-3 step bonus to dedicated weapon",
+      "effect": "-3 steps to dedicated weapon",
       "description": "An Amazing fire control computer provides a -3 step bonus to attack rolls for a single dedicated weapon system. Unlike lower-quality versions, the cost is fixed rather than per hull point.",
       "quality": "Amazing",
       "stepBonus": -3,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Amazing"
     },
     {
       "id": "sensor-control-ordinary",
@@ -251,12 +246,14 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 200000,
-      "costPerHull": true,
-      "effect": "-1 step bonus to dedicated sensor",
+      "linkedSystemType": "sensor",
+      "effect": "-1 step to dedicated sensor",
       "description": "An Ordinary sensor control computer provides a -1 step bonus to checks using a single dedicated sensor system. The cost is per hull point of the dedicated sensor.",
       "quality": "Ordinary",
       "stepBonus": -1,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Ordinary"
     },
     {
       "id": "sensor-control-good",
@@ -267,12 +264,14 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 300000,
-      "costPerHull": true,
-      "effect": "-2 step bonus to dedicated sensor",
+      "linkedSystemType": "sensor",
+      "effect": "-2 steps to dedicated sensor",
       "description": "A Good sensor control computer provides a -2 step bonus to checks using a single dedicated sensor system. The cost is per hull point of the dedicated sensor.",
       "quality": "Good",
       "stepBonus": -2,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Good"
     },
     {
       "id": "sensor-control-amazing",
@@ -284,11 +283,13 @@
       "powerRequired": 0,
       "cost": 300000,
       "costPerHull": false,
-      "effect": "-3 step bonus to dedicated sensor",
+      "effect": "-3 steps to dedicated sensor",
       "description": "An Amazing sensor control computer provides a -3 step bonus to checks using a single dedicated sensor system. Unlike lower-quality versions, the cost is fixed rather than per hull point.",
       "quality": "Amazing",
       "stepBonus": -3,
-      "isDedicated": true
+      "isDedicated": true,
+      "requiresCore": true,
+      "maxQuality": "Amazing"
     },
     {
       "id": "tac-control-ordinary",
@@ -300,10 +301,12 @@
       "powerRequired": 0,
       "cost": 100000,
       "costPerHull": false,
-      "effect": "-1 step bonus to Tactics skill checks",
+      "effect": "-1 step to Tactics checks",
       "description": "An Ordinary tactical control computer provides a -1 step bonus to Tactics skill checks made by the ship's tactical officer.",
       "quality": "Ordinary",
-      "stepBonus": -1
+      "stepBonus": -1,
+      "requiresCore": true,
+      "maxQuality": "Ordinary"
     },
     {
       "id": "tac-control-good",
@@ -315,10 +318,12 @@
       "powerRequired": 0,
       "cost": 200000,
       "costPerHull": false,
-      "effect": "-2 step bonus to Tactics skill checks",
+      "effect": "-2 steps to Tactics checks",
       "description": "A Good tactical control computer provides a -2 step bonus to Tactics skill checks made by the ship's tactical officer.",
       "quality": "Good",
-      "stepBonus": -2
+      "stepBonus": -2,
+      "requiresCore": true,
+      "maxQuality": "Good"
     },
     {
       "id": "tac-control-amazing",
@@ -330,10 +335,12 @@
       "powerRequired": 0,
       "cost": 400000,
       "costPerHull": false,
-      "effect": "-3 step bonus to Tactics skill checks",
+      "effect": "-3 steps to Tactics checks",
       "description": "An Amazing tactical control computer provides a -3 step bonus to Tactics skill checks made by the ship's tactical officer.",
       "quality": "Amazing",
-      "stepBonus": -3
+      "stepBonus": -3,
+      "requiresCore": true,
+      "maxQuality": "Amazing"
     },
     {
       "id": "nav-control-ordinary",
@@ -345,10 +352,12 @@
       "powerRequired": 0,
       "cost": 500000,
       "costPerHull": false,
-      "effect": "-1 step bonus to Maneuver checks",
+      "effect": "-1 step to Maneuver checks",
       "description": "An Ordinary navigation control computer provides a -1 step bonus to Maneuver checks made by the ship's pilot.",
       "quality": "Ordinary",
-      "stepBonus": -1
+      "stepBonus": -1,
+      "requiresCore": true,
+      "maxQuality": "Ordinary"
     },
     {
       "id": "nav-control-good",
@@ -360,10 +369,12 @@
       "powerRequired": 0,
       "cost": 750000,
       "costPerHull": false,
-      "effect": "-2 step bonus to Maneuver checks",
+      "effect": "-2 steps to Maneuver checks",
       "description": "A Good navigation control computer provides a -2 step bonus to Maneuver checks made by the ship's pilot.",
       "quality": "Good",
-      "stepBonus": -2
+      "stepBonus": -2,
+      "requiresCore": true,
+      "maxQuality": "Good"
     },
     {
       "id": "nav-control-amazing",
@@ -375,10 +386,12 @@
       "powerRequired": 0,
       "cost": 1000000,
       "costPerHull": false,
-      "effect": "-3 step bonus to Maneuver checks",
+      "effect": "-3 steps to Maneuver checks",
       "description": "An Amazing navigation control computer provides a -3 step bonus to Maneuver checks made by the ship's pilot.",
       "quality": "Amazing",
-      "stepBonus": -3
+      "stepBonus": -3,
+      "requiresCore": true,
+      "maxQuality": "Amazing"
     },
     {
       "id": "attack-computer",
@@ -390,7 +403,7 @@
       "powerRequired": 0,
       "cost": 200000,
       "costPerHull": false,
-      "effect": "-1 step bonus to attack rolls",
+      "effect": "-1 step to all attacks",
       "description": "This unit combines a small computer core with a small fire control computer. It provides a -1 step bonus to all attack rolls made by the ship, without requiring a dedicated fire control computer for each weapon.",
       "stepBonus": -1
     }

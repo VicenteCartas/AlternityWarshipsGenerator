@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -7,6 +7,7 @@ import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive'
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
 import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
+import type { InstalledSensor } from '../types/sensor';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -17,6 +18,7 @@ import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId }
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
 import { getAllCommandControlSystemTypes, generateCommandControlId, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
+import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 
 /**
  * State representing the current warship configuration
@@ -38,6 +40,7 @@ export interface WarshipState {
   gravitySystems: InstalledGravitySystem[];
   defenses: InstalledDefenseSystem[];
   commandControl: InstalledCommandControlSystem[];
+  sensors: InstalledSensor[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -114,6 +117,11 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     commandControl: (state.commandControl || []).map((cc): SavedCommandControlSystem => ({
       typeId: cc.type.id,
       quantity: cc.quantity,
+    })),
+    sensors: (state.sensors || []).map((s): SavedSensor => ({
+      typeId: s.type.id,
+      quantity: s.quantity,
+      assignedSensorControlId: s.assignedSensorControlId,
     })),
     systems: [],
   };
@@ -394,6 +402,43 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load sensors
+  const sensors: InstalledSensor[] = [];
+  const allSensorTypes = getAllSensorTypes();
+  const designPL = saveFile.designProgressLevel || 7;
+  
+  for (const savedSensor of (saveFile.sensors || [])) {
+    const sensorType = allSensorTypes.find(t => t.id === savedSensor.typeId);
+    if (sensorType) {
+      const hullPts = calculateSensorHullPoints(sensorType, savedSensor.quantity);
+      const power = calculateSensorPower(sensorType, savedSensor.quantity);
+      const cost = calculateSensorCost(sensorType, savedSensor.quantity);
+      
+      // Determine computer quality from assigned sensor control
+      let computerQuality: ComputerQuality = 'none';
+      if (savedSensor.assignedSensorControlId) {
+        const assignedControl = commandControl.find(cc => cc.id === savedSensor.assignedSensorControlId);
+        if (assignedControl?.type.quality) {
+          computerQuality = assignedControl.type.quality as ComputerQuality;
+        }
+      }
+      
+      sensors.push({
+        id: generateSensorId(),
+        type: sensorType,
+        quantity: savedSensor.quantity,
+        hullPoints: hullPts,
+        powerRequired: power,
+        cost,
+        arcsCovered: Math.min(savedSensor.quantity * sensorType.arcsCovered, 4),
+        trackingCapability: calculateTrackingCapability(designPL, computerQuality, savedSensor.quantity),
+        assignedSensorControlId: savedSensor.assignedSensorControlId,
+      });
+    } else {
+      warnings.push(`Sensor system type not found: ${savedSensor.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -418,6 +463,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       gravitySystems,
       defenses,
       commandControl,
+      sensors,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

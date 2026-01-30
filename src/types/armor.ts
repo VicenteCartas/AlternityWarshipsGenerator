@@ -21,6 +21,9 @@ export interface ArmorType {
   /** Armor weight category */
   armorWeight: ArmorWeight;
   
+  /** Hull points required as percentage of ship hull (derived from armorWeight) */
+  hullPercentage: number;
+  
   /** Progress Level required */
   progressLevel: ProgressLevel;
   

@@ -83,20 +83,40 @@ export function generateCommandControlId(): string {
 // ============== Calculations ==============
 
 /**
- * Calculate the hull points required for a command deck based on ship size
- * Command deck: base 2 HP + 1 HP per 100 hull after first 100 (max 10)
+ * Calculate hull points for systems that scale with ship size based on coverage.
+ * 
+ * Formula: baseHullPoints + ceil(shipHullPoints / coveragePerHullPoint)
+ * Examples:
+ *   - Command deck (base 2, coverage 100, max 10): 400 HP ship → 2 + ceil(400/100) = 6 HP
+ *   - Computer core (base 0, coverage 200, no max): 400 HP ship → 0 + ceil(400/200) = 2 HP
+ * 
+ * @param shipHullPoints - Total hull points of the ship
+ * @param type - System type with coverage properties (hullPoints, coveragePerHullPoint, maxHullPoints)
+ * @returns Calculated hull points required for the system
  */
-export function calculateCommandDeckHullPoints(shipHullPoints: number): number {
-  if (shipHullPoints < 100) {
-    return 2;
+export function calculateCoverageBasedHullPoints(
+  shipHullPoints: number,
+  type: { hullPoints: number; coveragePerHullPoint?: number; maxHullPoints?: number }
+): number {
+  const baseHullPoints = type.hullPoints;
+  const coveragePerHullPoint = type.coveragePerHullPoint;
+  
+  // If no coverage defined, return base hull points
+  if (!coveragePerHullPoint) {
+    return baseHullPoints;
   }
-  const extraHullPoints = Math.floor(shipHullPoints / 100);
-  return Math.min(2 + extraHullPoints, 10);
+  
+  // HP based on ship size
+  const coverageHullPoints = Math.ceil(shipHullPoints / coveragePerHullPoint);
+  const totalHullPoints = baseHullPoints + coverageHullPoints;
+  
+  // Apply max if defined
+  return type.maxHullPoints ? Math.min(totalHullPoints, type.maxHullPoints) : totalHullPoints;
 }
 
 /**
  * Calculate required computer core hull points based on ship size
- * 1 HP per 200 hull points of ship
+ * @deprecated Use calculateCoverageBasedHullPoints instead
  */
 export function calculateRequiredComputerCoreHullPoints(shipHullPoints: number): number {
   return Math.ceil(shipHullPoints / 200);
@@ -110,19 +130,13 @@ export function calculateCommandControlHullPoints(
   shipHullPoints: number,
   quantity: number
 ): number {
-  // Command deck has special scaling
-  if (type.id === 'command-deck') {
-    return calculateCommandDeckHullPoints(shipHullPoints);
+  // Systems with coverage-based sizing (command deck, computer cores)
+  // Formula: (baseHP + ceil(shipHP/coverage)) × quantity, with optional max per system
+  if (type.coveragePerHullPoint) {
+    const hpPerSystem = calculateCoverageBasedHullPoints(shipHullPoints, type);
+    return hpPerSystem * quantity;
   }
-  // Cockpit is per station
-  if (type.id === 'cockpit') {
-    return type.hullPoints * quantity;
-  }
-  // Computer cores need HP per 200 hull
-  if (type.hullPer200) {
-    return calculateRequiredComputerCoreHullPoints(shipHullPoints);
-  }
-  // Standard calculation
+  // Standard calculation (hullPoints * quantity)
   return type.hullPoints * quantity;
 }
 
@@ -133,8 +147,8 @@ export function calculateCommandControlPower(
   type: CommandControlSystemType,
   quantity: number
 ): number {
-  // Computer cores need 1 power per installed hull point
-  if (type.hullPer200) {
+  // Systems with coverage (e.g., computer cores) need power per installed hull point
+  if (type.coveragePerHullPoint) {
     // Power scales with quantity (which represents installed HP)
     return type.powerRequired * quantity;
   }
@@ -149,15 +163,19 @@ export function calculateCommandControlCost(
   shipHullPoints: number,
   quantity: number
 ): number {
-  // Command deck: cost per hull point of ship
-  if (type.id === 'command-deck') {
-    return type.cost * shipHullPoints;
+  // Systems with coverage-based sizing AND costPerHull: cost per system's calculated HP
+  // (e.g., command deck, computer cores)
+  if (type.coveragePerHullPoint && type.costPerHull) {
+    const hpPerSystem = calculateCoverageBasedHullPoints(shipHullPoints, type);
+    return type.cost * hpPerSystem * quantity;
   }
-  // Computer cores and dedicated controls: cost per hull point when costPerHull is true
-  if (type.costPerHull) {
-    return type.cost * shipHullPoints;
+  // Linked systems (fire/sensor control): cost × linked system HP
+  // TODO: When weapons/sensors are implemented, pass linked system HP
+  // For now, just use base cost × quantity
+  if (type.linkedSystemType) {
+    return type.cost * quantity;
   }
-  // Cockpit and other per-quantity systems
+  // Standard per-quantity systems
   return type.cost * quantity;
 }
 

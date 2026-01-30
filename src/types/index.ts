@@ -7,3 +7,4 @@ export * from './ftlDrive';
 export * from './supportSystem';
 export * from './defense';
 export * from './commandControl';
+export * from './sensor';

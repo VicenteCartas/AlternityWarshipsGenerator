@@ -71,7 +71,8 @@ export function calculateDefenseHullPoints(
 ): number {
   if (type.hullPercentage) {
     // Hull points are a percentage of ship hull
-    return Math.ceil((type.hullPoints / 100) * shipHullPoints);
+    const percentageValue = type.hullPercentageValue ?? 0;
+    return Math.ceil((percentageValue / 100) * shipHullPoints);
   }
   return type.hullPoints * quantity;
 }

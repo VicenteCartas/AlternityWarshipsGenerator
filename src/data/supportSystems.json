@@ -8,7 +8,7 @@
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 100000,
-      "hullPointsCovered": 20,
+      "coveragePerHullPoint": 20,
       "description": "Basic life support providing heat, oxygen, and a safe environment for 20 hull points of ship space."
     },
     {
@@ -19,7 +19,7 @@
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 200000,
-      "hullPointsCovered": 40,
+      "coveragePerHullPoint": 40,
       "description": "Advanced automated life support system covering 40 hull points of ship space."
     },
     {
@@ -30,7 +30,7 @@
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 250000,
-      "hullPointsCovered": 100,
+      "coveragePerHullPoint": 100,
       "recyclingCapacity": 20,
       "description": "Biomechanical life support covering 100 hull points and providing recycling for 20 people."
     }

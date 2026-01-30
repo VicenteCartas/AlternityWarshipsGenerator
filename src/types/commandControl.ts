@@ -15,24 +15,24 @@ export interface CommandControlSystemType {
   progressLevel: ProgressLevel;
   techTracks: TechTrack[];
   category: CommandControlCategory;
-  /** Base hull points required */
+  /** Base hull points required (0 for coverage-only systems like computer cores) */
   hullPoints: number;
-  /** Additional hull points per 100 hull points (for Command Deck, +1 per 100 hull up to max) */
-  hullPerShipSize?: number;
-  /** Maximum hull points for systems that scale with ship size */
+  /** Ship hull points covered per HP of this system. Formula: baseHP + ceil(shipHP / coveragePerHullPoint) */
+  coveragePerHullPoint?: number;
+  /** Maximum hull points cap for coverage-based systems */
   maxHullPoints?: number;
-  /** Hull points required per 200 hull (for Computer Cores) */
-  hullPer200?: number;
   /** Power required per unit */
   powerRequired: number;
   /** Base cost */
   cost: number;
-  /** If true, cost is multiplied by hull points of ship (for Command Deck, Computer Core) */
-  costPerHull: boolean;
-  /** Maximum quantity allowed (e.g., cockpit max 3 stations) */
+  /** If true and has coveragePerHullPoint: cost × system's calculated HP */
+  costPerHull?: boolean;
+  /** Type of system this control links to - cost will be × linked system's HP */
+  linkedSystemType?: 'weapon' | 'sensor';
+  /** Maximum quantity allowed (e.g., cockpit max 4 stations) */
   maxQuantity?: number;
-  /** Effect description for display */
-  effect: string;
+  /** Effect description for display (computer systems only) */
+  effect?: string;
   /** Detailed description */
   description: string;
   /** Quality level for computers (Ordinary, Good, Amazing) */
@@ -45,6 +45,10 @@ export interface CommandControlSystemType {
   isRequired?: boolean;
   /** Maximum ship hull points this can be used on (cockpit only) */
   maxShipHullPoints?: number;
+  /** Whether this control computer requires a core to be installed first */
+  requiresCore?: boolean;
+  /** Maximum quality of core this computer can work with (Ordinary can't exceed Ordinary core, etc.) */
+  maxQuality?: 'Ordinary' | 'Good' | 'Amazing';
 }
 
 // ============== Installed Command and Control System ==============

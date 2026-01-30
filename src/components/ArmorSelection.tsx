@@ -53,6 +53,34 @@ export function ArmorSelection({
     [hull.shipClass]
   );
 
+  // Get all armor types that pass design constraints (before weight filter)
+  const allFilteredByConstraints = useMemo(() => {
+    const byWeight = getArmorTypesByWeight(hull.shipClass, 'all');
+    return byWeight.filter((armor) => {
+      if (armor.progressLevel > designProgressLevel) {
+        return false;
+      }
+      if (designTechTracks.length > 0 && armor.techTracks.length > 0) {
+        const hasAllowedTech = armor.techTracks.every((track) => 
+          designTechTracks.includes(track)
+        );
+        if (!hasAllowedTech) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [hull.shipClass, designProgressLevel, designTechTracks]);
+
+  // Count armors by weight
+  const weightCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: allFilteredByConstraints.length };
+    for (const w of availableWeights) {
+      counts[w.weight] = allFilteredByConstraints.filter((a) => a.armorWeight === w.weight).length;
+    }
+    return counts;
+  }, [allFilteredByConstraints, availableWeights]);
+
   // Get armor types filtered by weight, then apply design constraints
   const filteredTypes = useMemo(() => {
     const byWeight = getArmorTypesByWeight(hull.shipClass, weightFilter);
@@ -131,10 +159,10 @@ export function ArmorSelection({
           onChange={handleWeightFilterChange}
           size="small"
         >
-          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="all">All ({weightCounts.all})</ToggleButton>
           {availableWeights.map((w) => (
             <ToggleButton key={w.weight} value={w.weight}>
-              {w.name}
+              {w.name} ({weightCounts[w.weight]})
             </ToggleButton>
           ))}
         </ToggleButtonGroup>

@@ -73,6 +73,16 @@ export function calculateArmorHullPoints(hull: Hull, weight: ArmorWeight): numbe
 }
 
 /**
+ * Calculate hull points required for a specific armor type
+ * Uses the hullPercentage from the armor type directly
+ */
+export function calculateArmorHullPointsForType(hull: Hull, armorType: ArmorType): number {
+  // Use base hull points (not including bonus) for percentage calculations
+  // Always round up per the rules
+  return Math.ceil(hull.hullPoints * (armorType.hullPercentage / 100));
+}
+
+/**
  * Calculate armor cost
  */
 export function calculateArmorCost(hull: Hull, weight: ArmorWeight, armorType: ArmorType): number {

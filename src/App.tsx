@@ -41,6 +41,7 @@ import { FTLDriveSelection } from './components/FTLDriveSelection';
 import { SupportSystemsSelection } from './components/SupportSystemsSelection';
 import { DefenseSelection } from './components/DefenseSelection';
 import { CommandControlSelection } from './components/CommandControlSelection';
+import { SensorSelection } from './components/SensorSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -49,6 +50,7 @@ import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
 import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from './types/supportSystem';
 import type { InstalledDefenseSystem } from './types/defense';
 import type { InstalledCommandControlSystem } from './types/commandControl';
+import type { InstalledSensor } from './types/sensor';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -59,6 +61,7 @@ import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './servic
 import { calculateSupportSystemsStats } from './services/supportSystemService';
 import { calculateDefenseStats } from './services/defenseService';
 import { calculateCommandControlStats } from './services/commandControlService';
+import { calculateSensorStats } from './services/sensorService';
 import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
@@ -82,6 +85,7 @@ const steps = [
   { label: 'Weapons', required: false },
   { label: 'Defense', required: false },
   { label: 'C4', required: true },
+  { label: 'Sensors', required: true },
 ];
 
 // Progress level display names
@@ -110,6 +114,7 @@ function App() {
   const [installedGravitySystems, setInstalledGravitySystems] = useState<InstalledGravitySystem[]>([]);
   const [installedDefenses, setInstalledDefenses] = useState<InstalledDefenseSystem[]>([]);
   const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
+  const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -128,6 +133,7 @@ function App() {
     supportSystems: true,
     defenses: true,
     commandControl: true,
+    sensors: true,
   });
   
   // Snackbar state for notifications
@@ -172,6 +178,7 @@ function App() {
     setInstalledGravitySystems([]);
     setInstalledDefenses([]);
     setInstalledCommandControl([]);
+    setInstalledSensors([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -227,6 +234,7 @@ function App() {
       setInstalledGravitySystems(loadResult.state.gravitySystems || []);
       setInstalledDefenses(loadResult.state.defenses || []);
       setInstalledCommandControl(loadResult.state.commandControl || []);
+      setInstalledSensors(loadResult.state.sensors || []);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -265,6 +273,7 @@ function App() {
       gravitySystems: installedGravitySystems,
       defenses: installedDefenses,
       commandControl: installedCommandControl,
+      sensors: installedSensors,
       designProgressLevel,
       designTechTracks,
     };
@@ -286,7 +295,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -317,6 +326,7 @@ function App() {
       gravitySystems: installedGravitySystems,
       defenses: installedDefenses,
       commandControl: installedCommandControl,
+      sensors: installedSensors,
       designProgressLevel,
       designTechTracks,
     };
@@ -333,7 +343,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -436,6 +446,10 @@ function App() {
     setInstalledCommandControl(systems);
   };
 
+  const handleSensorsChange = (sensors: InstalledSensor[]) => {
+    setInstalledSensors(sensors);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -530,6 +544,8 @@ function App() {
     remaining -= defenseStats.totalHullPoints;
     const ccStats = calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints);
     remaining -= ccStats.totalHullPoints;
+    const sensorStats = calculateSensorStats(installedSensors);
+    remaining -= sensorStats.totalHullPoints;
     return remaining;
   };
 
@@ -563,18 +579,23 @@ function App() {
     if (powerScenario.commandControl) {
       consumed += calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalPowerRequired;
     }
+    // Sensors
+    if (powerScenario.sensors) {
+      consumed += calculateSensorStats(installedSensors).totalPowerRequired;
+    }
     return consumed;
   };
 
   // Get individual power consumption values for display
   const getPowerBreakdown = () => {
-    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0 };
+    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0, sensors: 0 };
     return {
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
       supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired,
       defenses: calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalPowerRequired,
       commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalPowerRequired,
+      sensors: calculateSensorStats(installedSensors).totalPowerRequired,
     };
   };
 
@@ -602,6 +623,8 @@ function App() {
     cost += defenseStats.totalCost;
     const ccStats = calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints);
     cost += ccStats.totalCost;
+    const sensorStats = calculateSensorStats(installedSensors);
+    cost += sensorStats.totalCost;
     return cost;
   };
 
@@ -634,6 +657,9 @@ function App() {
     });
     installedCommandControl.forEach((cc) => {
       cc.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedSensors.forEach((sensor) => {
+      sensor.type.techTracks.forEach((t) => tracks.add(t));
     });
     return Array.from(tracks).sort();
   };
@@ -790,6 +816,24 @@ function App() {
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onSystemsChange={handleCommandControlChange}
+          />
+        );
+      case 9:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <SensorSelection
+            hull={selectedHull}
+            installedSensors={installedSensors}
+            installedCommandControl={installedCommandControl}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onSensorsChange={handleSensorsChange}
           />
         );
       default:
@@ -1074,6 +1118,7 @@ function App() {
                 case 6: return false; // Weapons (optional) - TODO
                 case 7: return installedDefenses.length > 0; // Defenses (optional)
                 case 8: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
+                case 9: return installedSensors.length > 0; // Sensors (required)
                 default: return false;
               }
             })();

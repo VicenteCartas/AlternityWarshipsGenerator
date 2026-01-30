@@ -10,8 +10,8 @@ export interface LifeSupportType {
   hullPoints: number;
   powerRequired: number;
   cost: number;
-  /** Hull points covered by this life support unit */
-  hullPointsCovered: number;
+  /** Hull points of ship that one unit of this life support covers */
+  coveragePerHullPoint: number;
   /** Number of people this provides recycling for (optional) */
   recyclingCapacity?: number;
   description: string;
@@ -139,7 +139,7 @@ export interface SupportSystemsStats {
   totalCost: number;
   
   // Life support coverage
-  totalHullPointsCovered: number;
+  totalCoverage: number;
   
   // Accommodations
   crewCapacity: number;

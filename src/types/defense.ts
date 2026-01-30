@@ -14,10 +14,12 @@ export interface DefenseSystemType {
   progressLevel: ProgressLevel;
   techTracks: TechTrack[];
   category: DefenseCategory;
-  /** Hull points per unit (fixed size systems) */
+  /** Hull points per unit (fixed size systems) - only used when hullPercentage is false */
   hullPoints: number;
-  /** If true, hull points are calculated as percentage of ship hull */
+  /** If true, hull points are calculated as percentage of ship hull using hullPercentageValue */
   hullPercentage: boolean;
+  /** Percentage of ship hull points required (only used when hullPercentage is true) */
+  hullPercentageValue?: number;
   /** Power required per unit */
   powerRequired: number;
   /** If true, power is calculated as per hull point of coverage */

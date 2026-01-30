@@ -30,8 +30,10 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
   const [shipClassFilter, setShipClassFilter] = useState<ShipClass | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<HullCategory | 'all'>('all');
 
+  const allHulls = useMemo(() => getAllHulls(), []);
+
   const hulls = useMemo(() => {
-    let filtered = getAllHulls();
+    let filtered = allHulls;
 
     if (shipClassFilter !== 'all') {
       filtered = filtered.filter((h) => h.shipClass === shipClassFilter);
@@ -41,7 +43,31 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
     }
 
     return filtered;
-  }, [shipClassFilter, categoryFilter]);
+  }, [allHulls, shipClassFilter, categoryFilter]);
+
+  // Count hulls by ship class (respecting category filter)
+  const shipClassCounts = useMemo(() => {
+    const filtered = categoryFilter === 'all' 
+      ? allHulls 
+      : allHulls.filter((h) => h.category === categoryFilter);
+    const counts: Record<string, number> = { all: filtered.length };
+    for (const sc of getShipClasses()) {
+      counts[sc] = filtered.filter((h) => h.shipClass === sc).length;
+    }
+    return counts;
+  }, [allHulls, categoryFilter]);
+
+  // Count hulls by category (respecting ship class filter)
+  const categoryCounts = useMemo(() => {
+    const filtered = shipClassFilter === 'all' 
+      ? allHulls 
+      : allHulls.filter((h) => h.shipClass === shipClassFilter);
+    return {
+      all: filtered.length,
+      military: filtered.filter((h) => h.category === 'military').length,
+      civilian: filtered.filter((h) => h.category === 'civilian').length,
+    };
+  }, [allHulls, shipClassFilter]);
 
   const handleShipClassChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -98,10 +124,10 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
           onChange={handleShipClassChange}
           size="small"
         >
-          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="all">All ({shipClassCounts.all})</ToggleButton>
           {getShipClasses().map((sc) => (
             <ToggleButton key={sc} value={sc}>
-              {getShipClassDisplayName(sc)}
+              {getShipClassDisplayName(sc)} ({shipClassCounts[sc]})
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -112,9 +138,9 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
           onChange={handleCategoryChange}
           size="small"
         >
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="military">Military</ToggleButton>
-          <ToggleButton value="civilian">Civilian</ToggleButton>
+          <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
+          <ToggleButton value="military">Military ({categoryCounts.military})</ToggleButton>
+          <ToggleButton value="civilian">Civilian ({categoryCounts.civilian})</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 

@@ -326,7 +326,7 @@ export function SupportSystemsSelection({
                 HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1)} |
                 Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
                 Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))} |
-                Covers: {selectedLifeSupport.hullPointsCovered * (parseInt(lifeSupportQuantity, 10) || 1)} HP
+                Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1)} HP
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -386,7 +386,7 @@ export function SupportSystemsSelection({
                 variant="outlined"
               />
               <Chip
-                label={`Covers ${installed.type.hullPointsCovered * installed.quantity} HP`}
+                label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity} HP`}
                 size="small"
                 color="primary"
                 variant="outlined"
@@ -452,7 +452,7 @@ export function SupportSystemsSelection({
                 <TableCell align="right">{type.hullPoints}</TableCell>
                 <TableCell align="right">{type.powerRequired}</TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
-                <TableCell align="right">{type.hullPointsCovered} HP</TableCell>
+                <TableCell align="right">{type.coveragePerHullPoint} HP</TableCell>
                 <TableCell>
                   <Tooltip title={type.description} placement="left">
                     <Typography
@@ -1075,7 +1075,7 @@ export function SupportSystemsSelection({
             variant="outlined"
           />
           <Chip
-            label={`Life Support: ${stats.totalHullPointsCovered} HP`}
+            label={`Life Support: ${stats.totalCoverage} HP`}
             color="primary"
             variant="outlined"
           />

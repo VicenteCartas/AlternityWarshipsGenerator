@@ -142,14 +142,14 @@ export function calculateSupportSystemsStats(
   let lifeSupportHP = 0;
   let lifeSupportPower = 0;
   let lifeSupportCost = 0;
-  let totalHullPointsCovered = 0;
+  let totalCoverage = 0;
   let recyclingFromLifeSupport = 0;
 
   for (const ls of lifeSupport) {
     lifeSupportHP += ls.type.hullPoints * ls.quantity;
     lifeSupportPower += ls.type.powerRequired * ls.quantity;
     lifeSupportCost += ls.type.cost * ls.quantity;
-    totalHullPointsCovered += ls.type.hullPointsCovered * ls.quantity;
+    totalCoverage += ls.type.coveragePerHullPoint * ls.quantity;
     if (ls.type.recyclingCapacity) {
       recyclingFromLifeSupport += ls.type.recyclingCapacity * ls.quantity;
     }
@@ -274,7 +274,7 @@ export function calculateSupportSystemsStats(
     gravitySystemsCost,
     totalCost: lifeSupportCost + accommodationsCost + storeSystemsCost + gravitySystemsCost,
     
-    totalHullPointsCovered,
+    totalCoverage,
     
     crewCapacity,
     passengerCapacity,

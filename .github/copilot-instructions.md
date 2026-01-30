@@ -173,6 +173,22 @@ MUI Chips are used throughout the app to display stats. Follow this consistent c
 - PL6 engines (hexes/round) and non-PL6 engines (km/sÂ²) should display as separate chips, never summed together
 - Use `formatAcceleration()` from formatters.ts with the appropriate `isPL6` flag
 
+### Add/Edit UI Patterns
+When creating UI for adding/editing ship components, **always ask the user** whether the component is:
+
+1. **Quantity-based**: User enters number of systems to install. Each system has a fixed (or ship-size-calculated) HP cost.
+   - Examples: Command & Control systems, Support Systems, Communications
+   - UI shows: "Quantity" field with helper text showing HP per system
+   - Calculation: `totalHP = hpPerSystem × quantity`
+   - Some systems have variable HP based on ship size (e.g., computer cores: `ceil(shipHP/200)` per system)
+
+2. **Size-based**: User enters the size/HP of the system directly. Output scales with size.
+   - Examples: Power Plants, Engines
+   - UI shows: "Size" or "Hull Points" field
+   - The size determines the system's output (power generated, acceleration, etc.)
+
+**Key distinction**: In Quantity-based, HP is derived from quantity. In Size-based, HP IS the input.
+
 ## Data Format Conventions
 
 ### General Principles

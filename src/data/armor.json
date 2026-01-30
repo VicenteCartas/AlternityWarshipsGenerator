@@ -34,6 +34,7 @@
                            "id":  "polymeric-light",
                            "name":  "Polymeric",
                            "armorWeight":  "light",
+                           "hullPercentage":  2.5,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -48,6 +49,7 @@
                            "id":  "reflective-light",
                            "name":  "Reflective",
                            "armorWeight":  "light",
+                           "hullPercentage":  2.5,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -62,6 +64,7 @@
                            "id":  "cerametal-light",
                            "name":  "Cerametal",
                            "armorWeight":  "light",
+                           "hullPercentage":  2.5,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -76,6 +79,7 @@
                            "id":  "crystallis-light",
                            "name":  "Crystallis",
                            "armorWeight":  "light",
+                           "hullPercentage":  2.5,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "P",
@@ -91,6 +95,7 @@
                            "id":  "nanofluidic-light",
                            "name":  "Nanofluidic",
                            "armorWeight":  "light",
+                           "hullPercentage":  2.5,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "S",
@@ -106,6 +111,7 @@
                            "id":  "alloy-medium",
                            "name":  "Alloy",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -120,6 +126,7 @@
                            "id":  "polymeric-medium",
                            "name":  "Polymeric",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -134,6 +141,7 @@
                            "id":  "reflective-medium",
                            "name":  "Reflective",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -148,6 +156,7 @@
                            "id":  "cerametal-medium",
                            "name":  "Cerametal",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -162,6 +171,7 @@
                            "id":  "neutronite-medium",
                            "name":  "Neutronite",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -176,6 +186,7 @@
                            "id":  "reactive-medium",
                            "name":  "Reactive",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  7,
                            "techTracks":  [
 
@@ -190,6 +201,7 @@
                            "id":  "crystallis-medium",
                            "name":  "Crystallis",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "P",
@@ -205,6 +217,7 @@
                            "id":  "nanofluidic-medium",
                            "name":  "Nanofluidic",
                            "armorWeight":  "medium",
+                           "hullPercentage":  5,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "S",
@@ -220,6 +233,7 @@
                            "id":  "alloy-heavy",
                            "name":  "Alloy",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -234,6 +248,7 @@
                            "id":  "reflective-heavy",
                            "name":  "Reflective",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -248,6 +263,7 @@
                            "id":  "cerametal-heavy",
                            "name":  "Cerametal",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -262,6 +278,7 @@
                            "id":  "neutronite-heavy",
                            "name":  "Neutronite",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -276,6 +293,7 @@
                            "id":  "reactive-heavy",
                            "name":  "Reactive",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  7,
                            "techTracks":  [
 
@@ -290,6 +308,7 @@
                            "id":  "nanofluidic-heavy",
                            "name":  "Nanofluidic",
                            "armorWeight":  "heavy",
+                           "hullPercentage":  10,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "S",
@@ -305,6 +324,7 @@
                            "id":  "alloy-super-heavy",
                            "name":  "Alloy",
                            "armorWeight":  "super-heavy",
+                           "hullPercentage":  20,
                            "progressLevel":  6,
                            "techTracks":  [
 
@@ -319,6 +339,7 @@
                            "id":  "neutronite-super-heavy",
                            "name":  "Neutronite",
                            "armorWeight":  "super-heavy",
+                           "hullPercentage":  20,
                            "progressLevel":  7,
                            "techTracks":  [
                                               "S"
@@ -333,6 +354,7 @@
                            "id":  "reactive-super-heavy",
                            "name":  "Reactive",
                            "armorWeight":  "super-heavy",
+                           "hullPercentage":  20,
                            "progressLevel":  7,
                            "techTracks":  [
 
@@ -347,6 +369,7 @@
                            "id":  "nanofluidic-super-heavy",
                            "name":  "Nanofluidic",
                            "armorWeight":  "super-heavy",
+                           "hullPercentage":  20,
                            "progressLevel":  8,
                            "techTracks":  [
                                               "S",
