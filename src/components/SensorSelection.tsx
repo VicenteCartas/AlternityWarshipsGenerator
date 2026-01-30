@@ -249,8 +249,8 @@ export function SensorSelection({
               <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
               <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
               <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
-              <Chip label={`${sensor.arcsCovered} arcs`} size="small" color="primary" variant="outlined" />
-              <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
+              <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
+              <Chip label={`Track: ${formatTracking(sensor.trackingCapability)} contacts`} size="small" color="primary" variant="outlined" />
               <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
                 <EditIcon fontSize="small" />
               </IconButton>
@@ -351,7 +351,7 @@ export function SensorSelection({
           <Chip label={`HP: ${stats.totalHullPoints}`} color="default" variant="outlined" />
           <Chip label={`Power: ${stats.totalPowerRequired}`} color="default" variant="outlined" />
           <Chip label={`Cost: ${formatCost(stats.totalCost)}`} color="default" variant="outlined" />
-          <Chip label={`Total Tracking: ${formatTracking(stats.totalTrackingCapability)}`} color="primary" variant="outlined" />
+          <Chip label={`Total Tracking: ${formatTracking(stats.totalTrackingCapability)} contacts`} color="primary" variant="outlined" />
           <Chip
             label={stats.hasBasicSensors ? 'Has Active Sensors' : 'No Active Sensors'}
             color={stats.hasBasicSensors ? 'success' : 'error'}

@@ -811,6 +811,7 @@ function App() {
           <CommandControlSelection
             hull={selectedHull}
             installedSystems={installedCommandControl}
+            installedSensors={installedSensors}
             usedHullPoints={getUsedHullPointsBeforeCC()}
             availablePower={getTotalPower()}
             designProgressLevel={designProgressLevel}

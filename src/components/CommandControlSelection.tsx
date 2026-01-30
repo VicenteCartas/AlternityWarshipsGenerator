@@ -27,6 +27,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory } from '../types/commandControl';
+import type { InstalledSensor } from '../types/sensor';
 import {
   getAllCommandControlSystemTypes,
   filterByDesignConstraints,
@@ -51,6 +52,7 @@ const QUALITY_ORDER: Record<string, number> = { 'Ordinary': 1, 'Good': 2, 'Amazi
 interface CommandControlSelectionProps {
   hull: Hull;
   installedSystems: InstalledCommandControlSystem[];
+  installedSensors: InstalledSensor[];
   usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
@@ -75,6 +77,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 export function CommandControlSelection({
   hull,
   installedSystems,
+  installedSensors,
   usedHullPoints: _usedHullPoints,
   availablePower: _availablePower,
   designProgressLevel,
@@ -156,8 +159,38 @@ export function CommandControlSelection({
     });
   }, [installedSystems, coreQuality]);
 
+  // Helper to find which sensor is assigned to a sensor control
+  const getSensorAssignedToControl = (controlId: string): InstalledSensor | undefined => {
+    return installedSensors.find((s) => s.assignedSensorControlId === controlId);
+  };
+
+  // Count unassigned sensor controls
+  const unassignedSensorControls = useMemo(() => {
+    return installedSystems.filter(
+      (s) => s.type.linkedSystemType === 'sensor' && !getSensorAssignedToControl(s.id)
+    );
+  }, [installedSystems, installedSensors]);
+
   // Handlers
   const handleSelectSystem = (type: CommandControlSystemType) => {
+    // Sensor controls: add immediately without showing the form
+    if (type.linkedSystemType === 'sensor') {
+      const hullPts = calculateCommandControlHullPoints(type, hull.hullPoints, 1);
+      const power = calculateCommandControlPower(type, 1);
+      onSystemsChange([
+        ...installedSystems,
+        {
+          id: generateCommandControlId(),
+          type,
+          quantity: 1,
+          hullPoints: hullPts,
+          powerRequired: power,
+          cost: 0, // $0 until assigned to a sensor
+        },
+      ]);
+      return;
+    }
+
     setSelectedSystem(type);
     // Default quantity handling
     if (type.id === 'command-deck') {
@@ -179,9 +212,11 @@ export function CommandControlSelection({
     if (!selectedSystem) return;
     const quantity = parseInt(systemQuantity, 10) || 1;
 
+    // Sensor controls always have $0 cost until assigned to a sensor
+    const isSensorControl = selectedSystem.linkedSystemType === 'sensor';
     const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, quantity);
     const power = calculateCommandControlPower(selectedSystem, quantity);
-    const cost = calculateCommandControlCost(selectedSystem, hull.hullPoints, quantity);
+    const cost = isSensorControl ? 0 : calculateCommandControlCost(selectedSystem, hull.hullPoints, quantity);
 
     if (editingSystemId) {
       onSystemsChange(
@@ -199,32 +234,47 @@ export function CommandControlSelection({
         updatedSystems = installedSystems.filter((s) => !s.type.id.startsWith('computer-core'));
       }
 
-      // Check if same type already exists (for stackable items)
-      const existing = updatedSystems.find((s) => s.type.id === selectedSystem.id);
-      if (existing && !selectedSystem.isRequired && !selectedSystem.coveragePerHullPoint) {
-        const newQuantity = existing.quantity + quantity;
-        const newHullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, newQuantity);
-        const newPower = calculateCommandControlPower(selectedSystem, newQuantity);
-        const newCost = calculateCommandControlCost(selectedSystem, hull.hullPoints, newQuantity);
-        onSystemsChange(
-          updatedSystems.map((s) =>
-            s.id === existing.id
-              ? { ...s, quantity: newQuantity, hullPoints: newHullPts, powerRequired: newPower, cost: newCost }
-              : s
-          )
-        );
-      } else {
+      // Sensor controls: always add as separate installation (no merging, no quantity)
+      if (isSensorControl) {
         onSystemsChange([
           ...updatedSystems,
           {
             id: generateCommandControlId(),
             type: selectedSystem,
-            quantity,
+            quantity: 1,
             hullPoints: hullPts,
             powerRequired: power,
-            cost,
+            cost: 0, // $0 until assigned to a sensor
           },
         ]);
+      } else {
+        // Check if same type already exists (for stackable items)
+        const existing = updatedSystems.find((s) => s.type.id === selectedSystem.id);
+        if (existing && !selectedSystem.isRequired && !selectedSystem.coveragePerHullPoint) {
+          const newQuantity = existing.quantity + quantity;
+          const newHullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, newQuantity);
+          const newPower = calculateCommandControlPower(selectedSystem, newQuantity);
+          const newCost = calculateCommandControlCost(selectedSystem, hull.hullPoints, newQuantity);
+          onSystemsChange(
+            updatedSystems.map((s) =>
+              s.id === existing.id
+                ? { ...s, quantity: newQuantity, hullPoints: newHullPts, powerRequired: newPower, cost: newCost }
+                : s
+            )
+          );
+        } else {
+          onSystemsChange([
+            ...updatedSystems,
+            {
+              id: generateCommandControlId(),
+              type: selectedSystem,
+              quantity,
+              hullPoints: hullPts,
+              powerRequired: power,
+              cost,
+            },
+          ]);
+        }
       }
     }
 
@@ -256,7 +306,10 @@ export function CommandControlSelection({
   const previewQuantity = parseInt(systemQuantity, 10) || 1;
   const previewHullPts = selectedSystem ? calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, previewQuantity) : 0;
   const previewPower = selectedSystem ? calculateCommandControlPower(selectedSystem, previewQuantity) : 0;
-  const previewCost = selectedSystem ? calculateCommandControlCost(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  // Sensor controls show $0 cost until assigned
+  const previewCost = selectedSystem 
+    ? (selectedSystem.linkedSystemType === 'sensor' ? 0 : calculateCommandControlCost(selectedSystem, hull.hullPoints, previewQuantity)) 
+    : 0;
 
   const getCategoryLabel = (category: CommandControlCategory): string => {
     switch (category) {
@@ -285,6 +338,12 @@ export function CommandControlSelection({
         <Stack spacing={1}>
           {installed.map((system) => {
             const hasQualityIssue = controlsWithQualityIssues.some((s) => s.id === system.id);
+            const isSensorControl = system.type.linkedSystemType === 'sensor';
+            const assignedSensor = isSensorControl ? getSensorAssignedToControl(system.id) : undefined;
+            // Calculate display cost for sensor controls based on assigned sensor (cost per HP of linked sensor)
+            const displayCost = isSensorControl && assignedSensor
+              ? system.type.cost * assignedSensor.hullPoints
+              : system.cost;
             return (
               <Box
                 key={system.id}
@@ -303,9 +362,26 @@ export function CommandControlSelection({
                 </Typography>
                 <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                 <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                <Chip label={formatCost(displayCost)} size="small" variant="outlined" />
                 {system.type.requiresCore && system.type.effect && (
                   <Chip label={system.type.effect} size="small" color="primary" variant="outlined" />
+                )}
+                {isSensorControl && !assignedSensor && (
+                  <Chip
+                    icon={<WarningIcon />}
+                    label="Unassigned"
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                  />
+                )}
+                {isSensorControl && assignedSensor && (
+                  <Chip
+                    label={assignedSensor.type.name}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                  />
                 )}
                 {hasQualityIssue && (
                   <Chip
@@ -316,9 +392,11 @@ export function CommandControlSelection({
                     variant="outlined"
                   />
                 )}
-                <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
+                {!isSensorControl && (
+                  <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                )}
                 <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
                   <DeleteIcon fontSize="small" />
                 </IconButton>
@@ -626,6 +704,14 @@ export function CommandControlSelection({
             <Chip
               icon={<WarningIcon />}
               label={hasCore ? "Control Exceeds Core" : "No Computer Core"}
+              color="warning"
+              variant="outlined"
+            />
+          )}
+          {unassignedSensorControls.length > 0 && (
+            <Chip
+              icon={<WarningIcon />}
+              label="Unassigned Controls"
               color="warning"
               variant="outlined"
             />

@@ -118,6 +118,8 @@ export interface SavedDefenseSystem {
  * Installed command & control system in save file
  */
 export interface SavedCommandControlSystem {
+  /** Installation ID (used for sensor control assignment references) */
+  id: string;
   /** The C&C system type ID */
   typeId: string;
   /** Quantity installed (stations for cockpit, HP for computer core, etc.) */

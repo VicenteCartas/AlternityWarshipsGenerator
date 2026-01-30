@@ -17,7 +17,7 @@ import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTank
 import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
-import { getAllCommandControlSystemTypes, generateCommandControlId, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
+import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 
 /**
@@ -115,6 +115,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       quantity: def.quantity,
     })),
     commandControl: (state.commandControl || []).map((cc): SavedCommandControlSystem => ({
+      id: cc.id,
       typeId: cc.type.id,
       quantity: cc.quantity,
     })),
@@ -390,7 +391,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       const power = calculateCommandControlPower(ccType, savedCC.quantity);
       const cost = calculateCommandControlCost(ccType, shipHullPoints, savedCC.quantity);
       commandControl.push({
-        id: generateCommandControlId(),
+        id: savedCC.id,
         type: ccType,
         quantity: savedCC.quantity,
         hullPoints: hullPts,
