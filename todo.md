@@ -187,10 +187,10 @@ export const selectableRowSx = {
 
 ### Phase 2: Complete Core Features
 - [ ] Implement Step 7: Weapons
-- [ ] Implement Step 8: Defenses
-- [ ] Implement Step 9: Command & Control
-- [ ] Implement Step 10: Sensors
-- [ ] Implement Step 11: Hangars
+- [X] Implement Step 8: Defenses
+- [X] Implement Step 9: Command & Control
+- [X] Implement Step 10: Sensors
+- [X] Implement Step 11: Hangars
 - [ ] Implement Step 12: Miscellaneous
 - [ ] Implement Step 13: Summary page
 - [ ] Add real-time validation for HP/Power budgets

@@ -66,15 +66,21 @@ export function HangarMiscSelection({
     return filterByDesignConstraints(getAllHangarMiscSystemTypes(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
-  // Apply category filter
+  // Apply category filter and exclude installed single-install systems
   const filteredSystems = useMemo(() => {
-    if (categoryFilter === 'all') {
-      return availableSystems.sort((a, b) => a.progressLevel - b.progressLevel);
+    const installedSingleInstallIds = installedSystems
+      .filter((s) => s.type.hullPercentage && s.type.maxQuantity === 1)
+      .map((s) => s.type.id);
+    
+    let systems = availableSystems.filter(
+      (s) => !installedSingleInstallIds.includes(s.id)
+    );
+    
+    if (categoryFilter !== 'all') {
+      systems = systems.filter((s) => s.category === categoryFilter);
     }
-    return availableSystems
-      .filter((s) => s.category === categoryFilter)
-      .sort((a, b) => a.progressLevel - b.progressLevel);
-  }, [availableSystems, categoryFilter]);
+    return systems.sort((a, b) => a.progressLevel - b.progressLevel);
+  }, [availableSystems, categoryFilter, installedSystems]);
 
   // Count systems by category
   const categoryCounts = useMemo(() => {
@@ -105,8 +111,24 @@ export function HangarMiscSelection({
   };
 
   const handleSelectSystem = (type: HangarMiscSystemType) => {
+    // For single-quantity percentage-based systems (like stabilizer), toggle directly
+    if (type.hullPercentage && type.maxQuantity === 1) {
+      const existingSystem = installedSystems.find((s) => s.type.id === type.id);
+      if (existingSystem) {
+        // Already installed - remove it
+        onSystemsChange(installedSystems.filter((s) => s.id !== existingSystem.id));
+      } else {
+        // Not installed - add it
+        onSystemsChange([
+          ...installedSystems,
+          createInstalledHangarMiscSystem(type, hull.hullPoints, 1),
+        ]);
+      }
+      return;
+    }
+
     setSelectedSystem(type);
-    setSystemQuantity('1');
+    setSystemQuantity(String(type.minQuantity || 1));
     setEditingSystemId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -167,12 +189,69 @@ export function HangarMiscSelection({
 
   // Format capacity display
   const formatCapacity = (system: HangarMiscSystemType, capacity: number): string => {
-    if (!system.capacityPerHull || capacity === 0) return '';
+    if (capacity === 0) return '';
     
-    // Extract unit from capacityPerHull (e.g., "10 HP of embarked craft" -> "HP")
-    const match = system.capacityPerHull.match(/\d+\s+(.+)/);
-    if (match) {
-      return `${capacity} ${match[1]}`;
+    // For evacuation systems, just show "X people"
+    if (system.evacCapacity) {
+      return `${capacity} people`;
+    }
+    
+    // For brig, show "X prisoners"
+    if (system.prisonersCapacity) {
+      return `${capacity} prisoners`;
+    }
+    
+    // For lab section, show "X scientists"
+    if (system.scientistCapacity) {
+      return `${capacity} scientists`;
+    }
+    
+    // For sick bay, show "X beds"
+    if (system.bedCapacity) {
+      return `${capacity} beds`;
+    }
+    
+    // For hangar, show "X HP craft"
+    if (system.hangarCapacity) {
+      return `${capacity} HP craft`;
+    }
+    
+    // For docking clamp, show "X HP docked"
+    if (system.dockCapacity) {
+      return `${capacity} HP docked`;
+    }
+    
+    // For magazine, show "X ordnance"
+    if (system.ordnanceCapacity) {
+      return `${capacity} ordnance`;
+    }
+    
+    // For fuel collector, show "X HP fuel/day"
+    if (system.fuelCollectionCapacity) {
+      return `${capacity} HP fuel/day`;
+    }
+    
+    // For accumulator, show "X PP stored"
+    if (system.powerPointsCapacity) {
+      return `${capacity} PP stored`;
+    }
+    
+    // For boarding pod, show "X troops"
+    if (system.troopCapacity) {
+      return `${capacity} troops`;
+    }
+    
+    // For coverage systems (security suite), show "Covers X HP"
+    if (system.coveragePerHullPoint) {
+      return `Covers ${capacity} HP`;
+    }
+    
+    // Extract unit from capacityPerHull (e.g., "10 HP of embarked craft" -> "HP of embarked craft")
+    if (system.capacityPerHull) {
+      const match = system.capacityPerHull.match(/\d+\s+(.+)/);
+      if (match) {
+        return `${capacity} ${match[1]}`;
+      }
     }
     return `${capacity}`;
   };
@@ -206,7 +285,7 @@ export function HangarMiscSelection({
               <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
               <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
               <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
-              {system.capacity && system.type.capacityPerHull && (
+              {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity) && (
                 <Chip 
                   label={formatCapacity(system.type, system.capacity)} 
                   size="small" 
@@ -214,12 +293,31 @@ export function HangarMiscSelection({
                   variant="outlined" 
                 />
               )}
-              {system.type.effect && (
+              {system.capacity && system.type.cargoCapacity && (
+                <Chip 
+                  label={`Cargo: ${system.capacity} m³`} 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined" 
+                />
+              )}
+              {system.serviceCapacity && (
+                <Chip 
+                  label={`Services ${system.serviceCapacity} HP cargo`} 
+                  size="small" 
+                  color="success" 
+                  variant="outlined" 
+                />
+              )}
+              {system.type.effect && !system.type.cargoServiceCapacity && (
                 <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
               )}
-              <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
+              {/* Hide edit button for toggle systems (single-quantity percentage-based) */}
+              {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
+                <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
               <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -258,7 +356,7 @@ export function HangarMiscSelection({
             size="small"
             value={systemQuantity}
             onChange={(e) => setSystemQuantity(e.target.value)}
-            inputProps={{ min: 1 }}
+            inputProps={{ min: selectedSystem.minQuantity || 1 }}
             helperText={helperText}
             sx={{ width: 180 }}
           />
@@ -267,7 +365,7 @@ export function HangarMiscSelection({
               HP: {previewHullPts} |
               Power: {previewPower} |
               Cost: {formatCost(previewCost)}
-              {previewCapacity > 0 && selectedSystem.capacityPerHull && (
+              {previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity) && (
                 <> | {formatCapacity(selectedSystem, previewCapacity)}</>
               )}
             </Typography>
@@ -356,7 +454,7 @@ export function HangarMiscSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Category</TableCell>
@@ -383,7 +481,7 @@ export function HangarMiscSelection({
                   }),
                 }}
               >
-                <TableCell>{system.name}</TableCell>
+                <TableCell sx={{ minWidth: 180 }}>{system.name}</TableCell>
                 <TableCell>{system.progressLevel}</TableCell>
                 <TechTrackCell techTracks={system.techTracks} />
                 <TableCell>{getCategoryLabel(system.category)}</TableCell>
@@ -398,13 +496,23 @@ export function HangarMiscSelection({
                   {system.costPerHull && '/HP'}
                 </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                  {system.capacityPerHull || '-'}
+                  {system.cargoCapacity 
+                    ? `${system.cargoCapacity} m³`
+                    : system.cargoServiceCapacity
+                    ? `Services ${system.cargoServiceCapacity} HP`
+                    : system.fuelCollectionCapacity
+                    ? `${system.fuelCollectionCapacity} HP fuel/day`
+                    : system.powerPointsCapacity
+                    ? `${system.powerPointsCapacity} PP stored`
+                    : system.troopCapacity
+                    ? `${system.troopCapacity} troops`
+                    : system.capacityPerHull || '-'}
                 </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>
                   {system.effect || '-'}
                 </TableCell>
                 <TableCell sx={{ maxWidth: 300 }}>
-                  <TruncatedDescription description={system.description} />
+                  <TruncatedDescription text={system.description} />
                 </TableCell>
               </TableRow>
             ))}

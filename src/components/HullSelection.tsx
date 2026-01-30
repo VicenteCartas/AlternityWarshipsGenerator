@@ -98,6 +98,11 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
         <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <Chip
+              label={selectedHull.name}
+              color="primary"
+              variant="filled"
+            />
+            <Chip
               label={`HP: ${selectedHull.hullPoints + selectedHull.bonusHullPoints}`}
               color="primary"
               variant="outlined"

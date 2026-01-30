@@ -132,6 +132,11 @@ function App() {
   
   // Power scenario popover and toggles
   const [powerAnchorEl, setPowerAnchorEl] = useState<HTMLElement | null>(null);
+  
+  // HP and Cost breakdown popover anchors
+  const [hpAnchorEl, setHpAnchorEl] = useState<HTMLElement | null>(null);
+  const [costAnchorEl, setCostAnchorEl] = useState<HTMLElement | null>(null);
+  
   const [powerScenario, setPowerScenario] = useState({
     engines: true,
     ftlDrive: true,
@@ -620,6 +625,39 @@ function App() {
     };
   };
 
+  // Get individual HP usage values for display
+  const getHPBreakdown = () => {
+    if (!selectedHull) return { armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
+    return {
+      armor: selectedArmorWeight ? calculateArmorHullPoints(selectedHull, selectedArmorWeight) : 0,
+      powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalHullPoints,
+      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalHullPoints,
+      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalHullPoints + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalHullPoints : 0,
+      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalHullPoints,
+      defenses: calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalHullPoints,
+      commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalHullPoints,
+      sensors: calculateSensorStats(installedSensors).totalHullPoints,
+      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalHullPoints,
+    };
+  };
+
+  // Get individual cost values for display
+  const getCostBreakdown = () => {
+    if (!selectedHull) return { hull: 0, armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
+    return {
+      hull: selectedHull.cost,
+      armor: selectedArmorWeight && selectedArmorType ? calculateArmorCost(selectedHull, selectedArmorWeight, selectedArmorType) : 0,
+      powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalCost,
+      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalCost,
+      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalCost + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalCost : 0,
+      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalCost,
+      defenses: calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalCost,
+      commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalCost,
+      sensors: calculateSensorStats(installedSensors).totalCost,
+      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalCost,
+    };
+  };
+
   // Calculate total cost
   const getTotalCost = () => {
     if (!selectedHull) return 0;
@@ -1040,7 +1078,52 @@ function App() {
                 color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
                 variant="outlined"
                 size="small"
+                onClick={(e) => setHpAnchorEl(e.currentTarget)}
+                sx={{ cursor: 'pointer' }}
               />
+              <Popover
+                open={Boolean(hpAnchorEl)}
+                anchorEl={hpAnchorEl}
+                onClose={() => setHpAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                <Box sx={{ p: 2, minWidth: 200 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Hull Points Breakdown
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Armor</span><span>{getHPBreakdown().armor} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Power Plants</span><span>{getHPBreakdown().powerPlants} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Engines</span><span>{getHPBreakdown().engines} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>FTL Drive</span><span>{getHPBreakdown().ftlDrive} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Support Systems</span><span>{getHPBreakdown().supportSystems} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Defenses</span><span>{getHPBreakdown().defenses} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>C4</span><span>{getHPBreakdown().commandControl} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Sensors</span><span>{getHPBreakdown().sensors} HP</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Hangars & Misc</span><span>{getHPBreakdown().hangarMisc} HP</span>
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                    <span>Total Used</span><span>{calculateHullStats(selectedHull).totalHullPoints - getRemainingHullPoints()} HP</span>
+                  </Typography>
+                </Box>
+              </Popover>
               <Chip
                 label={`Power: ${getTotalPower() - getTotalPowerConsumed()} / ${getTotalPower()}`}
                 color={getTotalPowerConsumed() > getTotalPower() ? 'warning' : 'success'}
@@ -1146,7 +1229,55 @@ function App() {
                 color="default"
                 variant="outlined"
                 size="small"
+                onClick={(e) => setCostAnchorEl(e.currentTarget)}
+                sx={{ cursor: 'pointer' }}
               />
+              <Popover
+                open={Boolean(costAnchorEl)}
+                anchorEl={costAnchorEl}
+                onClose={() => setCostAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                <Box sx={{ p: 2, minWidth: 220 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Cost Breakdown
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Hull</span><span>{formatCost(getCostBreakdown().hull)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Armor</span><span>{formatCost(getCostBreakdown().armor)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Power Plants</span><span>{formatCost(getCostBreakdown().powerPlants)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Engines</span><span>{formatCost(getCostBreakdown().engines)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>FTL Drive</span><span>{formatCost(getCostBreakdown().ftlDrive)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Support Systems</span><span>{formatCost(getCostBreakdown().supportSystems)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Defenses</span><span>{formatCost(getCostBreakdown().defenses)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>C4</span><span>{formatCost(getCostBreakdown().commandControl)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Sensors</span><span>{formatCost(getCostBreakdown().sensors)}</span>
+                  </Typography>
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Hangars & Misc</span><span>{formatCost(getCostBreakdown().hangarMisc)}</span>
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                    <span>Total</span><span>{formatCost(getTotalCost())}</span>
+                  </Typography>
+                </Box>
+              </Popover>
               {getUniqueTechTracks().length > 0 && (
                 <Chip
                   label={`Tech: ${getUniqueTechTracks().join(', ')}`}
@@ -1185,6 +1316,7 @@ function App() {
                 case 7: return installedDefenses.length > 0; // Defenses (optional)
                 case 8: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
                 case 9: return installedSensors.length > 0; // Sensors (required)
+                case 10: return installedHangarMisc.length > 0; // Misc (optional)
                 default: return false;
               }
             })();
@@ -1199,8 +1331,8 @@ function App() {
                 // Optional and not completed - show neutral icon
                 return <RemoveCircleOutlineIcon color={activeStep === index ? 'primary' : 'disabled'} />;
               }
-              // Mandatory but not completed - always show red error icon
-              return <ErrorOutlineIcon color="error" />;
+              // Mandatory but not completed - show orange if selected, red otherwise
+              return <ErrorOutlineIcon color={activeStep === index ? 'warning' : 'error'} />;
             };
 
             return (

@@ -92,9 +92,10 @@ export function calculateHangarMiscCost(
   quantity: number
 ): number {
   if (type.costPerHull) {
-    // Cost per hull point
+    // Base cost + cost per hull point
     const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
-    return type.cost * hullPts;
+    const base = type.baseCost || 0;
+    return base + (type.cost * hullPts);
   }
   return type.cost * quantity;
 }
@@ -107,9 +108,70 @@ export function calculateHangarMiscCapacity(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (!type.capacityMultiplier) return 0;
-  const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
-  return hullPts * type.capacityMultiplier;
+  // Fixed cargo capacity per unit (additive)
+  if (type.cargoCapacity) {
+    return type.cargoCapacity * quantity;
+  }
+  // Evacuation capacity - can be fixed per unit or scalable with extra HP
+  if (type.evacCapacity) {
+    if (type.evacCapacityPerHP) {
+      // Scalable evac system: base capacity + extra capacity per HP beyond base
+      // quantity = HP installed, baseHullPoints = minimum HP (4)
+      // Base 4 HP = 40 people, each extra HP = 20 more people
+      const baseHP = type.baseHullPoints || type.hullPoints;
+      const extraHP = Math.max(0, quantity - baseHP);
+      return type.evacCapacity + (extraHP * type.evacCapacityPerHP);
+    }
+    // Fixed evacuation capacity per unit (escape pods, reentry capsules)
+    return type.evacCapacity * quantity;
+  }
+  // Fixed prisoners capacity per unit (brig)
+  if (type.prisonersCapacity) {
+    return type.prisonersCapacity * quantity;
+  }
+  // Fixed scientist capacity per unit (lab section)
+  if (type.scientistCapacity) {
+    return type.scientistCapacity * quantity;
+  }
+  // Fixed bed capacity per unit (sick bay)
+  if (type.bedCapacity) {
+    return type.bedCapacity * quantity;
+  }
+  // Fixed hangar capacity per unit
+  if (type.hangarCapacity) {
+    return type.hangarCapacity * quantity;
+  }
+  // Fixed docking clamp capacity per unit
+  if (type.dockCapacity) {
+    return type.dockCapacity * quantity;
+  }
+  // Fixed ordnance capacity per unit (magazine)
+  if (type.ordnanceCapacity) {
+    return type.ordnanceCapacity * quantity;
+  }
+  // Fixed fuel collection capacity per unit (fuel collector)
+  if (type.fuelCollectionCapacity) {
+    return type.fuelCollectionCapacity * quantity;
+  }
+  // Fixed power points storage capacity per unit (accumulator)
+  if (type.powerPointsCapacity) {
+    return type.powerPointsCapacity * quantity;
+  }
+  // Fixed troop capacity per unit (boarding pod)
+  if (type.troopCapacity) {
+    return type.troopCapacity * quantity;
+  }
+  // Coverage-based systems (security suite) - HP of hull covered per HP installed
+  if (type.coveragePerHullPoint) {
+    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
+    return hullPts * type.coveragePerHullPoint;
+  }
+  // HP-based capacity (hangars, docking clamps, magazines)
+  if (type.capacityMultiplier) {
+    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
+    return hullPts * type.capacityMultiplier;
+  }
+  return 0;
 }
 
 /**
@@ -124,6 +186,7 @@ export function createInstalledHangarMiscSystem(
   const power = calculateHangarMiscPower(type, shipHullPoints, quantity);
   const cost = calculateHangarMiscCost(type, shipHullPoints, quantity);
   const capacity = calculateHangarMiscCapacity(type, shipHullPoints, quantity);
+  const serviceCapacity = type.cargoServiceCapacity ? type.cargoServiceCapacity * quantity : undefined;
   
   return {
     id: generateHangarMiscId(),
@@ -133,6 +196,7 @@ export function createInstalledHangarMiscSystem(
     powerRequired: power,
     cost,
     capacity: capacity || undefined,
+    serviceCapacity,
   };
 }
 
@@ -148,6 +212,7 @@ export function updateInstalledHangarMiscSystem(
   const power = calculateHangarMiscPower(installed.type, shipHullPoints, quantity);
   const cost = calculateHangarMiscCost(installed.type, shipHullPoints, quantity);
   const capacity = calculateHangarMiscCapacity(installed.type, shipHullPoints, quantity);
+  const serviceCapacity = installed.type.cargoServiceCapacity ? installed.type.cargoServiceCapacity * quantity : undefined;
   
   return {
     ...installed,
@@ -156,6 +221,7 @@ export function updateInstalledHangarMiscSystem(
     powerRequired: power,
     cost,
     capacity: capacity || undefined,
+    serviceCapacity,
   };
 }
 
