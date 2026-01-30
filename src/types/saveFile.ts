@@ -139,6 +139,16 @@ export interface SavedSensor {
 }
 
 /**
+ * Installed hangar/misc system in save file
+ */
+export interface SavedHangarMiscSystem {
+  /** The hangar/misc system type ID */
+  typeId: string;
+  /** Quantity installed */
+  quantity: number;
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -210,6 +220,9 @@ export interface WarshipSaveFile {
   
   /** Installed sensor systems */
   sensors: SavedSensor[];
+  
+  /** Installed hangar & miscellaneous systems */
+  hangarMisc: SavedHangarMiscSystem[];
   
   /** Installed systems (future) */
   systems: unknown[];

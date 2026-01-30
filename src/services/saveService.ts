@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -8,6 +8,7 @@ import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem
 import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
+import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -19,6 +20,7 @@ import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemType
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
+import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 
 /**
  * State representing the current warship configuration
@@ -41,6 +43,7 @@ export interface WarshipState {
   defenses: InstalledDefenseSystem[];
   commandControl: InstalledCommandControlSystem[];
   sensors: InstalledSensor[];
+  hangarMisc: InstalledHangarMiscSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -123,6 +126,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       typeId: s.type.id,
       quantity: s.quantity,
       assignedSensorControlId: s.assignedSensorControlId,
+    })),
+    hangarMisc: (state.hangarMisc || []).map((hm): SavedHangarMiscSystem => ({
+      typeId: hm.type.id,
+      quantity: hm.quantity,
     })),
     systems: [],
   };
@@ -440,6 +447,31 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load hangar & miscellaneous systems
+  const hangarMisc: InstalledHangarMiscSystem[] = [];
+  const allHangarMiscTypes = getAllHangarMiscSystemTypes();
+  
+  for (const savedHM of (saveFile.hangarMisc || [])) {
+    const hmType = allHangarMiscTypes.find(t => t.id === savedHM.typeId);
+    if (hmType) {
+      const hullPts = calculateHangarMiscHullPoints(hmType, shipHullPoints, savedHM.quantity);
+      const power = calculateHangarMiscPower(hmType, shipHullPoints, savedHM.quantity);
+      const cost = calculateHangarMiscCost(hmType, shipHullPoints, savedHM.quantity);
+      const capacity = calculateHangarMiscCapacity(hmType, shipHullPoints, savedHM.quantity);
+      hangarMisc.push({
+        id: generateHangarMiscId(),
+        type: hmType,
+        quantity: savedHM.quantity,
+        hullPoints: hullPts,
+        powerRequired: power,
+        cost,
+        capacity: capacity > 0 ? capacity : undefined,
+      });
+    } else {
+      warnings.push(`Hangar/misc system type not found: ${savedHM.typeId}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -465,6 +497,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       defenses,
       commandControl,
       sensors,
+      hangarMisc,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

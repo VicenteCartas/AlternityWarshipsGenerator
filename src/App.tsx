@@ -42,6 +42,7 @@ import { SupportSystemsSelection } from './components/SupportSystemsSelection';
 import { DefenseSelection } from './components/DefenseSelection';
 import { CommandControlSelection } from './components/CommandControlSelection';
 import { SensorSelection } from './components/SensorSelection';
+import { HangarMiscSelection } from './components/HangarMiscSelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -51,6 +52,7 @@ import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem
 import type { InstalledDefenseSystem } from './types/defense';
 import type { InstalledCommandControlSystem } from './types/commandControl';
 import type { InstalledSensor } from './types/sensor';
+import type { InstalledHangarMiscSystem } from './types/hangarMisc';
 import type { ProgressLevel, TechTrack } from './types/common';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
@@ -62,6 +64,7 @@ import { calculateSupportSystemsStats } from './services/supportSystemService';
 import { calculateDefenseStats } from './services/defenseService';
 import { calculateCommandControlStats } from './services/commandControlService';
 import { calculateSensorStats } from './services/sensorService';
+import { calculateHangarMiscStats } from './services/hangarMiscService';
 import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData } from './services/dataLoader';
 import { 
@@ -86,6 +89,7 @@ const steps = [
   { label: 'Defense', required: false },
   { label: 'C4', required: true },
   { label: 'Sensors', required: true },
+  { label: 'Misc', required: false },
 ];
 
 // Progress level display names
@@ -115,6 +119,7 @@ function App() {
   const [installedDefenses, setInstalledDefenses] = useState<InstalledDefenseSystem[]>([]);
   const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
   const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
+  const [installedHangarMisc, setInstalledHangarMisc] = useState<InstalledHangarMiscSystem[]>([]);
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -134,6 +139,7 @@ function App() {
     defenses: true,
     commandControl: true,
     sensors: true,
+    hangarMisc: true,
   });
   
   // Snackbar state for notifications
@@ -179,6 +185,7 @@ function App() {
     setInstalledDefenses([]);
     setInstalledCommandControl([]);
     setInstalledSensors([]);
+    setInstalledHangarMisc([]);
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -235,6 +242,7 @@ function App() {
       setInstalledDefenses(loadResult.state.defenses || []);
       setInstalledCommandControl(loadResult.state.commandControl || []);
       setInstalledSensors(loadResult.state.sensors || []);
+      setInstalledHangarMisc(loadResult.state.hangarMisc || []);
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -274,6 +282,7 @@ function App() {
       defenses: installedDefenses,
       commandControl: installedCommandControl,
       sensors: installedSensors,
+      hangarMisc: installedHangarMisc,
       designProgressLevel,
       designTechTracks,
     };
@@ -295,7 +304,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, warshipName, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -327,6 +336,7 @@ function App() {
       defenses: installedDefenses,
       commandControl: installedCommandControl,
       sensors: installedSensors,
+      hangarMisc: installedHangarMisc,
       designProgressLevel,
       designTechTracks,
     };
@@ -343,7 +353,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, warshipName, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -450,6 +460,10 @@ function App() {
     setInstalledSensors(sensors);
   };
 
+  const handleHangarMiscChange = (systems: InstalledHangarMiscSystem[]) => {
+    setInstalledHangarMisc(systems);
+  };
+
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -546,6 +560,8 @@ function App() {
     remaining -= ccStats.totalHullPoints;
     const sensorStats = calculateSensorStats(installedSensors);
     remaining -= sensorStats.totalHullPoints;
+    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+    remaining -= hangarMiscStats.totalHullPoints;
     return remaining;
   };
 
@@ -583,12 +599,16 @@ function App() {
     if (powerScenario.sensors) {
       consumed += calculateSensorStats(installedSensors).totalPowerRequired;
     }
+    // Hangars & Misc
+    if (powerScenario.hangarMisc) {
+      consumed += calculateHangarMiscStats(installedHangarMisc).totalPowerRequired;
+    }
     return consumed;
   };
 
   // Get individual power consumption values for display
   const getPowerBreakdown = () => {
-    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0, sensors: 0 };
+    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
     return {
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
@@ -596,6 +616,7 @@ function App() {
       defenses: calculateDefenseStats(installedDefenses, selectedHull.hullPoints).totalPowerRequired,
       commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalPowerRequired,
       sensors: calculateSensorStats(installedSensors).totalPowerRequired,
+      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalPowerRequired,
     };
   };
 
@@ -625,6 +646,8 @@ function App() {
     cost += ccStats.totalCost;
     const sensorStats = calculateSensorStats(installedSensors);
     cost += sensorStats.totalCost;
+    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+    cost += hangarMiscStats.totalCost;
     return cost;
   };
 
@@ -660,6 +683,9 @@ function App() {
     });
     installedSensors.forEach((sensor) => {
       sensor.type.techTracks.forEach((t) => tracks.add(t));
+    });
+    installedHangarMisc.forEach((hm) => {
+      hm.type.techTracks.forEach((t) => tracks.add(t));
     });
     return Array.from(tracks).sort();
   };
@@ -835,6 +861,23 @@ function App() {
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onSensorsChange={handleSensorsChange}
+          />
+        );
+      case 10:
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <HangarMiscSelection
+            hull={selectedHull}
+            installedSystems={installedHangarMisc}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onSystemsChange={handleHangarMiscChange}
           />
         );
       default:
@@ -1072,6 +1115,28 @@ function App() {
                       />
                     }
                     label={`C4 (${getPowerBreakdown().commandControl} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.sensors}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, sensors: e.target.checked })}
+                      />
+                    }
+                    label={`Sensors (${getPowerBreakdown().sensors} PP)`}
+                    sx={{ display: 'block', m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario.hangarMisc}
+                        onChange={(e) => setPowerScenario({ ...powerScenario, hangarMisc: e.target.checked })}
+                      />
+                    }
+                    label={`Hangars & Misc (${getPowerBreakdown().hangarMisc} PP)`}
                     sx={{ display: 'block', m: 0 }}
                   />
                 </Box>

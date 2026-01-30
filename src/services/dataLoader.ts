@@ -15,6 +15,7 @@ import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystem
 import type { DefenseSystemType } from '../types/defense';
 import type { CommandControlSystemType } from '../types/commandControl';
 import type { SensorType } from '../types/sensor';
+import type { HangarMiscSystemType } from '../types/hangarMisc';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -27,6 +28,7 @@ import supportSystemsDataFallback from '../data/supportSystems.json';
 import defensesDataFallback from '../data/defenses.json';
 import commandControlDataFallback from '../data/commandControl.json';
 import sensorsDataFallback from '../data/sensors.json';
+import hangarMiscDataFallback from '../data/hangarMisc.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -46,6 +48,7 @@ interface DataCache {
   defenseSystems: DefenseSystemType[] | null;
   commandControlSystems: CommandControlSystemType[] | null;
   sensors: SensorType[] | null;
+  hangarMiscSystems: HangarMiscSystemType[] | null;
 }
 
 const cache: DataCache = {
@@ -60,6 +63,7 @@ const cache: DataCache = {
   defenseSystems: null,
   commandControlSystems: null,
   sensors: null,
+  hangarMiscSystems: null,
 };
 
 let dataLoaded = false;
@@ -113,9 +117,10 @@ export async function loadAllGameData(): Promise<void> {
     const { loadDefenseSystemsData } = await import('./defenseService');
     const { loadCommandControlSystemsData } = await import('./commandControlService');
     const { loadSensorsData } = await import('./sensorService');
+    const { initializeHangarMiscData } = await import('./hangarMiscService');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
@@ -126,6 +131,7 @@ export async function loadAllGameData(): Promise<void> {
       loadDataFile('defenses.json', defensesDataFallback),
       loadDataFile('commandControl.json', commandControlDataFallback),
       loadDataFile('sensors.json', sensorsDataFallback),
+      loadDataFile('hangarMisc.json', hangarMiscDataFallback),
     ]);
 
     // Store in cache
@@ -145,12 +151,14 @@ export async function loadAllGameData(): Promise<void> {
     cache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
     cache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
     cache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
+    cache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
 
     // Load data into services
     loadSupportSystemsData(cache.supportSystems);
     loadDefenseSystemsData({ defenseSystems: cache.defenseSystems });
     loadCommandControlSystemsData({ commandSystems: cache.commandControlSystems });
     loadSensorsData({ sensors: cache.sensors });
+    initializeHangarMiscData({ hangarMiscSystems: cache.hangarMiscSystems });
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -260,6 +268,7 @@ export async function reloadAllGameData(): Promise<void> {
   cache.defenseSystems = null;
   cache.commandControlSystems = null;
   cache.sensors = null;
+  cache.hangarMiscSystems = null;
   await loadAllGameData();
 }
 
@@ -282,4 +291,15 @@ export function getSensorsData(): SensorType[] {
     return (sensorsDataFallback as { sensors: SensorType[] }).sensors;
   }
   return cache.sensors!;
+}
+
+/**
+ * Get all hangar/misc system types (must call loadAllGameData first)
+ */
+export function getHangarMiscSystemsData(): HangarMiscSystemType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (hangarMiscDataFallback as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
+  }
+  return cache.hangarMiscSystems!;
 }
