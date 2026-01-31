@@ -15,10 +15,6 @@ import {
   Stack,
   Tabs,
   Tab,
-  FormControl,
-  FormLabel,
-  FormControlLabel,
-  Checkbox,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -30,6 +26,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -38,10 +35,7 @@ import type {
   MountType,
   GunConfiguration,
   FiringArc,
-  StandardArc,
-  ZeroArc,
 } from '../types/weapon';
-import { ALL_STANDARD_ARCS, ALL_ZERO_ARCS } from '../types/weapon';
 import {
   getAllBeamWeaponTypes,
   filterByDesignConstraints,
@@ -57,7 +51,6 @@ import {
   canUseZeroArcs,
   getDefaultArcs,
   getFreeArcCount,
-  getArcDisplayName,
   formatArcs,
   validateArcs,
 } from '../services/weaponService';
@@ -336,40 +329,6 @@ export function WeaponSelection({
       selectedWeapon.name,
     ].filter(Boolean).join(' ');
 
-    // Helper to render standard arc chip in compass
-    const renderStandardArcChip = (arc: StandardArc) => {
-      const isSelected = selectedArcs.includes(arc);
-      
-      return (
-        <Chip
-          key={arc}
-          label={getArcDisplayName(arc)}
-          size="small"
-          color={isSelected ? 'primary' : 'default'}
-          variant={isSelected ? 'filled' : 'outlined'}
-          onClick={() => handleArcToggle(arc, false)}
-          sx={{ cursor: 'pointer' }}
-        />
-      );
-    };
-
-    // Helper to render zero arc chip
-    const renderZeroArcChip = (arc: ZeroArc) => {
-      const isSelected = selectedArcs.includes(arc);
-      
-      return (
-        <Chip
-          key={arc}
-          label={getArcDisplayName(arc)}
-          size="small"
-          color={isSelected ? 'secondary' : 'default'}
-          variant={isSelected ? 'filled' : 'outlined'}
-          onClick={() => handleArcToggle(arc, true)}
-          sx={{ cursor: 'pointer' }}
-        />
-      );
-    };
-
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
         {/* Header with dynamic name and quantity */}
@@ -473,103 +432,18 @@ export function WeaponSelection({
             </Tooltip>
           </Box>
 
-          {/* Column 2: Firing Arcs - Side by Side Compasses */}
+          {/* Column 2: Firing Arcs Radar Selector */}
           <Box>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {/* Standard Arcs Compass */}
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                  Standard Arcs
-                  <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.7 }}>
-                    ({freeArcCount.standardArcs})
-                  </Typography>
-                </Typography>
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'auto auto auto',
-                  gridTemplateRows: 'auto auto auto',
-                  gap: 0.5,
-                  justifyContent: 'start',
-                  alignItems: 'center',
-                  '& > *': { justifySelf: 'center' },
-                }}>
-                  <Box />
-                  {renderStandardArcChip('forward')}
-                  <Box />
-                  
-                  {renderStandardArcChip('port')}
-                  <Box sx={{ 
-                    width: 50, 
-                    height: 50, 
-                    bgcolor: 'action.selected',
-                    borderRadius: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.65rem',
-                    color: 'text.secondary',
-                    fontWeight: 'bold',
-                  }}>
-                    ▲
-                  </Box>
-                  {renderStandardArcChip('starboard')}
-                  
-                  <Box />
-                  {renderStandardArcChip('aft')}
-                  <Box />
-                </Box>
-              </Box>
-
-              {/* Zero Arcs Compass */}
-              {weaponCanUseZero && mountType !== 'fixed' && (
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Zero Arcs
-                    <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.7 }}>
-                      ({freeArcCount.zeroArcs === 4 ? 'all' : freeArcCount.zeroArcs})
-                    </Typography>
-                  </Typography>
-                  
-                  <Box sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'auto auto auto',
-                    gridTemplateRows: 'auto auto auto',
-                    gap: 0.5,
-                    justifyContent: 'start',
-                    alignItems: 'center',
-                    '& > *': { justifySelf: 'center' },
-                  }}>
-                    <Box />
-                    {renderZeroArcChip('zero-forward')}
-                    <Box />
-                    
-                    {renderZeroArcChip('zero-port')}
-                    <Box sx={{ 
-                      width: 50, 
-                      height: 50, 
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.6rem',
-                      color: 'text.secondary',
-                    }}>
-                      ZERO
-                    </Box>
-                    {renderZeroArcChip('zero-starboard')}
-                    
-                    <Box />
-                    {renderZeroArcChip('zero-aft')}
-                    <Box />
-                  </Box>
-                </Box>
-              )}
-            </Box>
-
+            <ArcRadarSelector
+              selectedArcs={selectedArcs}
+              onArcToggle={handleArcToggle}
+              showZeroArcs={weaponCanUseZero && mountType !== 'fixed'}
+              disableZeroArcs={shipClass === 'small-craft'}
+              maxStandardArcs={freeArcCount.standardArcs}
+              maxZeroArcs={freeArcCount.zeroArcs}
+            />
             {!weaponCanUseZero && mountType !== 'fixed' && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
                 Only S/L firepower can use zero arcs
               </Typography>
             )}
