@@ -151,18 +151,25 @@ export function ArcRadarSelector({
           const path = createSectorPath(center, center, zeroInnerRadius, zeroOuterRadius, startAngle, endAngle);
           const disabled = disableZeroArcs;
 
+          // Determine fill color: selected takes priority, then disabled, then unselected
+          const fillColor = selected 
+            ? zeroSelectedColor 
+            : disabled 
+              ? theme.palette.action.disabledBackground 
+              : unselectedColor;
+
           return (
             <path
               key={arc}
               className={`arc-sector arc-zero ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
               d={path}
-              fill={disabled ? theme.palette.action.disabledBackground : selected ? zeroSelectedColor : unselectedColor}
+              fill={fillColor}
               stroke={borderColor}
               strokeWidth={1.5}
               onClick={() => !disabled && onArcToggle(arc, true)}
               style={{ 
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                opacity: disabled ? 0.5 : 1,
+                cursor: disabled ? 'default' : 'pointer',
+                opacity: disabled && !selected ? 0.5 : 1,
               }}
             />
           );

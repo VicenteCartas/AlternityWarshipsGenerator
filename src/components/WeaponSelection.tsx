@@ -91,8 +91,9 @@ export function WeaponSelection({
   const availableBeamWeapons = useMemo(() => {
     return filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks)
       .sort((a, b) => {
-        // Sort by PL, then Short, Medium, Long range, then HP, Power, Cost
+        // Sort by PL, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
         if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
         if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
         if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
         if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
