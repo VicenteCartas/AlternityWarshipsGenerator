@@ -109,11 +109,6 @@ export const selectableRowSx = {
 | Missing Step | Description | Data File Needed |
 |--------------|-------------|------------------|
 | **Step 7: Weapons** | Beams, projectiles, missiles, bombs, mines | `weapons.json` |
-| **Step 8: Defenses** | Shields, screens, ECM, jammers, point defense | `defenses.json` |
-| **Step 9: Command & Control** | Computers, comms, fire control | `commandControl.json` |
-| **Step 10: Sensors** | Detection, tracking systems | `sensors.json` |
-| **Step 11: Hangars** | Hangar bays, docking clamps, small craft | `hangars.json` |
-| **Step 12: Miscellaneous** | Labs, workshops, cargo, fuel scoops | `miscSystems.json` |
 | **Step 13: Summary** | Final stats, fire diagram, damage diagram | N/A |
 
 ### ðŸ”´ High Value - UX Features
@@ -152,30 +147,6 @@ export const selectableRowSx = {
 
 ---
 
-## 4. Technical Debt
-
-### App.tsx Complexity
-- File is 919 lines and growing
-- Consider extracting state management to a context/reducer
-- Consider splitting into smaller components
-
-### Power Consumption Tracking
-- Only engines currently track power use
-- Support systems don't consume power (but should per rulebook)
-- Need centralized power budget system
-
-### Validation System
-- Validations are scattered across components
-- No centralized validation system
-- Need unified approach before adding more steps
-
-### Save File Schema
-- No `schemaVersion` field for future migrations
-- No backward compatibility testing
-- Should add unit tests for loading old save files
-
----
-
 ## 5. Recommended Action Plan
 
 ### Phase 1: Code Cleanup (Low Risk)
@@ -191,8 +162,8 @@ export const selectableRowSx = {
 - [X] Implement Step 9: Command & Control
 - [X] Implement Step 10: Sensors
 - [X] Implement Step 11: Hangars
-- [ ] Implement Step 12: Miscellaneous
-- [ ] Implement Step 13: Summary page
+- [X] Implement Step 12: Miscellaneous
+- [X] Implement Step 13: Summary page
 - [ ] Add real-time validation for HP/Power budgets
 
 ### Phase 3: Export & Polish
@@ -210,11 +181,11 @@ export const selectableRowSx = {
 
 ---
 
-## 6. Estimated Impact
+## 6. Test
 
-**UI Refactoring:** ~700-900 lines of duplicated JSX â†’ ~150-200 lines of shared components
+Use ships from this thread:
 
-**Service Consolidation:** ~100 lines of duplicated logic removed
+https://www.alternityrpg.net/onlineforums/index.php?s=0&showtopic=8562
 
 ---
 

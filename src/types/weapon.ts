@@ -2,7 +2,7 @@ import type { ProgressLevel, TechTrack } from './common';
 
 // ============== Weapon Categories ==============
 
-export type WeaponCategory = 'beam' | 'projectile' | 'torpedo' | 'ordnance';
+export type WeaponCategory = 'beam' | 'projectile' | 'torpedo' | 'special' | 'ordnance';
 
 // ============== Mount Types ==============
 
@@ -42,7 +42,7 @@ export const ALL_STANDARD_ARCS: StandardArc[] = ['forward', 'starboard', 'port',
 
 // ============== Damage Type ==============
 
-export type DamageType = 'En' | 'HI' | 'LI'; // Energy, High Impact, Low Impact
+// DamageType is already defined in common.ts: 'En' | 'HI' | 'LI' (Energy, High Impact, Low Impact)
 
 // ============== Firepower Rating ==============
 
@@ -50,7 +50,7 @@ export type FirepowerRating = 'S' | 'L' | 'M' | 'H' | 'SH' | 'Gd'; // Small, Lig
 
 // ============== Fire Mode ==============
 
-export type FireMode = 'F' | 'F*' | 'G' | 'B' | 'A'; // Fire modes: F=single fire, F*=rapid fire, G=burst, B=burst, A=autofire
+export type FireMode = 'F' | 'G' | 'B' | 'A'; // Fire modes: F=single fire, G=burst, B=burst, A=autofire
 
 // ============== Base Weapon Type ==============
 
@@ -102,6 +102,25 @@ export interface BeamWeaponType extends BaseWeaponType {}
  */
 export interface ProjectileWeaponType extends BaseWeaponType {}
 
+// ============== Torpedo Weapon Type ==============
+
+/**
+ * Torpedo weapons extend the base weapon type
+ * Torpedoes can use standard, fixed, or turret mounts
+ */
+export interface TorpedoWeaponType extends BaseWeaponType {}
+
+// ============== Special Weapon Type ==============
+
+/**
+ * Special weapons with unique abilities (tractor beams, cable guns, etc.)
+ * Some special weapons have no damage (tractor, cable gun, boarding transporter)
+ */
+export interface SpecialWeaponType extends BaseWeaponType {
+  /** Special effect description for weapons with non-standard behavior */
+  specialEffect?: string;
+}
+
 // ============== Mount Modifiers ==============
 
 /**
@@ -147,9 +166,9 @@ export const CONCEALMENT_MODIFIER = {
 // ============== Weapon Type Union ==============
 
 /**
- * Union type for all weapon types (beam, projectile, etc.)
+ * Union type for all weapon types (beam, projectile, torpedo, special)
  */
-export type WeaponType = BeamWeaponType | ProjectileWeaponType;
+export type WeaponType = BeamWeaponType | ProjectileWeaponType | TorpedoWeaponType | SpecialWeaponType;
 
 // ============== Installed Weapon ==============
 
@@ -181,5 +200,6 @@ export interface WeaponStats {
   beamCount: number;
   projectileCount: number;
   torpedoCount: number;
+  specialCount: number;
   ordnanceCount: number;
 }

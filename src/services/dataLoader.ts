@@ -16,6 +16,7 @@ import type { DefenseSystemType } from '../types/defense';
 import type { CommandControlSystemType } from '../types/commandControl';
 import type { SensorType } from '../types/sensor';
 import type { HangarMiscSystemType } from '../types/hangarMisc';
+import type { LaunchSystem, PropulsionSystem, Warhead, GuidanceSystem } from '../types/ordnance';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -29,6 +30,7 @@ import defensesDataFallback from '../data/defenses.json';
 import commandControlDataFallback from '../data/commandControl.json';
 import sensorsDataFallback from '../data/sensors.json';
 import hangarMiscDataFallback from '../data/hangarMisc.json';
+import ordnanceDataFallback from '../data/ordnance.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -49,6 +51,10 @@ interface DataCache {
   commandControlSystems: CommandControlSystemType[] | null;
   sensors: SensorType[] | null;
   hangarMiscSystems: HangarMiscSystemType[] | null;
+  launchSystems: LaunchSystem[] | null;
+  propulsionSystems: PropulsionSystem[] | null;
+  warheads: Warhead[] | null;
+  guidanceSystems: GuidanceSystem[] | null;
 }
 
 const cache: DataCache = {
@@ -64,6 +70,10 @@ const cache: DataCache = {
   commandControlSystems: null,
   sensors: null,
   hangarMiscSystems: null,
+  launchSystems: null,
+  propulsionSystems: null,
+  warheads: null,
+  guidanceSystems: null,
 };
 
 let dataLoaded = false;
@@ -120,7 +130,7 @@ export async function loadAllGameData(): Promise<void> {
     const { initializeHangarMiscData } = await import('./hangarMiscService');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
@@ -132,6 +142,7 @@ export async function loadAllGameData(): Promise<void> {
       loadDataFile('commandControl.json', commandControlDataFallback),
       loadDataFile('sensors.json', sensorsDataFallback),
       loadDataFile('hangarMisc.json', hangarMiscDataFallback),
+      loadDataFile('ordnance.json', ordnanceDataFallback),
     ]);
 
     // Store in cache
@@ -152,6 +163,10 @@ export async function loadAllGameData(): Promise<void> {
     cache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
     cache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
     cache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
+    cache.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
+    cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
+    cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
+    cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
 
     // Load data into services
     loadSupportSystemsData(cache.supportSystems);
@@ -269,6 +284,10 @@ export async function reloadAllGameData(): Promise<void> {
   cache.commandControlSystems = null;
   cache.sensors = null;
   cache.hangarMiscSystems = null;
+  cache.launchSystems = null;
+  cache.propulsionSystems = null;
+  cache.warheads = null;
+  cache.guidanceSystems = null;
   await loadAllGameData();
 }
 
@@ -302,4 +321,48 @@ export function getHangarMiscSystemsData(): HangarMiscSystemType[] {
     return (hangarMiscDataFallback as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
   }
   return cache.hangarMiscSystems!;
+}
+
+/**
+ * Get all launch systems (must call loadAllGameData first)
+ */
+export function getLaunchSystemsData(): LaunchSystem[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (ordnanceDataFallback as { launchSystems: LaunchSystem[] }).launchSystems;
+  }
+  return cache.launchSystems!;
+}
+
+/**
+ * Get all propulsion systems (must call loadAllGameData first)
+ */
+export function getPropulsionSystemsData(): PropulsionSystem[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (ordnanceDataFallback as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
+  }
+  return cache.propulsionSystems!;
+}
+
+/**
+ * Get all warheads (must call loadAllGameData first)
+ */
+export function getWarheadsData(): Warhead[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (ordnanceDataFallback as { warheads: Warhead[] }).warheads;
+  }
+  return cache.warheads!;
+}
+
+/**
+ * Get all guidance systems (must call loadAllGameData first)
+ */
+export function getGuidanceSystemsData(): GuidanceSystem[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (ordnanceDataFallback as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
+  }
+  return cache.guidanceSystems!;
 }

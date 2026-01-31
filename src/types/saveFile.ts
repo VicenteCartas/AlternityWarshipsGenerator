@@ -169,6 +169,52 @@ export interface SavedWeapon {
 }
 
 /**
+ * Saved ordnance design (missile, bomb, or mine blueprint)
+ */
+export interface SavedOrdnanceDesign {
+  /** Unique design ID */
+  id: string;
+  /** User-defined name */
+  name: string;
+  /** Design category */
+  category: 'missile' | 'bomb' | 'mine';
+  /** Ordnance size */
+  size: 'light' | 'medium' | 'heavy';
+  /** Propulsion system ID (missiles only) */
+  propulsionId?: string;
+  /** Guidance system ID (missiles and mines) */
+  guidanceId?: string;
+  /** Warhead ID */
+  warheadId: string;
+}
+
+/**
+ * Loaded ordnance in a launch system
+ */
+export interface SavedLoadedOrdnance {
+  /** Design ID (references SavedOrdnanceDesign.id) */
+  designId: string;
+  /** Quantity loaded */
+  quantity: number;
+}
+
+/**
+ * Installed launch system in save file
+ */
+export interface SavedLaunchSystem {
+  /** Installation ID */
+  id: string;
+  /** Launch system type ID */
+  typeId: string;
+  /** Number of launchers */
+  quantity: number;
+  /** Extra capacity allocated */
+  extraCapacity: number;
+  /** Loaded ordnance */
+  loadout: SavedLoadedOrdnance[];
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -246,6 +292,12 @@ export interface WarshipSaveFile {
   
   /** Installed weapons */
   weapons: SavedWeapon[];
+  
+  /** Ordnance designs (missile, bomb, mine blueprints) */
+  ordnanceDesigns: SavedOrdnanceDesign[];
+  
+  /** Installed launch systems */
+  launchSystems: SavedLaunchSystem[];
   
   /** Installed systems (future) */
   systems: unknown[];

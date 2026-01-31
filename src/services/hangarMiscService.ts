@@ -7,12 +7,12 @@ let hangarMiscSystemTypes: HangarMiscSystemType[] | null = null;
 /**
  * Initialize hangar/misc data from JSON
  */
-export function initializeHangarMiscData(data: typeof hangarMiscData): void {
-  hangarMiscSystemTypes = data.hangarMiscSystems as HangarMiscSystemType[];
+export function initializeHangarMiscData(data: { hangarMiscSystems: HangarMiscSystemType[] }): void {
+  hangarMiscSystemTypes = data.hangarMiscSystems;
 }
 
 // Initialize with bundled data
-initializeHangarMiscData(hangarMiscData);
+initializeHangarMiscData(hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] });
 
 /**
  * Get all hangar/misc system types

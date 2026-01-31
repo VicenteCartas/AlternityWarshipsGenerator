@@ -17,7 +17,47 @@
       "damage": "d4s/d4w/d4+2w",
       "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
       "fireModes": [
-        "F*"
+        "F"
+      ]
+    },
+    {
+      "id": "laser-burst",
+      "name": "Laser (Burst)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 3,
+      "cost": 200000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d4s/d4w/d4+2w",
+      "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
+      "fireModes": [
+        "F", "B"
+      ]
+    },
+    {
+      "id": "laser-auto",
+      "name": "Laser (Auto)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 3,
+      "cost": 200000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d4s/d4w/d4+2w",
+      "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
+      "fireModes": [
+        "F", "A"
       ]
     },
     {
@@ -37,7 +77,47 @@
       "damage": "d4+1s/d4+1w/d6+1w",
       "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
       "fireModes": [
-        "F*"
+        "F"
+      ]
+    },
+    {
+      "id": "ir-laser-burst",
+      "name": "IR Laser (Burst)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 3,
+      "cost": 450000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d4+1s/d4+1w/d6+1w",
+      "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
+      "fireModes": [
+        "F", "B"
+      ]
+    },
+    {
+      "id": "ir-laser-auto",
+      "name": "IR Laser (Auto)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 3,
+      "cost": 450000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d4+1s/d4+1w/d6+1w",
+      "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
+      "fireModes": [
+        "F", "A"
       ]
     },
     {
@@ -57,7 +137,47 @@
       "damage": "d6+1s/d4+2w/d4m",
       "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
       "fireModes": [
-        "F*"
+        "F"
+      ]
+    },
+    {
+      "id": "x-ray-laser-burst",
+      "name": "X-Ray Laser (Burst)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 4,
+      "cost": 750000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+1s/d4+2w/d4m",
+      "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
+      "fireModes": [
+        "F", "B"
+      ]
+    },
+    {
+      "id": "x-ray-laser-auto",
+      "name": "X-Ray Laser (Auto)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 4,
+      "cost": 750000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+1s/d4+2w/d4m",
+      "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
+      "fireModes": [
+        "F", "A"
       ]
     },
     {
@@ -210,7 +330,51 @@
       "damage": "d6+2w/d8+2w/d6+1m",
       "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
       "fireModes": [
-        "F*"
+        "F"
+      ]
+    },
+    {
+      "id": "plasma-cannon-burst",
+      "name": "Plasma Cannon (Burst)",
+      "progressLevel": 7,
+      "techTracks": [
+        "F"
+      ],
+      "hullPoints": 4,
+      "powerRequired": 5,
+      "cost": 600000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 4,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+2w/d8+2w/d6+1m",
+      "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
+      "fireModes": [
+        "F", "B"
+      ]
+    },
+    {
+      "id": "plasma-cannon-auto",
+      "name": "Plasma Cannon (Auto)",
+      "progressLevel": 7,
+      "techTracks": [
+        "F"
+      ],
+      "hullPoints": 4,
+      "powerRequired": 5,
+      "cost": 600000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 4,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+2w/d8+2w/d6+1m",
+      "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
+      "fireModes": [
+        "F", "A"
       ]
     },
     {
@@ -431,7 +595,47 @@
       "damage": "d6+2w/d4+1m/d6+2m",
       "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
       "fireModes": [
-        "F*"
+        "F"
+      ]
+    },
+    {
+      "id": "maser-burst",
+      "name": "Maser (Burst)",
+      "progressLevel": 8,
+      "techTracks": [],
+      "hullPoints": 5,
+      "powerRequired": 6,
+      "cost": 700000,
+      "accuracyModifier": -3,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 5,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+2w/d4+1m/d6+2m",
+      "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
+      "fireModes": [
+        "F", "B"
+      ]
+    },
+    {
+      "id": "maser-auto",
+      "name": "Maser (Auto)",
+      "progressLevel": 8,
+      "techTracks": [],
+      "hullPoints": 5,
+      "powerRequired": 6,
+      "cost": 700000,
+      "accuracyModifier": -3,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 5,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+2w/d4+1m/d6+2m",
+      "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
+      "fireModes": [
+        "F", "A"
       ]
     },
     {
@@ -453,7 +657,7 @@
       "damage": "d4+1w/2d4w/d4+3m",
       "description": "The kinetic lance creates a stream of virtual particles simulating solid matter. At the speeds involved with space combat, the impact of the lance is quite destructive.",
       "fireModes": [
-        "F*"
+        "F"
       ]
     },
     {
@@ -474,7 +678,51 @@
       "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
       "fireModes": [
         "F",
-        "G*"
+        "G"
+      ]
+    },
+    {
+      "id": "pulse-maser-burst",
+      "name": "Pulse Maser (Burst)",
+      "progressLevel": 8,
+      "techTracks": [],
+      "hullPoints": 8,
+      "powerRequired": 8,
+      "cost": 6000000,
+      "accuracyModifier": -1,
+      "rangeShort": 2,
+      "rangeMedium": 5,
+      "rangeLong": 10,
+      "damageType": "En",
+      "firepower": "L",
+      "damage": "d8+4w/d8+2m/d12+2m",
+      "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
+      "fireModes": [
+        "F",
+        "G",
+        "B"
+      ]
+    },
+    {
+      "id": "pulse-maser-auto",
+      "name": "Pulse Maser (Auto)",
+      "progressLevel": 8,
+      "techTracks": [],
+      "hullPoints": 8,
+      "powerRequired": 8,
+      "cost": 6000000,
+      "accuracyModifier": -1,
+      "rangeShort": 2,
+      "rangeMedium": 5,
+      "rangeLong": 10,
+      "damageType": "En",
+      "firepower": "L",
+      "damage": "d8+4w/d8+2m/d12+2m",
+      "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
+      "fireModes": [
+        "F",
+        "G",
+        "A"
       ]
     },
     {
@@ -1106,6 +1354,272 @@
       "fireModes": [
         "F"
       ]
+    }
+  ],
+  "torpedoWeapons": [
+    {
+      "id": "matter-torpedo",
+      "name": "Matter Torpedo",
+      "progressLevel": 7,
+      "techTracks": ["D"],
+      "hullPoints": 5,
+      "powerRequired": 7,
+      "cost": 600000,
+      "accuracyModifier": 0,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 8,
+      "damageType": "En",
+      "firepower": "M",
+      "damage": "2d6s/2d6w/d6+3m",
+      "description": "The matter torpedo is a self-propelled energy weapon that uses a small amount of antimatter for its warhead. It has good range and accuracy for its size.",
+      "fireModes": ["F"]
+    },
+    {
+      "id": "plasma-torpedo",
+      "name": "Plasma Torpedo",
+      "progressLevel": 7,
+      "techTracks": ["F"],
+      "hullPoints": 10,
+      "powerRequired": 15,
+      "cost": 10000000,
+      "accuracyModifier": 1,
+      "rangeShort": 3,
+      "rangeMedium": 6,
+      "rangeLong": 9,
+      "damageType": "En",
+      "firepower": "H",
+      "damage": "3d6s/3d6w/d8+3m",
+      "description": "The plasma torpedo is a self-propelled weapon that delivers a devastating payload of superheated plasma on impact. It is one of the most powerful weapons available at PL 7.",
+      "fireModes": ["F"]
+    },
+    {
+      "id": "em-torpedo",
+      "name": "EM Torpedo",
+      "progressLevel": 8,
+      "techTracks": ["Q"],
+      "hullPoints": 3,
+      "powerRequired": 5,
+      "cost": 450000,
+      "accuracyModifier": -2,
+      "rangeShort": 2,
+      "rangeMedium": 5,
+      "rangeLong": 10,
+      "damageType": "En",
+      "firepower": "M",
+      "damage": "d6+3s/2d8s/d4+2w",
+      "description": "The EM (electromagnetic) torpedo delivers a powerful electromagnetic pulse on detonation, disrupting electronic systems and causing significant damage.",
+      "fireModes": ["F"]
+    },
+    {
+      "id": "null-torpedo",
+      "name": "Null Torpedo",
+      "progressLevel": 9,
+      "techTracks": ["X"],
+      "hullPoints": 18,
+      "powerRequired": 25,
+      "cost": 50000000,
+      "accuracyModifier": 2,
+      "rangeShort": 3,
+      "rangeMedium": 6,
+      "rangeLong": 15,
+      "damageType": "En",
+      "firepower": "SH",
+      "damage": "2d8w/2d8m/2d8c",
+      "description": "The null torpedo uses advanced energy transformation technology to deliver a devastating warhead that can cause critical damage to even the largest vessels.",
+      "fireModes": ["F"]
+    }
+  ],
+  "specialWeapons": [
+    {
+      "id": "cable-gun",
+      "name": "Cable Gun",
+      "progressLevel": 6,
+      "techTracks": ["S"],
+      "hullPoints": 2,
+      "powerRequired": 1,
+      "cost": 150000,
+      "accuracyModifier": 1,
+      "rangeShort": 0,
+      "rangeMedium": 0,
+      "rangeLong": 0,
+      "damageType": "Special",
+      "firepower": "S",
+      "damage": "Special",
+      "description": "The cable gun fires a magnetic grapple to a distance of about 10 kilometers; its winches can then drag the grappled target closer at a rate of 1 km per phase. Each cable gun can drag up to 50 hull points.",
+      "fireModes": ["F"],
+      "specialEffect": "Grapples target and pulls at 1 km/phase. Capacity: 50 HP per cable gun."
+    },
+    {
+      "id": "rf-spike",
+      "name": "RF Spike",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 6,
+      "cost": 500000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "En",
+      "firepower": "SH",
+      "damage": "3d4s/3d6s/2d4w",
+      "description": "The RF spike is a one-shot weapon that delivers a devastating electromagnetic pulse. After firing, the equipment is wrecked and must be replaced. Spare components cost 100,000 credits and 1 HP per 3 shots.",
+      "fireModes": ["F"],
+      "specialEffect": "Single-use weapon. Never upgrades damage against inferior toughness targets."
+    },
+    {
+      "id": "thermal-inducer",
+      "name": "Thermal Inducer",
+      "progressLevel": 6,
+      "techTracks": ["X"],
+      "hullPoints": 8,
+      "powerRequired": 12,
+      "cost": 4000000,
+      "accuracyModifier": 3,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 6,
+      "damageType": "En",
+      "firepower": "M",
+      "damage": "d6w/d6+1w/d6m",
+      "description": "The thermal inducer projects a beam that excites molecular motion in the target, causing rapid heating. Accuracy improves with consecutive hits on the same target.",
+      "fireModes": ["F"],
+      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -3 steps."
+    },
+    {
+      "id": "thermal-nullifier",
+      "name": "Thermal Nullifier",
+      "progressLevel": 6,
+      "techTracks": ["X"],
+      "hullPoints": 15,
+      "powerRequired": 20,
+      "cost": 35000000,
+      "accuracyModifier": 3,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 6,
+      "damageType": "En",
+      "firepower": "M",
+      "damage": "d6+3w/d6+4w/d6+2m",
+      "description": "An advanced version of the thermal inducer, the thermal nullifier delivers more devastating thermal damage. Accuracy improves with consecutive hits.",
+      "fireModes": ["F"],
+      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -3 steps."
+    },
+    {
+      "id": "tractor-beam",
+      "name": "Tractor Beam",
+      "progressLevel": 7,
+      "techTracks": ["G"],
+      "hullPoints": 2,
+      "powerRequired": 5,
+      "cost": 500000,
+      "accuracyModifier": -1,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 8,
+      "damageType": "Special",
+      "firepower": "S",
+      "damage": "Special",
+      "description": "The tractor beam uses artificial gravity to capture and move other vessels. Each tractor beam can capture up to 50 hull points and applies 0.25 Mpp acceleration per phase.",
+      "fireModes": ["F"],
+      "specialEffect": "Captures target up to 50 HP. Applies 0.25 Mpp acceleration. Multiple beams combine capacity."
+    },
+    {
+      "id": "mass-converter",
+      "name": "Mass Converter",
+      "progressLevel": 7,
+      "techTracks": ["M"],
+      "hullPoints": 4,
+      "powerRequired": 6,
+      "cost": 1000000,
+      "accuracyModifier": -4,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 6,
+      "damageType": "En",
+      "firepower": "S",
+      "damage": "d6+3s/d6+3w/d6+2m",
+      "description": "The mass converter is a matter coding weapon that converts a portion of the target's mass directly into energy, causing significant damage.",
+      "fireModes": ["F"],
+      "specialEffect": "The mass converter ignores all defensive screens\nor shields except for the ablative screen."
+    },
+    {
+      "id": "neural-inhibitor",
+      "name": "Neural Inhibitor",
+      "progressLevel": 8,
+      "techTracks": ["P"],
+      "hullPoints": 12,
+      "powerRequired": 20,
+      "cost": 40000000,
+      "accuracyModifier": 0,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "Special",
+      "firepower": "S",
+      "damage": "1d12s/1d12w/1d20w",
+      "description": "The neural inhibitor affects the nervous systems of living creatures aboard the target vessel, causing stun and wound damage to crew without harming the ship itself.",
+      "fireModes": ["F"],
+      "specialEffect": "Damages crew only. Ship takes no structural damage."
+    },
+    {
+      "id": "fission-activator",
+      "name": "Fission Activator",
+      "progressLevel": 8,
+      "techTracks": ["M"],
+      "hullPoints": 25,
+      "powerRequired": 75,
+      "cost": 80000000,
+      "accuracyModifier": 0,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 12,
+      "damageType": "En",
+      "firepower": "H",
+      "damage": "2d4m/2d4+2m/3d4+2c",
+      "description": "The fission activator uses matter coding to induce nuclear fission in the target's hull material, causing catastrophic damage from within.",
+      "fireModes": ["F"],
+      "specialEffect": "Affects all targets in a single hex."
+    },
+    {
+      "id": "boarding-transporter",
+      "name": "Boarding Transporter",
+      "progressLevel": 9,
+      "techTracks": ["T"],
+      "hullPoints": 6,
+      "powerRequired": 9,
+      "cost": 10000000,
+      "accuracyModifier": 0,
+      "rangeShort": 4,
+      "rangeMedium": 6,
+      "rangeLong": 8,
+      "damageType": "Special",
+      "firepower": "S",
+      "damage": "Special",
+      "description": "The boarding transporter uses matter transmission technology to beam boarding parties directly onto enemy vessels, bypassing armor and defenses.",
+      "fireModes": ["F"],
+      "specialEffect": "Transports boarding party onto target vessel. No structural damage."
+    },
+    {
+      "id": "code-arranger",
+      "name": "Code Arranger",
+      "progressLevel": 9,
+      "techTracks": ["M"],
+      "hullPoints": 25,
+      "powerRequired": 50,
+      "cost": 100000000,
+      "accuracyModifier": 1,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 12,
+      "damageType": "Special",
+      "firepower": "H",
+      "damage": "d8m/d8+4m/d8c",
+      "description": "The code arranger uses advanced matter coding to disrupt the molecular structure of the target, causing it to literally fall apart at the atomic level.",
+      "fireModes": ["F"],
+      "specialEffect": "Matter coding weapon. Ignores conventional armor."
     }
   ]
 }

@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -10,6 +10,7 @@ import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
+import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -22,7 +23,8 @@ import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
-import { getAllBeamWeaponTypes, createInstalledWeapon } from './weaponService';
+import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
+import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign } from './ordnanceService';
 
 /**
  * State representing the current warship configuration
@@ -47,6 +49,8 @@ export interface WarshipState {
   sensors: InstalledSensor[];
   hangarMisc: InstalledHangarMiscSystem[];
   weapons: InstalledWeapon[];
+  ordnanceDesigns: OrdnanceDesign[];
+  launchSystems: InstalledLaunchSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -142,6 +146,35 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       concealed: w.concealed,
       quantity: w.quantity,
       arcs: w.arcs,
+    })),
+    ordnanceDesigns: (state.ordnanceDesigns || []).map((d): SavedOrdnanceDesign => {
+      const base = {
+        id: d.id,
+        name: d.name,
+        category: d.category,
+        size: d.size,
+        warheadId: d.warheadId,
+      };
+      if (d.category === 'missile') {
+        return {
+          ...base,
+          propulsionId: (d as MissileDesign).propulsionId,
+          guidanceId: (d as MissileDesign).guidanceId,
+        };
+      } else if (d.category === 'mine') {
+        return {
+          ...base,
+          guidanceId: (d as MineDesign).guidanceId,
+        };
+      }
+      return base;
+    }),
+    launchSystems: (state.launchSystems || []).map((ls): SavedLaunchSystem => ({
+      id: ls.id,
+      typeId: ls.launchSystemType,
+      quantity: ls.quantity,
+      extraCapacity: ls.extraCapacity,
+      loadout: ls.loadout || [],
     })),
     systems: [],
   };
@@ -487,9 +520,11 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   // Load weapons
   const weapons: InstalledWeapon[] = [];
   const allBeamWeapons = getAllBeamWeaponTypes();
+  const allProjectileWeapons = getAllProjectileWeaponTypes();
+  const allTorpedoWeapons = getAllTorpedoWeaponTypes();
+  const allSpecialWeapons = getAllSpecialWeaponTypes();
   
   for (const savedWeapon of (saveFile.weapons || [])) {
-    // For now only beam weapons are supported
     if (savedWeapon.category === 'beam') {
       const weaponType = allBeamWeapons.find(w => w.id === savedWeapon.typeId);
       if (weaponType) {
@@ -506,8 +541,160 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       } else {
         warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
       }
+    } else if (savedWeapon.category === 'projectile') {
+      const weaponType = allProjectileWeapons.find(w => w.id === savedWeapon.typeId);
+      if (weaponType) {
+        const weapon = createInstalledWeapon(
+          weaponType,
+          savedWeapon.category,
+          savedWeapon.mountType,
+          savedWeapon.gunConfiguration,
+          savedWeapon.concealed,
+          savedWeapon.quantity,
+          savedWeapon.arcs as FiringArc[]
+        );
+        weapons.push(weapon);
+      } else {
+        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
+      }
+    } else if (savedWeapon.category === 'torpedo') {
+      const weaponType = allTorpedoWeapons.find(w => w.id === savedWeapon.typeId);
+      if (weaponType) {
+        const weapon = createInstalledWeapon(
+          weaponType,
+          savedWeapon.category,
+          savedWeapon.mountType,
+          savedWeapon.gunConfiguration,
+          savedWeapon.concealed,
+          savedWeapon.quantity,
+          savedWeapon.arcs as FiringArc[]
+        );
+        weapons.push(weapon);
+      } else {
+        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
+      }
+    } else if (savedWeapon.category === 'special') {
+      const weaponType = allSpecialWeapons.find(w => w.id === savedWeapon.typeId);
+      if (weaponType) {
+        const weapon = createInstalledWeapon(
+          weaponType,
+          savedWeapon.category,
+          savedWeapon.mountType,
+          savedWeapon.gunConfiguration,
+          savedWeapon.concealed,
+          savedWeapon.quantity,
+          savedWeapon.arcs as FiringArc[]
+        );
+        weapons.push(weapon);
+      } else {
+        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
+      }
     } else {
       warnings.push(`Weapon category not yet supported: ${savedWeapon.category}`);
+    }
+  }
+  
+  // Load ordnance designs
+  const ordnanceDesigns: OrdnanceDesign[] = [];
+  const allPropulsion = getPropulsionSystems();
+  const allGuidance = getGuidanceSystems();
+  const allWarheads = getWarheads();
+  
+  for (const savedDesign of (saveFile.ordnanceDesigns || [])) {
+    const warhead = allWarheads.find(w => w.id === savedDesign.warheadId);
+    if (!warhead) {
+      warnings.push(`Warhead not found: ${savedDesign.warheadId}`);
+      continue;
+    }
+    
+    if (savedDesign.category === 'missile') {
+      const propulsion = allPropulsion.find(p => p.id === savedDesign.propulsionId);
+      const guidance = allGuidance.find(g => g.id === savedDesign.guidanceId);
+      if (!propulsion) {
+        warnings.push(`Propulsion system not found: ${savedDesign.propulsionId}`);
+        continue;
+      }
+      if (!guidance) {
+        warnings.push(`Guidance system not found: ${savedDesign.guidanceId}`);
+        continue;
+      }
+      const stats = calculateMissileDesign(propulsion, guidance, warhead);
+      ordnanceDesigns.push({
+        id: savedDesign.id,
+        name: savedDesign.name,
+        category: 'missile',
+        size: savedDesign.size,
+        propulsionId: savedDesign.propulsionId!,
+        guidanceId: savedDesign.guidanceId!,
+        warheadId: savedDesign.warheadId,
+        totalAccuracy: stats.totalAccuracy,
+        totalCost: stats.totalCost,
+        capacityRequired: stats.capacityRequired,
+      } as MissileDesign);
+    } else if (savedDesign.category === 'bomb') {
+      const propulsion = allPropulsion.find(p => p.id === `bomb-${savedDesign.size}`);
+      if (!propulsion) {
+        warnings.push(`Bomb casing not found for size: ${savedDesign.size}`);
+        continue;
+      }
+      const stats = calculateBombDesign(propulsion, warhead);
+      ordnanceDesigns.push({
+        id: savedDesign.id,
+        name: savedDesign.name,
+        category: 'bomb',
+        size: savedDesign.size,
+        warheadId: savedDesign.warheadId,
+        totalAccuracy: stats.totalAccuracy,
+        totalCost: stats.totalCost,
+        capacityRequired: stats.capacityRequired,
+      } as BombDesign);
+    } else if (savedDesign.category === 'mine') {
+      const propulsion = allPropulsion.find(p => p.id === `mine-${savedDesign.size}`);
+      const guidance = allGuidance.find(g => g.id === savedDesign.guidanceId);
+      if (!propulsion) {
+        warnings.push(`Mine casing not found for size: ${savedDesign.size}`);
+        continue;
+      }
+      if (!guidance) {
+        warnings.push(`Guidance system not found: ${savedDesign.guidanceId}`);
+        continue;
+      }
+      const stats = calculateMineDesign(propulsion, guidance, warhead);
+      ordnanceDesigns.push({
+        id: savedDesign.id,
+        name: savedDesign.name,
+        category: 'mine',
+        size: savedDesign.size,
+        guidanceId: savedDesign.guidanceId!,
+        warheadId: savedDesign.warheadId,
+        totalAccuracy: stats.totalAccuracy,
+        totalCost: stats.totalCost,
+        capacityRequired: stats.capacityRequired,
+      } as MineDesign);
+    }
+  }
+  
+  // Load launch systems
+  const launchSystemsList: InstalledLaunchSystem[] = [];
+  const allLaunchSystems = getLaunchSystems();
+  
+  for (const savedLS of (saveFile.launchSystems || [])) {
+    const launchSystem = allLaunchSystems.find(ls => ls.id === savedLS.typeId);
+    if (launchSystem) {
+      const stats = calculateLaunchSystemStats(launchSystem, savedLS.quantity, savedLS.extraCapacity);
+      launchSystemsList.push({
+        id: savedLS.id,
+        launchSystemType: launchSystem.id,
+        quantity: savedLS.quantity,
+        extraCapacity: savedLS.extraCapacity,
+        loadout: savedLS.loadout || [],
+        hullPoints: stats.hullPoints,
+        powerRequired: stats.powerRequired,
+        cost: stats.cost,
+        totalCapacity: stats.totalCapacity,
+      });
+    } else {
+      warnings.push(`Launch system type not found: ${savedLS.typeId}`);
     }
   }
   
@@ -538,6 +725,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       sensors,
       hangarMisc,
       weapons,
+      ordnanceDesigns,
+      launchSystems: launchSystemsList,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

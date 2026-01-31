@@ -6,6 +6,7 @@ export * from './engine';
 export * from './ftlDrive';
 export * from './supportSystem';
 export * from './weapon';
+export * from './ordnance';
 export * from './defense';
 export * from './commandControl';
 export * from './sensor';

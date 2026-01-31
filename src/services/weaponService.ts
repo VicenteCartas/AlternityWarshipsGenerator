@@ -3,6 +3,8 @@ import type { ShipClass } from '../types/hull';
 import type {
   BeamWeaponType,
   ProjectileWeaponType,
+  TorpedoWeaponType,
+  SpecialWeaponType,
   WeaponType,
   InstalledWeapon,
   WeaponStats,
@@ -12,13 +14,14 @@ import type {
   FiringArc,
   StandardArc,
   ZeroArc,
-  FirepowerRating,
 } from '../types/weapon';
-import { ALL_ZERO_ARCS, ALL_STANDARD_ARCS } from '../types/weapon';
+import { ALL_ZERO_ARCS } from '../types/weapon';
 import weaponsData from '../data/weapons.json';
 
 let beamWeapons: BeamWeaponType[] | null = null;
 let projectileWeapons: ProjectileWeaponType[] | null = null;
+let torpedoWeapons: TorpedoWeaponType[] | null = null;
+let specialWeapons: SpecialWeaponType[] | null = null;
 
 /**
  * Initialize weapons data from JSON
@@ -26,6 +29,8 @@ let projectileWeapons: ProjectileWeaponType[] | null = null;
 export function initializeWeaponsData(data: typeof weaponsData): void {
   beamWeapons = data.beamWeapons as BeamWeaponType[];
   projectileWeapons = (data as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons as ProjectileWeaponType[] || [];
+  torpedoWeapons = (data as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons as TorpedoWeaponType[] || [];
+  specialWeapons = (data as { specialWeapons?: SpecialWeaponType[] }).specialWeapons as SpecialWeaponType[] || [];
 }
 
 // Initialize with bundled data
@@ -43,6 +48,20 @@ export function getAllBeamWeaponTypes(): BeamWeaponType[] {
  */
 export function getAllProjectileWeaponTypes(): ProjectileWeaponType[] {
   return projectileWeapons || [];
+}
+
+/**
+ * Get all torpedo weapon types
+ */
+export function getAllTorpedoWeaponTypes(): TorpedoWeaponType[] {
+  return torpedoWeapons || [];
+}
+
+/**
+ * Get all special weapon types
+ */
+export function getAllSpecialWeaponTypes(): SpecialWeaponType[] {
+  return specialWeapons || [];
 }
 
 /**
@@ -87,12 +106,17 @@ export function isMountTypeAvailable(
 
 /**
  * Get mount type modifiers
+ * Per Warships rules:
+ * - Turret: +25% to both HP and cost per gun
+ * - Sponson: +25% cost only, no HP increase
+ * - Bank: +25% cost only, no HP increase
+ * - Fixed: -25% to both HP and cost
  */
 export function getMountModifiers(mountType: MountType): { costMultiplier: number; hpMultiplier: number } {
   const modifiers: Record<MountType, { costMultiplier: number; hpMultiplier: number }> = {
     standard: { costMultiplier: 1, hpMultiplier: 1 },
     fixed: { costMultiplier: 0.75, hpMultiplier: 0.75 },
-    turret: { costMultiplier: 1.5, hpMultiplier: 1.5 },
+    turret: { costMultiplier: 1.25, hpMultiplier: 1.25 },
     sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
     bank: { costMultiplier: 1.25, hpMultiplier: 1 },
   };
@@ -101,13 +125,17 @@ export function getMountModifiers(mountType: MountType): { costMultiplier: numbe
 
 /**
  * Get gun configuration modifiers
+ * Per Warships rules: "Twin Mounts require 1.5 times the space and cost of a single weapon"
+ * "Triple Mounts require twice the space and money of a single weapon"
+ * Power is NOT affected - it scales with actual gun count.
+ * These multipliers represent how many "effective guns" you pay for in HP/cost.
  */
-export function getGunConfigurationModifiers(config: GunConfiguration): { costMultiplier: number; hpMultiplier: number; gunCount: number } {
-  const modifiers: Record<GunConfiguration, { costMultiplier: number; hpMultiplier: number; gunCount: number }> = {
-    single: { costMultiplier: 1, hpMultiplier: 1, gunCount: 1 },
-    twin: { costMultiplier: 1.5, hpMultiplier: 1.5, gunCount: 2 },
-    triple: { costMultiplier: 1.75, hpMultiplier: 1.75, gunCount: 3 },
-    quadruple: { costMultiplier: 2, hpMultiplier: 2, gunCount: 4 },
+export function getGunConfigurationModifiers(config: GunConfiguration): { effectiveGunCount: number; actualGunCount: number } {
+  const modifiers: Record<GunConfiguration, { effectiveGunCount: number; actualGunCount: number }> = {
+    single: { effectiveGunCount: 1, actualGunCount: 1 },
+    twin: { effectiveGunCount: 1.5, actualGunCount: 2 },
+    triple: { effectiveGunCount: 2, actualGunCount: 3 },
+    quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
   };
   return modifiers[config];
 }
@@ -121,8 +149,8 @@ export function generateWeaponId(): string {
 
 /**
  * Calculate hull points for a weapon installation
- * HP is affected by: mount type, gun configuration, and concealment
- * Power is NOT affected by these modifiers
+ * Formula: (baseHP × mountMultiplier) × effectiveGunCount × concealmentMultiplier
+ * Per Warships rules: mount modifier applies per gun, then gun config determines effective count
  */
 export function calculateWeaponHullPoints(
   weapon: WeaponType,
@@ -133,28 +161,33 @@ export function calculateWeaponHullPoints(
   const mountMod = getMountModifiers(mountType);
   const gunMod = getGunConfigurationModifiers(gunConfig);
   
-  let hp = weapon.hullPoints;
-  hp *= mountMod.hpMultiplier;
-  hp *= gunMod.hpMultiplier;
+  // HP per gun with mount modifier
+  let hpPerGun = weapon.hullPoints * mountMod.hpMultiplier;
+  
+  // Total HP = HP per gun × effective gun count (e.g., triple = 2)
+  let totalHp = hpPerGun * gunMod.effectiveGunCount;
   
   if (concealed) {
-    hp *= 1.5; // Concealment multiplier
+    totalHp *= 1.5; // Concealment multiplier
   }
   
-  return Math.ceil(hp);
+  return Math.ceil(totalHp);
 }
 
 /**
  * Calculate power required for a weapon installation
- * Power is NOT affected by mount type, gun configuration, or concealment
+ * Power scales with ACTUAL gun count (not effective count)
+ * Power is NOT affected by mount type or concealment
  */
-export function calculateWeaponPower(weapon: WeaponType): number {
-  return weapon.powerRequired;
+export function calculateWeaponPower(weapon: WeaponType, gunConfig: GunConfiguration): number {
+  const gunMod = getGunConfigurationModifiers(gunConfig);
+  return weapon.powerRequired * gunMod.actualGunCount;
 }
 
 /**
  * Calculate cost for a weapon installation
- * Cost is affected by: mount type, gun configuration, and concealment
+ * Formula: (baseCost × mountMultiplier) × effectiveGunCount × concealmentMultiplier
+ * Per Warships rules: mount modifier applies per gun, then gun config determines effective count
  */
 export function calculateWeaponCost(
   weapon: WeaponType,
@@ -165,15 +198,17 @@ export function calculateWeaponCost(
   const mountMod = getMountModifiers(mountType);
   const gunMod = getGunConfigurationModifiers(gunConfig);
   
-  let cost = weapon.cost;
-  cost *= mountMod.costMultiplier;
-  cost *= gunMod.costMultiplier;
+  // Cost per gun with mount modifier
+  let costPerGun = weapon.cost * mountMod.costMultiplier;
+  
+  // Total cost = cost per gun × effective gun count (e.g., triple = 2)
+  let totalCost = costPerGun * gunMod.effectiveGunCount;
   
   if (concealed) {
-    cost *= 1.5; // Concealment multiplier
+    totalCost *= 1.5; // Concealment multiplier
   }
   
-  return Math.ceil(cost);
+  return Math.ceil(totalCost);
 }
 
 /**
@@ -198,7 +233,7 @@ export function createInstalledWeapon(
     quantity,
     arcs,
     hullPoints: calculateWeaponHullPoints(weapon, mountType, gunConfig, concealed),
-    powerRequired: calculateWeaponPower(weapon),
+    powerRequired: calculateWeaponPower(weapon, gunConfig),
     cost: calculateWeaponCost(weapon, mountType, gunConfig, concealed),
   };
 }
@@ -222,7 +257,7 @@ export function updateInstalledWeapon(
     quantity,
     arcs,
     hullPoints: calculateWeaponHullPoints(installed.weaponType, mountType, gunConfig, concealed),
-    powerRequired: calculateWeaponPower(installed.weaponType),
+    powerRequired: calculateWeaponPower(installed.weaponType, gunConfig),
     cost: calculateWeaponCost(installed.weaponType, mountType, gunConfig, concealed),
   };
 }
@@ -239,6 +274,7 @@ export function calculateWeaponStats(weapons: InstalledWeapon[]): WeaponStats {
       beamCount: stats.beamCount + (weapon.category === 'beam' ? weapon.quantity : 0),
       projectileCount: stats.projectileCount + (weapon.category === 'projectile' ? weapon.quantity : 0),
       torpedoCount: stats.torpedoCount + (weapon.category === 'torpedo' ? weapon.quantity : 0),
+      specialCount: stats.specialCount + (weapon.category === 'special' ? weapon.quantity : 0),
       ordnanceCount: stats.ordnanceCount + (weapon.category === 'ordnance' ? weapon.quantity : 0),
     }),
     {
@@ -248,6 +284,7 @@ export function calculateWeaponStats(weapons: InstalledWeapon[]): WeaponStats {
       beamCount: 0,
       projectileCount: 0,
       torpedoCount: 0,
+      specialCount: 0,
       ordnanceCount: 0,
     }
   );
