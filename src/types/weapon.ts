@@ -46,15 +46,18 @@ export type DamageType = 'En' | 'HI' | 'LI'; // Energy, High Impact, Low Impact
 
 // ============== Firepower Rating ==============
 
-export type FirepowerRating = 'S' | 'L' | 'M' | 'H' | 'SH'; // Small, Light, Medium, Heavy, Super-Heavy
+export type FirepowerRating = 'S' | 'L' | 'M' | 'H' | 'SH' | 'Gd'; // Small, Light, Medium, Heavy, Super-Heavy, Good (Point Defense)
 
 // ============== Fire Mode ==============
 
-export type FireMode = 'F' | 'F*' | 'F/G' | 'G' | 'F/A'; // Fire modes: F=single fire, G=burst, A=autofire
+export type FireMode = 'F' | 'F*' | 'G' | 'B' | 'A'; // Fire modes: F=single fire, F*=rapid fire, G=burst, B=burst, A=autofire
 
-// ============== Beam Weapon Type ==============
+// ============== Base Weapon Type ==============
 
-export interface BeamWeaponType {
+/**
+ * Base interface for all weapon types
+ */
+export interface BaseWeaponType {
   id: string;
   name: string;
   progressLevel: ProgressLevel;
@@ -75,15 +78,29 @@ export interface BeamWeaponType {
   rangeLong: number;
   /** Damage type: En (Energy), LI (Low-Impact), HI (High-Impact) */
   damageType: string;
-  /** Firepower rating: S (Small), L (Light), H (Heavy), SH (Super-Heavy), C (Capital) */
+  /** Firepower rating: S (Small), L (Light), H (Heavy), SH (Super-Heavy), Gd (Good/Point Defense) */
   firepower: FirepowerRating;
   /** Damage for Ordinary/Good/Amazing hits */
   damage: string;
-  /** Fire modes available */
-  fireMode: FireMode;
+  /** Fire modes available (array of individual modes) */
+  fireModes: FireMode[];
   /** Description */
   description: string;
 }
+
+// ============== Beam Weapon Type ==============
+
+/**
+ * Beam weapons extend the base weapon type
+ */
+export interface BeamWeaponType extends BaseWeaponType {}
+
+// ============== Projectile Weapon Type ==============
+
+/**
+ * Projectile weapons extend the base weapon type
+ */
+export interface ProjectileWeaponType extends BaseWeaponType {}
 
 // ============== Mount Modifiers ==============
 
@@ -127,11 +144,18 @@ export const CONCEALMENT_MODIFIER = {
   hpMultiplier: 1.5,
 };
 
+// ============== Weapon Type Union ==============
+
+/**
+ * Union type for all weapon types (beam, projectile, etc.)
+ */
+export type WeaponType = BeamWeaponType | ProjectileWeaponType;
+
 // ============== Installed Weapon ==============
 
 export interface InstalledWeapon {
   id: string;
-  weaponType: BeamWeaponType; // Will expand to union type later for other weapon categories
+  weaponType: WeaponType;
   category: WeaponCategory;
   mountType: MountType;
   gunConfiguration: GunConfiguration;

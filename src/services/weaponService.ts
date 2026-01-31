@@ -2,6 +2,8 @@ import type { ProgressLevel, TechTrack } from '../types/common';
 import type { ShipClass } from '../types/hull';
 import type {
   BeamWeaponType,
+  ProjectileWeaponType,
+  WeaponType,
   InstalledWeapon,
   WeaponStats,
   MountType,
@@ -16,12 +18,14 @@ import { ALL_ZERO_ARCS, ALL_STANDARD_ARCS } from '../types/weapon';
 import weaponsData from '../data/weapons.json';
 
 let beamWeapons: BeamWeaponType[] | null = null;
+let projectileWeapons: ProjectileWeaponType[] | null = null;
 
 /**
  * Initialize weapons data from JSON
  */
 export function initializeWeaponsData(data: typeof weaponsData): void {
   beamWeapons = data.beamWeapons as BeamWeaponType[];
+  projectileWeapons = (data as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons as ProjectileWeaponType[] || [];
 }
 
 // Initialize with bundled data
@@ -35,13 +39,20 @@ export function getAllBeamWeaponTypes(): BeamWeaponType[] {
 }
 
 /**
+ * Get all projectile weapon types
+ */
+export function getAllProjectileWeaponTypes(): ProjectileWeaponType[] {
+  return projectileWeapons || [];
+}
+
+/**
  * Filter weapon types by design constraints (Progress Level and Tech Tracks)
  */
-export function filterByDesignConstraints(
-  weapons: BeamWeaponType[],
+export function filterByDesignConstraints<T extends WeaponType>(
+  weapons: T[],
   designPL: ProgressLevel,
   designTechTracks: TechTrack[]
-): BeamWeaponType[] {
+): T[] {
   return weapons.filter((weapon) => {
     // Filter by Progress Level
     if (weapon.progressLevel > designPL) return false;
@@ -61,7 +72,7 @@ export function filterByDesignConstraints(
  * Check if a mount type is available for a weapon
  */
 export function isMountTypeAvailable(
-  weapon: BeamWeaponType,
+  weapon: WeaponType,
   mountType: MountType,
   category: WeaponCategory
 ): boolean {
@@ -114,7 +125,7 @@ export function generateWeaponId(): string {
  * Power is NOT affected by these modifiers
  */
 export function calculateWeaponHullPoints(
-  weapon: BeamWeaponType,
+  weapon: WeaponType,
   mountType: MountType,
   gunConfig: GunConfiguration,
   concealed: boolean
@@ -137,7 +148,7 @@ export function calculateWeaponHullPoints(
  * Calculate power required for a weapon installation
  * Power is NOT affected by mount type, gun configuration, or concealment
  */
-export function calculateWeaponPower(weapon: BeamWeaponType): number {
+export function calculateWeaponPower(weapon: WeaponType): number {
   return weapon.powerRequired;
 }
 
@@ -146,7 +157,7 @@ export function calculateWeaponPower(weapon: BeamWeaponType): number {
  * Cost is affected by: mount type, gun configuration, and concealment
  */
 export function calculateWeaponCost(
-  weapon: BeamWeaponType,
+  weapon: WeaponType,
   mountType: MountType,
   gunConfig: GunConfiguration,
   concealed: boolean
@@ -169,7 +180,7 @@ export function calculateWeaponCost(
  * Create an installed weapon from a weapon type
  */
 export function createInstalledWeapon(
-  weapon: BeamWeaponType,
+  weapon: WeaponType,
   category: WeaponCategory,
   mountType: MountType,
   gunConfig: GunConfiguration,
@@ -244,9 +255,10 @@ export function calculateWeaponStats(weapons: InstalledWeapon[]): WeaponStats {
 
 /**
  * Check if bank mount is available for a weapon
+ * Bank mounts are only available for PL8+ beam weapons
  */
-export function isBankMountAvailable(weapon: BeamWeaponType): boolean {
-  return weapon.progressLevel >= 8;
+export function isBankMountAvailable(weapon: WeaponType, category: WeaponCategory): boolean {
+  return category === 'beam' && weapon.progressLevel >= 8;
 }
 
 /**
@@ -282,9 +294,9 @@ export function getGunConfigurationName(config: GunConfiguration): string {
  * Get the number of free arcs based on mount type and ship class
  * Rules:
  * - Fixed: 1 arc only (no zero arc)
- * - Standard/Bank on light+: 1 zero arc + 1 standard arc
+ * - Standard on light+: 1 zero arc + 1 standard arc
  * - Sponson on light+: 1 zero arc + 2 standard arcs
- * - Turret on light+: 1 zero arc + 3 standard arcs
+ * - Turret/Bank on light+: 1 zero arc + 3 standard arcs
  * - Small craft: all zero arcs free + normal mount arcs
  */
 export function getFreeArcCount(mountType: MountType, shipClass: ShipClass): { zeroArcs: number; standardArcs: number } {
@@ -298,7 +310,7 @@ export function getFreeArcCount(mountType: MountType, shipClass: ShipClass): { z
   if (isSmallCraft) {
     // Small craft get all zero arcs for free
     // Plus their normal mount arcs
-    if (mountType === 'turret') {
+    if (mountType === 'turret' || mountType === 'bank') {
       return { zeroArcs: 4, standardArcs: 3 }; // All zero + 3 standard
     } else if (mountType === 'sponson') {
       return { zeroArcs: 4, standardArcs: 2 }; // All zero + 2 standard
@@ -308,22 +320,22 @@ export function getFreeArcCount(mountType: MountType, shipClass: ShipClass): { z
   }
   
   // Light or larger ships
-  if (mountType === 'turret') {
+  if (mountType === 'turret' || mountType === 'bank') {
     return { zeroArcs: 1, standardArcs: 3 }; // 1 zero + 3 standard
   } else if (mountType === 'sponson') {
     return { zeroArcs: 1, standardArcs: 2 }; // 1 zero + 2 standard
   } else {
-    // standard, bank
+    // standard
     return { zeroArcs: 1, standardArcs: 1 }; // 1 zero + 1 standard
   }
 }
 
 /**
  * Check if a weapon can use zero arcs
- * Only Small (S) and Light (L) firepower weapons can bear on zero arcs
+ * Only Small (S), Light (L), and Good (Gd) firepower weapons can bear on zero arcs
  */
-export function canUseZeroArcs(weapon: BeamWeaponType): boolean {
-  return weapon.firepower === 'S' || weapon.firepower === 'L';
+export function canUseZeroArcs(weapon: WeaponType): boolean {
+  return weapon.firepower === 'S' || weapon.firepower === 'L' || weapon.firepower === 'Gd';
 }
 
 /**

@@ -15,8 +15,10 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d4s/d4w/d4+2w",
-      "fireMode": "F*",
-      "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target."
+      "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "ir-laser",
@@ -33,8 +35,10 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d4+1s/d4+1w/d6+1w",
-      "fireMode": "F*",
-      "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum."
+      "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "x-ray-laser",
@@ -51,8 +55,10 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d6+1s/d4+2w/d4m",
-      "fireMode": "F*",
-      "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers."
+      "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "heavy-laser",
@@ -69,8 +75,11 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d6+2s/d6+2w/d6m",
-      "fireMode": "F/G",
-      "description": "A more powerful version of the basic laser, the heavy laser delivers more energy to the target."
+      "description": "A more powerful version of the basic laser, the heavy laser delivers more energy to the target.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "neutron-gun",
@@ -87,14 +96,19 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "2d4w/2d4+2w/2d4m",
-      "fireMode": "F/G",
-      "description": "This device projects a stream of neutrons at the target, creating severe radiation effects and wreaking havoc with electronics and personnel."
+      "description": "This device projects a stream of neutrons at the target, creating severe radiation effects and wreaking havoc with electronics and personnel.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "fusion-laser",
       "name": "Fusion Laser",
       "progressLevel": 6,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 12,
       "powerRequired": 12,
       "cost": 20000000,
@@ -105,14 +119,19 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d6w/2d6+2w/2d6m",
-      "fireMode": "F/G",
-      "description": "Using a controlled fusion reaction to prime an immensely  powerful high-energy burst of radiation, the fusion laser is an extremely powerful version of the x-ray laser."
+      "description": "Using a controlled fusion reaction to prime an immensely  powerful high-energy burst of radiation, the fusion laser is an extremely powerful version of the x-ray laser.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "graser",
       "name": "Graser",
       "progressLevel": 6,
-      "techTracks": ["Q"],
+      "techTracks": [
+        "Q"
+      ],
       "hullPoints": 15,
       "powerRequired": 15,
       "cost": 40000000,
@@ -123,8 +142,11 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "3d4s/2d4m/3d4m",
-      "fireMode": "F/G",
-      "description": "Like the x-ray laser, the graser is a device that lases very high-energy electromagnetic waves—in this case, gamma rays. It causes severe radiation damage to its target."
+      "description": "Like the x-ray laser, the graser is a device that lases very high-energy electromagnetic waves—in this case, gamma rays. It causes severe radiation damage to its target.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "heavy-neutron-gun",
@@ -141,14 +163,19 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "2d6w/2d6m/2d6+2m",
-      "fireMode": "F/G",
-      "description": "A more powerful version of the neutron gun, capable of inflicting massive damage."
+      "description": "A more powerful version of the neutron gun, capable of inflicting massive damage.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "hydrogen-bore",
       "name": "Hydrogen Bore",
       "progressLevel": 6,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 50,
       "powerRequired": 50,
       "cost": 100000000,
@@ -159,14 +186,18 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d4w/3d4m/3d4c",
-      "fireMode": "F",
-      "description": "This mammoth weapon is basically a fusion torch drive designed to function as a weapon. It uses magnetic fields to direct a blast of fusing hydrogen at its target. The temperature of the hydrogen bore’s discharge approaches ten thousand degrees."
+      "description": "This mammoth weapon is basically a fusion torch drive designed to function as a weapon. It uses magnetic fields to direct a blast of fusing hydrogen at its target. The temperature of the hydrogen bore’s discharge approaches ten thousand degrees.",
+      "fireModes": [
+        "F"
+      ]
     },
     {
       "id": "plasma-cannon",
       "name": "Plasma Cannon",
       "progressLevel": 7,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 3,
       "powerRequired": 3,
       "cost": 400000,
@@ -177,8 +208,10 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d6+2w/d8+2w/d6+1m",
-      "fireMode": "F*",
-      "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials."
+      "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "particle-beam",
@@ -195,9 +228,11 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d6+3s/d4+1m/d4+3m",
-      "fireMode": "F",
-      "description": "An improved version of the PL 6 neutron gun, this device projects a stream of protons, neutrons, or alpha particles at the target, accelerating each to near light-speed."
-    },  
+      "description": "An improved version of the PL 6 neutron gun, this device projects a stream of protons, neutrons, or alpha particles at the target, accelerating each to near light-speed.",
+      "fireModes": [
+        "F"
+      ]
+    },
     {
       "id": "heavy-particle-beam",
       "name": "Heavy Particle Beam",
@@ -213,14 +248,19 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d12+3s/d6+1m/d6+3m",
-      "fireMode": "F/G",
-      "description": "The heavy particle beam delivers a higher volume of particles to the target."
+      "description": "The heavy particle beam delivers a higher volume of particles to the target.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "heavy-plasma-cannon",
       "name": "Heavy Plasma Cannon",
       "progressLevel": 7,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 8,
       "powerRequired": 8,
       "cost": 12000000,
@@ -231,14 +271,19 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d8+2w/d12+2w/d8+2m",
-      "fireMode": "F/G",
-      "description": "The heavy plasma cannon simply fires a larger bolt than the regular plasma cannon."
+      "description": "The heavy plasma cannon simply fires a larger bolt than the regular plasma cannon.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "matter-beam",
       "name": "Matter Beam",
       "progressLevel": 7,
-      "techTracks": ["A"],
+      "techTracks": [
+        "A"
+      ],
       "hullPoints": 11,
       "powerRequired": 11,
       "cost": 20000000,
@@ -249,14 +294,19 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d6+1w/2d8+1w/2d8m",
-      "fireMode": "F/G",
-      "description": "The matter beam works much like a particle accelerator, except that it fires particles of antimatter. Cannot be fired through an atmosphere."
+      "description": "The matter beam works much like a particle accelerator, except that it fires particles of antimatter. Cannot be fired through an atmosphere.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "fusion-beam",
       "name": "Fusion Beam",
       "progressLevel": 7,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 15,
       "powerRequired": 15,
       "cost": 25000000,
@@ -267,14 +317,19 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "d12+2w/d12+4w/d8+5m",
-      "fireMode": "F/G",
-      "description": "Like the hydrogen bore of Progress Level 6, the fusion beam initiates a fusion reaction and then directs the blast at the target. The PL 7 version is simply smaller and more efficient."
+      "description": "Like the hydrogen bore of Progress Level 6, the fusion beam initiates a fusion reaction and then directs the blast at the target. The PL 7 version is simply smaller and more efficient.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "quantum-cannon",
       "name": "Quantum Cannon",
       "progressLevel": 7,
-      "techTracks": ["Q"],
+      "techTracks": [
+        "Q"
+      ],
       "hullPoints": 18,
       "powerRequired": 18,
       "cost": 50000000,
@@ -285,14 +340,19 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d8+2w/2d6m/2d4c",
-      "fireMode": "F/G",
-      "description": "The quantum cannon fires a stream of highly charged subatomic particles designed to destabilize the atoms of the target and create localized fission reactions."
+      "description": "The quantum cannon fires a stream of highly charged subatomic particles designed to destabilize the atoms of the target and create localized fission reactions.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "boson-gun",
       "name": "Boson Gun",
       "progressLevel": 7,
-      "techTracks": ["Q"],
+      "techTracks": [
+        "Q"
+      ],
       "hullPoints": 20,
       "powerRequired": 20,
       "cost": 80000000,
@@ -303,14 +363,19 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "3d6w/3d6m/4d6m",
-      "fireMode": "F/G",
-      "description": "A larger and more powerful version of the quantum cannon."
+      "description": "A larger and more powerful version of the quantum cannon.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "heavy-matter-beam",
       "name": "Heavy Matter Beam",
       "progressLevel": 7,
-      "techTracks": ["A"],
+      "techTracks": [
+        "A"
+      ],
       "hullPoints": 24,
       "powerRequired": 24,
       "cost": 100000000,
@@ -321,14 +386,19 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "2d6+1m/2d8+1m/2d8c",
-      "fireMode": "F/G",
-      "description": "A larger and more powerful version of the matter beam. Cannot be fired through an atmosphere."
+      "description": "A larger and more powerful version of the matter beam. Cannot be fired through an atmosphere.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "fusion-bore",
       "name": "Fusion Bore",
       "progressLevel": 7,
-      "techTracks": ["F"],
+      "techTracks": [
+        "F"
+      ],
       "hullPoints": 60,
       "powerRequired": 75,
       "cost": 200000000,
@@ -339,8 +409,10 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d6m/3d4c/3d6c",
-      "fireMode": "F",
-      "description": "The colossal fusion bore is simply an exceedingly large example of a fusion beam."
+      "description": "The colossal fusion bore is simply an exceedingly large example of a fusion beam.",
+      "fireModes": [
+        "F"
+      ]
     },
     {
       "id": "maser",
@@ -357,14 +429,18 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d6+2w/d4+1m/d6+2m",
-      "fireMode": "F*",
-      "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy."
+      "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "kinetic-lance",
       "name": "Kinetic Lance",
       "progressLevel": 8,
-      "techTracks": ["X"],
+      "techTracks": [
+        "X"
+      ],
       "hullPoints": 2,
       "powerRequired": 1,
       "cost": 750000,
@@ -375,8 +451,10 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d4+1w/2d4w/d4+3m",
-      "fireMode": "F*",
-      "description": "The kinetic lance creates a stream of virtual particles simulating solid matter. At the speeds involved with space combat, the impact of the lance is quite destructive."
+      "description": "The kinetic lance creates a stream of virtual particles simulating solid matter. At the speeds involved with space combat, the impact of the lance is quite destructive.",
+      "fireModes": [
+        "F*"
+      ]
     },
     {
       "id": "pulse-maser",
@@ -393,8 +471,11 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d8+4w/d8+2m/d12+2m",
-      "fireMode": "F/G*",
-      "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. "
+      "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
+      "fireModes": [
+        "F",
+        "G*"
+      ]
     },
     {
       "id": "em-cannon",
@@ -411,14 +492,19 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "3d6s/4d6s/4d8s",
-      "fireMode": "F/G",
-      "description": "The EM cannon works much like the laser or maser cannons, but it concentrates its peak power in the radio band. It is especially effective against electronic equipment, inducing an EMP (electromagnetic pulse) effect similar to that of a nuclear explosion."
+      "description": "The EM cannon works much like the laser or maser cannons, but it concentrates its peak power in the radio band. It is especially effective against electronic equipment, inducing an EMP (electromagnetic pulse) effect similar to that of a nuclear explosion.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "dark-fusion-gun",
       "name": "Dark Fusion Gun",
       "progressLevel": 8,
-      "techTracks": ["D"],
+      "techTracks": [
+        "D"
+      ],
       "hullPoints": 15,
       "powerRequired": 15,
       "cost": 40000000,
@@ -429,8 +515,11 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d6w/3d4m/2d4+1c",
-      "fireMode": "F/G",
-      "description": "Based on dark matter reactions, the dark fusion gun initiates a reaction in which normal matter fuses into dark matter, releasing an extreme amount of energy."
+      "description": "Based on dark matter reactions, the dark fusion gun initiates a reaction in which normal matter fuses into dark matter, releasing an extreme amount of energy.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "gatling-maser",
@@ -447,14 +536,21 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "d8+4w/d8+2m/d12+2m",
-      "fireMode": "F/G/B/A",
-      "description": "The gatling maser uses multiple firing arrays to handle even higher energy compressions into shorter pulse widths without burning out the emitters."
+      "description": "The gatling maser uses multiple firing arrays to handle even higher energy compressions into shorter pulse widths without burning out the emitters.",
+      "fireModes": [
+        "F",
+        "G",
+        "B",
+        "A"
+      ]
     },
     {
       "id": "weak-force-gun",
       "name": "Weak Force Gun",
       "progressLevel": 8,
-      "techTracks": ["M"],
+      "techTracks": [
+        "M"
+      ],
       "hullPoints": 25,
       "powerRequired": 25,
       "cost": 120000000,
@@ -465,14 +561,19 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "4d4w/4d4m/4d4c",
-      "fireMode": "F/G",
-      "description": "The weak force gun interferes with the nuclear weak force, causing intense radioactive decay effects at the point of impact. The target suffers thermal and radioactive damage as its own atoms irradiate the vicinity."
+      "description": "The weak force gun interferes with the nuclear weak force, causing intense radioactive decay effects at the point of impact. The target suffers thermal and radioactive damage as its own atoms irradiate the vicinity.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "strong-force-gun",
       "name": "Strong Force Gun",
       "progressLevel": 8,
-      "techTracks": ["M"],
+      "techTracks": [
+        "M"
+      ],
       "hullPoints": 32,
       "powerRequired": 32,
       "cost": 150000000,
@@ -483,14 +584,19 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "3d6+2m/3d4c/4d6c",
-      "fireMode": "F/G",
-      "description": "The nuclear strong force is the force that binds atoms together. The strong force beam emitted by this weapon causes the target’s atomic nuclei to bind together so tightly that they fuse, releasing an incredible amount of energy. The target, in effect, becomes its own hydrogen bomb."
+      "description": "The nuclear strong force is the force that binds atoms together. The strong force beam emitted by this weapon causes the target’s atomic nuclei to bind together so tightly that they fuse, releasing an incredible amount of energy. The target, in effect, becomes its own hydrogen bomb.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "zero-bore",
       "name": "Zero Bore",
       "progressLevel": 8,
-      "techTracks": ["Q"],
+      "techTracks": [
+        "Q"
+      ],
       "hullPoints": 100,
       "powerRequired": 100,
       "cost": 300000000,
@@ -501,14 +607,18 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "4d6m/3d6c/3d8c",
-      "fireMode": "F",
-      "description": "The zero bore creates a stream of energy that encourages extraordinary amounts of quantum energy fluctuation—the so-called “zero point” energy. Anything in its path is wrecked by the spontaneous detonation of space itself."
+      "description": "The zero bore creates a stream of energy that encourages extraordinary amounts of quantum energy fluctuation—the so-called “zero point” energy. Anything in its path is wrecked by the spontaneous detonation of space itself.",
+      "fireModes": [
+        "F"
+      ]
     },
     {
       "id": "blacklaser",
       "name": "Blacklaser",
       "progressLevel": 9,
-      "techTracks": ["D"],
+      "techTracks": [
+        "D"
+      ],
       "hullPoints": 3,
       "powerRequired": 3,
       "cost": 1000000,
@@ -519,14 +629,21 @@
       "damageType": "En",
       "firepower": "S",
       "damage": "d8w/d12w/d8m",
-      "fireMode": "F/G/B/A",
-      "description": "Using the fluorescence of a gaseous form of dark matter, the blacklaser fires a beam of coherent light. To human eyes, it resembles the low-ultraviolet glow of a blacklight, but it’s actually composed of much more energetic and dangerous radiation than ordinary photons."
+      "description": "Using the fluorescence of a gaseous form of dark matter, the blacklaser fires a beam of coherent light. To human eyes, it resembles the low-ultraviolet glow of a blacklight, but it’s actually composed of much more energetic and dangerous radiation than ordinary photons.",
+      "fireModes": [
+        "F",
+        "G",
+        "B",
+        "A"
+      ]
     },
     {
       "id": "tachyon-gun",
       "name": "Tachyon Gun",
       "progressLevel": 9,
-      "techTracks": ["X"],
+      "techTracks": [
+        "X"
+      ],
       "hullPoints": 12,
       "powerRequired": 12,
       "cost": 40000000,
@@ -537,14 +654,20 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d8+2w/2d8m/d8+1c",
-      "fireMode": "F/G",
-      "description": "The tachyon gun actually fires a blast of high-energy, faster-than-light particles at the target."
+      "description": "The tachyon gun actually fires a blast of high-energy, faster-than-light particles at the target.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
     },
     {
       "id": "string-projector",
       "name": "String Projector",
       "progressLevel": 9,
-      "techTracks": ["Q","G"],
+      "techTracks": [
+        "Q",
+        "G"
+      ],
       "hullPoints": 24,
       "powerRequired": 30,
       "cost": 200000000,
@@ -555,8 +678,434 @@
       "damageType": "LI",
       "firepower": "H",
       "damage": "4d8w/3d8m/3d8c",
-      "fireMode": "F/G",
-      "description": "The string projector creates a short-lived cosmic string that passes through the target."
+      "description": "The string projector creates a short-lived cosmic string that passes through the target.",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    }
+  ],
+  "projectileWeapons": [
+    {
+      "id": "point-defense-gun",
+      "name": "Point Defense Gun",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 1,
+      "powerRequired": 0,
+      "cost": 200000,
+      "accuracyModifier": -1,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 3,
+      "damageType": "HI",
+      "damage": "d4s/d4w/d4+2w",
+      "description": "The point defense gun is primarily a defensive system intended to engage incoming missiles and fighters at very close range. It uses simple kinetic projectiles.",
+      "firepower": "Gd",
+      "fireModes": [
+        "F",
+        "B",
+        "A"
+      ]
+    },
+    {
+      "id": "rail-cannon",
+      "name": "Rail Cannon",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 4,
+      "powerRequired": 3,
+      "cost": 500000,
+      "accuracyModifier": 0,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 5,
+      "damageType": "HI",
+      "damage": "2d4s/d6+2w/d4+1m",
+      "description": "Using a series of electromagnets to propel projectiles down a magnetic track, the rail cannon can be devastating at close ranges. The projectiles are kinetic-energy weapons with no explosive charge.",
+      "firepower": "S",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "needle-driver",
+      "name": "Needle Driver",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 6,
+      "powerRequired": 6,
+      "cost": 2000000,
+      "accuracyModifier": 1,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 5,
+      "damageType": "HI",
+      "damage": "d6+1w/d6+3w/d4+3m",
+      "description": "The needle driver is a larger and heavier version of the rail cannon with an extremely high rate of fire. It fires small metal flechettes at the rate of thousands of rounds per minute. It can fire only in burst or autofire mode.",
+      "firepower": "L",
+      "fireModes": [
+        "B",
+        "A"
+      ]
+    },
+    {
+      "id": "gauss-gun",
+      "name": "Gauss Gun",
+      "progressLevel": 6,
+      "techTracks": [
+        "S"
+      ],
+      "hullPoints": 8,
+      "powerRequired": 6,
+      "cost": 5000000,
+      "accuracyModifier": 2,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 6,
+      "damageType": "HI",
+      "damage": "d6+1w/d6+2m/d4+1c",
+      "description": "Based on superconducting technology, the gauss gun is an improved version of the rail cannon. Its magnetic acceleration system can propel projectiles at even higher velocities.",
+      "firepower": "M",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "hi-velocity-rail-gun",
+      "name": "Hi-Velocity Rail Gun",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 20,
+      "powerRequired": 16,
+      "cost": 50000000,
+      "accuracyModifier": 4,
+      "rangeShort": 3,
+      "rangeMedium": 6,
+      "rangeLong": 12,
+      "damageType": "HI",
+      "damage": "d8+2w/d8+2m/d6+2c",
+      "description": "Like all rail-gun weapons, the hi-velocity rail gun uses a long track and an immense amount of power to accelerate a relatively small projectile to extremely high velocities.",
+      "firepower": "H",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "mass-cannon",
+      "name": "Mass Cannon",
+      "progressLevel": 7,
+      "techTracks": [
+        "G"
+      ],
+      "hullPoints": 2,
+      "powerRequired": 3,
+      "cost": 300000,
+      "accuracyModifier": -1,
+      "rangeShort": 1,
+      "rangeMedium": 3,
+      "rangeLong": 5,
+      "damageType": "LI",
+      "damage": "d6+2s/d6+1w/d6+3w",
+      "description": "The mass cannon uses gravitic technology to charge a projectile with additional mass, making it far more destructive than a simple kinetic slug.",
+      "firepower": "S",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "heavy-mass-cannon",
+      "name": "Heavy Mass Cannon",
+      "progressLevel": 7,
+      "techTracks": [
+        "G"
+      ],
+      "hullPoints": 5,
+      "powerRequired": 6,
+      "cost": 2000000,
+      "accuracyModifier": 0,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 6,
+      "damageType": "LI",
+      "damage": "2d6s/2d6w/3d6w",
+      "description": "A larger version of the mass cannon with increased power and damage potential.",
+      "firepower": "L",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "accelerator",
+      "name": "Accelerator",
+      "progressLevel": 7,
+      "techTracks": [],
+      "hullPoints": 9,
+      "powerRequired": 7,
+      "cost": 10000000,
+      "accuracyModifier": 1,
+      "rangeShort": 3,
+      "rangeMedium": 5,
+      "rangeLong": 7,
+      "damageType": "En",
+      "damage": "2d6s/2d6w/2d6m",
+      "description": "The accelerator uses advanced magnetic fields to launch projectiles at near-relativistic speeds, converting kinetic energy into devastating impact damage.",
+      "firepower": "M",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "tach-rifle",
+      "name": "Tach Rifle",
+      "progressLevel": 7,
+      "techTracks": [
+        "X"
+      ],
+      "hullPoints": 12,
+      "powerRequired": 8,
+      "cost": 30000000,
+      "accuracyModifier": 1,
+      "rangeShort": 6,
+      "rangeMedium": 8,
+      "rangeLong": 10,
+      "damageType": "HI",
+      "damage": "d12w/d8m/d12m",
+      "description": "The tach rifle fires self-powered tachyon rockets. The rounds are not self-guiding since the tachyon rocket breaks the light-speed barrier for an infinitesimal moment. The guidance system is basically a timer that drops it back into real space just in time to strike the target.",
+      "firepower": "M",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "heavy-accelerator",
+      "name": "Heavy Accelerator",
+      "progressLevel": 7,
+      "techTracks": [],
+      "hullPoints": 18,
+      "powerRequired": 14,
+      "cost": 40000000,
+      "accuracyModifier": 3,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 10,
+      "damageType": "En",
+      "damage": "2d6w/2d6m/2d6c",
+      "description": "A larger and more powerful version of the accelerator, capable of launching even larger projectiles at devastating velocities.",
+      "firepower": "H",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "antimatter-gun",
+      "name": "Antimatter Gun",
+      "progressLevel": 7,
+      "techTracks": [
+        "A"
+      ],
+      "hullPoints": 25,
+      "powerRequired": 18,
+      "cost": 80000000,
+      "accuracyModifier": 4,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 12,
+      "damageType": "En",
+      "damage": "3d6w/3d4m/3d4c",
+      "description": "The antimatter gun fires projectiles containing antimatter warheads. The annihilation reaction on impact is extremely destructive, and the splatter of antimatter creates a cluster-bomb effect.",
+      "firepower": "H",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "super-tach-rifle",
+      "name": "Super Tach Rifle",
+      "progressLevel": 7,
+      "techTracks": [
+        "X"
+      ],
+      "hullPoints": 40,
+      "powerRequired": 30,
+      "cost": 120000000,
+      "accuracyModifier": 4,
+      "rangeShort": 8,
+      "rangeMedium": 10,
+      "rangeLong": 14,
+      "damageType": "HI",
+      "damage": "2d8m/2d12m/2d8c",
+      "description": "A more powerful version of the tach rifle with longer range and devastating firepower.",
+      "firepower": "SH",
+      "fireModes": [
+        "F"
+      ]
+    },
+    {
+      "id": "sliver-gun",
+      "name": "Sliver Gun",
+      "progressLevel": 8,
+      "techTracks": [],
+      "hullPoints": 4,
+      "powerRequired": 2,
+      "cost": 250000,
+      "accuracyModifier": -2,
+      "rangeShort": 1,
+      "rangeMedium": 2,
+      "rangeLong": 4,
+      "damageType": "HI",
+      "damage": "d6+1w/d6+3w/d4+2m",
+      "description": "An extremely efficient mass driver armed with flechettes (or slivers) of tungsten steel, the sliver gun is the 27th-century version of a heavy machine gun or autocannon. It can fire in burst or autofire modes.",
+      "firepower": "S",
+      "fireModes": [
+        "F",
+        "B",
+        "A"
+      ]
+    },
+    {
+      "id": "neutronium-driver",
+      "name": "Neutronium Driver",
+      "progressLevel": 8,
+      "techTracks": [
+        "S"
+      ],
+      "hullPoints": 8,
+      "powerRequired": 4,
+      "cost": 4000000,
+      "accuracyModifier": 0,
+      "rangeShort": 2,
+      "rangeMedium": 4,
+      "rangeLong": 8,
+      "damageType": "HI",
+      "damage": "d6+3w/d6+1m/d6c",
+      "description": "The neutronium driver fires projectiles made of ultra-dense neutronium. The incredible mass of these tiny projectiles creates devastating kinetic impacts.",
+      "firepower": "L",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "bomb-projector",
+      "name": "Bomb Projector",
+      "progressLevel": 8,
+      "techTracks": [
+        "T"
+      ],
+      "hullPoints": 10,
+      "powerRequired": 15,
+      "cost": 15000000,
+      "accuracyModifier": -1,
+      "rangeShort": 4,
+      "rangeMedium": 6,
+      "rangeLong": 8,
+      "damageType": "En",
+      "damage": "2d6s/2d6w/2d6m",
+      "description": "Using matter transmission technology, the bomb projector teleports explosive warheads directly to the target location.",
+      "firepower": "M",
+      "fireModes": [
+        "F"
+      ]
+    },
+    {
+      "id": "bomb-salvo",
+      "name": "Bomb Salvo",
+      "progressLevel": 8,
+      "techTracks": [
+        "T"
+      ],
+      "hullPoints": 12,
+      "powerRequired": 18,
+      "cost": 20000000,
+      "accuracyModifier": -1,
+      "rangeShort": 5,
+      "rangeMedium": 7,
+      "rangeLong": 10,
+      "damageType": "En",
+      "damage": "2d6s/2d6w/2d6m",
+      "description": "A larger version of the bomb projector capable of teleporting multiple warheads simultaneously.",
+      "firepower": "M",
+      "fireModes": [
+        "F"
+      ]
+    },
+    {
+      "id": "kinetic-converter",
+      "name": "Kinetic Converter",
+      "progressLevel": 8,
+      "techTracks": [
+        "X"
+      ],
+      "hullPoints": 20,
+      "powerRequired": 10,
+      "cost": 50000000,
+      "accuracyModifier": 2,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 16,
+      "damageType": "LI",
+      "damage": "d12+3w/d12+3m/d12+1c",
+      "description": "The kinetic converter uses energy transformation technology to amplify the kinetic energy of its projectiles, creating devastating low-impact damage.",
+      "firepower": "H",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "tunneling-driver",
+      "name": "Tunneling Driver",
+      "progressLevel": 9,
+      "techTracks": [
+        "Q"
+      ],
+      "hullPoints": 30,
+      "powerRequired": 15,
+      "cost": 90000000,
+      "accuracyModifier": 3,
+      "rangeShort": 5,
+      "rangeMedium": 10,
+      "rangeLong": 20,
+      "damageType": "En",
+      "damage": "2d6s/2d6w/2d6m",
+      "description": "Using quantum tunneling technology, this weapon phases its projectiles through the target's armor before releasing their energy payload.",
+      "firepower": "M",
+      "fireModes": [
+        "F",
+        "G"
+      ]
+    },
+    {
+      "id": "black-hole-gun",
+      "name": "Black Hole Gun",
+      "progressLevel": 9,
+      "techTracks": [
+        "G"
+      ],
+      "hullPoints": 75,
+      "powerRequired": 40,
+      "cost": 200000000,
+      "accuracyModifier": 1,
+      "rangeShort": 6,
+      "rangeMedium": 12,
+      "rangeLong": 24,
+      "damageType": "LI",
+      "damage": "3d6m/4d6m/3d8c",
+      "description": "The black hole gun creates a microscopic singularity and projects it at the target. The gravitational forces tear apart anything in its path.",
+      "firepower": "SH",
+      "fireModes": [
+        "F"
+      ]
     }
   ]
 }

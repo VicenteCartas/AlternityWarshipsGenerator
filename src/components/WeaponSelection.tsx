@@ -30,7 +30,8 @@ import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
-  BeamWeaponType,
+  WeaponType,
+  WeaponCategory,
   InstalledWeapon,
   MountType,
   GunConfiguration,
@@ -38,6 +39,7 @@ import type {
 } from '../types/weapon';
 import {
   getAllBeamWeaponTypes,
+  getAllProjectileWeaponTypes,
   filterByDesignConstraints,
   calculateWeaponStats,
   createInstalledWeapon,
@@ -67,6 +69,14 @@ interface WeaponSelectionProps {
 
 type WeaponTab = 'beam' | 'projectile' | 'ordnance' | 'special';
 
+// Map tab to weapon category
+const TAB_TO_CATEGORY: Record<WeaponTab, WeaponCategory> = {
+  beam: 'beam',
+  projectile: 'projectile',
+  ordnance: 'ordnance',
+  special: 'ordnance', // Special weapons use ordnance category for now
+};
+
 export function WeaponSelection({
   hull,
   installedWeapons,
@@ -75,7 +85,7 @@ export function WeaponSelection({
   onWeaponsChange,
 }: WeaponSelectionProps) {
   const [activeTab, setActiveTab] = useState<WeaponTab>('beam');
-  const [selectedWeapon, setSelectedWeapon] = useState<BeamWeaponType | null>(null);
+  const [selectedWeapon, setSelectedWeapon] = useState<WeaponType | null>(null);
   const [mountType, setMountType] = useState<MountType>('standard');
   const [gunConfiguration, setGunConfiguration] = useState<GunConfiguration>('single');
   const [concealed, setConcealed] = useState<boolean>(false);
@@ -87,12 +97,37 @@ export function WeaponSelection({
   // Ship class for arc rules
   const shipClass = hull.shipClass;
 
+  // Firepower sort order: Gd -> S -> L -> M -> H -> SH
+  const firepowerOrder: Record<string, number> = { 'Gd': 0, 'S': 1, 'L': 2, 'M': 3, 'H': 4, 'SH': 5 };
+
   // Get filtered beam weapons
   const availableBeamWeapons = useMemo(() => {
     return filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks)
       .sort((a, b) => {
-        // Sort by PL, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
+        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
         if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        const fpA = firepowerOrder[a.firepower] ?? 99;
+        const fpB = firepowerOrder[b.firepower] ?? 99;
+        if (fpA !== fpB) return fpA - fpB;
+        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
+        if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
+        if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
+        if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
+        return a.cost - b.cost;
+      });
+  }, [designProgressLevel, designTechTracks]);
+
+  // Get filtered projectile weapons
+  const availableProjectileWeapons = useMemo(() => {
+    return filterByDesignConstraints(getAllProjectileWeaponTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        const fpA = firepowerOrder[a.firepower] ?? 99;
+        const fpB = firepowerOrder[b.firepower] ?? 99;
+        if (fpA !== fpB) return fpA - fpB;
         if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
         if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
         if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
@@ -134,7 +169,7 @@ export function WeaponSelection({
     setEditingWeaponId(null);
   };
 
-  const handleSelectWeapon = (weapon: BeamWeaponType) => {
+  const handleSelectWeapon = (weapon: WeaponType) => {
     setSelectedWeapon(weapon);
     setMountType('standard');
     setGunConfiguration('single');
@@ -151,6 +186,8 @@ export function WeaponSelection({
     if (!selectedWeapon) return;
     if (arcValidationError) return;
 
+    const category = TAB_TO_CATEGORY[activeTab];
+
     if (editingWeaponId) {
       // When editing, update the weapon including quantity and arcs
       onWeaponsChange(
@@ -164,7 +201,7 @@ export function WeaponSelection({
       // When adding, create a single installed weapon with quantity and arcs
       const newWeapon = createInstalledWeapon(
         selectedWeapon,
-        'beam',
+        category,
         mountType,
         gunConfiguration,
         concealed,
@@ -266,8 +303,8 @@ export function WeaponSelection({
     ? calculateWeaponCost(selectedWeapon, mountType, gunConfiguration, concealed)
     : 0;
 
-  // Check if bank mount is available for selected weapon
-  const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon) : false;
+  // Check if bank mount is available for selected weapon (PL8+ beam weapons only)
+  const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon, TAB_TO_CATEGORY[activeTab]) : false;
 
   // Render installed weapons section
   const renderInstalledWeapons = () => {
@@ -545,7 +582,65 @@ export function WeaponSelection({
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
                 <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
-                <TableCell>{weapon.fireMode}</TableCell>
+                <TableCell>{weapon.fireModes.join('/')}</TableCell>
+                <TableCell sx={{ maxWidth: 250 }}>
+                  <TruncatedDescription text={weapon.description} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  // Render projectile weapons grid
+  const renderProjectileWeaponsGrid = () => {
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1400 } }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fire</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {availableProjectileWeapons.map((weapon) => (
+              <TableRow
+                key={weapon.id}
+                hover
+                onClick={() => handleSelectWeapon(weapon)}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  ...(selectedWeapon?.id === weapon.id && {
+                    bgcolor: 'primary.light',
+                    '&:hover': { bgcolor: 'primary.light' },
+                  }),
+                }}
+              >
+                <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
+                <TableCell>{weapon.progressLevel}</TableCell>
+                <TechTrackCell techTracks={weapon.techTracks} />
+                <TableCell>{weapon.hullPoints}</TableCell>
+                <TableCell>{weapon.powerRequired}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(weapon.cost)}</TableCell>
+                <TableCell>{formatAccuracyModifier(weapon.accuracyModifier)}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
+                <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
+                <TableCell>{weapon.fireModes.join('/')}</TableCell>
                 <TableCell sx={{ maxWidth: 250 }}>
                   <TruncatedDescription text={weapon.description} />
                 </TableCell>
@@ -602,7 +697,7 @@ export function WeaponSelection({
       {renderInstalledWeapons()}
 
       {/* Configure Form */}
-      {activeTab === 'beam' && renderConfigureForm()}
+      {(activeTab === 'beam' || activeTab === 'projectile') && renderConfigureForm()}
 
       {/* Weapon Category Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
@@ -616,9 +711,10 @@ export function WeaponSelection({
 
       {/* Tab Content */}
       {activeTab === 'beam' && renderBeamWeaponsGrid()}
-      {activeTab === 'projectile' && renderComingSoon('Projectile Weapons')}
+      {activeTab === 'projectile' && renderProjectileWeaponsGrid()}
       {activeTab === 'ordnance' && renderComingSoon('Ordnance')}
       {activeTab === 'special' && renderComingSoon('Special Weapons')}
     </Box>
   );
 }
+
