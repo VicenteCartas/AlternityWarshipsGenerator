@@ -149,6 +149,26 @@ export interface SavedHangarMiscSystem {
 }
 
 /**
+ * Installed weapon in save file
+ */
+export interface SavedWeapon {
+  /** The weapon type ID */
+  typeId: string;
+  /** Weapon category */
+  category: 'beam' | 'projectile' | 'torpedo' | 'ordnance';
+  /** Mount type */
+  mountType: 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
+  /** Gun configuration */
+  gunConfiguration: 'single' | 'twin' | 'triple' | 'quadruple';
+  /** Whether concealed */
+  concealed: boolean;
+  /** Number of mounts */
+  quantity: number;
+  /** Firing arcs */
+  arcs: string[];
+}
+
+/**
  * The complete warship save file structure
  */
 export interface WarshipSaveFile {
@@ -223,6 +243,9 @@ export interface WarshipSaveFile {
   
   /** Installed hangar & miscellaneous systems */
   hangarMisc: SavedHangarMiscSystem[];
+  
+  /** Installed weapons */
+  weapons: SavedWeapon[];
   
   /** Installed systems (future) */
   systems: unknown[];

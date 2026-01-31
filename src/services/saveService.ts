@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -9,6 +9,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
@@ -21,6 +22,7 @@ import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
+import { getAllBeamWeaponTypes, createInstalledWeapon } from './weaponService';
 
 /**
  * State representing the current warship configuration
@@ -44,6 +46,7 @@ export interface WarshipState {
   commandControl: InstalledCommandControlSystem[];
   sensors: InstalledSensor[];
   hangarMisc: InstalledHangarMiscSystem[];
+  weapons: InstalledWeapon[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -130,6 +133,15 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     hangarMisc: (state.hangarMisc || []).map((hm): SavedHangarMiscSystem => ({
       typeId: hm.type.id,
       quantity: hm.quantity,
+    })),
+    weapons: (state.weapons || []).map((w): SavedWeapon => ({
+      typeId: w.weaponType.id,
+      category: w.category,
+      mountType: w.mountType,
+      gunConfiguration: w.gunConfiguration,
+      concealed: w.concealed,
+      quantity: w.quantity,
+      arcs: w.arcs,
     })),
     systems: [],
   };
@@ -472,6 +484,33 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load weapons
+  const weapons: InstalledWeapon[] = [];
+  const allBeamWeapons = getAllBeamWeaponTypes();
+  
+  for (const savedWeapon of (saveFile.weapons || [])) {
+    // For now only beam weapons are supported
+    if (savedWeapon.category === 'beam') {
+      const weaponType = allBeamWeapons.find(w => w.id === savedWeapon.typeId);
+      if (weaponType) {
+        const weapon = createInstalledWeapon(
+          weaponType,
+          savedWeapon.category,
+          savedWeapon.mountType,
+          savedWeapon.gunConfiguration,
+          savedWeapon.concealed,
+          savedWeapon.quantity,
+          savedWeapon.arcs as FiringArc[]
+        );
+        weapons.push(weapon);
+      } else {
+        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
+      }
+    } else {
+      warnings.push(`Weapon category not yet supported: ${savedWeapon.category}`);
+    }
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -498,6 +537,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       commandControl,
       sensors,
       hangarMisc,
+      weapons,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },

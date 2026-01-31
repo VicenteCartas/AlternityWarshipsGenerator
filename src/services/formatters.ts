@@ -34,7 +34,20 @@ export function formatCost(cost: number): string {
 }
 
 /**
- * Format target modifier number as display string
+ * Format accuracy modifier number as display string (for weapons)
+ * @param modifier - The accuracy modifier value (positive = easier to hit, negative = harder)
+ * @returns Formatted string like "+3", "-1", "0"
+ */
+export function formatAccuracyModifier(modifier: number): string {
+  if (modifier === 0) {
+    return '0';
+  }
+  const sign = modifier > 0 ? '+' : '';
+  return `${sign}${modifier}`;
+}
+
+/**
+ * Format target modifier number as display string (for hulls - enemy's difficulty to hit)
  * @param modifier - The target modifier value (positive = easier to hit, negative = harder)
  * @returns Formatted string like "+3 steps", "-1 step", "0"
  */
@@ -147,7 +160,7 @@ export function formatSensorRange(sensor: {
  * @param modifier - The accuracy modifier (positive = penalty, negative = bonus)
  * @returns Formatted string like "+2 step penalty", "-1 step bonus", "Normal"
  */
-export function formatAccuracyModifier(modifier: number): string {
+export function formatSensorAccuracyModifier(modifier: number): string {
   if (modifier === 0) {
     return 'Normal';
   }

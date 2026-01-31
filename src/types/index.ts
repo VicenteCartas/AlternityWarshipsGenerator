@@ -5,6 +5,7 @@ export * from './powerPlant';
 export * from './engine';
 export * from './ftlDrive';
 export * from './supportSystem';
+export * from './weapon';
 export * from './defense';
 export * from './commandControl';
 export * from './sensor';
