@@ -823,20 +823,6 @@ export function WeaponSelection({
     );
   };
 
-  // Render coming soon message for other tabs
-  const renderComingSoon = (tabName: string) => {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary">
-          {tabName} - Coming Soon
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          This weapon category is not yet implemented.
-        </Typography>
-      </Box>
-    );
-  };
-
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 1 }}>

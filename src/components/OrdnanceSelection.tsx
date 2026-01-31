@@ -26,7 +26,13 @@ import {
   MenuItem,
   Tooltip,
   Divider,
+  Stepper,
+  Step,
+  StepLabel,
+  StepButton,
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
@@ -64,7 +70,7 @@ import {
   generateOrdnanceDesignId,
 } from '../services/ordnanceService';
 import { formatCost, formatAccuracyModifier } from '../services/formatters';
-import { TruncatedDescription } from './shared';
+import { TruncatedDescription, TechTrackCell } from './shared';
 
 interface OrdnanceSelectionProps {
   hull: Hull;  // Reserved for future use (hull-specific restrictions)
@@ -98,6 +104,13 @@ export function OrdnanceSelection({
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [editingDesign, setEditingDesign] = useState<OrdnanceDesign | null>(null);
   const [loadingLaunchSystemId, setLoadingLaunchSystemId] = useState<string | null>(null);
+
+  // Missile design stepper state
+  const [missileDesignStep, setMissileDesignStep] = useState(0);
+  // Bomb design stepper state (0: Size, 1: Warhead, 2: Summary)
+  const [bombDesignStep, setBombDesignStep] = useState(0);
+  // Mine design stepper state (0: Size, 1: Warhead, 2: Guidance, 3: Summary)
+  const [mineDesignStep, setMineDesignStep] = useState(0);
 
   // Design form state
   const [designName, setDesignName] = useState('');
@@ -155,13 +168,9 @@ export function OrdnanceSelection({
 
   // Get max warhead size from selected propulsion
   const maxWarheadSize = useMemo(() => {
-    if (currentCategory === 'missile') {
-      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
-      return propulsion?.maxWarheadSize ?? 4;
-    }
-    // For bombs/mines, size determines warhead
-    return designSize === 'heavy' ? 4 : designSize === 'medium' ? 2 : 1;
-  }, [selectedPropulsion, currentCategory, designSize, allPropulsion]);
+    const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
+    return propulsion?.maxWarheadSize ?? 4;
+  }, [selectedPropulsion, allPropulsion]);
 
   // Filter warheads by constraints and max size
   const filteredWarheads = useMemo(() => {
@@ -226,6 +235,9 @@ export function OrdnanceSelection({
     setSelectedPropulsion('');
     setSelectedGuidance('');
     setSelectedWarhead('');
+    setMissileDesignStep(0);
+    setBombDesignStep(0);
+    setMineDesignStep(0);
     setDesignDialogOpen(true);
   };
 
@@ -237,11 +249,19 @@ export function OrdnanceSelection({
       const missile = design as MissileDesign;
       setSelectedPropulsion(missile.propulsionId);
       setSelectedGuidance(missile.guidanceId);
+    } else if (design.category === 'bomb') {
+      // Derive propulsion ID from size for bombs
+      setSelectedPropulsion(`bomb-${design.size}`);
     } else if (design.category === 'mine') {
       const mine = design as MineDesign;
+      // Derive propulsion ID from size for mines
+      setSelectedPropulsion(`mine-${design.size}`);
       setSelectedGuidance(mine.guidanceId);
     }
     setSelectedWarhead(design.warheadId);
+    setMissileDesignStep(0);
+    setBombDesignStep(0);
+    setMineDesignStep(0);
     setDesignDialogOpen(true);
   };
 
@@ -255,15 +275,18 @@ export function OrdnanceSelection({
       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       if (!propulsion || !guidance) return;
+      if (!designName.trim()) return; // Name is required for missiles
 
       const stats = calculateMissileDesign(propulsion, guidance, warhead);
-      const name = designName || `${propulsion.name} / ${guidance.name} / ${warhead.name}`;
+      
+      // Derive size from propulsion size
+      const sizeFromPropulsion: OrdnanceSize = propulsion.size >= 4 ? 'heavy' : propulsion.size >= 2 ? 'medium' : 'light';
 
       newDesign = {
         id: editingDesign?.id ?? generateOrdnanceDesignId(),
-        name,
+        name: designName.trim(),
         category: 'missile',
-        size: designSize,
+        size: sizeFromPropulsion,
         propulsionId: propulsion.id,
         guidanceId: guidance.id,
         warheadId: warhead.id,
@@ -272,35 +295,37 @@ export function OrdnanceSelection({
         capacityRequired: stats.capacityRequired,
       } as MissileDesign;
     } else if (currentCategory === 'bomb') {
-      const propulsion = allPropulsion.find(p => p.id === `bomb-${designSize}`);
+      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       if (!propulsion) return;
+      if (!designName.trim()) return; // Name is required for bombs
 
       const stats = calculateBombDesign(propulsion, warhead);
-      const name = designName || `${designSize} bomb / ${warhead.name}`;
+      const sizeFromPropulsion: OrdnanceSize = propulsion.size === 1 ? 'light' : propulsion.size === 2 ? 'medium' : 'heavy';
 
       newDesign = {
         id: editingDesign?.id ?? generateOrdnanceDesignId(),
-        name,
+        name: designName.trim(),
         category: 'bomb',
-        size: designSize,
+        size: sizeFromPropulsion,
         warheadId: warhead.id,
         totalAccuracy: stats.totalAccuracy,
         totalCost: stats.totalCost,
         capacityRequired: stats.capacityRequired,
       } as BombDesign;
     } else {
-      const propulsion = allPropulsion.find(p => p.id === `mine-${designSize}`);
+      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       if (!propulsion || !guidance) return;
+      if (!designName.trim()) return; // Name is required for mines
 
       const stats = calculateMineDesign(propulsion, guidance, warhead);
-      const name = designName || `${designSize} mine / ${guidance.name} / ${warhead.name}`;
+      const sizeFromPropulsion: OrdnanceSize = propulsion.size === 1 ? 'light' : propulsion.size === 2 ? 'medium' : 'heavy';
 
       newDesign = {
         id: editingDesign?.id ?? generateOrdnanceDesignId(),
-        name,
+        name: designName.trim(),
         category: 'mine',
-        size: designSize,
+        size: sizeFromPropulsion,
         guidanceId: guidance.id,
         warheadId: warhead.id,
         totalAccuracy: stats.totalAccuracy,
@@ -389,6 +414,36 @@ export function OrdnanceSelection({
     return allWarheads.find(w => w.id === warheadId);
   };
 
+  // Get propulsion info for display
+  const getPropulsionInfo = (propulsionId: string) => {
+    return allPropulsion.find(p => p.id === propulsionId);
+  };
+
+  // Get guidance info for display
+  const getGuidanceInfo = (guidanceId: string) => {
+    return allGuidance.find(g => g.id === guidanceId);
+  };
+
+  // Get combined tech tracks for a design (deduplicated)
+  const getDesignTechTracks = (design: OrdnanceDesign): TechTrack[] => {
+    const techTracks = new Set<TechTrack>();
+    
+    const warhead = getWarheadInfo(design.warheadId);
+    warhead?.techTracks.forEach(t => techTracks.add(t));
+    
+    if (design.category === 'missile') {
+      const propulsion = getPropulsionInfo(design.propulsionId);
+      propulsion?.techTracks.forEach(t => techTracks.add(t));
+      const guidance = getGuidanceInfo(design.guidanceId);
+      guidance?.techTracks.forEach(t => techTracks.add(t));
+    } else if (design.category === 'mine') {
+      const guidance = getGuidanceInfo(design.guidanceId);
+      guidance?.techTracks.forEach(t => techTracks.add(t));
+    }
+    
+    return Array.from(techTracks).sort();
+  };
+
   // Get launch system type info
   const getLaunchSystemType = (typeId: string) => {
     return allLaunchSystems.find(ls => ls.id === typeId);
@@ -459,12 +514,12 @@ export function OrdnanceSelection({
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Size</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Warhead</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cap</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/ea</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Cost/ea</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -479,6 +534,7 @@ export function OrdnanceSelection({
             ) : (
               currentDesigns.map(design => {
                 const warhead = getWarheadInfo(design.warheadId);
+                const techTracks = getDesignTechTracks(design);
                 return (
                   <TableRow key={design.id}>
                     <TableCell>
@@ -497,12 +553,12 @@ export function OrdnanceSelection({
                     </TableCell>
                     <TableCell>{design.name}</TableCell>
                     <TableCell sx={{ textTransform: 'capitalize' }}>{design.size}</TableCell>
+                    <TechTrackCell techTracks={techTracks} />
                     <TableCell>{warhead?.name ?? '?'}</TableCell>
                     <TableCell>{formatAccuracyModifier(design.totalAccuracy)}</TableCell>
                     <TableCell>{warhead?.damage ?? '?'}</TableCell>
-                    <TableCell>{warhead?.firepower ?? '?'}</TableCell>
-                    <TableCell>{design.capacityRequired}</TableCell>
-                    <TableCell>{formatCost(design.totalCost)}</TableCell>
+                    <TableCell>{warhead ? `${warhead.damageType}/${warhead.firepower}` : '?'}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(design.totalCost)}</TableCell>
                   </TableRow>
                 );
               })
@@ -667,119 +723,883 @@ export function OrdnanceSelection({
         </Table>
       </TableContainer>
 
-      {/* Design Dialog */}
-      <Dialog open={designDialogOpen} onClose={() => setDesignDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingDesign ? 'Edit' : 'New'}{' '}
-          {currentCategory === 'missile' ? 'Missile' : currentCategory === 'bomb' ? 'Bomb' : 'Mine'} Design
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Design Name (optional)"
-              value={designName}
-              onChange={e => setDesignName(e.target.value)}
-              fullWidth
-              placeholder="Auto-generated if left blank"
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>Size</InputLabel>
-              <Select
-                value={designSize}
-                label="Size"
-                onChange={e => setDesignSize(e.target.value as OrdnanceSize)}
-              >
-                <MenuItem value="light">Light (1 capacity)</MenuItem>
-                <MenuItem value="medium">Medium (2 capacity)</MenuItem>
-                <MenuItem value="heavy">Heavy (4 capacity)</MenuItem>
-              </Select>
-            </FormControl>
-
-            {currentCategory === 'missile' && (
-              <FormControl fullWidth>
-                <InputLabel>Propulsion</InputLabel>
-                <Select
-                  value={selectedPropulsion}
-                  label="Propulsion"
-                  onChange={e => setSelectedPropulsion(e.target.value)}
-                >
-                  {filteredPropulsion.map(p => (
-                    <MenuItem key={p.id} value={p.id}>
-                      {p.name} (PL{p.progressLevel}, Acc {formatAccuracyModifier(p.accuracyModifier)})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-
-            {(currentCategory === 'missile' || currentCategory === 'mine') && (
-              <FormControl fullWidth>
-                <InputLabel>Guidance</InputLabel>
-                <Select
-                  value={selectedGuidance}
-                  label="Guidance"
-                  onChange={e => setSelectedGuidance(e.target.value)}
-                >
-                  {filteredGuidance.map(g => (
-                    <MenuItem key={g.id} value={g.id}>
-                      {g.name} (PL{g.progressLevel}, Acc {formatAccuracyModifier(g.accuracyModifier)})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-
-            <FormControl fullWidth>
-              <InputLabel>Warhead</InputLabel>
-              <Select
-                value={selectedWarhead}
-                label="Warhead"
-                onChange={e => setSelectedWarhead(e.target.value)}
-              >
-                {filteredWarheads.map(w => (
-                  <MenuItem key={w.id} value={w.id}>
-                    {w.name} (Size {w.size}, {w.firepower}, {w.damage})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {designPreview && (
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Preview
-                </Typography>
-                <Stack direction="row" spacing={2}>
-                  <Typography variant="body2">
-                    Accuracy: {formatAccuracyModifier(designPreview.totalAccuracy)}
-                  </Typography>
-                  <Typography variant="body2">
-                    Cost: {formatCost(designPreview.totalCost)}
-                  </Typography>
-                  <Typography variant="body2">
-                    Capacity: {designPreview.capacityRequired}
-                  </Typography>
-                </Stack>
-              </Paper>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveDesign}
-            disabled={
-              !selectedWarhead ||
-              (currentCategory === 'missile' && (!selectedPropulsion || !selectedGuidance)) ||
-              (currentCategory === 'mine' && !selectedGuidance)
+      {/* Missile Design Dialog - Stepper based */}
+      {currentCategory === 'missile' && (
+        <Dialog 
+          open={designDialogOpen} 
+          onClose={(_event, reason) => {
+            if (reason !== 'backdropClick') {
+              setDesignDialogOpen(false);
             }
-          >
-            {editingDesign ? 'Save' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          }}
+          maxWidth="md" 
+          fullWidth
+        >
+          <DialogTitle>
+            {editingDesign ? 'Edit' : 'New'} Missile Design
+          </DialogTitle>
+          <DialogContent>
+            <Stepper activeStep={missileDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
+              <Step completed={!!selectedPropulsion}>
+                <StepButton onClick={() => setMissileDesignStep(0)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={missileDesignStep === 0 ? 'warning' : 'error'} />
+                  }>
+                    Propulsion
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedWarhead}>
+                <StepButton onClick={() => setMissileDesignStep(1)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedWarhead 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={missileDesignStep === 1 ? 'warning' : 'error'} />
+                  }>
+                    Warhead
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedGuidance}>
+                <StepButton onClick={() => setMissileDesignStep(2)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedGuidance 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={missileDesignStep === 2 ? 'warning' : 'error'} />
+                  }>
+                    Guidance
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedPropulsion && !!selectedWarhead && !!selectedGuidance && !!designName.trim()}>
+                <StepButton onClick={() => setMissileDesignStep(3)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion && selectedWarhead && selectedGuidance && designName.trim()
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={missileDesignStep === 3 ? 'warning' : 'error'} />
+                  }>
+                    Summary
+                  </StepLabel>
+                </StepButton>
+              </Step>
+            </Stepper>
+
+            {/* Step 0: Propulsion Selection */}
+            {missileDesignStep === 0 && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Select Propulsion System
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Max WH</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>End</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Accel</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredPropulsion.map(p => (
+                        <TableRow
+                          key={p.id}
+                          hover
+                          selected={selectedPropulsion === p.id}
+                          onClick={() => setSelectedPropulsion(p.id)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{p.name}</TableCell>
+                          <TableCell>{p.progressLevel}</TableCell>
+                          <TableCell>{p.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{p.size}</TableCell>
+                          <TableCell>{p.maxWarheadSize}</TableCell>
+                          <TableCell>{formatAccuracyModifier(p.accuracyModifier)}</TableCell>
+                          <TableCell>{p.endurance ?? '-'}</TableCell>
+                          <TableCell>{p.acceleration ?? '-'}{p.isPL6Scale ? '*' : ''}</TableCell>
+                          <TableCell>{formatCost(p.cost)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {filteredPropulsion.some(p => p.isPL6Scale) && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    * PL6 scale acceleration (divide by 10 for PL7+ encounters)
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Step 1: Warhead Selection */}
+            {missileDesignStep === 1 && (
+              <Box>
+                {!selectedPropulsion ? (
+                  <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'action.hover' }}>
+                    <Typography color="text.secondary">
+                      Please select a Propulsion system first.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Select Warhead (Max size: {maxWarheadSize})
+                    </Typography>
+                    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredWarheads.map(w => (
+                        <TableRow
+                          key={w.id}
+                          hover
+                          selected={selectedWarhead === w.id}
+                          onClick={() => setSelectedWarhead(w.id)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{w.name}</TableCell>
+                          <TableCell>{w.progressLevel}</TableCell>
+                          <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{w.size}</TableCell>
+                          <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
+                          <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
+                          <TableCell>{w.damage}</TableCell>
+                          <TableCell>{formatCost(w.cost)}</TableCell>
+                          <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Step 2: Guidance Selection */}
+            {missileDesignStep === 2 && (
+              <Box>
+                {!selectedPropulsion || !selectedWarhead ? (
+                  <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'action.hover' }}>
+                    <Typography color="text.secondary">
+                      Please select {!selectedPropulsion ? 'a Propulsion system' : 'a Warhead'} first.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Select Guidance System
+                    </Typography>
+                    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                          </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredGuidance.map(g => (
+                        <TableRow
+                          key={g.id}
+                          hover
+                          selected={selectedGuidance === g.id}
+                          onClick={() => setSelectedGuidance(g.id)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{g.name}</TableCell>
+                          <TableCell>{g.progressLevel}</TableCell>
+                          <TableCell>{g.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{formatAccuracyModifier(g.accuracyModifier)}</TableCell>
+                          <TableCell>{formatCost(g.cost)}</TableCell>
+                          <TableCell>
+                            <TruncatedDescription text={g.description} maxWidth={200} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Step 3: Summary */}
+            {missileDesignStep === 3 && (
+              <Box>
+                {!selectedPropulsion || !selectedWarhead || !selectedGuidance ? (
+                  <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'action.hover' }}>
+                    <Typography color="text.secondary">
+                      Please complete all previous steps first.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                      Missile Summary
+                    </Typography>
+                    
+                    {designPreview && (() => {
+                      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
+                      const warhead = allWarheads.find(w => w.id === selectedWarhead);
+                      const guidance = allGuidance.find(g => g.id === selectedGuidance);
+                      
+                      return (
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Propulsion</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Warhead</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Guidance</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>End</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Accel</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold', minWidth: 90 }}>Cost</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>{propulsion?.name}</TableCell>
+                                <TableCell>{warhead?.name}</TableCell>
+                            <TableCell>{guidance?.name}</TableCell>
+                            <TableCell>{propulsion?.size}</TableCell>
+                            <TableCell>{formatAccuracyModifier(designPreview.totalAccuracy)}</TableCell>
+                            <TableCell>{warhead ? `${warhead.damageType}/${warhead.firepower}` : '?'}</TableCell>
+                            <TableCell>{warhead?.damage}</TableCell>
+                            <TableCell>{propulsion?.endurance ?? '-'}</TableCell>
+                            <TableCell>{propulsion?.acceleration ?? '-'}{propulsion?.isPL6Scale ? '*' : ''}</TableCell>
+                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(designPreview.totalCost)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      );
+                    })()}
+
+                    <TextField
+                      label="Design Name"
+                      value={designName}
+                      onChange={e => setDesignName(e.target.value)}
+                      fullWidth
+                      required
+                      autoFocus
+                      error={!designName.trim()}
+                      helperText={!designName.trim() ? 'Name is required to create the design' : ''}
+                    />
+                  </>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
+            <Button
+              disabled={missileDesignStep === 0}
+              onClick={() => setMissileDesignStep(s => s - 1)}
+            >
+              Back
+            </Button>
+            {missileDesignStep < 3 ? (
+              <Button
+                variant="contained"
+                disabled={
+                  (missileDesignStep === 0 && !selectedPropulsion) ||
+                  (missileDesignStep === 1 && !selectedWarhead) ||
+                  (missileDesignStep === 2 && !selectedGuidance)
+                }
+                onClick={() => setMissileDesignStep(s => s + 1)}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                disabled={!designName.trim()}
+                onClick={handleSaveDesign}
+              >
+                {editingDesign ? 'Save' : 'Create'}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* Bomb Design Dialog with Stepper */}
+      {currentCategory === 'bomb' && (
+        <Dialog 
+          open={designDialogOpen} 
+          onClose={(_event, reason) => {
+            if (reason !== 'backdropClick') {
+              setDesignDialogOpen(false);
+            }
+          }}
+          maxWidth="md" 
+          fullWidth
+        >
+          <DialogTitle>
+            {editingDesign ? 'Edit' : 'New'} Bomb Design
+          </DialogTitle>
+          <DialogContent>
+            <Stepper activeStep={bombDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
+              <Step completed={!!selectedPropulsion}>
+                <StepButton onClick={() => setBombDesignStep(0)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={bombDesignStep === 0 ? 'warning' : 'error'} />
+                  }>
+                    Casing
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedWarhead}>
+                <StepButton onClick={() => setBombDesignStep(1)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedWarhead 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={bombDesignStep === 1 ? 'warning' : 'error'} />
+                  }>
+                    Warhead
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedPropulsion && !!selectedWarhead && !!designName.trim()}>
+                <StepButton onClick={() => setBombDesignStep(2)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion && selectedWarhead && designName.trim()
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={bombDesignStep === 2 ? 'warning' : 'error'} />
+                  }>
+                    Summary
+                  </StepLabel>
+                </StepButton>
+              </Step>
+            </Stepper>
+
+            {/* Step 0: Casing/Propulsion Selection */}
+            {bombDesignStep === 0 && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Select Bomb Casing
+                </Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Max WH</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredPropulsion.map(p => (
+                        <TableRow
+                          key={p.id}
+                          hover
+                          selected={selectedPropulsion === p.id}
+                          onClick={() => {
+                            setSelectedPropulsion(p.id);
+                            setSelectedWarhead(''); // Reset warhead when propulsion changes
+                            setBombDesignStep(1);
+                          }}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{p.name}</TableCell>
+                          <TableCell>{p.progressLevel}</TableCell>
+                          <TableCell>{p.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{p.size}</TableCell>
+                          <TableCell>{p.maxWarheadSize}</TableCell>
+                          <TableCell>{formatAccuracyModifier(p.accuracyModifier)}</TableCell>
+                          <TableCell>{formatCost(p.cost)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* Step 1: Warhead Selection */}
+            {bombDesignStep === 1 && (
+              <Box>
+                {!selectedPropulsion ? (
+                  <Typography color="text.secondary">Please select a bomb casing first.</Typography>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Select Warhead (max size {maxWarheadSize})
+                    </Typography>
+                    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {filteredWarheads.map(w => (
+                            <TableRow
+                              key={w.id}
+                              hover
+                              selected={selectedWarhead === w.id}
+                              onClick={() => {
+                                setSelectedWarhead(w.id);
+                                setBombDesignStep(2);
+                              }}
+                              sx={{ cursor: 'pointer' }}
+                            >
+                              <TableCell>{w.name}</TableCell>
+                              <TableCell>{w.progressLevel}</TableCell>
+                              <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
+                              <TableCell>{w.size}</TableCell>
+                              <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
+                              <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
+                              <TableCell>{w.damage}</TableCell>
+                              <TableCell>{formatCost(w.cost)}</TableCell>
+                              <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Step 2: Summary */}
+            {bombDesignStep === 2 && (
+              <Box>
+                {!selectedPropulsion || !selectedWarhead ? (
+                  <Typography color="text.secondary">
+                    Please select {!selectedPropulsion ? 'a bomb casing' : ''}{!selectedPropulsion && !selectedWarhead ? ' and ' : ''}{!selectedWarhead ? 'a warhead' : ''} first.
+                  </Typography>
+                ) : (
+                  <>
+                    {(() => {
+                      const warhead = allWarheads.find(w => w.id === selectedWarhead);
+                      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
+                      if (!warhead || !propulsion) return null;
+                      const preview = calculateBombDesign(propulsion, warhead);
+                      return (
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Casing</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Warhead</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold', minWidth: 90 }}>Cost</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>{propulsion.name}</TableCell>
+                                <TableCell>{warhead.name}</TableCell>
+                                <TableCell>{propulsion.size}</TableCell>
+                                <TableCell>{formatAccuracyModifier(preview.totalAccuracy)}</TableCell>
+                                <TableCell>{`${warhead.damageType}/${warhead.firepower}`}</TableCell>
+                                <TableCell>{warhead.damage}</TableCell>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(preview.totalCost)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      );
+                    })()}
+
+                    <TextField
+                      label="Design Name"
+                      value={designName}
+                      onChange={e => setDesignName(e.target.value)}
+                      fullWidth
+                      required
+                      autoFocus
+                      error={!designName.trim()}
+                      helperText={!designName.trim() ? 'Name is required to create the design' : ''}
+                    />
+                  </>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
+            <Button
+              disabled={bombDesignStep === 0}
+              onClick={() => setBombDesignStep(s => s - 1)}
+            >
+              Back
+            </Button>
+            {bombDesignStep < 2 ? (
+              <Button
+                variant="contained"
+                onClick={() => setBombDesignStep(s => s + 1)}
+                disabled={
+                  (bombDesignStep === 0 && !selectedPropulsion) ||
+                  (bombDesignStep === 1 && !selectedWarhead)
+                }
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleSaveDesign}
+                disabled={!designName.trim()}
+              >
+                {editingDesign ? 'Save' : 'Create'}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* Mine Design Dialog with Stepper */}
+      {currentCategory === 'mine' && (
+        <Dialog 
+          open={designDialogOpen} 
+          onClose={(_event, reason) => {
+            if (reason !== 'backdropClick') {
+              setDesignDialogOpen(false);
+            }
+          }}
+          maxWidth="md" 
+          fullWidth
+        >
+          <DialogTitle>
+            {editingDesign ? 'Edit' : 'New'} Mine Design
+          </DialogTitle>
+          <DialogContent>
+            <Stepper activeStep={mineDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
+              <Step completed={!!selectedPropulsion}>
+                <StepButton onClick={() => setMineDesignStep(0)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={mineDesignStep === 0 ? 'warning' : 'error'} />
+                  }>
+                    Casing
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedWarhead}>
+                <StepButton onClick={() => setMineDesignStep(1)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedWarhead 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={mineDesignStep === 1 ? 'warning' : 'error'} />
+                  }>
+                    Warhead
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedGuidance}>
+                <StepButton onClick={() => setMineDesignStep(2)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedGuidance 
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={mineDesignStep === 2 ? 'warning' : 'error'} />
+                  }>
+                    Guidance
+                  </StepLabel>
+                </StepButton>
+              </Step>
+              <Step completed={!!selectedPropulsion && !!selectedWarhead && !!selectedGuidance && !!designName.trim()}>
+                <StepButton onClick={() => setMineDesignStep(3)}>
+                  <StepLabel StepIconComponent={() => 
+                    selectedPropulsion && selectedWarhead && selectedGuidance && designName.trim()
+                      ? <CheckCircleIcon color="success" /> 
+                      : <ErrorOutlineIcon color={mineDesignStep === 3 ? 'warning' : 'error'} />
+                  }>
+                    Summary
+                  </StepLabel>
+                </StepButton>
+              </Step>
+            </Stepper>
+
+            {/* Step 0: Casing/Propulsion Selection */}
+            {mineDesignStep === 0 && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Select Mine Casing
+                </Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Max WH</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredPropulsion.map(p => (
+                        <TableRow
+                          key={p.id}
+                          hover
+                          selected={selectedPropulsion === p.id}
+                          onClick={() => {
+                            setSelectedPropulsion(p.id);
+                            setSelectedWarhead(''); // Reset warhead when propulsion changes
+                            setMineDesignStep(1);
+                          }}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{p.name}</TableCell>
+                          <TableCell>{p.progressLevel}</TableCell>
+                          <TableCell>{p.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{p.size}</TableCell>
+                          <TableCell>{p.maxWarheadSize}</TableCell>
+                          <TableCell>{formatAccuracyModifier(p.accuracyModifier)}</TableCell>
+                          <TableCell>{formatCost(p.cost)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* Step 1: Warhead Selection */}
+            {mineDesignStep === 1 && (
+              <Box>
+                {!selectedPropulsion ? (
+                  <Typography color="text.secondary">Please select a mine casing first.</Typography>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Select Warhead (max size {maxWarheadSize})
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredWarheads.map(w => (
+                        <TableRow
+                          key={w.id}
+                          hover
+                          selected={selectedWarhead === w.id}
+                          onClick={() => {
+                            setSelectedWarhead(w.id);
+                            setMineDesignStep(2);
+                          }}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{w.name}</TableCell>
+                          <TableCell>{w.progressLevel}</TableCell>
+                          <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{w.size}</TableCell>
+                          <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
+                          <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
+                          <TableCell>{w.damage}</TableCell>
+                          <TableCell>{formatCost(w.cost)}</TableCell>
+                          <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Step 2: Guidance Selection */}
+            {mineDesignStep === 2 && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Select Guidance System
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredGuidance.map(g => (
+                        <TableRow
+                          key={g.id}
+                          hover
+                          selected={selectedGuidance === g.id}
+                          onClick={() => {
+                            setSelectedGuidance(g.id);
+                            setMineDesignStep(3);
+                          }}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>{g.name}</TableCell>
+                          <TableCell>{g.progressLevel}</TableCell>
+                          <TableCell>{g.techTracks.join(', ') || '-'}</TableCell>
+                          <TableCell>{formatAccuracyModifier(g.accuracyModifier)}</TableCell>
+                          <TableCell>{formatCost(g.cost)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* Step 3: Summary */}
+            {mineDesignStep === 3 && (
+              <Box>
+                {!selectedPropulsion || !selectedWarhead || !selectedGuidance ? (
+                  <Typography color="text.secondary">
+                    Please select {!selectedPropulsion ? 'a mine casing' : ''}{!selectedPropulsion && (!selectedWarhead || !selectedGuidance) ? ', ' : ''}{!selectedWarhead ? 'a warhead' : ''}{!selectedWarhead && !selectedGuidance ? ' and ' : ''}{!selectedGuidance ? 'a guidance system' : ''} first.
+                  </Typography>
+                ) : (
+                  <>
+                    {(() => {
+                      const warhead = allWarheads.find(w => w.id === selectedWarhead);
+                      const guidance = allGuidance.find(g => g.id === selectedGuidance);
+                      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
+                      if (!warhead || !guidance || !propulsion) return null;
+                      const preview = calculateMineDesign(propulsion, guidance, warhead);
+                      return (
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Casing</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Warhead</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Guidance</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold', minWidth: 90 }}>Cost</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>{propulsion.name}</TableCell>
+                                <TableCell>{warhead.name}</TableCell>
+                                <TableCell>{guidance.name}</TableCell>
+                                <TableCell>{propulsion.size}</TableCell>
+                                <TableCell>{formatAccuracyModifier(preview.totalAccuracy)}</TableCell>
+                                <TableCell>{`${warhead.damageType}/${warhead.firepower}`}</TableCell>
+                                <TableCell>{warhead.damage}</TableCell>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(preview.totalCost)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      );
+                    })()}
+
+                    <TextField
+                      label="Design Name"
+                      value={designName}
+                      onChange={e => setDesignName(e.target.value)}
+                      fullWidth
+                      required
+                      autoFocus
+                      error={!designName.trim()}
+                      helperText={!designName.trim() ? 'Name is required to create the design' : ''}
+                    />
+                  </>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
+            <Button
+              disabled={mineDesignStep === 0}
+              onClick={() => setMineDesignStep(s => s - 1)}
+            >
+              Back
+            </Button>
+            {mineDesignStep < 3 ? (
+              <Button
+                variant="contained"
+                onClick={() => setMineDesignStep(s => s + 1)}
+                disabled={
+                  (mineDesignStep === 0 && !selectedPropulsion) ||
+                  (mineDesignStep === 1 && !selectedWarhead) ||
+                  (mineDesignStep === 2 && !selectedGuidance)
+                }
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleSaveDesign}
+                disabled={!designName.trim()}
+              >
+                {editingDesign ? 'Save' : 'Create'}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      )}
 
       {/* Add Launch System Dialog */}
       <Dialog
@@ -970,6 +1790,7 @@ export function OrdnanceSelection({
                         {applicableDesigns.map(design => {
                           const canLoad = design.capacityRequired <= remainingCap;
                           const maxQty = Math.floor(remainingCap / design.capacityRequired);
+                          const isLoaded = ls.loadout.some(item => item.designId === design.id);
                           return (
                             <TableRow key={design.id}>
                               <TableCell>{design.name}</TableCell>
@@ -1004,6 +1825,24 @@ export function OrdnanceSelection({
                                       +10
                                     </Button>
                                   )}
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="primary"
+                                    disabled={!canLoad || maxQty === 0}
+                                    onClick={() => handleLoadOrdnance(design.id, maxQty)}
+                                  >
+                                    Max
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="error"
+                                    disabled={!isLoaded}
+                                    onClick={() => handleUnloadOrdnance(ls.id, design.id)}
+                                  >
+                                    Clear
+                                  </Button>
                                 </Stack>
                               </TableCell>
                             </TableRow>

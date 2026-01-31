@@ -155,7 +155,7 @@ export interface SavedWeapon {
   /** The weapon type ID */
   typeId: string;
   /** Weapon category */
-  category: 'beam' | 'projectile' | 'torpedo' | 'ordnance';
+  category: 'beam' | 'projectile' | 'torpedo' | 'special' | 'ordnance';
   /** Mount type */
   mountType: 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
   /** Gun configuration */
