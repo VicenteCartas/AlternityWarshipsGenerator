@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -64,6 +64,7 @@ import {
 } from '../services/ordnanceService';
 import { formatCost, formatAccuracyModifier } from '../services/formatters';
 import { TruncatedDescription, TechTrackCell } from './shared';
+import { LaunchSystemEditForm } from './LaunchSystemEditForm';
 
 // Exported component for rendering installed launch systems (used by WeaponSelection)
 interface InstalledLaunchSystemsProps {
@@ -72,6 +73,12 @@ interface InstalledLaunchSystemsProps {
   onEdit: (ls: InstalledLaunchSystem) => void;
   onRemove: (id: string) => void;
   editingId: string | null;
+  /** Additional props for inline editing */
+  onLaunchSystemsChange?: (systems: InstalledLaunchSystem[]) => void;
+  onOrdnanceDesignsChange?: (designs: OrdnanceDesign[]) => void;
+  onEditComplete?: () => void;
+  designProgressLevel?: ProgressLevel;
+  designTechTracks?: TechTrack[];
 }
 
 export function InstalledLaunchSystems({
@@ -80,6 +87,11 @@ export function InstalledLaunchSystems({
   onEdit,
   onRemove,
   editingId,
+  onLaunchSystemsChange,
+  onOrdnanceDesignsChange,
+  onEditComplete,
+  designProgressLevel = 6,
+  designTechTracks = [],
 }: InstalledLaunchSystemsProps) {
   const allLaunchSystems = useMemo(() => getLaunchSystems(), []);
 
@@ -96,6 +108,9 @@ export function InstalledLaunchSystems({
       .join(', ');
   };
 
+  // Check if we can do inline editing (all required props provided)
+  const canInlineEdit = onLaunchSystemsChange && onOrdnanceDesignsChange && onEditComplete;
+
   if (launchSystems.length === 0) return null;
 
   return (
@@ -107,37 +122,56 @@ export function InstalledLaunchSystems({
         {launchSystems.map((ls) => {
           const lsType = getLaunchSystemType(ls.launchSystemType);
           const usedCap = getUsedCapacity(ls.loadout, ordnanceDesigns);
+          const isEditing = editingId === ls.id;
           return (
-            <Box
-              key={ls.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: editingId === ls.id ? 'primary.light' : 'action.hover',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {ls.quantity > 1 && `${ls.quantity}× `}
-                {lsType?.name ?? ls.launchSystemType}
-                {' — '}
-                <Typography component="span" variant="body2" color="text.secondary">
-                  {formatLoadoutContents(ls)}
+            <React.Fragment key={ls.id}>
+              <Box
+                id={`launch-system-${ls.id}`}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 1,
+                  bgcolor: isEditing ? 'primary.light' : 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" sx={{ flex: 1 }}>
+                  {`${ls.quantity}× `}
+                  {lsType?.name ?? ls.launchSystemType}
+                  {' — '}
+                  <Typography component="span" variant="body2" color="text.secondary">
+                    {formatLoadoutContents(ls)}
+                  </Typography>
                 </Typography>
-              </Typography>
-              <Chip label={`${ls.hullPoints} HP`} size="small" variant="outlined" />
-              <Chip label={`${ls.powerRequired} Power`} size="small" variant="outlined" />
-              <Chip label={`${usedCap}/${ls.totalCapacity} Cap`} size="small" variant="outlined" color={usedCap > 0 ? 'primary' : 'default'} />
-              <Chip label={formatCost(ls.cost)} size="small" variant="outlined" />
-              <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => onRemove(ls.id)} color="error">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
+                <Chip label={`${ls.hullPoints} HP`} size="small" variant="outlined" />
+                <Chip label={`${ls.powerRequired} Power`} size="small" variant="outlined" />
+                <Chip label={`${usedCap}/${ls.totalCapacity} Cap`} size="small" variant="outlined" color={usedCap > 0 ? 'primary' : 'default'} />
+                <Chip label={formatCost(ls.cost)} size="small" variant="outlined" />
+                <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => onRemove(ls.id)} color="error">
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              {/* Render inline edit form when this launch system is being edited */}
+              {isEditing && canInlineEdit && (
+                <LaunchSystemEditForm
+                  launchSystem={ls}
+                  allLaunchSystems={launchSystems}
+                  ordnanceDesigns={ordnanceDesigns}
+                  designProgressLevel={designProgressLevel}
+                  designTechTracks={designTechTracks}
+                  onSave={(updatedSystems) => {
+                    onLaunchSystemsChange(updatedSystems);
+                    onEditComplete();
+                  }}
+                  onCancel={onEditComplete}
+                  onOrdnanceDesignsChange={onOrdnanceDesignsChange}
+                />
+              )}
+            </React.Fragment>
           );
         })}
       </Stack>
@@ -167,14 +201,14 @@ export function OrdnanceSelection({
   designTechTracks,
   onOrdnanceDesignsChange,
   onLaunchSystemsChange,
-  editLaunchSystemId,
+  editLaunchSystemId: _editLaunchSystemId,
   onEditComplete,
 }: OrdnanceSelectionProps) {
   // Configuration panel state
   const [selectedLaunchSystem, setSelectedLaunchSystem] = useState<LaunchSystem | null>(null);
   const [editingLaunchSystemId, setEditingLaunchSystemId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [extraCapacity, setExtraCapacity] = useState(0);
+  const [extraHp, setExtraHp] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Design dialog state
@@ -282,33 +316,18 @@ export function OrdnanceSelection({
   // Calculate preview for launch system
   const previewStats = useMemo(() => {
     if (!selectedLaunchSystem) return null;
-    return calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraCapacity);
-  }, [selectedLaunchSystem, quantity, extraCapacity]);
+    return calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraHp);
+  }, [selectedLaunchSystem, quantity, extraHp]);
 
-  // Effect to handle external edit trigger from WeaponSelection
-  useEffect(() => {
-    if (editLaunchSystemId) {
-      const installed = launchSystems.find(ls => ls.id === editLaunchSystemId);
-      if (installed) {
-        const lsType = allLaunchSystems.find(ls => ls.id === installed.launchSystemType);
-        if (lsType) {
-          setSelectedLaunchSystem(lsType);
-          setQuantity(installed.quantity);
-          setExtraCapacity(installed.extraCapacity);
-          setEditingLaunchSystemId(installed.id);
-          setTimeout(() => {
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 0);
-        }
-      }
-    }
-  }, [editLaunchSystemId, launchSystems, allLaunchSystems]);
+  // Note: editLaunchSystemId from props is used for INLINE editing in InstalledLaunchSystems (rendered by WeaponSelection).
+  // OrdnanceSelection's configure form is only for ADDING new launch systems, not editing existing ones.
+  // Editing is handled entirely by LaunchSystemEditForm rendered inline in InstalledLaunchSystems.
 
   // Handlers
   const handleSelectLaunchSystem = (ls: LaunchSystem) => {
     setSelectedLaunchSystem(ls);
     setQuantity(1);
-    setExtraCapacity(0);
+    setExtraHp(0);
     setEditingLaunchSystemId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -318,7 +337,7 @@ export function OrdnanceSelection({
   const handleCancelEdit = () => {
     setSelectedLaunchSystem(null);
     setQuantity(1);
-    setExtraCapacity(0);
+    setExtraHp(0);
     setEditingLaunchSystemId(null);
     onEditComplete?.();
   };
@@ -331,11 +350,11 @@ export function OrdnanceSelection({
       const existingLS = launchSystems.find(ls => ls.id === editingLaunchSystemId);
       if (!existingLS) return;
 
-      const stats = calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraCapacity);
+      const stats = calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraHp);
       const updatedLS: InstalledLaunchSystem = {
         ...existingLS,
         quantity,
-        extraCapacity,
+        extraHp,
         hullPoints: stats.hullPoints,
         powerRequired: stats.powerRequired,
         totalCapacity: stats.totalCapacity,
@@ -349,7 +368,7 @@ export function OrdnanceSelection({
       const newLS = createInstalledLaunchSystem(
         selectedLaunchSystem.id,
         quantity,
-        extraCapacity
+        extraHp
       );
       if (newLS) {
         onLaunchSystemsChange([...launchSystems, newLS]);
@@ -554,7 +573,7 @@ export function OrdnanceSelection({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {quantity > 1 && `${quantity}× `}{selectedLaunchSystem.name}
+              {`${quantity}× `}{selectedLaunchSystem.name}
             </Typography>
             <TextField
               type="number"
@@ -569,11 +588,11 @@ export function OrdnanceSelection({
               <TextField
                 type="number"
                 size="small"
-                value={extraCapacity}
-                onChange={(e) => setExtraCapacity(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                value={extraHp}
+                onChange={(e) => setExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
                 inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
                 sx={{ width: 100 }}
-                label="Extra Cap"
+                label="Extra HP"
               />
             )}
           </Box>
@@ -795,9 +814,6 @@ export function OrdnanceSelection({
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Ordnance Designs
-        </Typography>
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -854,15 +870,11 @@ export function OrdnanceSelection({
       {/* Configuration Panel */}
       {renderConfigureForm()}
 
-      {/* Ordnance Designs */}
-      {renderOrdnanceDesigns()}
-
-      {/* Available Launch Systems Grid */}
-      <Typography variant="subtitle2" gutterBottom>
-        Available Launch Systems
-      </Typography>
       {renderLaunchSystemsGrid()}
 
+      {/* Ordnance Designs */}
+      {renderOrdnanceDesigns()}
+      
       {/* Missile Design Dialog */}
       {designCategory === 'missile' && (
         <Dialog

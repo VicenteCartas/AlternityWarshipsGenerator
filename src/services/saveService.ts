@@ -173,7 +173,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: ls.id,
       typeId: ls.launchSystemType,
       quantity: ls.quantity,
-      extraCapacity: ls.extraCapacity,
+      extraHp: ls.extraHp,
       loadout: ls.loadout || [],
     })),
     systems: [],
@@ -681,12 +681,14 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   for (const savedLS of (saveFile.launchSystems || [])) {
     const launchSystem = allLaunchSystems.find(ls => ls.id === savedLS.typeId);
     if (launchSystem) {
-      const stats = calculateLaunchSystemStats(launchSystem, savedLS.quantity, savedLS.extraCapacity);
+      // Support both old (extraCapacity) and new (extraHp) save format
+      const extraHp = savedLS.extraHp ?? (savedLS as { extraCapacity?: number }).extraCapacity ?? 0;
+      const stats = calculateLaunchSystemStats(launchSystem, savedLS.quantity, extraHp);
       launchSystemsList.push({
         id: savedLS.id,
         launchSystemType: launchSystem.id,
         quantity: savedLS.quantity,
-        extraCapacity: savedLS.extraCapacity,
+        extraHp: extraHp,
         loadout: savedLS.loadout || [],
         hullPoints: stats.hullPoints,
         powerRequired: stats.powerRequired,

@@ -879,7 +879,7 @@ export function WeaponSelection({
         ordnanceDesigns={ordnanceDesigns}
         onEdit={(ls) => {
           setEditingLaunchSystemId(ls.id);
-          setActiveTab('ordnance');
+          // Don't switch tabs - edit form renders inline
         }}
         onRemove={(id) => {
           onLaunchSystemsChange(launchSystems.filter(ls => ls.id !== id));
@@ -888,6 +888,11 @@ export function WeaponSelection({
           }
         }}
         editingId={editingLaunchSystemId}
+        onLaunchSystemsChange={onLaunchSystemsChange}
+        onOrdnanceDesignsChange={onOrdnanceDesignsChange}
+        onEditComplete={() => setEditingLaunchSystemId(null)}
+        designProgressLevel={designProgressLevel}
+        designTechTracks={designTechTracks}
       />
 
       {/* Configure Form - only shown here when adding a new weapon (not editing) */}

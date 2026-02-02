@@ -198,16 +198,16 @@ export function calculateMineDesign(
 export function calculateLaunchSystemStats(
   launchSystem: LaunchSystem,
   quantity: number,
-  extraCapacity: number
+  extraHp: number
 ): { hullPoints: number; powerRequired: number; cost: number; totalCapacity: number } {
   let hullPoints = launchSystem.hullPoints * quantity;
   let cost = launchSystem.cost * quantity;
   let totalCapacity = launchSystem.capacity * quantity;
 
-  // Add extra capacity if expandable
-  if (launchSystem.expandable && extraCapacity > 0) {
-    const extraHp = extraCapacity * (launchSystem.expansionHpPerCapacity || 0);
-    const extraCost = extraCapacity * (launchSystem.expansionCostPerCapacity || 0);
+  // Add extra HP for expansion if expandable
+  if (launchSystem.expandable && extraHp > 0) {
+    const extraCapacity = extraHp * (launchSystem.expansionCapacityPerHp || 0);
+    const extraCost = extraHp * (launchSystem.expansionCostPerHp || 0);
     hullPoints += extraHp;
     cost += extraCost;
     totalCapacity += extraCapacity;
@@ -259,7 +259,7 @@ export function calculateOrdnanceStats(
     const stats = calculateLaunchSystemStats(
       launchSystem,
       installed.quantity,
-      installed.extraCapacity
+      installed.extraHp
     );
 
     totalLauncherHullPoints += stats.hullPoints;
@@ -403,20 +403,20 @@ export function createMineDesign(
 export function createInstalledLaunchSystem(
   launchSystemType: string,
   quantity: number,
-  extraCapacity: number = 0
+  extraHp: number = 0
 ): InstalledLaunchSystem | null {
   const launchSystem = getLaunchSystems().find(
     (ls) => ls.id === launchSystemType
   );
   if (!launchSystem) return null;
 
-  const stats = calculateLaunchSystemStats(launchSystem, quantity, extraCapacity);
+  const stats = calculateLaunchSystemStats(launchSystem, quantity, extraHp);
 
   return {
     id: generateLaunchSystemId(),
     launchSystemType: launchSystem.id,
     quantity,
-    extraCapacity,
+    extraHp,
     loadout: [],
     hullPoints: stats.hullPoints,
     powerRequired: stats.powerRequired,

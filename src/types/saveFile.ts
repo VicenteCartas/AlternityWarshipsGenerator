@@ -208,8 +208,8 @@ export interface SavedLaunchSystem {
   typeId: string;
   /** Number of launchers */
   quantity: number;
-  /** Extra capacity allocated */
-  extraCapacity: number;
+  /** Extra HP allocated for expansion */
+  extraHp: number;
   /** Loaded ordnance */
   loadout: SavedLoadedOrdnance[];
 }

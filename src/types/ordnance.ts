@@ -62,10 +62,10 @@ export interface LaunchSystem {
   capacity: number;
   /** Whether capacity can be expanded */
   expandable: boolean;
-  /** HP per additional capacity (if expandable) */
-  expansionHpPerCapacity?: number;
-  /** Cost per additional capacity (if expandable) */
-  expansionCostPerCapacity?: number;
+  /** Capacity gained per additional HP (if expandable) */
+  expansionCapacityPerHp?: number;
+  /** Cost per additional HP (if expandable) */
+  expansionCostPerHp?: number;
   /** Rate of fire per round */
   rateOfFire: number;
   /** Can be reloaded in space */
@@ -212,8 +212,8 @@ export interface InstalledLaunchSystem {
   launchSystemType: LaunchSystemType;
   /** Number of launchers of this type */
   quantity: number;
-  /** Extra capacity allocated (if expandable) */
-  extraCapacity: number;
+  /** Extra HP allocated for expansion (if expandable) */
+  extraHp: number;
   /** What ordnance is loaded */
   loadout: LoadedOrdnance[];
   /** Calculated total hull points */
