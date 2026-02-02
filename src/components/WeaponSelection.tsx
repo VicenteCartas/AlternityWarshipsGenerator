@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +27,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { ArcRadarSelector } from './shared/ArcRadarSelector';
-import { OrdnanceSelection } from './OrdnanceSelection';
+import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -105,6 +105,7 @@ export function WeaponSelection({
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedArcs, setSelectedArcs] = useState<FiringArc[]>(['forward']);
   const [editingWeaponId, setEditingWeaponId] = useState<string | null>(null);
+  const [editingLaunchSystemId, setEditingLaunchSystemId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Ship class for arc rules
@@ -238,6 +239,7 @@ export function WeaponSelection({
     if (arcValidationError) return;
 
     const category = TAB_TO_CATEGORY[activeTab];
+    const weaponIdToScrollTo = editingWeaponId;
 
     if (editingWeaponId) {
       // When editing, update the weapon including quantity and arcs
@@ -269,6 +271,13 @@ export function WeaponSelection({
     setQuantity(1);
     setSelectedArcs(['forward']);
     setEditingWeaponId(null);
+
+    // Scroll back to the edited weapon
+    if (weaponIdToScrollTo) {
+      setTimeout(() => {
+        document.getElementById(`weapon-${weaponIdToScrollTo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 0);
+    }
   };
 
   const handleEditWeapon = (installed: InstalledWeapon) => {
@@ -289,6 +298,7 @@ export function WeaponSelection({
   };
 
   const handleCancelEdit = () => {
+    const weaponIdToScrollTo = editingWeaponId;
     setSelectedWeapon(null);
     setMountType('standard');
     setGunConfiguration('single');
@@ -296,6 +306,12 @@ export function WeaponSelection({
     setQuantity(1);
     setSelectedArcs(['forward']);
     setEditingWeaponId(null);
+    // Scroll back to the weapon that was being edited
+    if (weaponIdToScrollTo) {
+      setTimeout(() => {
+        document.getElementById(`weapon-${weaponIdToScrollTo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 0);
+    }
   };
 
   // Arc toggle handlers - replace mode when at max
@@ -368,37 +384,41 @@ export function WeaponSelection({
         </Typography>
         <Stack spacing={1}>
           {installedWeapons.map((weapon) => (
-            <Box
-              key={weapon.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {weapon.quantity > 1 && `${weapon.quantity}× `}
-                {weapon.weaponType.name}
-                {' - '}
-                {getMountTypeName(weapon.mountType)}
-                {weapon.gunConfiguration !== 'single' && ` ${getGunConfigurationName(weapon.gunConfiguration)}`}
-                {weapon.concealed && ' (Concealed)'}
-                {' → '}
-                {formatArcs(weapon.arcs || ['forward'])}
-              </Typography>
-              <Chip label={`${weapon.hullPoints * weapon.quantity} HP`} size="small" variant="outlined" />
-              <Chip label={`${weapon.powerRequired * weapon.quantity} Power`} size="small" variant="outlined" />
-              <Chip label={formatCost(weapon.cost * weapon.quantity)} size="small" variant="outlined" />
-              <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
+            <React.Fragment key={weapon.id}>
+              <Box
+                id={`weapon-${weapon.id}`}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 1,
+                  bgcolor: editingWeaponId === weapon.id ? 'primary.light' : 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" sx={{ flex: 1 }}>
+                  {weapon.quantity > 1 && `${weapon.quantity}× `}
+                  {weapon.weaponType.name}
+                  {' - '}
+                  {getMountTypeName(weapon.mountType)}
+                  {weapon.gunConfiguration !== 'single' && ` ${getGunConfigurationName(weapon.gunConfiguration)}`}
+                  {weapon.concealed && ' (Concealed)'}
+                  {' → '}
+                  {formatArcs(weapon.arcs || ['forward'])}
+                </Typography>
+                <Chip label={`${weapon.hullPoints * weapon.quantity} HP`} size="small" variant="outlined" />
+                <Chip label={`${weapon.powerRequired * weapon.quantity} Power`} size="small" variant="outlined" />
+                <Chip label={formatCost(weapon.cost * weapon.quantity)} size="small" variant="outlined" />
+                <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              {/* Render edit form inline when this weapon is being edited */}
+              {editingWeaponId === weapon.id && renderConfigureForm()}
+            </React.Fragment>
           ))}
         </Stack>
       </Paper>
@@ -853,8 +873,25 @@ export function WeaponSelection({
       {/* Installed Weapons */}
       {renderInstalledWeapons()}
 
-      {/* Configure Form */}
-      {(activeTab === 'beam' || activeTab === 'projectile' || activeTab === 'torpedo' || activeTab === 'special') && renderConfigureForm()}
+      {/* Installed Launch Systems */}
+      <InstalledLaunchSystems
+        launchSystems={launchSystems}
+        ordnanceDesigns={ordnanceDesigns}
+        onEdit={(ls) => {
+          setEditingLaunchSystemId(ls.id);
+          setActiveTab('ordnance');
+        }}
+        onRemove={(id) => {
+          onLaunchSystemsChange(launchSystems.filter(ls => ls.id !== id));
+          if (editingLaunchSystemId === id) {
+            setEditingLaunchSystemId(null);
+          }
+        }}
+        editingId={editingLaunchSystemId}
+      />
+
+      {/* Configure Form - only shown here when adding a new weapon (not editing) */}
+      {!editingWeaponId && renderConfigureForm()}
 
       {/* Weapon Category Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
@@ -881,6 +918,8 @@ export function WeaponSelection({
           designTechTracks={designTechTracks}
           onOrdnanceDesignsChange={onOrdnanceDesignsChange}
           onLaunchSystemsChange={onLaunchSystemsChange}
+          editLaunchSystemId={editingLaunchSystemId}
+          onEditComplete={() => setEditingLaunchSystemId(null)}
         />
       )}
     </Box>

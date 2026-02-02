@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,18 +13,11 @@ import {
   IconButton,
   Chip,
   Stack,
-  Tabs,
-  Tab,
   TextField,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Tooltip,
   Divider,
   Stepper,
   Step,
@@ -36,7 +29,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import SaveIcon from '@mui/icons-material/Save';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -47,6 +40,7 @@ import type {
   BombDesign,
   MineDesign,
   InstalledLaunchSystem,
+  LaunchSystem,
 } from '../types/ordnance';
 import {
   getLaunchSystems,
@@ -61,7 +55,6 @@ import {
   calculateBombDesign,
   calculateMineDesign,
   calculateLaunchSystemStats,
-  calculateOrdnanceStats,
   createInstalledLaunchSystem,
   getUsedCapacity,
   canLoadOrdnance,
@@ -72,6 +65,86 @@ import {
 import { formatCost, formatAccuracyModifier } from '../services/formatters';
 import { TruncatedDescription, TechTrackCell } from './shared';
 
+// Exported component for rendering installed launch systems (used by WeaponSelection)
+interface InstalledLaunchSystemsProps {
+  launchSystems: InstalledLaunchSystem[];
+  ordnanceDesigns: OrdnanceDesign[];
+  onEdit: (ls: InstalledLaunchSystem) => void;
+  onRemove: (id: string) => void;
+  editingId: string | null;
+}
+
+export function InstalledLaunchSystems({
+  launchSystems,
+  ordnanceDesigns,
+  onEdit,
+  onRemove,
+  editingId,
+}: InstalledLaunchSystemsProps) {
+  const allLaunchSystems = useMemo(() => getLaunchSystems(), []);
+
+  const getLaunchSystemType = (typeId: string) => allLaunchSystems.find(ls => ls.id === typeId);
+
+  const formatLoadoutContents = (ls: InstalledLaunchSystem): string => {
+    if (!ls.loadout || ls.loadout.length === 0) return 'Empty';
+    return ls.loadout
+      .map(item => {
+        const design = ordnanceDesigns.find(d => d.id === item.designId);
+        return design ? `${item.quantity}× ${design.name}` : '';
+      })
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  if (launchSystems.length === 0) return null;
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle2" gutterBottom>
+        Installed Launch Systems
+      </Typography>
+      <Stack spacing={1}>
+        {launchSystems.map((ls) => {
+          const lsType = getLaunchSystemType(ls.launchSystemType);
+          const usedCap = getUsedCapacity(ls.loadout, ordnanceDesigns);
+          return (
+            <Box
+              key={ls.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1,
+                bgcolor: editingId === ls.id ? 'primary.light' : 'action.hover',
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="body2" sx={{ flex: 1 }}>
+                {ls.quantity > 1 && `${ls.quantity}× `}
+                {lsType?.name ?? ls.launchSystemType}
+                {' — '}
+                <Typography component="span" variant="body2" color="text.secondary">
+                  {formatLoadoutContents(ls)}
+                </Typography>
+              </Typography>
+              <Chip label={`${ls.hullPoints} HP`} size="small" variant="outlined" />
+              <Chip label={`${ls.powerRequired} Power`} size="small" variant="outlined" />
+              <Chip label={`${usedCap}/${ls.totalCapacity} Cap`} size="small" variant="outlined" color={usedCap > 0 ? 'primary' : 'default'} />
+              <Chip label={formatCost(ls.cost)} size="small" variant="outlined" />
+              <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={() => onRemove(ls.id)} color="error">
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          );
+        })}
+      </Stack>
+    </Paper>
+  );
+}
+
 interface OrdnanceSelectionProps {
   hull: Hull;  // Reserved for future use (hull-specific restrictions)
   ordnanceDesigns: OrdnanceDesign[];
@@ -80,15 +153,11 @@ interface OrdnanceSelectionProps {
   designTechTracks: TechTrack[];
   onOrdnanceDesignsChange: (designs: OrdnanceDesign[]) => void;
   onLaunchSystemsChange: (systems: InstalledLaunchSystem[]) => void;
+  /** ID of launch system to edit (triggers edit mode when set) */
+  editLaunchSystemId?: string | null;
+  /** Called when edit is complete or cancelled */
+  onEditComplete?: () => void;
 }
-
-type OrdnanceTab = 'missiles' | 'bombs' | 'mines';
-
-const TAB_TO_CATEGORY: Record<OrdnanceTab, OrdnanceCategory> = {
-  missiles: 'missile',
-  bombs: 'bomb',
-  mines: 'mine',
-};
 
 export function OrdnanceSelection({
   hull: _hull,  // Reserved for future use
@@ -98,19 +167,20 @@ export function OrdnanceSelection({
   designTechTracks,
   onOrdnanceDesignsChange,
   onLaunchSystemsChange,
+  editLaunchSystemId,
+  onEditComplete,
 }: OrdnanceSelectionProps) {
-  const [activeTab, setActiveTab] = useState<OrdnanceTab>('missiles');
-  const [designDialogOpen, setDesignDialogOpen] = useState(false);
-  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
-  const [editingDesign, setEditingDesign] = useState<OrdnanceDesign | null>(null);
-  const [loadingLaunchSystemId, setLoadingLaunchSystemId] = useState<string | null>(null);
+  // Configuration panel state
+  const [selectedLaunchSystem, setSelectedLaunchSystem] = useState<LaunchSystem | null>(null);
+  const [editingLaunchSystemId, setEditingLaunchSystemId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [extraCapacity, setExtraCapacity] = useState(0);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  // Missile design stepper state
-  const [missileDesignStep, setMissileDesignStep] = useState(0);
-  // Bomb design stepper state (0: Size, 1: Warhead, 2: Summary)
-  const [bombDesignStep, setBombDesignStep] = useState(0);
-  // Mine design stepper state (0: Size, 1: Warhead, 2: Guidance, 3: Summary)
-  const [mineDesignStep, setMineDesignStep] = useState(0);
+  // Design dialog state
+  const [designDialogOpen, setDesignDialogOpen] = useState(false);
+  const [designCategory, setDesignCategory] = useState<OrdnanceCategory>('missile');
+  const [editingDesign, setEditingDesign] = useState<OrdnanceDesign | null>(null);
 
   // Design form state
   const [designName, setDesignName] = useState('');
@@ -119,13 +189,10 @@ export function OrdnanceSelection({
   const [selectedGuidance, setSelectedGuidance] = useState<string>('');
   const [selectedWarhead, setSelectedWarhead] = useState<string>('');
 
-  // Launch system form state
-  const [addLaunchSystemDialogOpen, setAddLaunchSystemDialogOpen] = useState(false);
-  const [selectedLaunchSystem, setSelectedLaunchSystem] = useState<string>('');
-  const [launchSystemQuantity, setLaunchSystemQuantity] = useState(1);
-  const [launchSystemExtraCapacity, setLaunchSystemExtraCapacity] = useState(0);
-
-  const currentCategory = TAB_TO_CATEGORY[activeTab];
+  // Stepper states
+  const [missileDesignStep, setMissileDesignStep] = useState(0);
+  const [bombDesignStep, setBombDesignStep] = useState(0);
+  const [mineDesignStep, setMineDesignStep] = useState(0);
 
   // Get all data
   const allLaunchSystems = useMemo(() => getLaunchSystems(), []);
@@ -133,38 +200,32 @@ export function OrdnanceSelection({
   const allWarheads = useMemo(() => getWarheads(), []);
   const allGuidance = useMemo(() => getGuidanceSystems(), []);
 
-  // Filter designs by current tab category
-  const currentDesigns = useMemo(() => {
-    return ordnanceDesigns.filter(d => d.category === currentCategory);
-  }, [ordnanceDesigns, currentCategory]);
-
-  // Filter launch systems by current tab category
+  // Filter launch systems by design constraints
   const filteredLaunchSystems = useMemo(() => {
-    const systems = filterLaunchSystemsByConstraints(
+    return filterLaunchSystemsByConstraints(
       allLaunchSystems,
       designProgressLevel,
       designTechTracks
+    ).sort((a, b) => a.progressLevel - b.progressLevel);
+  }, [allLaunchSystems, designProgressLevel, designTechTracks]);
+
+  // Get applicable ordnance designs for the selected launch system
+  const applicableDesigns = useMemo(() => {
+    if (!selectedLaunchSystem) return [];
+    return ordnanceDesigns.filter(d =>
+      selectedLaunchSystem.ordnanceTypes.includes(d.category)
     );
-    return systems.filter(ls => ls.ordnanceTypes.includes(currentCategory));
-  }, [allLaunchSystems, designProgressLevel, designTechTracks, currentCategory]);
+  }, [selectedLaunchSystem, ordnanceDesigns]);
 
-  // Filter installed launch systems by current category
-  const currentInstalledLaunchSystems = useMemo(() => {
-    return launchSystems.filter(ls => {
-      const lsType = allLaunchSystems.find(t => t.id === ls.launchSystemType);
-      return lsType?.ordnanceTypes.includes(currentCategory);
-    });
-  }, [launchSystems, allLaunchSystems, currentCategory]);
-
-  // Filter propulsion systems for current category
+  // Filter propulsion systems for current design category
   const filteredPropulsion = useMemo(() => {
     return filterPropulsionByConstraints(
       allPropulsion,
       designProgressLevel,
       designTechTracks,
-      currentCategory
+      designCategory
     );
-  }, [allPropulsion, designProgressLevel, designTechTracks, currentCategory]);
+  }, [allPropulsion, designProgressLevel, designTechTracks, designCategory]);
 
   // Get max warhead size from selected propulsion
   const maxWarheadSize = useMemo(() => {
@@ -182,38 +243,33 @@ export function OrdnanceSelection({
     );
   }, [allWarheads, designProgressLevel, designTechTracks, maxWarheadSize]);
 
-  // Filter guidance for current category
+  // Filter guidance for current design category
   const filteredGuidance = useMemo(() => {
     return filterGuidanceByConstraints(
       allGuidance,
       designProgressLevel,
       designTechTracks,
-      currentCategory
+      designCategory
     );
-  }, [allGuidance, designProgressLevel, designTechTracks, currentCategory]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    return calculateOrdnanceStats(launchSystems, ordnanceDesigns);
-  }, [launchSystems, ordnanceDesigns]);
+  }, [allGuidance, designProgressLevel, designTechTracks, designCategory]);
 
   // Calculate design preview
   const designPreview = useMemo(() => {
-    if (currentCategory === 'missile') {
+    if (designCategory === 'missile') {
       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       const warhead = allWarheads.find(w => w.id === selectedWarhead);
       if (propulsion && guidance && warhead) {
         return calculateMissileDesign(propulsion, guidance, warhead);
       }
-    } else if (currentCategory === 'bomb') {
-      const propulsion = allPropulsion.find(p => p.id === `bomb-${designSize}`);
+    } else if (designCategory === 'bomb') {
+      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const warhead = allWarheads.find(w => w.id === selectedWarhead);
       if (propulsion && warhead) {
         return calculateBombDesign(propulsion, warhead);
       }
-    } else if (currentCategory === 'mine') {
-      const propulsion = allPropulsion.find(p => p.id === `mine-${designSize}`);
+    } else if (designCategory === 'mine') {
+      const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       const warhead = allWarheads.find(w => w.id === selectedWarhead);
       if (propulsion && guidance && warhead) {
@@ -221,14 +277,122 @@ export function OrdnanceSelection({
       }
     }
     return null;
-  }, [currentCategory, selectedPropulsion, selectedGuidance, selectedWarhead, designSize, allPropulsion, allGuidance, allWarheads]);
+  }, [designCategory, selectedPropulsion, selectedGuidance, selectedWarhead, designSize, allPropulsion, allGuidance, allWarheads]);
+
+  // Calculate preview for launch system
+  const previewStats = useMemo(() => {
+    if (!selectedLaunchSystem) return null;
+    return calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraCapacity);
+  }, [selectedLaunchSystem, quantity, extraCapacity]);
+
+  // Effect to handle external edit trigger from WeaponSelection
+  useEffect(() => {
+    if (editLaunchSystemId) {
+      const installed = launchSystems.find(ls => ls.id === editLaunchSystemId);
+      if (installed) {
+        const lsType = allLaunchSystems.find(ls => ls.id === installed.launchSystemType);
+        if (lsType) {
+          setSelectedLaunchSystem(lsType);
+          setQuantity(installed.quantity);
+          setExtraCapacity(installed.extraCapacity);
+          setEditingLaunchSystemId(installed.id);
+          setTimeout(() => {
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 0);
+        }
+      }
+    }
+  }, [editLaunchSystemId, launchSystems, allLaunchSystems]);
 
   // Handlers
-  const handleTabChange = (_: React.SyntheticEvent, newValue: OrdnanceTab) => {
-    setActiveTab(newValue);
+  const handleSelectLaunchSystem = (ls: LaunchSystem) => {
+    setSelectedLaunchSystem(ls);
+    setQuantity(1);
+    setExtraCapacity(0);
+    setEditingLaunchSystemId(null);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
   };
 
-  const openNewDesignDialog = () => {
+  const handleCancelEdit = () => {
+    setSelectedLaunchSystem(null);
+    setQuantity(1);
+    setExtraCapacity(0);
+    setEditingLaunchSystemId(null);
+    onEditComplete?.();
+  };
+
+  const handleAddOrUpdateLaunchSystem = () => {
+    if (!selectedLaunchSystem) return;
+
+    if (editingLaunchSystemId) {
+      // Update existing launch system
+      const existingLS = launchSystems.find(ls => ls.id === editingLaunchSystemId);
+      if (!existingLS) return;
+
+      const stats = calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraCapacity);
+      const updatedLS: InstalledLaunchSystem = {
+        ...existingLS,
+        quantity,
+        extraCapacity,
+        hullPoints: stats.hullPoints,
+        powerRequired: stats.powerRequired,
+        totalCapacity: stats.totalCapacity,
+        cost: stats.cost,
+      };
+      onLaunchSystemsChange(
+        launchSystems.map(ls => ls.id === editingLaunchSystemId ? updatedLS : ls)
+      );
+    } else {
+      // Add new launch system
+      const newLS = createInstalledLaunchSystem(
+        selectedLaunchSystem.id,
+        quantity,
+        extraCapacity
+      );
+      if (newLS) {
+        onLaunchSystemsChange([...launchSystems, newLS]);
+      }
+    }
+
+    handleCancelEdit();
+  };
+
+  // Ordnance loading handlers
+  const handleLoadOrdnance = (designId: string, qty: number) => {
+    if (!editingLaunchSystemId) return;
+
+    const design = ordnanceDesigns.find(d => d.id === designId);
+    const ls = launchSystems.find(l => l.id === editingLaunchSystemId);
+    if (!design || !ls) return;
+
+    if (!canLoadOrdnance(ls, design, qty, ordnanceDesigns)) {
+      alert('Not enough capacity to load this ordnance.');
+      return;
+    }
+
+    const updatedLS = addOrdnanceToLoadout(ls, designId, qty);
+    onLaunchSystemsChange(
+      launchSystems.map(l => (l.id === editingLaunchSystemId ? updatedLS : l))
+    );
+  };
+
+  const handleUnloadOrdnance = (designId: string) => {
+    if (!editingLaunchSystemId) return;
+
+    const ls = launchSystems.find(l => l.id === editingLaunchSystemId);
+    if (!ls) return;
+
+    const updatedLS = removeOrdnanceFromLoadout(ls, designId);
+    onLaunchSystemsChange(
+      launchSystems.map(l => (l.id === editingLaunchSystemId ? updatedLS : l))
+    );
+  };
+
+  // Design dialog handlers
+  const openNewDesignDialog = (category: OrdnanceCategory) => {
+    setDesignCategory(category);
     setEditingDesign(null);
     setDesignName('');
     setDesignSize('light');
@@ -242,6 +406,7 @@ export function OrdnanceSelection({
   };
 
   const openEditDesignDialog = (design: OrdnanceDesign) => {
+    setDesignCategory(design.category);
     setEditingDesign(design);
     setDesignName(design.name);
     setDesignSize(design.size);
@@ -250,11 +415,9 @@ export function OrdnanceSelection({
       setSelectedPropulsion(missile.propulsionId);
       setSelectedGuidance(missile.guidanceId);
     } else if (design.category === 'bomb') {
-      // Derive propulsion ID from size for bombs
       setSelectedPropulsion(`bomb-${design.size}`);
     } else if (design.category === 'mine') {
       const mine = design as MineDesign;
-      // Derive propulsion ID from size for mines
       setSelectedPropulsion(`mine-${design.size}`);
       setSelectedGuidance(mine.guidanceId);
     }
@@ -271,15 +434,13 @@ export function OrdnanceSelection({
 
     let newDesign: OrdnanceDesign;
 
-    if (currentCategory === 'missile') {
+    if (designCategory === 'missile') {
       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       if (!propulsion || !guidance) return;
-      if (!designName.trim()) return; // Name is required for missiles
+      if (!designName.trim()) return;
 
       const stats = calculateMissileDesign(propulsion, guidance, warhead);
-      
-      // Derive size from propulsion size
       const sizeFromPropulsion: OrdnanceSize = propulsion.size >= 4 ? 'heavy' : propulsion.size >= 2 ? 'medium' : 'light';
 
       newDesign = {
@@ -294,10 +455,10 @@ export function OrdnanceSelection({
         totalCost: stats.totalCost,
         capacityRequired: stats.capacityRequired,
       } as MissileDesign;
-    } else if (currentCategory === 'bomb') {
+    } else if (designCategory === 'bomb') {
       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       if (!propulsion) return;
-      if (!designName.trim()) return; // Name is required for bombs
+      if (!designName.trim()) return;
 
       const stats = calculateBombDesign(propulsion, warhead);
       const sizeFromPropulsion: OrdnanceSize = propulsion.size === 1 ? 'light' : propulsion.size === 2 ? 'medium' : 'heavy';
@@ -316,7 +477,7 @@ export function OrdnanceSelection({
       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
       const guidance = allGuidance.find(g => g.id === selectedGuidance);
       if (!propulsion || !guidance) return;
-      if (!designName.trim()) return; // Name is required for mines
+      if (!designName.trim()) return;
 
       const stats = calculateMineDesign(propulsion, guidance, warhead);
       const sizeFromPropulsion: OrdnanceSize = propulsion.size === 1 ? 'light' : propulsion.size === 2 ? 'medium' : 'heavy';
@@ -346,7 +507,6 @@ export function OrdnanceSelection({
   };
 
   const handleDeleteDesign = (designId: string) => {
-    // Check if design is loaded in any launcher
     const isLoaded = launchSystems.some(ls =>
       ls.loadout.some(item => item.designId === designId)
     );
@@ -357,201 +517,311 @@ export function OrdnanceSelection({
     onOrdnanceDesignsChange(ordnanceDesigns.filter(d => d.id !== designId));
   };
 
-  const handleAddLaunchSystem = () => {
-    const lsType = allLaunchSystems.find(ls => ls.id === selectedLaunchSystem);
-    if (!lsType) return;
+  // Helper functions
+  const getWarheadInfo = (warheadId: string) => allWarheads.find(w => w.id === warheadId);
+  const getPropulsionInfo = (propulsionId: string) => allPropulsion.find(p => p.id === propulsionId);
+  const getGuidanceInfo = (guidanceId: string) => allGuidance.find(g => g.id === guidanceId);
 
-    const newLS = createInstalledLaunchSystem(
-      selectedLaunchSystem,
-      launchSystemQuantity,
-      launchSystemExtraCapacity
-    );
-    if (newLS) {
-      onLaunchSystemsChange([...launchSystems, newLS]);
-    }
-    setAddLaunchSystemDialogOpen(false);
-  };
-
-  const handleRemoveLaunchSystem = (id: string) => {
-    onLaunchSystemsChange(launchSystems.filter(ls => ls.id !== id));
-  };
-
-  const openLoadDialog = (launchSystemId: string) => {
-    setLoadingLaunchSystemId(launchSystemId);
-    setLoadDialogOpen(true);
-  };
-
-  const handleLoadOrdnance = (designId: string, quantity: number) => {
-    if (!loadingLaunchSystemId) return;
-    
-    const design = ordnanceDesigns.find(d => d.id === designId);
-    const ls = launchSystems.find(l => l.id === loadingLaunchSystemId);
-    if (!design || !ls) return;
-
-    if (!canLoadOrdnance(ls, design, quantity, ordnanceDesigns)) {
-      alert('Not enough capacity to load this ordnance.');
-      return;
-    }
-
-    const updatedLS = addOrdnanceToLoadout(ls, designId, quantity);
-    onLaunchSystemsChange(
-      launchSystems.map(l => (l.id === loadingLaunchSystemId ? updatedLS : l))
-    );
-  };
-
-  const handleUnloadOrdnance = (launchSystemId: string, designId: string) => {
-    const ls = launchSystems.find(l => l.id === launchSystemId);
-    if (!ls) return;
-
-    const updatedLS = removeOrdnanceFromLoadout(ls, designId);
-    onLaunchSystemsChange(
-      launchSystems.map(l => (l.id === launchSystemId ? updatedLS : l))
-    );
-  };
-
-  // Get warhead info for display
-  const getWarheadInfo = (warheadId: string) => {
-    return allWarheads.find(w => w.id === warheadId);
-  };
-
-  // Get propulsion info for display
-  const getPropulsionInfo = (propulsionId: string) => {
-    return allPropulsion.find(p => p.id === propulsionId);
-  };
-
-  // Get guidance info for display
-  const getGuidanceInfo = (guidanceId: string) => {
-    return allGuidance.find(g => g.id === guidanceId);
-  };
-
-  // Get combined tech tracks for a design (deduplicated)
   const getDesignTechTracks = (design: OrdnanceDesign): TechTrack[] => {
     const techTracks = new Set<TechTrack>();
-    
     const warhead = getWarheadInfo(design.warheadId);
     warhead?.techTracks.forEach(t => techTracks.add(t));
-    
     if (design.category === 'missile') {
-      const propulsion = getPropulsionInfo(design.propulsionId);
+      const propulsion = getPropulsionInfo((design as MissileDesign).propulsionId);
       propulsion?.techTracks.forEach(t => techTracks.add(t));
-      const guidance = getGuidanceInfo(design.guidanceId);
+      const guidance = getGuidanceInfo((design as MissileDesign).guidanceId);
       guidance?.techTracks.forEach(t => techTracks.add(t));
     } else if (design.category === 'mine') {
-      const guidance = getGuidanceInfo(design.guidanceId);
+      const guidance = getGuidanceInfo((design as MineDesign).guidanceId);
       guidance?.techTracks.forEach(t => techTracks.add(t));
     }
-    
     return Array.from(techTracks).sort();
   };
 
-  // Get launch system type info
-  const getLaunchSystemType = (typeId: string) => {
-    return allLaunchSystems.find(ls => ls.id === typeId);
+  // Render configuration panel
+  const renderConfigureForm = () => {
+    if (!selectedLaunchSystem) return null;
+
+    const isEditing = !!editingLaunchSystemId;
+    const currentLS = isEditing ? launchSystems.find(ls => ls.id === editingLaunchSystemId) : null;
+    const usedCap = currentLS ? getUsedCapacity(currentLS.loadout, ordnanceDesigns) : 0;
+    const totalCap = previewStats?.totalCapacity ?? 0;
+    const remainingCap = totalCap - usedCap;
+
+    return (
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              {quantity > 1 && `${quantity}× `}{selectedLaunchSystem.name}
+            </Typography>
+            <TextField
+              type="number"
+              size="small"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              inputProps={{ min: 1, max: 99, style: { textAlign: 'center', width: 40 } }}
+              sx={{ width: 70 }}
+              label="Qty"
+            />
+            {selectedLaunchSystem.expandable && (
+              <TextField
+                type="number"
+                size="small"
+                value={extraCapacity}
+                onChange={(e) => setExtraCapacity(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+                sx={{ width: 100 }}
+                label="Extra Cap"
+              />
+            )}
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Chip label={`PL${selectedLaunchSystem.progressLevel}`} size="small" variant="outlined" />
+            <Chip label={`ROF: ${selectedLaunchSystem.rateOfFire}`} size="small" variant="outlined" />
+          </Stack>
+        </Box>
+
+        <Divider sx={{ mb: 2 }} />
+
+        {/* Summary */}
+        {previewStats && (
+          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'action.hover', mb: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Chip label={`${previewStats.hullPoints} HP`} size="small" variant="outlined" />
+              <Chip label={`${previewStats.powerRequired} Power`} size="small" variant="outlined" />
+              <Chip label={`${previewStats.totalCapacity} Capacity`} size="small" variant="outlined" color="primary" />
+              <Chip label={formatCost(previewStats.cost)} size="small" variant="outlined" />
+              <Chip label={selectedLaunchSystem.spaceReload ? 'Space Reload' : 'No Space Reload'} size="small" variant="outlined" color={selectedLaunchSystem.spaceReload ? 'success' : 'default'} />
+            </Stack>
+          </Paper>
+        )}
+
+        {/* Ordnance Loading Section - Only when editing */}
+        {isEditing && currentLS && (
+          <>
+            <Typography variant="subtitle2" gutterBottom>
+              Ordnance Loadout (Capacity: {usedCap}/{totalCap})
+            </Typography>
+
+            {/* Current loadout */}
+            {currentLS.loadout.length > 0 && (
+              <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Design</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Qty</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Capacity</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {currentLS.loadout.map(item => {
+                      const design = ordnanceDesigns.find(d => d.id === item.designId);
+                      return (
+                        <TableRow key={item.designId}>
+                          <TableCell>{design?.name ?? 'Unknown'}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>{design ? design.capacityRequired * item.quantity : '?'}</TableCell>
+                          <TableCell>{design ? formatCost(design.totalCost * item.quantity) : '?'}</TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleUnloadOrdnance(item.designId)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* Available designs to load */}
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Available Designs (Remaining capacity: {remainingCap})
+            </Typography>
+            {applicableDesigns.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                No designs available. Create a design first.
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, maxHeight: 250 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Design</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Cap</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {applicableDesigns.map(design => {
+                      const canLoad = design.capacityRequired <= remainingCap;
+                      const maxQty = Math.floor(remainingCap / design.capacityRequired);
+                      const isLoaded = currentLS.loadout.some(item => item.designId === design.id);
+                      return (
+                        <TableRow key={design.id}>
+                          <TableCell>{design.name}</TableCell>
+                          <TableCell sx={{ textTransform: 'capitalize' }}>{design.category}</TableCell>
+                          <TableCell sx={{ textTransform: 'capitalize' }}>{design.size}</TableCell>
+                          <TableCell>{design.capacityRequired}</TableCell>
+                          <TableCell>{formatCost(design.totalCost)}</TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={0.5}>
+                              <Button size="small" variant="outlined" disabled={!canLoad} onClick={() => handleLoadOrdnance(design.id, 1)}>+1</Button>
+                              {maxQty >= 5 && <Button size="small" variant="outlined" onClick={() => handleLoadOrdnance(design.id, 5)}>+5</Button>}
+                              {maxQty >= 10 && <Button size="small" variant="outlined" onClick={() => handleLoadOrdnance(design.id, 10)}>+10</Button>}
+                              <Button size="small" variant="outlined" color="primary" disabled={!canLoad || maxQty === 0} onClick={() => handleLoadOrdnance(design.id, maxQty)}>Max</Button>
+                              {isLoaded && <Button size="small" variant="outlined" color="error" onClick={() => handleUnloadOrdnance(design.id)}>Clear</Button>}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* Create new design buttons */}
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              {selectedLaunchSystem.ordnanceTypes.includes('missile') && (
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => openNewDesignDialog('missile')}>
+                  New Missile Design
+                </Button>
+              )}
+              {selectedLaunchSystem.ordnanceTypes.includes('bomb') && (
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => openNewDesignDialog('bomb')}>
+                  New Bomb Design
+                </Button>
+              )}
+              {selectedLaunchSystem.ordnanceTypes.includes('mine') && (
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => openNewDesignDialog('mine')}>
+                  New Mine Design
+                </Button>
+              )}
+            </Stack>
+          </>
+        )}
+
+        {/* Actions */}
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+          <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
+            onClick={handleAddOrUpdateLaunchSystem}
+          >
+            {isEditing ? 'Save Changes' : 'Add Launch System'}
+          </Button>
+        </Box>
+      </Paper>
+    );
   };
 
-  // Format loadout contents for display
-  const formatLoadoutContents = (ls: InstalledLaunchSystem): string => {
-    if (!ls.loadout || ls.loadout.length === 0) return 'Empty';
-    return ls.loadout
-      .map(item => {
-        const design = ordnanceDesigns.find(d => d.id === item.designId);
-        return design ? `${item.quantity}× ${design.name}` : '';
-      })
-      .filter(Boolean)
-      .join(', ');
-  };
-
-  return (
-    <Box>
-      {/* Summary Chips */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-        <Chip
-          label={`Launchers HP: ${stats.totalLauncherHullPoints}`}
-          variant="outlined"
-          size="small"
-        />
-        <Chip
-          label={`Power: ${stats.totalLauncherPower} PP`}
-          variant="outlined"
-          size="small"
-        />
-        <Chip
-          label={`Launcher Cost: ${formatCost(stats.totalLauncherCost)}`}
-          variant="outlined"
-          size="small"
-        />
-        <Chip
-          label={`Ordnance Cost: ${formatCost(stats.totalOrdnanceCost)}`}
-          variant="outlined"
-          size="small"
-        />
-        <Chip
-          label={`Designs: ${stats.missileDesignCount}M / ${stats.bombDesignCount}B / ${stats.mineDesignCount}m`}
-          variant="outlined"
-          size="small"
-          color="primary"
-        />
-      </Stack>
-
-      {/* Category Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tab label="Missiles" value="missiles" />
-          <Tab label="Bombs" value="bombs" />
-          <Tab label="Mines" value="mines" />
-        </Tabs>
-      </Box>
-
-      {/* Section 1: Ordnance Designs */}
-      <Typography variant="h6" gutterBottom>
-        {currentCategory === 'missile' ? 'Missile' : currentCategory === 'bomb' ? 'Bomb' : 'Mine'} Designs
-      </Typography>
-      
-      <TableContainer component={Paper} sx={{ mb: 3, overflowX: 'auto' }}>
+  // Render launch systems grid
+  const renderLaunchSystemsGrid = () => {
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1200 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Size</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Warhead</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Cost/ea</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cap</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>ROF</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Reload</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Types</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {currentDesigns.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No {currentCategory} designs created yet. Click "New Design" to create one.
-                  </Typography>
+            {filteredLaunchSystems.map((ls) => (
+              <TableRow
+                key={ls.id}
+                hover
+                onClick={() => handleSelectLaunchSystem(ls)}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  ...(selectedLaunchSystem?.id === ls.id && {
+                    bgcolor: 'primary.light',
+                    '&:hover': { bgcolor: 'primary.light' },
+                  }),
+                }}
+              >
+                <TableCell sx={{ minWidth: 180 }}>{ls.name}</TableCell>
+                <TableCell>{ls.progressLevel}</TableCell>
+                <TechTrackCell techTracks={ls.techTracks} />
+                <TableCell>{ls.hullPoints}</TableCell>
+                <TableCell>{ls.powerRequired}</TableCell>
+                <TableCell>{ls.capacity}{ls.expandable && '+'}</TableCell>
+                <TableCell>{ls.rateOfFire}</TableCell>
+                <TableCell>{ls.spaceReload ? 'Yes' : 'No'}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(ls.cost)}</TableCell>
+                <TableCell sx={{ textTransform: 'capitalize' }}>{ls.ordnanceTypes.join(', ')}</TableCell>
+                <TableCell sx={{ maxWidth: 250 }}>
+                  <TruncatedDescription text={ls.description} />
                 </TableCell>
               </TableRow>
-            ) : (
-              currentDesigns.map(design => {
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  // Render ordnance designs section
+  const renderOrdnanceDesigns = () => {
+    if (ordnanceDesigns.length === 0) return null;
+
+    return (
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Ordnance Designs
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Warhead</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {ordnanceDesigns.map(design => {
                 const warhead = getWarheadInfo(design.warheadId);
                 const techTracks = getDesignTechTracks(design);
                 return (
                   <TableRow key={design.id}>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5}>
-                        <IconButton size="small" onClick={() => openEditDesignDialog(design)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteDesign(design.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
                     <TableCell>{design.name}</TableCell>
+                    <TableCell sx={{ textTransform: 'capitalize' }}>{design.category}</TableCell>
                     <TableCell sx={{ textTransform: 'capitalize' }}>{design.size}</TableCell>
                     <TechTrackCell techTracks={techTracks} />
                     <TableCell>{warhead?.name ?? '?'}</TableCell>
@@ -559,180 +829,50 @@ export function OrdnanceSelection({
                     <TableCell>{warhead?.damage ?? '?'}</TableCell>
                     <TableCell>{warhead ? `${warhead.damageType}/${warhead.firepower}` : '?'}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(design.totalCost)}</TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Button
-        variant="outlined"
-        startIcon={<AddIcon />}
-        onClick={openNewDesignDialog}
-        sx={{ mb: 3 }}
-      >
-        New {currentCategory === 'missile' ? 'Missile' : currentCategory === 'bomb' ? 'Bomb' : 'Mine'} Design
-      </Button>
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Section 2: Launch Systems */}
-      <Typography variant="h6" gutterBottom>
-        Launch Systems
-      </Typography>
-
-      {/* Available Launch Systems */}
-      <Typography variant="subtitle2" gutterBottom>
-        Available Launch Systems
-      </Typography>
-      <TableContainer component={Paper} sx={{ mb: 2, overflowX: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cap</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>ROF</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Reload</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredLaunchSystems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No launch systems available for {currentCategory}s at this tech level.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredLaunchSystems
-                .sort((a, b) => a.progressLevel - b.progressLevel)
-                .map(ls => (
-                  <TableRow key={ls.id}>
-                    <TableCell>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => {
-                          setSelectedLaunchSystem(ls.id);
-                          setLaunchSystemQuantity(1);
-                          setLaunchSystemExtraCapacity(0);
-                          setAddLaunchSystemDialogOpen(true);
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </TableCell>
-                    <TableCell>{ls.name}</TableCell>
-                    <TableCell>{ls.progressLevel}</TableCell>
-                    <TableCell>{ls.hullPoints}</TableCell>
-                    <TableCell>{ls.powerRequired}</TableCell>
-                    <TableCell>{ls.capacity}</TableCell>
-                    <TableCell>{ls.rateOfFire}</TableCell>
-                    <TableCell>{ls.spaceReload ? 'Yes' : 'No'}</TableCell>
-                    <TableCell>{formatCost(ls.cost)}</TableCell>
-                    <TableCell>
-                      <TruncatedDescription text={ls.description} maxWidth={200} />
-                    </TableCell>
-                  </TableRow>
-                ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Installed Launch Systems */}
-      <Typography variant="subtitle2" gutterBottom>
-        Installed Launch Systems
-      </Typography>
-      <TableContainer component={Paper} sx={{ mb: 2, overflowX: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Qty</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Capacity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Contents</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {currentInstalledLaunchSystems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No launch systems installed for {currentCategory}s.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              currentInstalledLaunchSystems.map(ls => {
-                const lsType = getLaunchSystemType(ls.launchSystemType);
-                const usedCap = getUsedCapacity(ls.loadout, ordnanceDesigns);
-                return (
-                  <TableRow key={ls.id}>
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Load ordnance">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => openLoadDialog(ls.id)}
-                          >
-                            <LocalShippingIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleRemoveLaunchSystem(ls.id)}
-                        >
+                        <IconButton size="small" onClick={() => openEditDesignDialog(design)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDeleteDesign(design.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
                     </TableCell>
-                    <TableCell>{lsType?.name ?? ls.launchSystemType}</TableCell>
-                    <TableCell>{ls.quantity}</TableCell>
-                    <TableCell>{ls.hullPoints}</TableCell>
-                    <TableCell>
-                      {usedCap}/{ls.totalCapacity}
-                    </TableCell>
-                    <TableCell>
-                      <TruncatedDescription
-                        text={formatLoadoutContents(ls)}
-                        maxWidth={250}
-                      />
-                    </TableCell>
-                    <TableCell>{formatCost(ls.cost)}</TableCell>
                   </TableRow>
                 );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    );
+  };
 
-      {/* Missile Design Dialog - Stepper based */}
-      {currentCategory === 'missile' && (
-        <Dialog 
-          open={designDialogOpen} 
+  return (
+    <Box>
+      {/* Configuration Panel */}
+      {renderConfigureForm()}
+
+      {/* Ordnance Designs */}
+      {renderOrdnanceDesigns()}
+
+      {/* Available Launch Systems Grid */}
+      <Typography variant="subtitle2" gutterBottom>
+        Available Launch Systems
+      </Typography>
+      {renderLaunchSystemsGrid()}
+
+      {/* Missile Design Dialog */}
+      {designCategory === 'missile' && (
+        <Dialog
+          open={designDialogOpen}
           onClose={(_event, reason) => {
             if (reason !== 'backdropClick') {
               setDesignDialogOpen(false);
             }
           }}
-          maxWidth="md" 
+          maxWidth="md"
           fullWidth
         >
           <DialogTitle>
@@ -742,9 +882,9 @@ export function OrdnanceSelection({
             <Stepper activeStep={missileDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
               <Step completed={!!selectedPropulsion}>
                 <StepButton onClick={() => setMissileDesignStep(0)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedPropulsion 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedPropulsion
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={missileDesignStep === 0 ? 'warning' : 'error'} />
                   }>
                     Propulsion
@@ -753,9 +893,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedWarhead}>
                 <StepButton onClick={() => setMissileDesignStep(1)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedWarhead 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedWarhead
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={missileDesignStep === 1 ? 'warning' : 'error'} />
                   }>
                     Warhead
@@ -764,9 +904,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedGuidance}>
                 <StepButton onClick={() => setMissileDesignStep(2)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedGuidance 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedGuidance
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={missileDesignStep === 2 ? 'warning' : 'error'} />
                   }>
                     Guidance
@@ -775,9 +915,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedPropulsion && !!selectedWarhead && !!selectedGuidance && !!designName.trim()}>
                 <StepButton onClick={() => setMissileDesignStep(3)}>
-                  <StepLabel StepIconComponent={() => 
+                  <StepLabel StepIconComponent={() =>
                     selectedPropulsion && selectedWarhead && selectedGuidance && designName.trim()
-                      ? <CheckCircleIcon color="success" /> 
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={missileDesignStep === 3 ? 'warning' : 'error'} />
                   }>
                     Summary
@@ -858,38 +998,38 @@ export function OrdnanceSelection({
                           <TableRow>
                             <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredWarheads.map(w => (
-                        <TableRow
-                          key={w.id}
-                          hover
-                          selected={selectedWarhead === w.id}
-                          onClick={() => setSelectedWarhead(w.id)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>{w.name}</TableCell>
-                          <TableCell>{w.progressLevel}</TableCell>
-                          <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
-                          <TableCell>{w.size}</TableCell>
-                          <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
-                          <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
-                          <TableCell>{w.damage}</TableCell>
-                          <TableCell>{formatCost(w.cost)}</TableCell>
-                          <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {filteredWarheads.map(w => (
+                            <TableRow
+                              key={w.id}
+                              hover
+                              selected={selectedWarhead === w.id}
+                              onClick={() => setSelectedWarhead(w.id)}
+                              sx={{ cursor: 'pointer' }}
+                            >
+                              <TableCell>{w.name}</TableCell>
+                              <TableCell>{w.progressLevel}</TableCell>
+                              <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
+                              <TableCell>{w.size}</TableCell>
+                              <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
+                              <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
+                              <TableCell>{w.damage}</TableCell>
+                              <TableCell>{formatCost(w.cost)}</TableCell>
+                              <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </>
                 )}
               </Box>
@@ -920,29 +1060,29 @@ export function OrdnanceSelection({
                             <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
                           </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredGuidance.map(g => (
-                        <TableRow
-                          key={g.id}
-                          hover
-                          selected={selectedGuidance === g.id}
-                          onClick={() => setSelectedGuidance(g.id)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>{g.name}</TableCell>
-                          <TableCell>{g.progressLevel}</TableCell>
-                          <TableCell>{g.techTracks.join(', ') || '-'}</TableCell>
-                          <TableCell>{formatAccuracyModifier(g.accuracyModifier)}</TableCell>
-                          <TableCell>{formatCost(g.cost)}</TableCell>
-                          <TableCell>
-                            <TruncatedDescription text={g.description} maxWidth={200} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {filteredGuidance.map(g => (
+                            <TableRow
+                              key={g.id}
+                              hover
+                              selected={selectedGuidance === g.id}
+                              onClick={() => setSelectedGuidance(g.id)}
+                              sx={{ cursor: 'pointer' }}
+                            >
+                              <TableCell>{g.name}</TableCell>
+                              <TableCell>{g.progressLevel}</TableCell>
+                              <TableCell>{g.techTracks.join(', ') || '-'}</TableCell>
+                              <TableCell>{formatAccuracyModifier(g.accuracyModifier)}</TableCell>
+                              <TableCell>{formatCost(g.cost)}</TableCell>
+                              <TableCell>
+                                <TruncatedDescription text={g.description} maxWidth={200} />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </>
                 )}
               </Box>
@@ -962,12 +1102,12 @@ export function OrdnanceSelection({
                     <Typography variant="subtitle2" sx={{ mb: 2 }}>
                       Missile Summary
                     </Typography>
-                    
+
                     {designPreview && (() => {
                       const propulsion = allPropulsion.find(p => p.id === selectedPropulsion);
                       const warhead = allWarheads.find(w => w.id === selectedWarhead);
                       const guidance = allGuidance.find(g => g.id === selectedGuidance);
-                      
+
                       return (
                         <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
                           <Table size="small">
@@ -989,14 +1129,14 @@ export function OrdnanceSelection({
                               <TableRow>
                                 <TableCell>{propulsion?.name}</TableCell>
                                 <TableCell>{warhead?.name}</TableCell>
-                            <TableCell>{guidance?.name}</TableCell>
-                            <TableCell>{propulsion?.size}</TableCell>
-                            <TableCell>{formatAccuracyModifier(designPreview.totalAccuracy)}</TableCell>
-                            <TableCell>{warhead ? `${warhead.damageType}/${warhead.firepower}` : '?'}</TableCell>
-                            <TableCell>{warhead?.damage}</TableCell>
-                            <TableCell>{propulsion?.endurance ?? '-'}</TableCell>
-                            <TableCell>{propulsion?.acceleration ?? '-'}{propulsion?.isPL6Scale ? '*' : ''}</TableCell>
-                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(designPreview.totalCost)}</TableCell>
+                                <TableCell>{guidance?.name}</TableCell>
+                                <TableCell>{propulsion?.size}</TableCell>
+                                <TableCell>{formatAccuracyModifier(designPreview.totalAccuracy)}</TableCell>
+                                <TableCell>{warhead ? `${warhead.damageType}/${warhead.firepower}` : '?'}</TableCell>
+                                <TableCell>{warhead?.damage}</TableCell>
+                                <TableCell>{propulsion?.endurance ?? '-'}</TableCell>
+                                <TableCell>{propulsion?.acceleration ?? '-'}{propulsion?.isPL6Scale ? '*' : ''}</TableCell>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(designPreview.totalCost)}</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
@@ -1021,10 +1161,7 @@ export function OrdnanceSelection({
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
-            <Button
-              disabled={missileDesignStep === 0}
-              onClick={() => setMissileDesignStep(s => s - 1)}
-            >
+            <Button disabled={missileDesignStep === 0} onClick={() => setMissileDesignStep(s => s - 1)}>
               Back
             </Button>
             {missileDesignStep < 3 ? (
@@ -1040,11 +1177,7 @@ export function OrdnanceSelection({
                 Next
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                disabled={!designName.trim()}
-                onClick={handleSaveDesign}
-              >
+              <Button variant="contained" disabled={!designName.trim()} onClick={handleSaveDesign}>
                 {editingDesign ? 'Save' : 'Create'}
               </Button>
             )}
@@ -1052,16 +1185,16 @@ export function OrdnanceSelection({
         </Dialog>
       )}
 
-      {/* Bomb Design Dialog with Stepper */}
-      {currentCategory === 'bomb' && (
-        <Dialog 
-          open={designDialogOpen} 
+      {/* Bomb Design Dialog */}
+      {designCategory === 'bomb' && (
+        <Dialog
+          open={designDialogOpen}
           onClose={(_event, reason) => {
             if (reason !== 'backdropClick') {
               setDesignDialogOpen(false);
             }
           }}
-          maxWidth="md" 
+          maxWidth="md"
           fullWidth
         >
           <DialogTitle>
@@ -1071,9 +1204,9 @@ export function OrdnanceSelection({
             <Stepper activeStep={bombDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
               <Step completed={!!selectedPropulsion}>
                 <StepButton onClick={() => setBombDesignStep(0)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedPropulsion 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedPropulsion
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={bombDesignStep === 0 ? 'warning' : 'error'} />
                   }>
                     Casing
@@ -1082,9 +1215,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedWarhead}>
                 <StepButton onClick={() => setBombDesignStep(1)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedWarhead 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedWarhead
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={bombDesignStep === 1 ? 'warning' : 'error'} />
                   }>
                     Warhead
@@ -1093,9 +1226,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedPropulsion && !!selectedWarhead && !!designName.trim()}>
                 <StepButton onClick={() => setBombDesignStep(2)}>
-                  <StepLabel StepIconComponent={() => 
+                  <StepLabel StepIconComponent={() =>
                     selectedPropulsion && selectedWarhead && designName.trim()
-                      ? <CheckCircleIcon color="success" /> 
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={bombDesignStep === 2 ? 'warning' : 'error'} />
                   }>
                     Summary
@@ -1104,7 +1237,7 @@ export function OrdnanceSelection({
               </Step>
             </Stepper>
 
-            {/* Step 0: Casing/Propulsion Selection */}
+            {/* Step 0: Casing Selection */}
             {bombDesignStep === 0 && (
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -1131,7 +1264,7 @@ export function OrdnanceSelection({
                           selected={selectedPropulsion === p.id}
                           onClick={() => {
                             setSelectedPropulsion(p.id);
-                            setSelectedWarhead(''); // Reset warhead when propulsion changes
+                            setSelectedWarhead('');
                             setBombDesignStep(1);
                           }}
                           sx={{ cursor: 'pointer' }}
@@ -1268,10 +1401,7 @@ export function OrdnanceSelection({
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
-            <Button
-              disabled={bombDesignStep === 0}
-              onClick={() => setBombDesignStep(s => s - 1)}
-            >
+            <Button disabled={bombDesignStep === 0} onClick={() => setBombDesignStep(s => s - 1)}>
               Back
             </Button>
             {bombDesignStep < 2 ? (
@@ -1286,11 +1416,7 @@ export function OrdnanceSelection({
                 Next
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                onClick={handleSaveDesign}
-                disabled={!designName.trim()}
-              >
+              <Button variant="contained" onClick={handleSaveDesign} disabled={!designName.trim()}>
                 {editingDesign ? 'Save' : 'Create'}
               </Button>
             )}
@@ -1298,16 +1424,16 @@ export function OrdnanceSelection({
         </Dialog>
       )}
 
-      {/* Mine Design Dialog with Stepper */}
-      {currentCategory === 'mine' && (
-        <Dialog 
-          open={designDialogOpen} 
+      {/* Mine Design Dialog */}
+      {designCategory === 'mine' && (
+        <Dialog
+          open={designDialogOpen}
           onClose={(_event, reason) => {
             if (reason !== 'backdropClick') {
               setDesignDialogOpen(false);
             }
           }}
-          maxWidth="md" 
+          maxWidth="md"
           fullWidth
         >
           <DialogTitle>
@@ -1317,9 +1443,9 @@ export function OrdnanceSelection({
             <Stepper activeStep={mineDesignStep} nonLinear sx={{ mt: 2, mb: 3, '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
               <Step completed={!!selectedPropulsion}>
                 <StepButton onClick={() => setMineDesignStep(0)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedPropulsion 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedPropulsion
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={mineDesignStep === 0 ? 'warning' : 'error'} />
                   }>
                     Casing
@@ -1328,9 +1454,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedWarhead}>
                 <StepButton onClick={() => setMineDesignStep(1)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedWarhead 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedWarhead
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={mineDesignStep === 1 ? 'warning' : 'error'} />
                   }>
                     Warhead
@@ -1339,9 +1465,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedGuidance}>
                 <StepButton onClick={() => setMineDesignStep(2)}>
-                  <StepLabel StepIconComponent={() => 
-                    selectedGuidance 
-                      ? <CheckCircleIcon color="success" /> 
+                  <StepLabel StepIconComponent={() =>
+                    selectedGuidance
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={mineDesignStep === 2 ? 'warning' : 'error'} />
                   }>
                     Guidance
@@ -1350,9 +1476,9 @@ export function OrdnanceSelection({
               </Step>
               <Step completed={!!selectedPropulsion && !!selectedWarhead && !!selectedGuidance && !!designName.trim()}>
                 <StepButton onClick={() => setMineDesignStep(3)}>
-                  <StepLabel StepIconComponent={() => 
+                  <StepLabel StepIconComponent={() =>
                     selectedPropulsion && selectedWarhead && selectedGuidance && designName.trim()
-                      ? <CheckCircleIcon color="success" /> 
+                      ? <CheckCircleIcon color="success" />
                       : <ErrorOutlineIcon color={mineDesignStep === 3 ? 'warning' : 'error'} />
                   }>
                     Summary
@@ -1361,7 +1487,7 @@ export function OrdnanceSelection({
               </Step>
             </Stepper>
 
-            {/* Step 0: Casing/Propulsion Selection */}
+            {/* Step 0: Casing Selection */}
             {mineDesignStep === 0 && (
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -1388,7 +1514,7 @@ export function OrdnanceSelection({
                           selected={selectedPropulsion === p.id}
                           onClick={() => {
                             setSelectedPropulsion(p.id);
-                            setSelectedWarhead(''); // Reset warhead when propulsion changes
+                            setSelectedWarhead('');
                             setMineDesignStep(1);
                           }}
                           sx={{ cursor: 'pointer' }}
@@ -1417,48 +1543,48 @@ export function OrdnanceSelection({
                   <>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
                       Select Warhead (max size {maxWarheadSize})
-                </Typography>
-                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredWarheads.map(w => (
-                        <TableRow
-                          key={w.id}
-                          hover
-                          selected={selectedWarhead === w.id}
-                          onClick={() => {
-                            setSelectedWarhead(w.id);
-                            setMineDesignStep(2);
-                          }}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>{w.name}</TableCell>
-                          <TableCell>{w.progressLevel}</TableCell>
-                          <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
-                          <TableCell>{w.size}</TableCell>
-                          <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
-                          <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
-                          <TableCell>{w.damage}</TableCell>
-                          <TableCell>{formatCost(w.cost)}</TableCell>
-                          <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    </Typography>
+                    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>PL</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tech</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Acc</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Type/FP</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>AoE</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {filteredWarheads.map(w => (
+                            <TableRow
+                              key={w.id}
+                              hover
+                              selected={selectedWarhead === w.id}
+                              onClick={() => {
+                                setSelectedWarhead(w.id);
+                                setMineDesignStep(2);
+                              }}
+                              sx={{ cursor: 'pointer' }}
+                            >
+                              <TableCell>{w.name}</TableCell>
+                              <TableCell>{w.progressLevel}</TableCell>
+                              <TableCell>{w.techTracks.join(', ') || '-'}</TableCell>
+                              <TableCell>{w.size}</TableCell>
+                              <TableCell>{formatAccuracyModifier(w.accuracyModifier)}</TableCell>
+                              <TableCell>{`${w.damageType}/${w.firepower}`}</TableCell>
+                              <TableCell>{w.damage}</TableCell>
+                              <TableCell>{formatCost(w.cost)}</TableCell>
+                              <TableCell>{w.isAreaEffect ? 'Yes' : 'No'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </>
                 )}
               </Box>
@@ -1570,10 +1696,7 @@ export function OrdnanceSelection({
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDesignDialogOpen(false)}>Cancel</Button>
-            <Button
-              disabled={mineDesignStep === 0}
-              onClick={() => setMineDesignStep(s => s - 1)}
-            >
+            <Button disabled={mineDesignStep === 0} onClick={() => setMineDesignStep(s => s - 1)}>
               Back
             </Button>
             {mineDesignStep < 3 ? (
@@ -1589,277 +1712,13 @@ export function OrdnanceSelection({
                 Next
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                onClick={handleSaveDesign}
-                disabled={!designName.trim()}
-              >
+              <Button variant="contained" onClick={handleSaveDesign} disabled={!designName.trim()}>
                 {editingDesign ? 'Save' : 'Create'}
               </Button>
             )}
           </DialogActions>
         </Dialog>
       )}
-
-      {/* Add Launch System Dialog */}
-      <Dialog
-        open={addLaunchSystemDialogOpen}
-        onClose={() => setAddLaunchSystemDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add Launch System</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Launch System</InputLabel>
-              <Select
-                value={selectedLaunchSystem}
-                label="Launch System"
-                onChange={e => setSelectedLaunchSystem(e.target.value)}
-              >
-                {filteredLaunchSystems.map(ls => (
-                  <MenuItem key={ls.id} value={ls.id}>
-                    {ls.name} (HP: {ls.hullPoints}, Cap: {ls.capacity})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField
-              label="Quantity"
-              type="number"
-              value={launchSystemQuantity}
-              onChange={e => setLaunchSystemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              inputProps={{ min: 1 }}
-              fullWidth
-            />
-
-            {allLaunchSystems.find(ls => ls.id === selectedLaunchSystem)?.expandable && (
-              <TextField
-                label="Extra Capacity"
-                type="number"
-                value={launchSystemExtraCapacity}
-                onChange={e =>
-                  setLaunchSystemExtraCapacity(Math.max(0, parseInt(e.target.value) || 0))
-                }
-                inputProps={{ min: 0 }}
-                fullWidth
-                helperText="Additional capacity points (costs extra HP and money)"
-              />
-            )}
-
-            {selectedLaunchSystem && (
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Preview
-                </Typography>
-                {(() => {
-                  const ls = allLaunchSystems.find(l => l.id === selectedLaunchSystem);
-                  if (!ls) return null;
-                  const stats = calculateLaunchSystemStats(
-                    ls,
-                    launchSystemQuantity,
-                    launchSystemExtraCapacity
-                  );
-                  return (
-                    <Stack direction="row" spacing={2}>
-                      <Typography variant="body2">HP: {stats.hullPoints}</Typography>
-                      <Typography variant="body2">Power: {stats.powerRequired}</Typography>
-                      <Typography variant="body2">Capacity: {stats.totalCapacity}</Typography>
-                      <Typography variant="body2">Cost: {formatCost(stats.cost)}</Typography>
-                    </Stack>
-                  );
-                })()}
-              </Paper>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddLaunchSystemDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleAddLaunchSystem}
-            disabled={!selectedLaunchSystem}
-          >
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Load Ordnance Dialog */}
-      <Dialog open={loadDialogOpen} onClose={() => setLoadDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Load Ordnance
-          {loadingLaunchSystemId && (() => {
-            const ls = launchSystems.find(l => l.id === loadingLaunchSystemId);
-            const lsType = ls ? getLaunchSystemType(ls.launchSystemType) : null;
-            const usedCap = ls ? getUsedCapacity(ls.loadout, ordnanceDesigns) : 0;
-            return ls ? (
-              <Typography variant="subtitle2" color="text.secondary">
-                {lsType?.name} × {ls.quantity} — Capacity: {usedCap}/{ls.totalCapacity}
-              </Typography>
-            ) : null;
-          })()}
-        </DialogTitle>
-        <DialogContent>
-          {loadingLaunchSystemId && (() => {
-            const ls = launchSystems.find(l => l.id === loadingLaunchSystemId);
-            if (!ls) return null;
-
-            const lsType = getLaunchSystemType(ls.launchSystemType);
-            const applicableDesigns = ordnanceDesigns.filter(d =>
-              lsType?.ordnanceTypes.includes(d.category)
-            );
-            const usedCap = getUsedCapacity(ls.loadout, ordnanceDesigns);
-            const remainingCap = ls.totalCapacity - usedCap;
-
-            return (
-              <Stack spacing={2} sx={{ mt: 1 }}>
-                {/* Current loadout */}
-                <Typography variant="subtitle2">Current Loadout</Typography>
-                {ls.loadout.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Empty
-                  </Typography>
-                ) : (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Remove</TableCell>
-                          <TableCell>Design</TableCell>
-                          <TableCell>Qty</TableCell>
-                          <TableCell>Capacity</TableCell>
-                          <TableCell>Cost</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {ls.loadout.map(item => {
-                          const design = ordnanceDesigns.find(d => d.id === item.designId);
-                          return (
-                            <TableRow key={item.designId}>
-                              <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleUnloadOrdnance(ls.id, item.designId)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </TableCell>
-                              <TableCell>{design?.name ?? 'Unknown'}</TableCell>
-                              <TableCell>{item.quantity}</TableCell>
-                              <TableCell>
-                                {design ? design.capacityRequired * item.quantity : '?'}
-                              </TableCell>
-                              <TableCell>
-                                {design ? formatCost(design.totalCost * item.quantity) : '?'}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-
-                <Divider />
-
-                {/* Available designs to load */}
-                <Typography variant="subtitle2">
-                  Add Ordnance (Remaining capacity: {remainingCap})
-                </Typography>
-                {applicableDesigns.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    No designs available. Create a design first.
-                  </Typography>
-                ) : (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Design</TableCell>
-                          <TableCell>Size</TableCell>
-                          <TableCell>Cap</TableCell>
-                          <TableCell>Cost</TableCell>
-                          <TableCell>Load</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {applicableDesigns.map(design => {
-                          const canLoad = design.capacityRequired <= remainingCap;
-                          const maxQty = Math.floor(remainingCap / design.capacityRequired);
-                          const isLoaded = ls.loadout.some(item => item.designId === design.id);
-                          return (
-                            <TableRow key={design.id}>
-                              <TableCell>{design.name}</TableCell>
-                              <TableCell sx={{ textTransform: 'capitalize' }}>{design.size}</TableCell>
-                              <TableCell>{design.capacityRequired}</TableCell>
-                              <TableCell>{formatCost(design.totalCost)}</TableCell>
-                              <TableCell>
-                                <Stack direction="row" spacing={0.5}>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    disabled={!canLoad}
-                                    onClick={() => handleLoadOrdnance(design.id, 1)}
-                                  >
-                                    +1
-                                  </Button>
-                                  {maxQty >= 5 && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => handleLoadOrdnance(design.id, 5)}
-                                    >
-                                      +5
-                                    </Button>
-                                  )}
-                                  {maxQty >= 10 && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => handleLoadOrdnance(design.id, 10)}
-                                    >
-                                      +10
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="primary"
-                                    disabled={!canLoad || maxQty === 0}
-                                    onClick={() => handleLoadOrdnance(design.id, maxQty)}
-                                  >
-                                    Max
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="error"
-                                    disabled={!isLoaded}
-                                    onClick={() => handleUnloadOrdnance(ls.id, design.id)}
-                                  >
-                                    Clear
-                                  </Button>
-                                </Stack>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Stack>
-            );
-          })()}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLoadDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

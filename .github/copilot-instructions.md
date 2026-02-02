@@ -146,7 +146,7 @@ The app bar contains global design constraints that filter available components:
 - **Tables/Grids**: Should take all the horizontal space they need - avoid wrapping content awkwardly
 - **Single horizontal scrollbar**: When content overflows, use ONE horizontal scrollbar at the container level, not multiple nested scrollbars
 - **Responsive but desktop-first**: This is an Electron desktop app, so optimize for larger screens
-- **Action columns first**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the beginning (leftmost) so users don't need to scroll to access it
+- **Action columns last**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the end (rightmost) to keep the focus on the data
 - **Grid sorting by Progress Level**: All component grids with a Progress Level column must be sorted by Progress Level from lowest to highest. Apply `.sort((a, b) => a.progressLevel - b.progressLevel)` after filtering.
 - **Consistent styling across steps**: New step components (like FTL Drive, Systems) must match the styling of existing steps (Engines, Power Plants). Reference existing components for:
   - Table header styling: `sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}`
