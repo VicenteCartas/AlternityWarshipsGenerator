@@ -14,7 +14,7 @@ import type { FTLDriveType } from '../types/ftlDrive';
 import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystemType } from '../types/supportSystem';
 import type { DefenseSystemType } from '../types/defense';
 import type { CommandControlSystemType } from '../types/commandControl';
-import type { SensorType } from '../types/sensor';
+import type { SensorType, TrackingTable } from '../types/sensor';
 import type { HangarMiscSystemType } from '../types/hangarMisc';
 import type { LaunchSystem, PropulsionSystem, Warhead, GuidanceSystem } from '../types/ordnance';
 
@@ -51,6 +51,7 @@ interface DataCache {
   defenseSystems: DefenseSystemType[] | null;
   commandControlSystems: CommandControlSystemType[] | null;
   sensors: SensorType[] | null;
+  trackingTable: TrackingTable | null;
   hangarMiscSystems: HangarMiscSystemType[] | null;
   launchSystems: LaunchSystem[] | null;
   propulsionSystems: PropulsionSystem[] | null;
@@ -71,6 +72,7 @@ const cache: DataCache = {
   defenseSystems: null,
   commandControlSystems: null,
   sensors: null,
+  trackingTable: null,
   hangarMiscSystems: null,
   launchSystems: null,
   propulsionSystems: null,
@@ -167,6 +169,7 @@ export async function loadAllGameData(): Promise<void> {
     cache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
     cache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
     cache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
+    cache.trackingTable = (sensorsData as { trackingTable?: TrackingTable }).trackingTable || null;
     cache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
     cache.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
     cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
@@ -178,7 +181,7 @@ export async function loadAllGameData(): Promise<void> {
     loadSupportSystemsData(cache.supportSystems);
     loadDefenseSystemsData({ defenseSystems: cache.defenseSystems });
     loadCommandControlSystemsData({ commandSystems: cache.commandControlSystems });
-    loadSensorsData({ sensors: cache.sensors });
+    loadSensorsData({ sensors: cache.sensors, trackingTable: cache.trackingTable || undefined });
     initializeHangarMiscData({ hangarMiscSystems: cache.hangarMiscSystems });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     loadDamageDiagramData(cache.damageDiagram as any);

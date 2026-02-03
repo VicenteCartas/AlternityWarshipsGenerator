@@ -1,4 +1,17 @@
 {
+  "mountModifiers": {
+    "standard": { "costMultiplier": 1, "hpMultiplier": 1 },
+    "fixed": { "costMultiplier": 0.75, "hpMultiplier": 0.75 },
+    "turret": { "costMultiplier": 1.25, "hpMultiplier": 1.25 },
+    "sponson": { "costMultiplier": 1.25, "hpMultiplier": 1 },
+    "bank": { "costMultiplier": 1.25, "hpMultiplier": 1 }
+  },
+  "gunConfigurations": {
+    "single": { "effectiveGunCount": 1, "actualGunCount": 1 },
+    "twin": { "effectiveGunCount": 1.5, "actualGunCount": 2 },
+    "triple": { "effectiveGunCount": 2, "actualGunCount": 3 },
+    "quadruple": { "effectiveGunCount": 2.5, "actualGunCount": 4 }
+  },
   "beamWeapons": [
     {
       "id": "laser",

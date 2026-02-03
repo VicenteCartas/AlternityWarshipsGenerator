@@ -1,4 +1,10 @@
 {
+  "trackingTable": {
+    "6": { "none": 5, "Ordinary": 10, "Good": 20, "Amazing": 40 },
+    "7": { "none": 10, "Ordinary": 20, "Good": 40, "Amazing": -1 },
+    "8": { "none": 20, "Ordinary": 40, "Good": 80, "Amazing": -1 },
+    "9": { "none": 20, "Ordinary": 40, "Good": 80, "Amazing": -1 }
+  },
   "sensors": [
     {
       "id": "air-space-radar",

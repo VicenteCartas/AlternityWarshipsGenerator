@@ -188,6 +188,9 @@ function createWindow() {
     },
   });
 
+  // Start maximized
+  mainWindow.maximize();
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:4200');
     mainWindow.webContents.openDevTools();

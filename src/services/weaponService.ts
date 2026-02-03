@@ -15,6 +15,8 @@ import type {
   FiringArc,
   StandardArc,
   ZeroArc,
+  MountModifier,
+  GunConfigModifier,
 } from '../types/weapon';
 import { ALL_ZERO_ARCS } from '../types/weapon';
 import weaponsData from '../data/weapons.json';
@@ -23,6 +25,8 @@ let beamWeapons: BeamWeaponType[] | null = null;
 let projectileWeapons: ProjectileWeaponType[] | null = null;
 let torpedoWeapons: TorpedoWeaponType[] | null = null;
 let specialWeapons: SpecialWeaponType[] | null = null;
+let mountModifiers: Record<MountType, MountModifier> | null = null;
+let gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null = null;
 
 /**
  * Initialize weapons data from JSON
@@ -32,6 +36,8 @@ export function initializeWeaponsData(data: typeof weaponsData): void {
   projectileWeapons = (data as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons as ProjectileWeaponType[] || [];
   torpedoWeapons = (data as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons as TorpedoWeaponType[] || [];
   specialWeapons = (data as { specialWeapons?: SpecialWeaponType[] }).specialWeapons as SpecialWeaponType[] || [];
+  mountModifiers = (data as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+  gunConfigurations = (data as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
 }
 
 // Initialize with bundled data
@@ -102,15 +108,16 @@ export function isMountTypeAvailable(
  * - Bank: +25% cost only, no HP increase
  * - Fixed: -25% to both HP and cost
  */
-export function getMountModifiers(mountType: MountType): { costMultiplier: number; hpMultiplier: number } {
-  const modifiers: Record<MountType, { costMultiplier: number; hpMultiplier: number }> = {
+export function getMountModifiers(mountType: MountType): MountModifier {
+  // Fallback defaults in case JSON not loaded
+  const defaults: Record<MountType, MountModifier> = {
     standard: { costMultiplier: 1, hpMultiplier: 1 },
     fixed: { costMultiplier: 0.75, hpMultiplier: 0.75 },
     turret: { costMultiplier: 1.25, hpMultiplier: 1.25 },
     sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
     bank: { costMultiplier: 1.25, hpMultiplier: 1 },
   };
-  return modifiers[mountType];
+  return mountModifiers?.[mountType] || defaults[mountType];
 }
 
 /**
@@ -120,14 +127,15 @@ export function getMountModifiers(mountType: MountType): { costMultiplier: numbe
  * Power is NOT affected - it scales with actual gun count.
  * These multipliers represent how many "effective guns" you pay for in HP/cost.
  */
-export function getGunConfigurationModifiers(config: GunConfiguration): { effectiveGunCount: number; actualGunCount: number } {
-  const modifiers: Record<GunConfiguration, { effectiveGunCount: number; actualGunCount: number }> = {
+export function getGunConfigurationModifiers(config: GunConfiguration): GunConfigModifier {
+  // Fallback defaults in case JSON not loaded
+  const defaults: Record<GunConfiguration, GunConfigModifier> = {
     single: { effectiveGunCount: 1, actualGunCount: 1 },
     twin: { effectiveGunCount: 1.5, actualGunCount: 2 },
     triple: { effectiveGunCount: 2, actualGunCount: 3 },
     quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
   };
-  return modifiers[config];
+  return gunConfigurations?.[config] || defaults[config];
 }
 
 /**

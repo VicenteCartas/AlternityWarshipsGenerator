@@ -8,9 +8,25 @@ export type WeaponCategory = 'beam' | 'projectile' | 'torpedo' | 'special' | 'or
 
 export type MountType = 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
 
+/**
+ * Mount modifier configuration loaded from JSON
+ */
+export interface MountModifier {
+  costMultiplier: number;
+  hpMultiplier: number;
+}
+
 // ============== Gun Configuration ==============
 
 export type GunConfiguration = 'single' | 'twin' | 'triple' | 'quadruple';
+
+/**
+ * Gun configuration modifier loaded from JSON
+ */
+export interface GunConfigModifier {
+  effectiveGunCount: number;
+  actualGunCount: number;
+}
 
 // ============== Firing Arcs ==============
 

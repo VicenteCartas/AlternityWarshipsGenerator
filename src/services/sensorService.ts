@@ -3,21 +3,25 @@ import type {
   SensorType,
   InstalledSensor,
   SensorStats,
+  ComputerQuality,
+  TrackingTable,
 } from '../types/sensor';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
-// ============== Types ==============
-
-export type ComputerQuality = 'none' | 'Ordinary' | 'Good' | 'Amazing';
+// Re-export ComputerQuality for backwards compatibility
+export type { ComputerQuality } from '../types/sensor';
 
 // ============== Data Loading ==============
 
 let sensorTypes: SensorType[] = [];
+let trackingTable: TrackingTable | null = null;
 
 export function loadSensorsData(data: {
   sensors: SensorType[];
+  trackingTable?: TrackingTable;
 }): void {
   sensorTypes = data.sensors;
+  trackingTable = data.trackingTable || null;
 }
 
 // ============== Getters ==============
@@ -93,7 +97,7 @@ export function calculateArcsCovered(
  * Calculate tracking capability for a sensor installation
  * Based on ship PL, computer quality, and quantity
  * 
- * Tracking table:
+ * Tracking table (loaded from JSON):
  * - PL6: 5/10/20/40 (none/ordinary/good/amazing)
  * - PL7: 10/20/40/unlimited (none/ordinary/good/amazing)
  * - PL8+: 20/40/80/unlimited (none/ordinary/good/amazing)
@@ -108,16 +112,16 @@ export function calculateTrackingCapability(
   computerQuality: ComputerQuality,
   quantity: number
 ): number {
-  // Base tracking per sensor unit based on PL and computer quality
-  // -1 represents unlimited
-  const trackingTable: Record<ProgressLevel, Record<ComputerQuality, number>> = {
-    6: { none: 5, Ordinary: 10, Good: 20, Amazing: 40 },
-    7: { none: 10, Ordinary: 20, Good: 40, Amazing: -1 },
-    8: { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
-    9: { none: 20, Ordinary: 40, Good: 80, Amazing: -1 }, // Same as PL8
+  // Fallback defaults in case JSON not loaded
+  const defaults: TrackingTable = {
+    '6': { none: 5, Ordinary: 10, Good: 20, Amazing: 40 },
+    '7': { none: 10, Ordinary: 20, Good: 40, Amazing: -1 },
+    '8': { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
+    '9': { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
   };
 
-  const baseTracking = trackingTable[designPL][computerQuality];
+  const table = trackingTable || defaults;
+  const baseTracking = table[designPL.toString()]?.[computerQuality] ?? defaults[designPL.toString()][computerQuality];
   
   // Unlimited tracking stays unlimited regardless of quantity
   if (baseTracking === -1) {

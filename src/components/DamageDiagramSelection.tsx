@@ -20,6 +20,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 import type { Hull } from '../types/hull';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -531,6 +532,32 @@ export function DamageDiagramSelection({
     [effectiveZones, onZonesChange]
   );
 
+  const handleClearZone = useCallback(
+    (zoneCode: ZoneCode) => {
+      const newZones = effectiveZones.map((zone) => {
+        if (zone.code === zoneCode) {
+          return {
+            ...zone,
+            systems: [],
+            totalHullPoints: 0,
+          };
+        }
+        return zone;
+      });
+      onZonesChange(newZones);
+    },
+    [effectiveZones, onZonesChange]
+  );
+
+  const handleClearAllZones = useCallback(() => {
+    const newZones = effectiveZones.map((zone) => ({
+      ...zone,
+      systems: [],
+      totalHullPoints: 0,
+    }));
+    onZonesChange(newZones);
+  }, [effectiveZones, onZonesChange]);
+
   const handleMoveSystemUp = useCallback(
     (zoneCode: ZoneCode, refId: string) => {
       const newZones = effectiveZones.map((zone) => {
@@ -683,6 +710,16 @@ export function DamageDiagramSelection({
               icon={<WarningIcon />}
             />
           )}
+          {stats.totalSystemsAssigned > 0 && (
+            <Button
+              size="small"
+              color="error"
+              startIcon={<ClearAllIcon />}
+              onClick={handleClearAllZones}
+            >
+              Clear All Zones
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -785,12 +822,25 @@ export function DamageDiagramSelection({
                 <Typography variant="subtitle1" fontWeight="bold">
                   {zone.code} - {ZONE_NAMES[zone.code]}
                 </Typography>
-                <Chip
-                  label={`${zone.totalHullPoints} / ${zone.maxHullPoints} HP`}
-                  size="small"
-                  color={zone.totalHullPoints > zone.maxHullPoints ? 'error' : 'default'}
-                  variant="outlined"
-                />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Chip
+                    label={`${zone.totalHullPoints} / ${zone.maxHullPoints} HP`}
+                    size="small"
+                    color={zone.totalHullPoints > zone.maxHullPoints ? 'error' : 'default'}
+                    variant="outlined"
+                  />
+                  {zone.systems.length > 0 && (
+                    <Tooltip title="Clear this zone">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleClearZone(zone.code)}
+                      >
+                        <ClearAllIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
               <Divider sx={{ mb: 1 }} />
 

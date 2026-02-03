@@ -30,6 +30,7 @@ import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
+import { FIREPOWER_ORDER as firepowerOrder } from '../types/common';
 import type {
   WeaponType,
   WeaponCategory,
@@ -114,9 +115,6 @@ export function WeaponSelection({
 
   // Ship class for arc rules
   const shipClass = hull.shipClass;
-
-  // Firepower sort order: Gd -> S -> L -> M -> H -> SH
-  const firepowerOrder: Record<string, number> = { 'Gd': 0, 'S': 1, 'L': 2, 'M': 3, 'H': 4, 'SH': 5 };
 
   // Get filtered beam weapons
   const availableBeamWeapons = useMemo(() => {

@@ -1113,6 +1113,7 @@ function App() {
             damageDiagramZones={damageDiagramZones}
             designProgressLevel={designProgressLevel}
             currentFilePath={currentFilePath}
+            onShowNotification={showNotification}
           />
         );
       default:

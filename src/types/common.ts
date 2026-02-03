@@ -11,6 +11,12 @@ import type { ShipClass } from './hull';
 export const SHIP_CLASS_ORDER: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
 
 /**
+ * Firepower class sort order from weakest to strongest
+ * Gd = Guide (point defense), S = Small, L = Light, M = Medium, H = Heavy, SH = Super-Heavy
+ */
+export const FIREPOWER_ORDER: Record<string, number> = { 'Gd': 0, 'S': 1, 'L': 2, 'M': 3, 'H': 4, 'SH': 5 };
+
+/**
  * Progress Level for technology
  * PL 6 = Fusion Age
  * PL 7 = Gravity Age

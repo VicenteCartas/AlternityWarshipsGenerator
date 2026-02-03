@@ -60,25 +60,25 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ## 2. Code Quality - Hardcoded Logic
 
-### 2.1 Mount Type Modifiers (weaponService.ts) - TODO
-**Impact:** Medium
-**Issue:** Cost and HP multipliers for mount types are hardcoded
-**Fix:** Move to weapons.json as `mountModifiers` section
+### 2.1 Mount Type Modifiers (weaponService.ts) - ✅ FIXED
+**Status:** Fixed - moved to `weapons.json` as `mountModifiers` section
+- weaponService.ts now loads modifiers from JSON with fallback defaults
+- Added `MountModifier` type to weapon.ts
 
-### 2.2 Gun Configuration Modifiers (weaponService.ts) - TODO
-**Impact:** Medium
-**Issue:** Effective gun count multipliers are hardcoded
-**Fix:** Move to weapons.json as `gunConfigurations` section
+### 2.2 Gun Configuration Modifiers (weaponService.ts) - ✅ FIXED
+**Status:** Fixed - moved to `weapons.json` as `gunConfigurations` section
+- weaponService.ts now loads configurations from JSON with fallback defaults
+- Added `GunConfigModifier` type to weapon.ts
 
-### 2.3 Tracking Table (sensorService.ts) - TODO
-**Impact:** Medium
-**Issue:** PL × Quality → tracking value table is hardcoded
-**Fix:** Move to sensors.json as `trackingCapabilities` section
+### 2.3 Tracking Table (sensorService.ts) - ✅ FIXED
+**Status:** Fixed - moved to `sensors.json` as `trackingTable` section
+- sensorService.ts now loads table from JSON with fallback defaults
+- Added `TrackingTable` and `ComputerQuality` types to sensor.ts
+- dataLoader.ts updated to pass tracking table to sensorService
 
-### 2.4 Firepower Sort Order (SummarySelection.tsx) - TODO
-**Impact:** Low
-**Issue:** `{ 'Gd': 0, 'S': 1, 'L': 2, 'M': 3, 'H': 4, 'SH': 5 }` repeated 4 times
-**Fix:** Move to constants file
+### 2.4 Firepower Sort Order - ✅ FIXED
+**Status:** Fixed - added `FIREPOWER_ORDER` constant to `src/types/common.ts`
+- WeaponSelection.tsx now imports from common.ts
 
 ---
 

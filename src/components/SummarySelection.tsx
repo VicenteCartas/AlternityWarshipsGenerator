@@ -82,6 +82,7 @@ interface SummarySelectionProps {
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
   currentFilePath: string | null;
+  onShowNotification: (message: string, severity: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
 export function SummarySelection({
@@ -111,6 +112,7 @@ export function SummarySelection({
   damageDiagramZones,
   designProgressLevel,
   currentFilePath,
+  onShowNotification,
 }: SummarySelectionProps) {
   const [tabValue, setTabValue] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -385,8 +387,11 @@ export function SummarySelection({
         damageDiagramZones,
         targetDirectory,
       });
+      const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;
+      onShowNotification(`PDF exported: ${filename}`, 'success');
     } catch (error) {
       console.error('Failed to export PDF:', error);
+      onShowNotification(`Failed to export PDF: ${error}`, 'error');
     }
   };
 
@@ -538,7 +543,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedPowerPlants.map((pp, idx) => (
+                    {installedPowerPlants.map((pp) => (
                       <TableRow key={pp.id}>
                         <TableCell sx={{ width: '40%' }}>{pp.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{pp.hullPoints} HP</TableCell>
@@ -546,7 +551,7 @@ export function SummarySelection({
                         <TableCell align="right" sx={{ width: '20%' }}>{formatCost(pp.type.baseCost + pp.hullPoints * pp.type.costPerHullPoint)}</TableCell>
                       </TableRow>
                     ))}
-                    {installedFuelTanks.map((ft, idx) => (
+                    {installedFuelTanks.map((ft) => (
                       <TableRow key={ft.id}>
                         <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forPowerPlantType.name})</TableCell>
                         <TableCell align="right">{ft.hullPoints} HP</TableCell>
@@ -573,7 +578,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedEngines.map((eng, idx) => (
+                    {installedEngines.map((eng) => (
                       <TableRow key={eng.id}>
                         <TableCell sx={{ width: '40%' }}>{eng.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{eng.hullPoints} HP</TableCell>
@@ -581,7 +586,7 @@ export function SummarySelection({
                         <TableCell align="right" sx={{ width: '20%' }}>{formatCost(eng.type.baseCost + eng.hullPoints * eng.type.costPerHullPoint)}</TableCell>
                       </TableRow>
                     ))}
-                    {installedEngineFuelTanks.map((ft, idx) => (
+                    {installedEngineFuelTanks.map((ft) => (
                       <TableRow key={ft.id}>
                         <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forEngineType.name})</TableCell>
                         <TableCell align="right">{ft.hullPoints} HP</TableCell>
@@ -614,7 +619,7 @@ export function SummarySelection({
                       <TableCell align="right" sx={{ width: '20%' }}>-{installedFTLDrive.type.powerPerHullPoint * installedFTLDrive.hullPoints} PP</TableCell>
                       <TableCell align="right" sx={{ width: '20%' }}>{formatCost(installedFTLDrive.type.baseCost + installedFTLDrive.hullPoints * installedFTLDrive.type.costPerHullPoint)}</TableCell>
                     </TableRow>
-                    {installedFTLFuelTanks.map((ft, idx) => (
+                    {installedFTLFuelTanks.map((ft) => (
                       <TableRow key={ft.id}>
                         <TableCell sx={{ pl: 4 }}>↳ Fuel Tank</TableCell>
                         <TableCell align="right">{ft.hullPoints} HP</TableCell>
@@ -643,7 +648,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedWeapons.map((w, idx) => (
+                    {installedWeapons.map((w) => (
                       <TableRow key={w.id}>
                         <TableCell sx={{ width: '40%' }}>
                           {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{w.arcs.join(', ')}]
@@ -685,7 +690,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedDefenses.map((d, idx) => (
+                    {installedDefenses.map((d) => (
                       <TableRow key={d.id}>
                         <TableCell sx={{ width: '40%' }}>{d.quantity}x {d.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{d.hullPoints} HP</TableCell>
@@ -712,7 +717,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedSensors.map((s, idx) => (
+                    {installedSensors.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{s.hullPoints} HP</TableCell>
@@ -739,7 +744,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedCommandControl.map((cc, idx) => (
+                    {installedCommandControl.map((cc) => (
                       <TableRow key={cc.id}>
                         <TableCell sx={{ width: '40%' }}>{cc.quantity}x {cc.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{cc.hullPoints} HP</TableCell>
@@ -766,7 +771,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedLifeSupport.map((ls, idx) => (
+                    {installedLifeSupport.map((ls) => (
                       <TableRow key={ls.id}>
                         <TableCell sx={{ width: '40%' }}>{ls.quantity}x {ls.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{ls.type.hullPoints * ls.quantity} HP</TableCell>
@@ -774,7 +779,7 @@ export function SummarySelection({
                         <TableCell align="right" sx={{ width: '20%' }}>{formatCost(ls.type.cost * ls.quantity)}</TableCell>
                       </TableRow>
                     ))}
-                    {installedAccommodations.map((acc, idx) => (
+                    {installedAccommodations.map((acc) => (
                       <TableRow key={acc.id}>
                         <TableCell>{acc.quantity}x {acc.type.name}</TableCell>
                         <TableCell align="right">{acc.type.hullPoints * acc.quantity} HP</TableCell>
@@ -782,7 +787,7 @@ export function SummarySelection({
                         <TableCell align="right">{formatCost(acc.type.cost * acc.quantity)}</TableCell>
                       </TableRow>
                     ))}
-                    {installedStoreSystems.map((ss, idx) => (
+                    {installedStoreSystems.map((ss) => (
                       <TableRow key={ss.id}>
                         <TableCell>{ss.quantity}x {ss.type.name}</TableCell>
                         <TableCell align="right">{ss.type.hullPoints * ss.quantity} HP</TableCell>
@@ -790,7 +795,7 @@ export function SummarySelection({
                         <TableCell align="right">{formatCost(ss.type.cost * ss.quantity)}</TableCell>
                       </TableRow>
                     ))}
-                    {installedGravitySystems.map((gs, idx) => (
+                    {installedGravitySystems.map((gs) => (
                       <TableRow key={gs.id}>
                         <TableCell>{gs.type.name}</TableCell>
                         <TableCell align="right">{gs.hullPoints} HP</TableCell>
@@ -817,7 +822,7 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedHangarMisc.map((hm, idx) => (
+                    {installedHangarMisc.map((hm) => (
                       <TableRow key={hm.id}>
                         <TableCell sx={{ width: '40%' }}>{hm.quantity}x {hm.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{hm.hullPoints} HP</TableCell>
@@ -1220,10 +1225,8 @@ function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps) {
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto auto', gap: 1 }}>
             {/* Row 1: Forward and Port, Row 2: Aft and Starboard */}
-            {[['forward', 'port'], ['aft', 'starboard']].flat().map((key, index) => {
-              // Reorder: forward (0), port (1), aft (2), starboard (3)
-              const orderedKeys = ['forward', 'port', 'aft', 'starboard'];
-              const actualKey = orderedKeys[index];
+            {['forward', 'port', 'aft', 'starboard'].map((actualKey) => {
+              // Order: forward (top-left), port (top-right), aft (bottom-left), starboard (bottom-right)
               const label = actualKey.charAt(0).toUpperCase() + actualKey.slice(1);
               const standardWeapons = arcWeapons[actualKey].standard;
               const zeroWeapons = arcWeapons[actualKey].zero;

@@ -1,5 +1,18 @@
 import type { ProgressLevel, TechTrack } from './common';
 
+// ============== Computer Quality ==============
+
+/**
+ * Computer quality levels for tracking calculations
+ */
+export type ComputerQuality = 'none' | 'Ordinary' | 'Good' | 'Amazing';
+
+/**
+ * Tracking table configuration loaded from JSON
+ * Maps PL -> ComputerQuality -> tracking value (-1 = unlimited)
+ */
+export type TrackingTable = Record<string, Record<ComputerQuality, number>>;
+
 // ============== Sensor Categories ==============
 
 export type SensorCategory =
