@@ -49,3 +49,71 @@ export type TechTrack = '-' | 'G' | 'D' | 'A' | 'M' | 'F' | 'Q' | 'T' | 'S' | 'P
  * En = Energy (lasers, plasma, etc.)
  */
 export type DamageType = 'LI' | 'HI' | 'En';
+
+/**
+ * Quality levels used for computer cores and control systems
+ */
+export type QualityLevel = 'Ordinary' | 'Good' | 'Amazing';
+
+/**
+ * Generic type for filter values that include an 'all' option
+ * Used for category filters in selection components
+ */
+export type FilterWithAll<T extends string> = 'all' | T;
+
+// ============== Base Stats Interfaces ==============
+
+/**
+ * Base interface for system stats that all systems share
+ * All systems have hull points and cost
+ */
+export interface BaseSystemStats {
+  totalHullPoints: number;
+  totalCost: number;
+}
+
+/**
+ * Extended stats interface for systems that consume power
+ * Most systems except power plants consume power
+ */
+export interface PowerConsumingStats extends BaseSystemStats {
+  totalPowerRequired: number;
+}
+
+// ============== Base Installed Item Interfaces ==============
+
+/**
+ * Base interface for all installed items
+ * All installed items have a unique ID
+ */
+export interface InstalledItemBase {
+  id: string;
+}
+
+/**
+ * Extended interface for installed items with a type and quantity
+ * Most systems follow this pattern
+ */
+export interface InstalledQuantityItem<T> extends InstalledItemBase {
+  type: T;
+  quantity: number;
+}
+
+/**
+ * Extended interface for installed items with calculated values
+ * Includes pre-calculated HP, power, and cost for display
+ */
+export interface InstalledItemWithCalcs extends InstalledItemBase {
+  /** Calculated hull points used */
+  hullPoints: number;
+  /** Calculated power required */
+  powerRequired: number;
+  /** Calculated cost */
+  cost: number;
+}
+
+/**
+ * Combined interface for standard installed items
+ * Combines type, quantity, and calculated values
+ */
+export interface InstalledSystemBase<T> extends InstalledQuantityItem<T>, InstalledItemWithCalcs {}

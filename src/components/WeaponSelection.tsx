@@ -79,17 +79,6 @@ interface WeaponSelectionProps {
   onLaunchSystemsChange: (systems: InstalledLaunchSystem[]) => void;
 }
 
-type WeaponTab = 'beam' | 'projectile' | 'torpedo' | 'special' | 'ordnance';
-
-// Map tab to weapon category
-const TAB_TO_CATEGORY: Record<WeaponTab, WeaponCategory> = {
-  beam: 'beam',
-  projectile: 'projectile',
-  torpedo: 'torpedo',
-  special: 'special',
-  ordnance: 'ordnance',
-};
-
 export function WeaponSelection({
   hull,
   installedWeapons,
@@ -102,7 +91,7 @@ export function WeaponSelection({
   onOrdnanceDesignsChange,
   onLaunchSystemsChange,
 }: WeaponSelectionProps) {
-  const [activeTab, setActiveTab] = useState<WeaponTab>('beam');
+  const [activeTab, setActiveTab] = useState<WeaponCategory>('beam');
   const [selectedWeapon, setSelectedWeapon] = useState<WeaponType | null>(null);
   const [mountType, setMountType] = useState<MountType>('standard');
   const [gunConfiguration, setGunConfiguration] = useState<GunConfiguration>('single');
@@ -217,7 +206,7 @@ export function WeaponSelection({
   }, [mountType, selectedWeapon, shipClass, editingWeaponId]);
 
   // Handlers
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: WeaponTab) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: WeaponCategory) => {
     setActiveTab(newValue);
     setSelectedWeapon(null);
     setEditingWeaponId(null);
@@ -240,7 +229,6 @@ export function WeaponSelection({
     if (!selectedWeapon) return;
     if (arcValidationError) return;
 
-    const category = TAB_TO_CATEGORY[activeTab];
     const weaponIdToScrollTo = editingWeaponId;
 
     if (editingWeaponId) {
@@ -256,7 +244,7 @@ export function WeaponSelection({
       // When adding, create a single installed weapon with quantity and arcs
       const newWeapon = createInstalledWeapon(
         selectedWeapon,
-        category,
+        activeTab,
         mountType,
         gunConfiguration,
         concealed,
@@ -373,7 +361,7 @@ export function WeaponSelection({
     : 0;
 
   // Check if bank mount is available for selected weapon (PL8+ beam weapons only)
-  const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon, TAB_TO_CATEGORY[activeTab]) : false;
+  const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon, activeTab) : false;
 
   // Render installed weapons section
   const renderInstalledWeapons = () => {

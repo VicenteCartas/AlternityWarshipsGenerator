@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats } from './common';
 
 // ============== Defense System Types ==============
 
@@ -46,25 +46,11 @@ export interface DefenseSystemType {
   requiresComponents?: string[];
 }
 
-export interface InstalledDefenseSystem {
-  id: string;
-  type: DefenseSystemType;
-  /** Number of units installed (for fixed-size systems) */
-  quantity: number;
-  /** Calculated hull points used */
-  hullPoints: number;
-  /** Calculated power required */
-  powerRequired: number;
-  /** Calculated cost */
-  cost: number;
-}
+export interface InstalledDefenseSystem extends InstalledSystemBase<DefenseSystemType> {}
 
 // ============== Stats ==============
 
-export interface DefenseStats {
-  totalHullPoints: number;
-  totalPowerRequired: number;
-  totalCost: number;
+export interface DefenseStats extends PowerConsumingStats {
   /** Hull points covered by screens */
   screenCoverage: number;
   /** Hull points covered by countermeasures */

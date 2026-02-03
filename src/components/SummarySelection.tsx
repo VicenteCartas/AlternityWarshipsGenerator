@@ -82,7 +82,7 @@ interface SummarySelectionProps {
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
   currentFilePath: string | null;
-  onShowNotification: (message: string, severity: 'success' | 'error' | 'warning' | 'info') => void;
+  onShowNotification: (message: string, severity: 'success' | 'error' | 'warning' | 'info', action?: { label: string; onClick: () => void }) => void;
 }
 
 export function SummarySelection({
@@ -362,7 +362,7 @@ export function SummarySelection({
         }
       }
       
-      await exportShipToPDF({
+      const pdfPath = await exportShipToPDF({
         warshipName,
         hull,
         shipDescription,
@@ -388,7 +388,20 @@ export function SummarySelection({
         targetDirectory,
       });
       const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;
-      onShowNotification(`PDF exported: ${filename}`, 'success');
+      
+      // Create action to open the PDF file
+      const openAction = window.electronAPI ? {
+        label: 'Open',
+        onClick: async () => {
+          try {
+            await window.electronAPI!.openPath(pdfPath);
+          } catch (e) {
+            console.error('Failed to open PDF:', e);
+          }
+        }
+      } : undefined;
+      
+      onShowNotification(`PDF exported: ${filename}`, 'success', openAction);
     } catch (error) {
       console.error('Failed to export PDF:', error);
       onShowNotification(`Failed to export PDF: ${error}`, 'error');

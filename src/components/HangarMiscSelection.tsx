@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
 import {
   getAllHangarMiscSystemTypes,
@@ -46,8 +46,6 @@ interface HangarMiscSelectionProps {
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
 }
 
-type CategoryFilter = 'all' | HangarMiscCategory;
-
 export function HangarMiscSelection({
   hull,
   installedSystems,
@@ -55,7 +53,7 @@ export function HangarMiscSelection({
   designTechTracks,
   onSystemsChange,
 }: HangarMiscSelectionProps) {
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<FilterWithAll<HangarMiscCategory>>('all');
   const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
   const [systemQuantity, setSystemQuantity] = useState<string>('1');
   const [editingSystemId, setEditingSystemId] = useState<string | null>(null);

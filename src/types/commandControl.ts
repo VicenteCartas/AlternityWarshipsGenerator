@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, QualityLevel, InstalledSystemBase, PowerConsumingStats } from './common';
 
 // ============== Command and Control Categories ==============
 
@@ -36,7 +36,7 @@ export interface CommandControlSystemType {
   /** Detailed description */
   description: string;
   /** Quality level for computers (Ordinary, Good, Amazing) */
-  quality?: 'Ordinary' | 'Good' | 'Amazing';
+  quality?: QualityLevel;
   /** Step bonus provided (for fire/sensor/tac/nav control, attack computer) */
   stepBonus?: number;
   /** Whether this is dedicated to a weapon/sensor (for Fire Control, Sensor Control) */
@@ -48,7 +48,7 @@ export interface CommandControlSystemType {
   /** Whether this control computer requires a core to be installed first */
   requiresCore?: boolean;
   /** Maximum quality of core this computer can work with (Ordinary can't exceed Ordinary core, etc.) */
-  maxQuality?: 'Ordinary' | 'Good' | 'Amazing';
+  maxQuality?: QualityLevel;
 }
 
 // ============== Weapon Battery Key ==============
@@ -61,17 +61,7 @@ export type WeaponBatteryKey = string;
 
 // ============== Installed Command and Control System ==============
 
-export interface InstalledCommandControlSystem {
-  id: string;
-  type: CommandControlSystemType;
-  /** Number of units/stations installed */
-  quantity: number;
-  /** Calculated hull points used */
-  hullPoints: number;
-  /** Calculated power required */
-  powerRequired: number;
-  /** Calculated cost */
-  cost: number;
+export interface InstalledCommandControlSystem extends InstalledSystemBase<CommandControlSystemType> {
   /** For Fire Control: the weapon battery this is linked to (format: "weaponTypeId:mountType") */
   linkedWeaponBatteryKey?: WeaponBatteryKey;
   /** For Sensor Control: the sensor installation ID this is linked to */
@@ -80,10 +70,7 @@ export interface InstalledCommandControlSystem {
 
 // ============== Stats ==============
 
-export interface CommandControlStats {
-  totalHullPoints: number;
-  totalPowerRequired: number;
-  totalCost: number;
+export interface CommandControlStats extends PowerConsumingStats {
   /** Whether ship has required command system (cockpit or command deck) */
   hasCommandSystem: boolean;
   /** Name of the installed command system (if any) */

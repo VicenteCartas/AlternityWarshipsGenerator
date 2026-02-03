@@ -179,6 +179,7 @@ function App() {
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
+    action?: { label: string; onClick: () => void };
   }>({ open: false, message: '', severity: 'info' });
 
   // Load game data on startup
@@ -190,8 +191,8 @@ function App() {
     initializeApp();
   }, []);
 
-  const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
-    setSnackbar({ open: true, message, severity });
+  const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info', action?: { label: string; onClick: () => void }) => {
+    setSnackbar({ open: true, message, severity, action });
   };
 
   const handleCloseSnackbar = () => {
@@ -1620,7 +1621,23 @@ function App() {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          action={snackbar.action ? (
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={() => {
+                snackbar.action?.onClick();
+                handleCloseSnackbar();
+              }}
+            >
+              {snackbar.action.label}
+            </Button>
+          ) : undefined}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

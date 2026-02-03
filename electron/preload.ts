@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-documents-path'),
   savePdfFile: (filePath: string, base64Data: string) =>
     ipcRenderer.invoke('save-pdf-file', filePath, base64Data),
+  openPath: (filePath: string) =>
+    ipcRenderer.invoke('open-path', filePath),
   
   // Recent files operations
   addRecentFile: (filePath: string) =>

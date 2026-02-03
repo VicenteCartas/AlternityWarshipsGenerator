@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs, PowerConsumingStats } from './common';
 
 // ============== Weapon Categories ==============
 
@@ -188,8 +188,7 @@ export type WeaponType = BeamWeaponType | ProjectileWeaponType | TorpedoWeaponTy
 
 // ============== Installed Weapon ==============
 
-export interface InstalledWeapon {
-  id: string;
+export interface InstalledWeapon extends InstalledItemBase, InstalledItemWithCalcs {
   weaponType: WeaponType;
   category: WeaponCategory;
   mountType: MountType;
@@ -199,20 +198,11 @@ export interface InstalledWeapon {
   quantity: number;
   /** Selected firing arcs */
   arcs: FiringArc[];
-  /** Calculated hull points used (per mount) */
-  hullPoints: number;
-  /** Calculated power required (per mount) */
-  powerRequired: number;
-  /** Calculated cost (per mount) */
-  cost: number;
 }
 
 // ============== Weapon Stats ==============
 
-export interface WeaponStats {
-  totalHullPoints: number;
-  totalPowerRequired: number;
-  totalCost: number;
+export interface WeaponStats extends PowerConsumingStats {
   beamCount: number;
   projectileCount: number;
   torpedoCount: number;

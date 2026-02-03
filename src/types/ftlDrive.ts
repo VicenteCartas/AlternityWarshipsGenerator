@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase } from './common';
 import type { ShipClass } from './hull';
 
 // Re-export for convenience
@@ -98,10 +98,7 @@ export interface FTLDriveType {
 /**
  * An installed FTL fuel tank on a ship
  */
-export interface InstalledFTLFuelTank {
-  /** Unique ID for this fuel tank installation */
-  id: string;
-  
+export interface InstalledFTLFuelTank extends InstalledItemBase {
   /** The FTL drive type this fuel is for */
   forFTLDriveType: FTLDriveType;
   
@@ -112,10 +109,7 @@ export interface InstalledFTLFuelTank {
 /**
  * An installed FTL drive on a ship
  */
-export interface InstalledFTLDrive {
-  /** Unique installation ID */
-  id: string;
-  
+export interface InstalledFTLDrive extends InstalledItemBase {
   /** The FTL drive type */
   type: FTLDriveType;
   

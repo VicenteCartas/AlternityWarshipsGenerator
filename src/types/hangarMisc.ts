@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats } from './common';
 
 // ============== Categories ==============
 
@@ -75,17 +75,7 @@ export interface HangarMiscSystemType {
 
 // ============== Installed System ==============
 
-export interface InstalledHangarMiscSystem {
-  id: string;
-  type: HangarMiscSystemType;
-  /** For scalable systems: size in hull points; for fixed systems: quantity */
-  quantity: number;
-  /** Calculated hull points used */
-  hullPoints: number;
-  /** Calculated power required */
-  powerRequired: number;
-  /** Calculated cost */
-  cost: number;
+export interface InstalledHangarMiscSystem extends InstalledSystemBase<HangarMiscSystemType> {
   /** Calculated capacity (for hangars, cargo, etc.) */
   capacity?: number;
   /** Calculated service capacity (for autocargo, etc.) */
@@ -94,10 +84,7 @@ export interface InstalledHangarMiscSystem {
 
 // ============== Stats ==============
 
-export interface HangarMiscStats {
-  totalHullPoints: number;
-  totalPowerRequired: number;
-  totalCost: number;
+export interface HangarMiscStats extends PowerConsumingStats {
   /** Total hangar capacity in HP of embarked craft */
   totalHangarCapacity: number;
   /** Total docking clamp capacity in HP */

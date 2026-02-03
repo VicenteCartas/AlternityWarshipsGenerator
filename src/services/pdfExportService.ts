@@ -43,7 +43,7 @@ interface ShipData {
 // Helper to capitalize first letter
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export async function exportShipToPDF(data: ShipData): Promise<void> {
+export async function exportShipToPDF(data: ShipData): Promise<string> {
   const {
     warshipName,
     hull,
@@ -296,7 +296,7 @@ export async function exportShipToPDF(data: ShipData): Promise<void> {
       
       // Find linked sensor control
       const linkedSC = sensorControls.find(sc => sc.linkedSensorId === sensor.id);
-      const scText = linkedSC ? (linkedSC.type.stepBonus ? `+${linkedSC.type.stepBonus}` : 'Yes') : '-';
+      const scText = linkedSC ? (linkedSC.type.stepBonus ? linkedSC.type.stepBonus.toString() : 'Yes') : '-';
       
       pdf.text(st.name.substring(0, 22), sensorCols[0], y);
       pdf.text(rangeText.substring(0, 14), sensorCols[1], y);
@@ -356,7 +356,7 @@ export async function exportShipToPDF(data: ShipData): Promise<void> {
       // Find linked fire control
       const batteryKey = `${wt.id}:${weapon.mountType}`;
       const linkedFC = fireControls.find(fc => fc.linkedWeaponBatteryKey === batteryKey);
-      const fcText = linkedFC ? (linkedFC.type.stepBonus ? `+${linkedFC.type.stepBonus}` : 'Yes') : '-';
+      const fcText = linkedFC ? (linkedFC.type.stepBonus ? linkedFC.type.stepBonus.toString() : 'Yes') : '-';
       
       // Weapon name with config
       const weaponName = `${capitalize(weapon.gunConfiguration)} ${wt.name}`;
@@ -529,8 +529,10 @@ export async function exportShipToPDF(data: ShipData): Promise<void> {
     if (!result.success) {
       throw new Error(result.error || 'Failed to save PDF');
     }
+    return fullPath;
   } else {
     // Fallback to browser download
     pdf.save(filename);
+    return filename;
   }
 }

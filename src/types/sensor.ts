@@ -1,11 +1,12 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, QualityLevel, InstalledSystemBase, PowerConsumingStats } from './common';
 
 // ============== Computer Quality ==============
 
 /**
  * Computer quality levels for tracking calculations
+ * 'none' means no computer core is assigned
  */
-export type ComputerQuality = 'none' | 'Ordinary' | 'Good' | 'Amazing';
+export type ComputerQuality = 'none' | QualityLevel;
 
 /**
  * Tracking table configuration loaded from JSON
@@ -67,17 +68,7 @@ export interface SensorType {
 
 // ============== Installed Sensor ==============
 
-export interface InstalledSensor {
-  id: string;
-  type: SensorType;
-  /** Number of units installed */
-  quantity: number;
-  /** Calculated hull points used */
-  hullPoints: number;
-  /** Calculated power required */
-  powerRequired: number;
-  /** Calculated cost */
-  cost: number;
+export interface InstalledSensor extends InstalledSystemBase<SensorType> {
   /** Firing arcs covered (derived from quantity and type) */
   arcsCovered: number;
   /** Total tracking capability (derived from PL, computer quality, and quantity) */
@@ -86,10 +77,7 @@ export interface InstalledSensor {
 
 // ============== Stats ==============
 
-export interface SensorStats {
-  totalHullPoints: number;
-  totalPowerRequired: number;
-  totalCost: number;
+export interface SensorStats extends PowerConsumingStats {
   /** Total tracking capability across all sensors */
   totalTrackingCapability: number;
   /** Whether ship has at least basic sensors (air/space radar) */

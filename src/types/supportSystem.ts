@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledQuantityItem, InstalledItemBase, BaseSystemStats } from './common';
 
 // ============== Life Support Types ==============
 
@@ -17,11 +17,7 @@ export interface LifeSupportType {
   description: string;
 }
 
-export interface InstalledLifeSupport {
-  id: string;
-  type: LifeSupportType;
-  quantity: number;
-}
+export interface InstalledLifeSupport extends InstalledQuantityItem<LifeSupportType> {}
 
 // ============== Accommodation Types ==============
 
@@ -46,11 +42,7 @@ export interface AccommodationType {
   description: string;
 }
 
-export interface InstalledAccommodation {
-  id: string;
-  type: AccommodationType;
-  quantity: number;
-}
+export interface InstalledAccommodation extends InstalledQuantityItem<AccommodationType> {}
 
 // ============== Stores Types ==============
 
@@ -73,11 +65,7 @@ export interface StoreSystemType {
   description: string;
 }
 
-export interface InstalledStoreSystem {
-  id: string;
-  type: StoreSystemType;
-  quantity: number;
-}
+export interface InstalledStoreSystem extends InstalledQuantityItem<StoreSystemType> {}
 
 // ============== Gravity Systems Types ==============
 
@@ -96,8 +84,7 @@ export interface GravitySystemType {
   description: string;
 }
 
-export interface InstalledGravitySystem {
-  id: string;
+export interface InstalledGravitySystem extends InstalledItemBase {
   type: GravitySystemType;
   /** Calculated hull points based on hull size and hullPercentage */
   hullPoints: number;
@@ -116,27 +103,25 @@ export interface SupportSystemsState {
 
 // ============== Calculated Stats ==============
 
-export interface SupportSystemsStats {
-  // Hull points
+export interface SupportSystemsStats extends BaseSystemStats {
+  // Hull points breakdown
   lifeSupportHP: number;
   accommodationsHP: number;
   storeSystemsHP: number;
   gravitySystemsHP: number;
-  totalHullPoints: number;
   
-  // Power
+  // Power breakdown
   lifeSupportPower: number;
   accommodationsPower: number;
   storeSystemsPower: number;
   gravitySystemsPower: number;
   totalPowerRequired: number;
   
-  // Cost
+  // Cost breakdown
   lifeSupportCost: number;
   accommodationsCost: number;
   storeSystemsCost: number;
   gravitySystemsCost: number;
-  totalCost: number;
   
   // Life support coverage
   totalCoverage: number;

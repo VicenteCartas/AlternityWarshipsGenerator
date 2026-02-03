@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs } from './common';
 
 // ============== Ordnance Categories ==============
 
@@ -207,8 +207,7 @@ export interface LoadedOrdnance {
   quantity: number;
 }
 
-export interface InstalledLaunchSystem {
-  id: string;
+export interface InstalledLaunchSystem extends InstalledItemBase, InstalledItemWithCalcs {
   launchSystemType: LaunchSystemType;
   /** Number of launchers of this type */
   quantity: number;
@@ -216,12 +215,6 @@ export interface InstalledLaunchSystem {
   extraHp: number;
   /** What ordnance is loaded */
   loadout: LoadedOrdnance[];
-  /** Calculated total hull points */
-  hullPoints: number;
-  /** Calculated total power required */
-  powerRequired: number;
-  /** Calculated total cost (launcher only, not ordnance) */
-  cost: number;
   /** Calculated total capacity */
   totalCapacity: number;
 }

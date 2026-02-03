@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, BaseSystemStats } from './common';
 import type { ShipClass } from './hull';
 
 // Re-export for convenience
@@ -77,10 +77,7 @@ export interface PowerPlantType {
 /**
  * An installed power plant on a ship
  */
-export interface InstalledPowerPlant {
-  /** Unique ID for this installation */
-  id: string;
-  
+export interface InstalledPowerPlant extends InstalledItemBase {
   /** The power plant type */
   type: PowerPlantType;
   
@@ -91,10 +88,7 @@ export interface InstalledPowerPlant {
 /**
  * An installed fuel tank on a ship
  */
-export interface InstalledFuelTank {
-  /** Unique ID for this fuel tank installation */
-  id: string;
-  
+export interface InstalledFuelTank extends InstalledItemBase {
   /** The power plant type this fuel is for (determines fuel cost and efficiency) */
   forPowerPlantType: PowerPlantType;
   
@@ -105,13 +99,7 @@ export interface InstalledFuelTank {
 /**
  * Calculated values for an installed power plant
  */
-export interface PowerPlantStats {
+export interface PowerPlantStats extends BaseSystemStats {
   /** Total power generated */
   powerGenerated: number;
-  
-  /** Total hull points used */
-  totalHullPoints: number;
-  
-  /** Total cost */
-  totalCost: number;
 }

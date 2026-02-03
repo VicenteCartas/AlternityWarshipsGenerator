@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -307,6 +307,20 @@ ipcMain.handle('save-pdf-file', async (_event, filePath: string, base64Data: str
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(filePath, buffer);
     return { success: true, filePath };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Open a file with the system default application
+ipcMain.handle('open-path', async (_event, filePath: string) => {
+  try {
+    const result = await shell.openPath(filePath);
+    // openPath returns empty string on success, error message on failure
+    if (result) {
+      return { success: false, error: result };
+    }
+    return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

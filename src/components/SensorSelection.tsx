@@ -23,7 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import {
@@ -47,8 +47,6 @@ interface SensorSelectionProps {
   onSensorsChange: (sensors: InstalledSensor[]) => void;
 }
 
-type CategoryFilter = 'all' | SensorCategory;
-
 export function SensorSelection({
   hull: _hull,
   installedSensors,
@@ -57,7 +55,7 @@ export function SensorSelection({
   designTechTracks,
   onSensorsChange,
 }: SensorSelectionProps) {
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<FilterWithAll<SensorCategory>>('all');
   const [selectedSensor, setSelectedSensor] = useState<SensorType | null>(null);
   const [sensorQuantity, setSensorQuantity] = useState<string>('1');
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, BaseSystemStats } from './common';
 import type { ShipClass } from './hull';
 
 // Re-export for convenience
@@ -84,10 +84,7 @@ export interface EngineType {
 /**
  * An installed engine on a ship
  */
-export interface InstalledEngine {
-  /** Unique installation ID */
-  id: string;
-  
+export interface InstalledEngine extends InstalledItemBase {
   /** The engine type */
   type: EngineType;
   
@@ -98,10 +95,7 @@ export interface InstalledEngine {
 /**
  * An installed fuel tank for an engine
  */
-export interface InstalledEngineFuelTank {
-  /** Unique ID for this fuel tank installation */
-  id: string;
-  
+export interface InstalledEngineFuelTank extends InstalledItemBase {
   /** The engine type this fuel is for (determines fuel cost and efficiency) */
   forEngineType: EngineType;
   
@@ -112,15 +106,9 @@ export interface InstalledEngineFuelTank {
 /**
  * Calculated stats for an installed engine
  */
-export interface EngineStats {
+export interface EngineStats extends BaseSystemStats {
   /** Total power required */
   powerRequired: number;
-  
-  /** Total hull points used (engine only, not fuel) */
-  totalHullPoints: number;
-  
-  /** Total cost (engine only, not fuel) */
-  totalCost: number;
   
   /** Hull percentage this engine represents */
   hullPercentage: number;
