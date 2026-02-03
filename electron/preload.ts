@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSaveWarshipAs: (callback: () => void) => {
     ipcRenderer.on('menu-save-warship-as', callback);
   },
+  onOpenRecent: (callback: (filePath: string) => void) => {
+    ipcRenderer.on('menu-open-recent', (_event: unknown, filePath: string) => callback(filePath));
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },
@@ -42,6 +45,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-documents-path'),
   savePdfFile: (filePath: string, base64Data: string) =>
     ipcRenderer.invoke('save-pdf-file', filePath, base64Data),
+  
+  // Recent files operations
+  addRecentFile: (filePath: string) =>
+    ipcRenderer.invoke('add-recent-file', filePath),
+  getRecentFiles: () =>
+    ipcRenderer.invoke('get-recent-files'),
+  clearRecentFiles: () =>
+    ipcRenderer.invoke('clear-recent-files'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

@@ -231,36 +231,31 @@ function App() {
     setMode('builder');
   }, []);
 
-  const handleLoadWarship = useCallback(async () => {
+  // Helper function to load a warship from a file path
+  const loadFromFile = useCallback(async (filePath: string): Promise<boolean> => {
     if (!window.electronAPI) {
       showNotification('Load functionality requires Electron', 'error');
-      return;
+      return false;
     }
 
     try {
-      const dialogResult = await window.electronAPI.showOpenDialog();
-      if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
-        return;
-      }
-
-      const filePath = dialogResult.filePaths[0];
       const readResult = await window.electronAPI.readFile(filePath);
       
       if (!readResult.success || !readResult.content) {
         showNotification(`Failed to read file: ${readResult.error}`, 'error');
-        return;
+        return false;
       }
 
       const saveFile = jsonToSaveFile(readResult.content);
       if (!saveFile) {
         showNotification('Invalid warship file format', 'error');
-        return;
+        return false;
       }
 
       const loadResult = deserializeWarship(saveFile);
       if (!loadResult.success || !loadResult.state) {
         showNotification(`Failed to load warship: ${loadResult.errors?.join(', ')}`, 'error');
-        return;
+        return false;
       }
 
       // Apply loaded state
@@ -291,6 +286,8 @@ function App() {
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
       setCurrentFilePath(filePath);
+      // Add to recent files list
+      window.electronAPI.addRecentFile(filePath);
       setActiveStep(0);
       setMode('builder');
 
@@ -299,10 +296,30 @@ function App() {
       } else {
         showNotification(`Loaded: ${loadResult.state.name}`, 'success');
       }
+      return true;
+    } catch (error) {
+      showNotification(`Error loading file: ${error}`, 'error');
+      return false;
+    }
+  }, []);
+
+  const handleLoadWarship = useCallback(async () => {
+    if (!window.electronAPI) {
+      showNotification('Load functionality requires Electron', 'error');
+      return;
+    }
+
+    try {
+      const dialogResult = await window.electronAPI.showOpenDialog();
+      if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
+        return;
+      }
+
+      await loadFromFile(dialogResult.filePaths[0]);
     } catch (error) {
       showNotification(`Error loading file: ${error}`, 'error');
     }
-  }, []);
+  }, [loadFromFile]);
 
   // Helper function to perform the actual save to a file path
   const saveToFile = useCallback(async (filePath: string): Promise<boolean> => {
@@ -344,6 +361,8 @@ function App() {
 
       if (saveResult.success) {
         setCurrentFilePath(filePath);
+        // Add to recent files list
+        window.electronAPI.addRecentFile(filePath);
         showNotification('Warship saved successfully', 'success');
         return true;
       } else {
@@ -448,15 +467,19 @@ function App() {
       window.electronAPI.onSaveWarshipAs(() => {
         handleSaveWarshipAs();
       });
+      window.electronAPI.onOpenRecent((filePath: string) => {
+        loadFromFile(filePath);
+      });
 
       return () => {
         window.electronAPI?.removeAllListeners('menu-new-warship');
         window.electronAPI?.removeAllListeners('menu-load-warship');
         window.electronAPI?.removeAllListeners('menu-save-warship');
         window.electronAPI?.removeAllListeners('menu-save-warship-as');
+        window.electronAPI?.removeAllListeners('menu-open-recent');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);

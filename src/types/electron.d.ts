@@ -30,6 +30,7 @@ export interface ElectronAPI {
   onLoadWarship: (callback: () => void) => void;
   onSaveWarship: (callback: () => void) => void;
   onSaveWarshipAs: (callback: () => void) => void;
+  onOpenRecent: (callback: (filePath: string) => void) => void;
   removeAllListeners: (channel: string) => void;
   
   // File operations
@@ -45,6 +46,11 @@ export interface ElectronAPI {
   // PDF export operations
   getDocumentsPath: () => Promise<string>;
   savePdfFile: (filePath: string, base64Data: string) => Promise<FileOperationResult>;
+  
+  // Recent files operations
+  addRecentFile: (filePath: string) => Promise<FileOperationResult>;
+  getRecentFiles: () => Promise<string[]>;
+  clearRecentFiles: () => Promise<FileOperationResult>;
 }
 
 declare global {

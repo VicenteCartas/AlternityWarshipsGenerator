@@ -10,8 +10,77 @@ const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow: BrowserWindow | null = null;
 
+// Recent files management
+const MAX_RECENT_FILES = 10;
+const recentFilesPath = path.join(app.getPath('userData'), 'recent-files.json');
+
+function loadRecentFiles(): string[] {
+  try {
+    if (fs.existsSync(recentFilesPath)) {
+      const content = fs.readFileSync(recentFilesPath, 'utf-8');
+      const files = JSON.parse(content) as string[];
+      // Filter out files that no longer exist
+      return files.filter(f => fs.existsSync(f));
+    }
+  } catch (error) {
+    console.error('Failed to load recent files:', error);
+  }
+  return [];
+}
+
+function saveRecentFiles(files: string[]): void {
+  try {
+    fs.writeFileSync(recentFilesPath, JSON.stringify(files), 'utf-8');
+  } catch (error) {
+    console.error('Failed to save recent files:', error);
+  }
+}
+
+function addRecentFile(filePath: string): void {
+  let recentFiles = loadRecentFiles();
+  // Remove if already exists (will be added to front)
+  recentFiles = recentFiles.filter(f => f !== filePath);
+  // Add to front
+  recentFiles.unshift(filePath);
+  // Limit to max
+  recentFiles = recentFiles.slice(0, MAX_RECENT_FILES);
+  saveRecentFiles(recentFiles);
+  // Update menu
+  createMenu();
+}
+
+function clearRecentFiles(): void {
+  saveRecentFiles([]);
+  createMenu();
+}
+
 function createMenu() {
   const isMac = process.platform === 'darwin';
+  const recentFiles = loadRecentFiles();
+
+  // Build recent files submenu
+  const recentFilesSubmenu: MenuItemConstructorOptions[] = recentFiles.length > 0
+    ? [
+        ...recentFiles.map((filePath, index) => ({
+          label: `${index + 1}. ${path.basename(filePath)}`,
+          click: () => {
+            mainWindow?.webContents.send('menu-open-recent', filePath);
+          },
+        })),
+        { type: 'separator' as const },
+        {
+          label: 'Clear Recent Files',
+          click: () => {
+            clearRecentFiles();
+          },
+        },
+      ]
+    : [
+        {
+          label: 'No Recent Files',
+          enabled: false,
+        },
+      ];
 
   const template: MenuItemConstructorOptions[] = [
     // App menu (macOS only)
@@ -47,6 +116,10 @@ function createMenu() {
             mainWindow?.webContents.send('menu-load-warship');
           },
         },
+        {
+          label: 'Recent Files',
+          submenu: recentFilesSubmenu,
+        },
         { type: 'separator' },
         {
           label: 'Save Warship',
@@ -64,27 +137,6 @@ function createMenu() {
         },
         { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
-      ],
-    },
-    // Edit menu
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' as const },
-        { role: 'redo' as const },
-        { type: 'separator' as const },
-        { role: 'cut' as const },
-        { role: 'copy' as const },
-        { role: 'paste' as const },
-        ...(isMac ? [
-          { role: 'pasteAndMatchStyle' as const },
-          { role: 'delete' as const },
-          { role: 'selectAll' as const },
-        ] : [
-          { role: 'delete' as const },
-          { type: 'separator' as const },
-          { role: 'selectAll' as const },
-        ]),
       ],
     },
     // View menu
@@ -255,4 +307,19 @@ ipcMain.handle('save-pdf-file', async (_event, filePath: string, base64Data: str
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
+});
+
+// Recent files management
+ipcMain.handle('add-recent-file', async (_event, filePath: string) => {
+  addRecentFile(filePath);
+  return { success: true };
+});
+
+ipcMain.handle('get-recent-files', async () => {
+  return loadRecentFiles();
+});
+
+ipcMain.handle('clear-recent-files', async () => {
+  clearRecentFiles();
+  return { success: true };
 });
