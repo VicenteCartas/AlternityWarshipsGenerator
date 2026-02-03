@@ -203,14 +203,13 @@ export function calculateSensorStats(
 // ============== Installation Helpers ==============
 
 /**
- * Create an installed sensor from a type, quantity, PL, and optional computer quality
+ * Create an installed sensor from a type, quantity, and PL
  */
 export function createInstalledSensor(
   type: SensorType,
   quantity: number,
   designPL: ProgressLevel,
-  computerQuality: ComputerQuality = 'none',
-  assignedSensorControlId?: string
+  computerQuality: ComputerQuality = 'none'
 ): InstalledSensor {
   return {
     id: generateSensorId(),
@@ -221,19 +220,17 @@ export function createInstalledSensor(
     cost: calculateSensorCost(type, quantity),
     arcsCovered: calculateArcsCovered(type, quantity),
     trackingCapability: calculateTrackingCapability(designPL, computerQuality, quantity),
-    assignedSensorControlId,
   };
 }
 
 /**
- * Update an existing installed sensor with new quantity and/or computer assignment
+ * Update an existing installed sensor with new quantity
  */
 export function updateInstalledSensor(
   sensor: InstalledSensor,
   quantity: number,
   designPL: ProgressLevel,
-  computerQuality: ComputerQuality = 'none',
-  assignedSensorControlId?: string
+  computerQuality: ComputerQuality = 'none'
 ): InstalledSensor {
   return {
     ...sensor,
@@ -243,6 +240,5 @@ export function updateInstalledSensor(
     cost: calculateSensorCost(sensor.type, quantity),
     arcsCovered: calculateArcsCovered(sensor.type, quantity),
     trackingCapability: calculateTrackingCapability(designPL, computerQuality, quantity),
-    assignedSensorControlId,
   };
 }

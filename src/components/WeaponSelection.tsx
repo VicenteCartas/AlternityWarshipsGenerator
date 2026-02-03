@@ -39,6 +39,7 @@ import type {
   FiringArc,
 } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
+import type { InstalledCommandControlSystem } from '../types/commandControl';
 import {
   getAllBeamWeaponTypes,
   getAllProjectileWeaponTypes,
@@ -62,10 +63,12 @@ import {
 } from '../services/weaponService';
 import { formatCost, formatAccuracyModifier } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
+import { createWeaponBatteryKey, batteryHasFireControl, getFireControlsForBattery } from '../services/commandControlService';
 
 interface WeaponSelectionProps {
   hull: Hull;
   installedWeapons: InstalledWeapon[];
+  installedCommandControl: InstalledCommandControlSystem[];
   ordnanceDesigns: OrdnanceDesign[];
   launchSystems: InstalledLaunchSystem[];
   designProgressLevel: ProgressLevel;
@@ -89,6 +92,7 @@ const TAB_TO_CATEGORY: Record<WeaponTab, WeaponCategory> = {
 export function WeaponSelection({
   hull,
   installedWeapons,
+  installedCommandControl,
   ordnanceDesigns,
   launchSystems,
   designProgressLevel,
@@ -383,43 +387,61 @@ export function WeaponSelection({
           Installed Weapons
         </Typography>
         <Stack spacing={1}>
-          {installedWeapons.map((weapon) => (
-            <React.Fragment key={weapon.id}>
-              <Box
-                id={`weapon-${weapon.id}`}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  bgcolor: editingWeaponId === weapon.id ? 'primary.light' : 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ flex: 1 }}>
-                  {weapon.quantity > 1 && `${weapon.quantity}× `}
-                  {weapon.weaponType.name}
-                  {' - '}
-                  {getMountTypeName(weapon.mountType)}
-                  {weapon.gunConfiguration !== 'single' && ` ${getGunConfigurationName(weapon.gunConfiguration)}`}
-                  {weapon.concealed && ' (Concealed)'}
-                  {' → '}
-                  {formatArcs(weapon.arcs || ['forward'])}
-                </Typography>
-                <Chip label={`${weapon.hullPoints * weapon.quantity} HP`} size="small" variant="outlined" />
-                <Chip label={`${weapon.powerRequired * weapon.quantity} Power`} size="small" variant="outlined" />
-                <Chip label={formatCost(weapon.cost * weapon.quantity)} size="small" variant="outlined" />
-                <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-              {/* Render edit form inline when this weapon is being edited */}
-              {editingWeaponId === weapon.id && renderConfigureForm()}
-            </React.Fragment>
-          ))}
+          {installedWeapons.map((weapon) => {
+            // Check if this weapon's battery has Fire Control
+            const batteryKey = createWeaponBatteryKey(weapon.weaponType.id, weapon.mountType);
+            const hasFireControl = batteryHasFireControl(batteryKey, installedCommandControl);
+            const fireControls = getFireControlsForBattery(batteryKey, installedCommandControl);
+            const fireControlName = fireControls.length > 0 ? fireControls[0].type.name : undefined;
+            
+            return (
+              <React.Fragment key={weapon.id}>
+                <Box
+                  id={`weapon-${weapon.id}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: editingWeaponId === weapon.id ? 'primary.light' : 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {weapon.quantity > 1 && `${weapon.quantity}× `}
+                    {weapon.weaponType.name}
+                    {' - '}
+                    {getMountTypeName(weapon.mountType)}
+                    {weapon.gunConfiguration !== 'single' && ` ${getGunConfigurationName(weapon.gunConfiguration)}`}
+                    {weapon.concealed && ' (Concealed)'}
+                    {' → '}
+                    {formatArcs(weapon.arcs || ['forward'])}
+                  </Typography>
+                  <Chip label={`${weapon.hullPoints * weapon.quantity} HP`} size="small" variant="outlined" />
+                  <Chip label={`${weapon.powerRequired * weapon.quantity} Power`} size="small" variant="outlined" />
+                  <Chip label={formatCost(weapon.cost * weapon.quantity)} size="small" variant="outlined" />
+                  {hasFireControl && (
+                    <Tooltip title={fireControlName}>
+                      <Chip 
+                        label={`${fireControls[0].type.quality} Fire Control`} 
+                        size="small" 
+                        color="success" 
+                        variant="outlined" 
+                      />
+                    </Tooltip>
+                  )}
+                  <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Render edit form inline when this weapon is being edited */}
+                {editingWeaponId === weapon.id && renderConfigureForm()}
+              </React.Fragment>
+            );
+          })}
         </Stack>
       </Paper>
     );

@@ -92,8 +92,8 @@ const steps = [
   { label: 'Support', required: false },
   { label: 'Weapons', required: false },
   { label: 'Defense', required: false },
-  { label: 'C4', required: true },
-  { label: 'Sensors', required: true },
+  { label: 'Sensors', required: true },  // Moved before C4 so sensor controls can reference sensors
+  { label: 'C4', required: true },       // Command & Control now comes after Sensors
   { label: 'Misc', required: false },
 ];
 
@@ -911,6 +911,7 @@ function App() {
           <WeaponSelection
             hull={selectedHull}
             installedWeapons={installedWeapons}
+            installedCommandControl={installedCommandControl}
             ordnanceDesigns={ordnanceDesigns}
             launchSystems={installedLaunchSystems}
             designProgressLevel={designProgressLevel}
@@ -940,26 +941,7 @@ function App() {
           />
         );
       case 8:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
-        return (
-          <CommandControlSelection
-            hull={selectedHull}
-            installedSystems={installedCommandControl}
-            installedSensors={installedSensors}
-            usedHullPoints={getUsedHullPointsBeforeCC()}
-            availablePower={getTotalPower()}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onSystemsChange={handleCommandControlChange}
-          />
-        );
-      case 9:
+        // Sensors step (moved before C4)
         if (!selectedHull) {
           return (
             <Typography color="text.secondary">
@@ -975,6 +957,28 @@ function App() {
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onSensorsChange={handleSensorsChange}
+          />
+        );
+      case 9:
+        // Command & Control step (moved after Sensors)
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <CommandControlSelection
+            hull={selectedHull}
+            installedSystems={installedCommandControl}
+            installedSensors={installedSensors}
+            installedWeapons={installedWeapons}
+            usedHullPoints={getUsedHullPointsBeforeCC()}
+            availablePower={getTotalPower()}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onSystemsChange={handleCommandControlChange}
           />
         );
       case 10:
@@ -1407,8 +1411,8 @@ function App() {
                 case 5: return installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0; // Support Systems (optional)
                 case 6: return installedWeapons.length > 0; // Weapons (optional)
                 case 7: return installedDefenses.length > 0; // Defenses (optional)
-                case 8: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
-                case 9: return installedSensors.length > 0; // Sensors (required)
+                case 8: return installedSensors.length > 0; // Sensors (required) - now before C4
+                case 9: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
                 case 10: return installedHangarMisc.length > 0; // Misc (optional)
                 default: return false;
               }

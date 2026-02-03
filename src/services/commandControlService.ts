@@ -3,7 +3,10 @@ import type {
   CommandControlSystemType,
   InstalledCommandControlSystem,
   CommandControlStats,
+  WeaponBatteryKey,
 } from '../types/commandControl';
+import type { InstalledWeapon, MountType } from '../types/weapon';
+import type { InstalledSensor } from '../types/sensor';
 
 // ============== Data Loading ==============
 
@@ -78,6 +81,85 @@ let ccCounter = 0;
 
 export function generateCommandControlId(): string {
   return `cc-${Date.now()}-${++ccCounter}`;
+}
+
+// ============== Weapon Battery Functions ==============
+
+/**
+ * Create a weapon battery key from weapon type ID and mount type
+ * Format: "weaponTypeId:mountType"
+ */
+export function createWeaponBatteryKey(weaponTypeId: string, mountType: MountType): WeaponBatteryKey {
+  return `${weaponTypeId}:${mountType}`;
+}
+
+/**
+ * Parse a weapon battery key back into components
+ */
+export function parseWeaponBatteryKey(key: WeaponBatteryKey): { weaponTypeId: string; mountType: MountType } {
+  const [weaponTypeId, mountType] = key.split(':');
+  return { weaponTypeId, mountType: mountType as MountType };
+}
+
+/**
+ * Get a display name for a weapon battery
+ */
+export function getWeaponBatteryDisplayName(key: WeaponBatteryKey, weapons: InstalledWeapon[]): string {
+  const { weaponTypeId, mountType } = parseWeaponBatteryKey(key);
+  const weapon = weapons.find(w => w.weaponType.id === weaponTypeId && w.mountType === mountType);
+  if (!weapon) return key;
+  const mountLabel = mountType.charAt(0).toUpperCase() + mountType.slice(1);
+  return `${weapon.weaponType.name} ${mountLabel}`;
+}
+
+/**
+ * Get all unique weapon batteries from installed weapons
+ * A battery = all weapons of the same type AND mount type
+ */
+export function getWeaponBatteries(weapons: InstalledWeapon[]): Array<{
+  key: WeaponBatteryKey;
+  weaponTypeId: string;
+  weaponTypeName: string;
+  mountType: MountType;
+  totalHullPoints: number;
+  weaponCount: number;
+}> {
+  const batteryMap = new Map<WeaponBatteryKey, {
+    weaponTypeId: string;
+    weaponTypeName: string;
+    mountType: MountType;
+    totalHullPoints: number;
+    weaponCount: number;
+  }>();
+
+  for (const weapon of weapons) {
+    const key = createWeaponBatteryKey(weapon.weaponType.id, weapon.mountType);
+    const existing = batteryMap.get(key);
+    if (existing) {
+      existing.totalHullPoints += weapon.hullPoints * weapon.quantity;
+      existing.weaponCount += weapon.quantity;
+    } else {
+      batteryMap.set(key, {
+        weaponTypeId: weapon.weaponType.id,
+        weaponTypeName: weapon.weaponType.name,
+        mountType: weapon.mountType,
+        totalHullPoints: weapon.hullPoints * weapon.quantity,
+        weaponCount: weapon.quantity,
+      });
+    }
+  }
+
+  return Array.from(batteryMap.entries()).map(([key, data]) => ({ key, ...data }));
+}
+
+/**
+ * Get the total hull points for a weapon battery
+ */
+export function getWeaponBatteryHullPoints(batteryKey: WeaponBatteryKey, weapons: InstalledWeapon[]): number {
+  const { weaponTypeId, mountType } = parseWeaponBatteryKey(batteryKey);
+  return weapons
+    .filter(w => w.weaponType.id === weaponTypeId && w.mountType === mountType)
+    .reduce((total, w) => total + (w.hullPoints * w.quantity), 0);
 }
 
 // ============== Calculations ==============
@@ -156,7 +238,8 @@ export function calculateCommandControlPower(
 }
 
 /**
- * Calculate cost for a C&C system
+ * Calculate cost for a C&C system (without linked system consideration)
+ * For Fire Control and Sensor Control, use calculateLinkedControlCost instead
  */
 export function calculateCommandControlCost(
   type: CommandControlSystemType,
@@ -169,14 +252,46 @@ export function calculateCommandControlCost(
     const hpPerSystem = calculateCoverageBasedHullPoints(shipHullPoints, type);
     return type.cost * hpPerSystem * quantity;
   }
-  // Linked systems (fire/sensor control): cost × linked system HP
-  // TODO: When weapons/sensors are implemented, pass linked system HP
-  // For now, just use base cost × quantity
+  // Linked systems (fire/sensor control): Return 0 here - actual cost calculated separately
   if (type.linkedSystemType) {
-    return type.cost * quantity;
+    return 0;
   }
   // Standard per-quantity systems
   return type.cost * quantity;
+}
+
+/**
+ * Calculate cost for Fire Control based on linked weapon battery
+ * Cost = Fire Control base cost × total HP of all weapons in the battery
+ * (Per errata: ALL fire controls cost per hull, including Amazing)
+ */
+export function calculateFireControlCost(
+  fireControlType: CommandControlSystemType,
+  batteryKey: WeaponBatteryKey | undefined,
+  weapons: InstalledWeapon[]
+): number {
+  if (!batteryKey) return 0;
+  
+  const batteryHP = getWeaponBatteryHullPoints(batteryKey, weapons);
+  return fireControlType.cost * batteryHP;
+}
+
+/**
+ * Calculate cost for Sensor Control based on linked sensor
+ * Cost = Sensor Control base cost × HP of the linked sensor
+ * (Per errata: ALL sensor controls cost per hull, including Amazing)
+ */
+export function calculateSensorControlCost(
+  sensorControlType: CommandControlSystemType,
+  linkedSensorId: string | undefined,
+  sensors: InstalledSensor[]
+): number {
+  if (!linkedSensorId) return 0;
+  
+  const sensor = sensors.find(s => s.id === linkedSensorId);
+  if (!sensor) return 0;
+  
+  return sensorControlType.cost * sensor.hullPoints;
 }
 
 // ============== Stats Calculation ==============
@@ -284,4 +399,111 @@ export function getMaxControlQualityForCore(
   coreQuality: 'Ordinary' | 'Good' | 'Amazing' | null
 ): 'Ordinary' | 'Good' | 'Amazing' {
   return coreQuality ?? 'Ordinary';
+}
+
+// ============== Fire Control / Sensor Control Helpers ==============
+
+/**
+ * Get all Fire Control systems that are assigned to a specific weapon battery
+ */
+export function getFireControlsForBattery(
+  batteryKey: WeaponBatteryKey,
+  installedSystems: InstalledCommandControlSystem[]
+): InstalledCommandControlSystem[] {
+  return installedSystems.filter(
+    s => s.type.linkedSystemType === 'weapon' && s.linkedWeaponBatteryKey === batteryKey
+  );
+}
+
+/**
+ * Get the Sensor Control assigned to a specific sensor (if any)
+ */
+export function getSensorControlForSensor(
+  sensorId: string,
+  installedSystems: InstalledCommandControlSystem[]
+): InstalledCommandControlSystem | undefined {
+  return installedSystems.find(
+    s => s.type.linkedSystemType === 'sensor' && s.linkedSensorId === sensorId
+  );
+}
+
+/**
+ * Get all unassigned Fire Controls (linked to battery that no longer exists)
+ */
+export function getOrphanedFireControls(
+  installedSystems: InstalledCommandControlSystem[],
+  weapons: InstalledWeapon[]
+): InstalledCommandControlSystem[] {
+  const batteries = getWeaponBatteries(weapons);
+  const batteryKeys = new Set(batteries.map(b => b.key));
+  
+  return installedSystems.filter(s => {
+    if (s.type.linkedSystemType !== 'weapon') return false;
+    if (!s.linkedWeaponBatteryKey) return true; // Never assigned
+    return !batteryKeys.has(s.linkedWeaponBatteryKey); // Battery no longer exists
+  });
+}
+
+/**
+ * Get all unassigned Sensor Controls (linked to sensor that no longer exists)
+ */
+export function getOrphanedSensorControls(
+  installedSystems: InstalledCommandControlSystem[],
+  sensors: InstalledSensor[]
+): InstalledCommandControlSystem[] {
+  const sensorIds = new Set(sensors.map(s => s.id));
+  
+  return installedSystems.filter(s => {
+    if (s.type.linkedSystemType !== 'sensor') return false;
+    if (!s.linkedSensorId) return true; // Never assigned
+    return !sensorIds.has(s.linkedSensorId); // Sensor no longer exists
+  });
+}
+
+/**
+ * Check if a weapon battery already has a Fire Control assigned
+ */
+export function batteryHasFireControl(
+  batteryKey: WeaponBatteryKey,
+  installedSystems: InstalledCommandControlSystem[]
+): boolean {
+  return installedSystems.some(
+    s => s.type.linkedSystemType === 'weapon' && s.linkedWeaponBatteryKey === batteryKey
+  );
+}
+
+/**
+ * Check if a sensor already has a Sensor Control assigned
+ */
+export function sensorHasSensorControl(
+  sensorId: string,
+  installedSystems: InstalledCommandControlSystem[]
+): boolean {
+  return installedSystems.some(
+    s => s.type.linkedSystemType === 'sensor' && s.linkedSensorId === sensorId
+  );
+}
+
+/**
+ * Get the sensor control bonus for a specific sensor
+ */
+export function getSensorControlBonus(
+  sensorId: string,
+  installedSystems: InstalledCommandControlSystem[]
+): number {
+  const control = getSensorControlForSensor(sensorId, installedSystems);
+  return control?.type.stepBonus ?? 0;
+}
+
+/**
+ * Get the fire control bonus for a specific weapon battery
+ */
+export function getFireControlBonus(
+  batteryKey: WeaponBatteryKey,
+  installedSystems: InstalledCommandControlSystem[]
+): number {
+  const controls = getFireControlsForBattery(batteryKey, installedSystems);
+  if (controls.length === 0) return 0;
+  // Return the best bonus (most negative = best)
+  return Math.min(...controls.map(c => c.type.stepBonus ?? 0));
 }

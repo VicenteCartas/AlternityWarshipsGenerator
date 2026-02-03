@@ -16,10 +16,7 @@ import {
   Stack,
   ToggleButton,
   ToggleButtonGroup,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -36,11 +33,10 @@ import {
   createInstalledSensor,
   updateInstalledSensor,
   calculateUnitsForFullCoverage,
-  calculateTrackingCapability,
-  type ComputerQuality,
 } from '../services/sensorService';
 import { formatCost, formatSensorRange } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
+import { sensorHasSensorControl, getSensorControlForSensor } from '../services/commandControlService';
 
 interface SensorSelectionProps {
   hull: Hull;
@@ -64,28 +60,8 @@ export function SensorSelection({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [selectedSensor, setSelectedSensor] = useState<SensorType | null>(null);
   const [sensorQuantity, setSensorQuantity] = useState<string>('1');
-  const [selectedSensorControl, setSelectedSensorControl] = useState<string>('none');
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
-
-  // Get available sensor control computers (not already assigned to other sensors)
-  const availableSensorControls = useMemo(() => {
-    const assignedIds = installedSensors
-      .filter(s => s.assignedSensorControlId && s.id !== editingSensorId)
-      .map(s => s.assignedSensorControlId);
-    
-    return installedCommandControl.filter(cc => 
-      cc.type.linkedSystemType === 'sensor' && 
-      !assignedIds.includes(cc.id)
-    );
-  }, [installedCommandControl, installedSensors, editingSensorId]);
-
-  // Helper to get computer quality from a sensor control ID
-  const getComputerQuality = (sensorControlId: string | undefined): ComputerQuality => {
-    if (!sensorControlId || sensorControlId === 'none') return 'none';
-    const control = installedCommandControl.find(cc => cc.id === sensorControlId);
-    return (control?.type.quality as ComputerQuality) || 'none';
-  };
 
   // Get filtered sensor types
   const availableSensors = useMemo(() => {
@@ -133,7 +109,6 @@ export function SensorSelection({
     setSelectedSensor(type);
     // Default to 1 unit
     setSensorQuantity('1');
-    setSelectedSensorControl('none');
     setEditingSensorId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -143,35 +118,31 @@ export function SensorSelection({
   const handleAddSensor = () => {
     if (!selectedSensor) return;
     const quantity = parseInt(sensorQuantity, 10) || 1;
-    const computerQuality = getComputerQuality(selectedSensorControl);
-    const assignedId = selectedSensorControl === 'none' ? undefined : selectedSensorControl;
 
     if (editingSensorId) {
       onSensorsChange(
         installedSensors.map((s) =>
           s.id === editingSensorId
-            ? updateInstalledSensor(s, quantity, designProgressLevel, computerQuality, assignedId)
+            ? updateInstalledSensor(s, quantity, designProgressLevel)
             : s
         )
       );
     } else {
-      // Always create a new sensor installation (allows separate computers for same sensor type)
+      // Always create a new sensor installation
       onSensorsChange([
         ...installedSensors,
-        createInstalledSensor(selectedSensor, quantity, designProgressLevel, computerQuality, assignedId),
+        createInstalledSensor(selectedSensor, quantity, designProgressLevel),
       ]);
     }
 
     setSelectedSensor(null);
     setSensorQuantity('1');
-    setSelectedSensorControl('none');
     setEditingSensorId(null);
   };
 
   const handleEditSensor = (installed: InstalledSensor) => {
     setSelectedSensor(installed.type);
     setSensorQuantity(installed.quantity.toString());
-    setSelectedSensorControl(installed.assignedSensorControlId || 'none');
     setEditingSensorId(installed.id);
   };
 
@@ -185,21 +156,10 @@ export function SensorSelection({
   const previewPower = selectedSensor ? selectedSensor.powerRequired * previewQuantity : 0;
   const previewCost = selectedSensor ? selectedSensor.cost * previewQuantity : 0;
   const previewArcs = selectedSensor ? Math.min(selectedSensor.arcsCovered * previewQuantity, 4) : 0;
-  const previewComputerQuality = getComputerQuality(selectedSensorControl);
-  const previewTracking = selectedSensor 
-    ? calculateTrackingCapability(designProgressLevel, previewComputerQuality, previewQuantity)
-    : 0;
 
   // Helper to format tracking capability
   const formatTracking = (tracking: number): string => {
     return tracking === -1 ? 'Unlimited' : tracking.toString();
-  };
-
-  // Get sensor control name for display
-  const getSensorControlName = (controlId: string | undefined): string | null => {
-    if (!controlId) return null;
-    const control = installedCommandControl.find(cc => cc.id === controlId);
-    return control?.type.name || null;
   };
 
   const getCategoryLabel = (category: SensorCategory): string => {
@@ -222,43 +182,55 @@ export function SensorSelection({
           Installed Sensors
         </Typography>
         <Stack spacing={1}>
-          {installedSensors.map((sensor) => (
-            <Box
-              key={sensor.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {sensor.type.name}
-                {sensor.quantity > 1 && ` (×${sensor.quantity})`}
-                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                  [{getCategoryLabel(sensor.type.category)}]
-                </Typography>
-                {sensor.assignedSensorControlId && (
-                  <Typography component="span" variant="caption" color="primary" sx={{ ml: 1 }}>
-                    + {getSensorControlName(sensor.assignedSensorControlId)}
+          {installedSensors.map((sensor) => {
+            // Check if this sensor has Sensor Control assigned
+            const hasSensorControl = sensorHasSensorControl(sensor.id, installedCommandControl);
+            const sensorControl = getSensorControlForSensor(sensor.id, installedCommandControl);
+            const sensorControlName = sensorControl?.type.name;
+            
+            return (
+              <Box
+                key={sensor.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 1,
+                  bgcolor: 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" sx={{ flex: 1 }}>
+                  {sensor.type.name}
+                  {sensor.quantity > 1 && ` (×${sensor.quantity})`}
+                  <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    [{getCategoryLabel(sensor.type.category)}]
                   </Typography>
+                </Typography>
+                <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
+                <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
+                <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
+                <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
+                <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
+                {hasSensorControl && (
+                  <Tooltip title={sensorControlName}>
+                    <Chip 
+                      label={`${sensorControl!.type.quality} Sensor Control`} 
+                      size="small" 
+                      color="success" 
+                      variant="outlined" 
+                    />
+                  </Tooltip>
                 )}
-              </Typography>
-              <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
-              <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
-              <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
-              <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
-              <Chip label={`Track: ${formatTracking(sensor.trackingCapability)} contacts`} size="small" color="primary" variant="outlined" />
-              <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
+                <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            );
+          })}
         </Stack>
       </Paper>
     );
@@ -287,29 +259,12 @@ export function SensorSelection({
             helperText={`${maxQuantity} units for full arc coverage`}
             sx={{ width: 150 }}
           />
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel id="sensor-control-label">Sensor Control</InputLabel>
-            <Select
-              labelId="sensor-control-label"
-              value={selectedSensorControl}
-              label="Sensor Control"
-              onChange={(e) => setSelectedSensorControl(e.target.value)}
-            >
-              <MenuItem value="none">None</MenuItem>
-              {availableSensorControls.map((cc) => (
-                <MenuItem key={cc.id} value={cc.id}>
-                  {cc.type.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} |
               Power: {previewPower} |
               Cost: {formatCost(previewCost)} |
-              Arcs: {previewArcs}/4 |
-              Track: {formatTracking(previewTracking)}
+              Arcs: {previewArcs}/4
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button

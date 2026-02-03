@@ -51,6 +51,14 @@ export interface CommandControlSystemType {
   maxQuality?: 'Ordinary' | 'Good' | 'Amazing';
 }
 
+// ============== Weapon Battery Key ==============
+
+/**
+ * A weapon battery is identified by weapon type + mount type.
+ * Format: "weaponTypeId:mountType" (e.g., "matter-beam:turret", "plasma-cannon:fixed")
+ */
+export type WeaponBatteryKey = string;
+
 // ============== Installed Command and Control System ==============
 
 export interface InstalledCommandControlSystem {
@@ -64,6 +72,10 @@ export interface InstalledCommandControlSystem {
   powerRequired: number;
   /** Calculated cost */
   cost: number;
+  /** For Fire Control: the weapon battery this is linked to (format: "weaponTypeId:mountType") */
+  linkedWeaponBatteryKey?: WeaponBatteryKey;
+  /** For Sensor Control: the sensor installation ID this is linked to */
+  linkedSensorId?: string;
 }
 
 // ============== Stats ==============

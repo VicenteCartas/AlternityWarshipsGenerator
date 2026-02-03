@@ -69,8 +69,6 @@ export interface InstalledSensor {
   arcsCovered: number;
   /** Total tracking capability (derived from PL, computer quality, and quantity) */
   trackingCapability: number;
-  /** ID of the assigned sensor control computer (from commandControl) */
-  assignedSensorControlId?: string;
 }
 
 // ============== Stats ==============

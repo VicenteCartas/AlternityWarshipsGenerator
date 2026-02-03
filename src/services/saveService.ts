@@ -20,7 +20,7 @@ import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTank
 import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
-import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost } from './commandControlService';
+import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost, calculateFireControlCost, calculateSensorControlCost, generateCommandControlId } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
@@ -128,11 +128,13 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: cc.id,
       typeId: cc.type.id,
       quantity: cc.quantity,
+      linkedWeaponBatteryKey: cc.linkedWeaponBatteryKey,
+      linkedSensorId: cc.linkedSensorId,
     })),
     sensors: (state.sensors || []).map((s): SavedSensor => ({
+      id: s.id,
       typeId: s.type.id,
       quantity: s.quantity,
-      assignedSensorControlId: s.assignedSensorControlId,
     })),
     hangarMisc: (state.hangarMisc || []).map((hm): SavedHangarMiscSystem => ({
       typeId: hm.type.id,
@@ -433,6 +435,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   }
   
   // Load command & control systems
+  // Note: Fire Control and Sensor Control costs will be recalculated after weapons/sensors are loaded
   const commandControl: InstalledCommandControlSystem[] = [];
   const allCCTypes = getAllCommandControlSystemTypes();
   
@@ -441,14 +444,17 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     if (ccType) {
       const hullPts = calculateCommandControlHullPoints(ccType, shipHullPoints, savedCC.quantity);
       const power = calculateCommandControlPower(ccType, savedCC.quantity);
+      // For linked systems (Fire Control, Sensor Control), cost will be recalculated later
       const cost = calculateCommandControlCost(ccType, shipHullPoints, savedCC.quantity);
       commandControl.push({
-        id: savedCC.id,
+        id: savedCC.id || generateCommandControlId(),
         type: ccType,
         quantity: savedCC.quantity,
         hullPoints: hullPts,
         powerRequired: power,
         cost,
+        linkedWeaponBatteryKey: savedCC.linkedWeaponBatteryKey,
+        linkedSensorId: savedCC.linkedSensorId,
       });
     } else {
       warnings.push(`Command & control system type not found: ${savedCC.typeId}`);
@@ -467,17 +473,13 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       const power = calculateSensorPower(sensorType, savedSensor.quantity);
       const cost = calculateSensorCost(sensorType, savedSensor.quantity);
       
-      // Determine computer quality from assigned sensor control
-      let computerQuality: ComputerQuality = 'none';
-      if (savedSensor.assignedSensorControlId) {
-        const assignedControl = commandControl.find(cc => cc.id === savedSensor.assignedSensorControlId);
-        if (assignedControl?.type.quality) {
-          computerQuality = assignedControl.type.quality as ComputerQuality;
-        }
-      }
+      // Get the sensor control assigned to this sensor (if any) to calculate tracking
+      const sensorId = savedSensor.id || generateSensorId();
+      const assignedControl = commandControl.find(cc => cc.linkedSensorId === sensorId);
+      const computerQuality: ComputerQuality = assignedControl?.type.quality as ComputerQuality || 'none';
       
       sensors.push({
-        id: generateSensorId(),
+        id: sensorId,
         type: sensorType,
         quantity: savedSensor.quantity,
         hullPoints: hullPts,
@@ -485,7 +487,6 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         cost,
         arcsCovered: Math.min(savedSensor.quantity * sensorType.arcsCovered, 4),
         trackingCapability: calculateTrackingCapability(designPL, computerQuality, savedSensor.quantity),
-        assignedSensorControlId: savedSensor.assignedSensorControlId,
       });
     } else {
       warnings.push(`Sensor system type not found: ${savedSensor.typeId}`);
@@ -703,6 +704,15 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
+  }
+  
+  // Recalculate Fire Control and Sensor Control costs based on loaded weapons/sensors
+  for (const cc of commandControl) {
+    if (cc.type.linkedSystemType === 'weapon' && cc.linkedWeaponBatteryKey) {
+      cc.cost = calculateFireControlCost(cc.type, cc.linkedWeaponBatteryKey, weapons);
+    } else if (cc.type.linkedSystemType === 'sensor' && cc.linkedSensorId) {
+      cc.cost = calculateSensorControlCost(cc.type, cc.linkedSensorId, sensors);
+    }
   }
   
   return {

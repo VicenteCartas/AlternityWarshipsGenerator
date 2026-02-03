@@ -124,18 +124,22 @@ export interface SavedCommandControlSystem {
   typeId: string;
   /** Quantity installed (stations for cockpit, HP for computer core, etc.) */
   quantity: number;
+  /** For Fire Control: the weapon battery this is linked to (format: "weaponTypeId:mountType") */
+  linkedWeaponBatteryKey?: string;
+  /** For Sensor Control: the sensor installation ID this is linked to */
+  linkedSensorId?: string;
 }
 
 /**
  * Installed sensor system in save file
  */
 export interface SavedSensor {
+  /** Installation ID */
+  id: string;
   /** The sensor type ID */
   typeId: string;
   /** Quantity installed */
   quantity: number;
-  /** ID of the assigned sensor control computer (references commandControl installation ID) */
-  assignedSensorControlId?: string;
 }
 
 /**

@@ -18,6 +18,10 @@ import {
   Alert,
   Tabs,
   Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -26,8 +30,9 @@ import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
-import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory } from '../types/commandControl';
+import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
+import type { InstalledWeapon } from '../types/weapon';
 import {
   getAllCommandControlSystemTypes,
   filterByDesignConstraints,
@@ -42,6 +47,13 @@ import {
   hasComputerCoreInstalled,
   getInstalledComputerCoreQuality,
   calculateRequiredComputerCoreHullPoints,
+  getWeaponBatteries,
+  calculateFireControlCost,
+  calculateSensorControlCost,
+  batteryHasFireControl,
+  sensorHasSensorControl,
+  getOrphanedFireControls,
+  getOrphanedSensorControls,
 } from '../services/commandControlService';
 import { formatCost, formatCommandControlCost } from '../services/formatters';
 import { TechTrackCell } from './shared';
@@ -53,6 +65,7 @@ interface CommandControlSelectionProps {
   hull: Hull;
   installedSystems: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
+  installedWeapons: InstalledWeapon[];
   usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
@@ -78,6 +91,7 @@ export function CommandControlSelection({
   hull,
   installedSystems,
   installedSensors,
+  installedWeapons,
   usedHullPoints: _usedHullPoints,
   availablePower: _availablePower,
   designProgressLevel,
@@ -88,6 +102,10 @@ export function CommandControlSelection({
   const [selectedSystem, setSelectedSystem] = useState<CommandControlSystemType | null>(null);
   const [systemQuantity, setSystemQuantity] = useState<string>('1');
   const [editingSystemId, setEditingSystemId] = useState<string | null>(null);
+  // For Fire Control: selected weapon battery
+  const [selectedBattery, setSelectedBattery] = useState<WeaponBatteryKey | ''>('');
+  // For Sensor Control: selected sensor
+  const [selectedSensorId, setSelectedSensorId] = useState<string>('');
   const formRef = useRef<HTMLDivElement>(null);
 
   // Get filtered system types
@@ -159,35 +177,56 @@ export function CommandControlSelection({
     });
   }, [installedSystems, coreQuality]);
 
-  // Helper to find which sensor is assigned to a sensor control
-  const getSensorAssignedToControl = (controlId: string): InstalledSensor | undefined => {
-    return installedSensors.find((s) => s.assignedSensorControlId === controlId);
-  };
+  // Get weapon batteries for Fire Control assignment
+  const weaponBatteries = useMemo(() => {
+    return getWeaponBatteries(installedWeapons);
+  }, [installedWeapons]);
 
-  // Count unassigned sensor controls
-  const unassignedSensorControls = useMemo(() => {
-    return installedSystems.filter(
-      (s) => s.type.linkedSystemType === 'sensor' && !getSensorAssignedToControl(s.id)
+  // Get available weapon batteries (not already assigned to a Fire Control)
+  const availableWeaponBatteries = useMemo(() => {
+    return weaponBatteries.filter(
+      (battery) => !batteryHasFireControl(battery.key, installedSystems)
     );
+  }, [weaponBatteries, installedSystems]);
+
+  // Get available sensors (not already assigned to a Sensor Control)
+  const availableSensorsForControl = useMemo(() => {
+    return installedSensors.filter(
+      (sensor) => !sensorHasSensorControl(sensor.id, installedSystems)
+    );
+  }, [installedSensors, installedSystems]);
+
+  // Get orphaned Fire Controls (battery no longer exists)
+  const orphanedFireControls = useMemo(() => {
+    return getOrphanedFireControls(installedSystems, installedWeapons);
+  }, [installedSystems, installedWeapons]);
+
+  // Get orphaned Sensor Controls (sensor no longer exists)
+  const orphanedSensorControls = useMemo(() => {
+    return getOrphanedSensorControls(installedSystems, installedSensors);
   }, [installedSystems, installedSensors]);
 
   // Handlers
   const handleSelectSystem = (type: CommandControlSystemType) => {
-    // Sensor controls: add immediately without showing the form
+    // Fire Control: show form to select battery
+    if (type.linkedSystemType === 'weapon') {
+      setSelectedSystem(type);
+      setSelectedBattery('');
+      setEditingSystemId(null);
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 0);
+      return;
+    }
+    
+    // Sensor Control: show form to select sensor
     if (type.linkedSystemType === 'sensor') {
-      const hullPts = calculateCommandControlHullPoints(type, hull.hullPoints, 1);
-      const power = calculateCommandControlPower(type, 1);
-      onSystemsChange([
-        ...installedSystems,
-        {
-          id: generateCommandControlId(),
-          type,
-          quantity: 1,
-          hullPoints: hullPts,
-          powerRequired: power,
-          cost: 0, // $0 until assigned to a sensor
-        },
-      ]);
+      setSelectedSystem(type);
+      setSelectedSensorId('');
+      setEditingSystemId(null);
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 0);
       return;
     }
 
@@ -210,13 +249,86 @@ export function CommandControlSelection({
 
   const handleAddSystem = () => {
     if (!selectedSystem) return;
+    
+    // Handle Fire Control
+    if (selectedSystem.linkedSystemType === 'weapon') {
+      if (!selectedBattery) return;
+      const cost = calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons);
+      const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, 1);
+      const power = calculateCommandControlPower(selectedSystem, 1);
+      
+      if (editingSystemId) {
+        // Update existing Fire Control with new battery assignment
+        onSystemsChange(
+          installedSystems.map((s) =>
+            s.id === editingSystemId
+              ? { ...s, linkedWeaponBatteryKey: selectedBattery, cost }
+              : s
+          )
+        );
+      } else {
+        // Add new Fire Control
+        onSystemsChange([
+          ...installedSystems,
+          {
+            id: generateCommandControlId(),
+            type: selectedSystem,
+            quantity: 1,
+            hullPoints: hullPts,
+            powerRequired: power,
+            cost,
+            linkedWeaponBatteryKey: selectedBattery,
+          },
+        ]);
+      }
+      setSelectedSystem(null);
+      setSelectedBattery('');
+      setEditingSystemId(null);
+      return;
+    }
+    
+    // Handle Sensor Control
+    if (selectedSystem.linkedSystemType === 'sensor') {
+      if (!selectedSensorId) return;
+      const cost = calculateSensorControlCost(selectedSystem, selectedSensorId, installedSensors);
+      const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, 1);
+      const power = calculateCommandControlPower(selectedSystem, 1);
+      
+      if (editingSystemId) {
+        // Update existing Sensor Control with new sensor assignment
+        onSystemsChange(
+          installedSystems.map((s) =>
+            s.id === editingSystemId
+              ? { ...s, linkedSensorId: selectedSensorId, cost }
+              : s
+          )
+        );
+      } else {
+        // Add new Sensor Control
+        onSystemsChange([
+          ...installedSystems,
+          {
+            id: generateCommandControlId(),
+            type: selectedSystem,
+            quantity: 1,
+            hullPoints: hullPts,
+            powerRequired: power,
+            cost,
+            linkedSensorId: selectedSensorId,
+          },
+        ]);
+      }
+      setSelectedSystem(null);
+      setSelectedSensorId('');
+      setEditingSystemId(null);
+      return;
+    }
+    
     const quantity = parseInt(systemQuantity, 10) || 1;
 
-    // Sensor controls always have $0 cost until assigned to a sensor
-    const isSensorControl = selectedSystem.linkedSystemType === 'sensor';
     const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, quantity);
     const power = calculateCommandControlPower(selectedSystem, quantity);
-    const cost = isSensorControl ? 0 : calculateCommandControlCost(selectedSystem, hull.hullPoints, quantity);
+    const cost = calculateCommandControlCost(selectedSystem, hull.hullPoints, quantity);
 
     if (editingSystemId) {
       onSystemsChange(
@@ -234,21 +346,7 @@ export function CommandControlSelection({
         updatedSystems = installedSystems.filter((s) => !s.type.id.startsWith('computer-core'));
       }
 
-      // Sensor controls: always add as separate installation (no merging, no quantity)
-      if (isSensorControl) {
-        onSystemsChange([
-          ...updatedSystems,
-          {
-            id: generateCommandControlId(),
-            type: selectedSystem,
-            quantity: 1,
-            hullPoints: hullPts,
-            powerRequired: power,
-            cost: 0, // $0 until assigned to a sensor
-          },
-        ]);
-      } else {
-        // Check if same type already exists (for stackable items)
+      // Check if same type already exists (for stackable items)
         const existing = updatedSystems.find((s) => s.type.id === selectedSystem.id);
         if (existing && !selectedSystem.isRequired && !selectedSystem.coveragePerHullPoint) {
           const newQuantity = existing.quantity + quantity;
@@ -275,7 +373,6 @@ export function CommandControlSelection({
             },
           ]);
         }
-      }
     }
 
     setSelectedSystem(null);
@@ -285,8 +382,28 @@ export function CommandControlSelection({
 
   const handleEditSystem = (installed: InstalledCommandControlSystem) => {
     setSelectedSystem(installed.type);
-    setSystemQuantity(installed.quantity.toString());
     setEditingSystemId(installed.id);
+    
+    // For Fire Control: pre-select the current battery if it still exists
+    if (installed.type.linkedSystemType === 'weapon') {
+      const batteryStillExists = installed.linkedWeaponBatteryKey && 
+        weaponBatteries.some(b => b.key === installed.linkedWeaponBatteryKey);
+      setSelectedBattery(batteryStillExists ? installed.linkedWeaponBatteryKey! : '');
+      setSelectedSensorId('');
+      return;
+    }
+    
+    // For Sensor Control: pre-select the current sensor if it still exists
+    if (installed.type.linkedSystemType === 'sensor') {
+      const sensorStillExists = installed.linkedSensorId && 
+        installedSensors.some(s => s.id === installed.linkedSensorId);
+      setSelectedSensorId(sensorStillExists ? installed.linkedSensorId! : '');
+      setSelectedBattery('');
+      return;
+    }
+    
+    // Standard systems
+    setSystemQuantity(installed.quantity.toString());
   };
 
   const handleRemoveSystem = (id: string) => {
@@ -302,14 +419,26 @@ export function CommandControlSelection({
     return qualityOrder[selectedSystem.quality] > qualityOrder[coreQuality];
   }, [selectedSystem, coreQuality]);
 
-  // Calculate preview values
+  // Calculate preview values for non-linked systems
   const previewQuantity = parseInt(systemQuantity, 10) || 1;
-  const previewHullPts = selectedSystem ? calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewPower = selectedSystem ? calculateCommandControlPower(selectedSystem, previewQuantity) : 0;
-  // Sensor controls show $0 cost until assigned
-  const previewCost = selectedSystem 
-    ? (selectedSystem.linkedSystemType === 'sensor' ? 0 : calculateCommandControlCost(selectedSystem, hull.hullPoints, previewQuantity)) 
-    : 0;
+  const previewHullPts = selectedSystem && !selectedSystem.linkedSystemType
+    ? calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, previewQuantity)
+    : (selectedSystem ? calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, 1) : 0);
+  const previewPower = selectedSystem && !selectedSystem.linkedSystemType
+    ? calculateCommandControlPower(selectedSystem, previewQuantity)
+    : (selectedSystem ? calculateCommandControlPower(selectedSystem, 1) : 0);
+  // For Fire Control: calculate cost based on selected battery
+  // For Sensor Control: calculate cost based on selected sensor
+  const previewCost = useMemo(() => {
+    if (!selectedSystem) return 0;
+    if (selectedSystem.linkedSystemType === 'weapon') {
+      return selectedBattery ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons) : 0;
+    }
+    if (selectedSystem.linkedSystemType === 'sensor') {
+      return selectedSensorId ? calculateSensorControlCost(selectedSystem, selectedSensorId, installedSensors) : 0;
+    }
+    return calculateCommandControlCost(selectedSystem, hull.hullPoints, previewQuantity);
+  }, [selectedSystem, selectedBattery, selectedSensorId, installedWeapons, installedSensors, hull.hullPoints, previewQuantity]);
 
   const getCategoryLabel = (category: CommandControlCategory): string => {
     switch (category) {
@@ -338,12 +467,39 @@ export function CommandControlSelection({
         <Stack spacing={1}>
           {installed.map((system) => {
             const hasQualityIssue = controlsWithQualityIssues.some((s) => s.id === system.id);
+            const isFireControl = system.type.linkedSystemType === 'weapon';
             const isSensorControl = system.type.linkedSystemType === 'sensor';
-            const assignedSensor = isSensorControl ? getSensorAssignedToControl(system.id) : undefined;
-            // Calculate display cost for sensor controls based on assigned sensor (cost per HP of linked sensor)
-            const displayCost = isSensorControl && assignedSensor
-              ? system.type.cost * assignedSensor.hullPoints
-              : system.cost;
+            const isLinkedControl = isFireControl || isSensorControl;
+            
+            // Determine linked system info
+            let linkedSystemName: string | undefined;
+            let isOrphaned = false;
+            
+            if (isFireControl) {
+              if (system.linkedWeaponBatteryKey) {
+                const battery = weaponBatteries.find(b => b.key === system.linkedWeaponBatteryKey);
+                if (battery) {
+                  const mountLabel = battery.mountType.charAt(0).toUpperCase() + battery.mountType.slice(1);
+                  linkedSystemName = `${battery.weaponTypeName} ${mountLabel}`;
+                } else {
+                  isOrphaned = true;
+                }
+              } else {
+                isOrphaned = true;
+              }
+            } else if (isSensorControl) {
+              if (system.linkedSensorId) {
+                const sensor = installedSensors.find(s => s.id === system.linkedSensorId);
+                if (sensor) {
+                  linkedSystemName = sensor.type.name;
+                } else {
+                  isOrphaned = true;
+                }
+              } else {
+                isOrphaned = true;
+              }
+            }
+            
             return (
               <Box
                 key={system.id}
@@ -362,22 +518,22 @@ export function CommandControlSelection({
                 </Typography>
                 <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                 <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                <Chip label={formatCost(displayCost)} size="small" variant="outlined" />
+                <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
                 {system.type.requiresCore && system.type.effect && (
                   <Chip label={system.type.effect} size="small" color="primary" variant="outlined" />
                 )}
-                {isSensorControl && !assignedSensor && (
+                {isOrphaned && (
                   <Chip
                     icon={<WarningIcon />}
-                    label="Unassigned"
+                    label="Orphaned"
                     size="small"
-                    color="warning"
+                    color="error"
                     variant="outlined"
                   />
                 )}
-                {isSensorControl && assignedSensor && (
+                {linkedSystemName && (
                   <Chip
-                    label={assignedSensor.type.name}
+                    label={linkedSystemName}
                     size="small"
                     color="success"
                     variant="outlined"
@@ -392,7 +548,7 @@ export function CommandControlSelection({
                     variant="outlined"
                   />
                 )}
-                {!isSensorControl && (
+                {(!isLinkedControl || isOrphaned) && (
                   <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -412,6 +568,15 @@ export function CommandControlSelection({
   const renderConfigureForm = () => {
     if (!selectedSystem) return null;
 
+    const isFireControl = selectedSystem.linkedSystemType === 'weapon';
+    const isSensorControl = selectedSystem.linkedSystemType === 'sensor';
+    const isLinkedControl = isFireControl || isSensorControl;
+
+    // For linked controls (fire/sensor), disable Add if no target selected
+    const canAdd = isLinkedControl 
+      ? (isFireControl ? selectedBattery !== '' : selectedSensorId !== '')
+      : true;
+
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: '10px' }}>
@@ -427,8 +592,57 @@ export function CommandControlSelection({
         )}
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* Fire Control: weapon battery selection */}
+          {isFireControl && (
+            <FormControl size="small" sx={{ minWidth: 250 }}>
+              <InputLabel id="battery-select-label">Weapon Battery</InputLabel>
+              <Select
+                labelId="battery-select-label"
+                value={selectedBattery}
+                onChange={(e) => setSelectedBattery(e.target.value as WeaponBatteryKey)}
+                label="Weapon Battery"
+              >
+                {availableWeaponBatteries.length === 0 ? (
+                  <MenuItem disabled>No unassigned batteries</MenuItem>
+                ) : (
+                  availableWeaponBatteries.map((battery) => {
+                    const mountLabel = battery.mountType.charAt(0).toUpperCase() + battery.mountType.slice(1);
+                    return (
+                      <MenuItem key={battery.key} value={battery.key}>
+                        {battery.weaponTypeName} {mountLabel} ({battery.totalHullPoints} HP)
+                      </MenuItem>
+                    );
+                  })
+                )}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Sensor Control: sensor selection */}
+          {isSensorControl && (
+            <FormControl size="small" sx={{ minWidth: 250 }}>
+              <InputLabel id="sensor-select-label">Sensor</InputLabel>
+              <Select
+                labelId="sensor-select-label"
+                value={selectedSensorId}
+                onChange={(e) => setSelectedSensorId(e.target.value)}
+                label="Sensor"
+              >
+                {availableSensorsForControl.length === 0 ? (
+                  <MenuItem disabled>No unassigned sensors</MenuItem>
+                ) : (
+                  availableSensorsForControl.map((sensor) => (
+                    <MenuItem key={sensor.id} value={sensor.id}>
+                      {sensor.type.name} ({sensor.hullPoints} HP)
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          )}
+
           {/* Systems with coverage-based HP (command deck, computer cores) */}
-          {selectedSystem.coveragePerHullPoint && (
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && (
             <TextField
               label="Quantity"
               type="number"
@@ -441,7 +655,7 @@ export function CommandControlSelection({
             />
           )}
           {/* Standard systems: simple quantity */}
-          {!selectedSystem.coveragePerHullPoint && (
+          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && (
             <TextField
               label="Quantity"
               type="number"
@@ -465,6 +679,7 @@ export function CommandControlSelection({
                 size="small"
                 startIcon={editingSystemId ? <SaveIcon /> : <AddIcon />}
                 onClick={handleAddSystem}
+                disabled={!canAdd}
               >
                 {editingSystemId ? 'Save' : 'Add'}
               </Button>
@@ -475,6 +690,8 @@ export function CommandControlSelection({
                   setSelectedSystem(null);
                   setSystemQuantity('1');
                   setEditingSystemId(null);
+                  setSelectedBattery('');
+                  setSelectedSensorId('');
                 }}
               >
                 Cancel
@@ -708,11 +925,19 @@ export function CommandControlSelection({
               variant="outlined"
             />
           )}
-          {unassignedSensorControls.length > 0 && (
+          {orphanedFireControls.length > 0 && (
             <Chip
               icon={<WarningIcon />}
-              label="Unassigned Controls"
-              color="warning"
+              label={`${orphanedFireControls.length} Orphaned Fire Control${orphanedFireControls.length > 1 ? 's' : ''}`}
+              color="error"
+              variant="outlined"
+            />
+          )}
+          {orphanedSensorControls.length > 0 && (
+            <Chip
+              icon={<WarningIcon />}
+              label={`${orphanedSensorControls.length} Orphaned Sensor Control${orphanedSensorControls.length > 1 ? 's' : ''}`}
+              color="error"
               variant="outlined"
             />
           )}
