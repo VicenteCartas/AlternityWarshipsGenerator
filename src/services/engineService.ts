@@ -1,6 +1,7 @@
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
 import type { Hull, ShipClass } from '../types/hull';
 import { getEnginesData, getFuelTankData } from './dataLoader';
+import { generateId } from './utilities';
 
 /**
  * Get all engine types
@@ -313,14 +314,14 @@ export function validateEngineDesign(
  * Generate a unique installation ID
  */
 export function generateEngineInstallationId(): string {
-  return `eng-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('eng');
 }
 
 /**
  * Generate a unique installation ID for engine fuel tanks
  */
 export function generateEngineFuelTankId(): string {
-  return `eft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('eft');
 }
 
 /**

@@ -2,6 +2,14 @@
  * Common types shared across multiple modules
  */
 
+import type { ShipClass } from './hull';
+
+/**
+ * Ship class order from smallest to largest
+ * Used for sorting and filtering throughout the app
+ */
+export const SHIP_CLASS_ORDER: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
+
 /**
  * Progress Level for technology
  * PL 6 = Fusion Age

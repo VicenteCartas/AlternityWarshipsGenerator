@@ -4,6 +4,7 @@ import type {
   InstalledDefenseSystem,
   DefenseStats,
 } from '../types/defense';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
 // ============== Data Loading ==============
 
@@ -32,31 +33,13 @@ export function filterByDesignConstraints(
   designProgressLevel: ProgressLevel,
   designTechTracks: TechTrack[]
 ): DefenseSystemType[] {
-  return items.filter((item) => {
-    // Filter by progress level
-    if (item.progressLevel > designProgressLevel) {
-      return false;
-    }
-    // Filter by tech tracks (if any are selected)
-    if (designTechTracks.length > 0 && item.techTracks.length > 0) {
-      // Item needs at least one of its tech tracks to be available
-      const hasAllowedTech = item.techTracks.some((track) =>
-        designTechTracks.includes(track)
-      );
-      if (!hasAllowedTech) {
-        return false;
-      }
-    }
-    return true;
-  }).sort((a, b) => a.progressLevel - b.progressLevel);
+  return filterByConstraints(items, designProgressLevel, designTechTracks);
 }
 
 // ============== ID Generation ==============
 
-let defenseCounter = 0;
-
 export function generateDefenseId(): string {
-  return `def-${Date.now()}-${++defenseCounter}`;
+  return generateId('def');
 }
 
 // ============== Calculations ==============

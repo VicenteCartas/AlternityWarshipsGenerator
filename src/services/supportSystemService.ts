@@ -10,6 +10,7 @@ import type {
   InstalledGravitySystem,
   SupportSystemsStats,
 } from '../types/supportSystem';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
 // ============== Data Loading ==============
 
@@ -71,45 +72,25 @@ export function filterByDesignConstraints<T extends { progressLevel: ProgressLev
   designProgressLevel: ProgressLevel,
   designTechTracks: TechTrack[]
 ): T[] {
-  return items.filter((item) => {
-    // Filter by progress level
-    if (item.progressLevel > designProgressLevel) {
-      return false;
-    }
-    // Filter by tech tracks (if any are selected)
-    if (designTechTracks.length > 0 && item.techTracks.length > 0) {
-      const hasAllowedTech = item.techTracks.every((track) =>
-        designTechTracks.includes(track)
-      );
-      if (!hasAllowedTech) {
-        return false;
-      }
-    }
-    return true;
-  }).sort((a, b) => a.progressLevel - b.progressLevel);
+  return filterByConstraints(items, designProgressLevel, designTechTracks);
 }
 
 // ============== ID Generation ==============
 
-let lifeSupportCounter = 0;
-let accommodationCounter = 0;
-let storeSystemCounter = 0;
-let gravitySystemCounter = 0;
-
 export function generateLifeSupportId(): string {
-  return `ls-${Date.now()}-${++lifeSupportCounter}`;
+  return generateId('ls');
 }
 
 export function generateAccommodationId(): string {
-  return `acc-${Date.now()}-${++accommodationCounter}`;
+  return generateId('acc');
 }
 
 export function generateStoreSystemId(): string {
-  return `store-${Date.now()}-${++storeSystemCounter}`;
+  return generateId('store');
 }
 
 export function generateGravitySystemId(): string {
-  return `grav-${Date.now()}-${++gravitySystemCounter}`;
+  return generateId('grav');
 }
 
 // ============== Gravity System Calculations ==============

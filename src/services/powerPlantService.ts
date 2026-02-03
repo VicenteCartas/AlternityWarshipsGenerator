@@ -1,6 +1,7 @@
 import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull, ShipClass } from '../types/hull';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
+import { generateId } from './utilities';
 
 /**
  * Get all power plant types
@@ -237,12 +238,12 @@ export function validatePowerPlantDesign(
  * Generate a unique installation ID for power plants
  */
 export function generateInstallationId(): string {
-  return `pp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('pp');
 }
 
 /**
  * Generate a unique installation ID for fuel tanks
  */
 export function generateFuelTankId(): string {
-  return `ft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('ft');
 }

@@ -22,6 +22,7 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { TabPanel } from './shared';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -81,28 +82,6 @@ interface SummarySelectionProps {
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
   currentFilePath: string | null;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`summary-tabpanel-${index}`}
-      aria-labelledby={`summary-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
 }
 
 export function SummarySelection({

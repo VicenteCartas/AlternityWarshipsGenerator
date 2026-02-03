@@ -1,5 +1,6 @@
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { ShipClass } from '../types/hull';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 import type {
   BeamWeaponType,
   ProjectileWeaponType,
@@ -66,25 +67,14 @@ export function getAllSpecialWeaponTypes(): SpecialWeaponType[] {
 
 /**
  * Filter weapon types by design constraints (Progress Level and Tech Tracks)
+ * Re-exported from utilities for backwards compatibility
  */
 export function filterByDesignConstraints<T extends WeaponType>(
   weapons: T[],
   designPL: ProgressLevel,
   designTechTracks: TechTrack[]
 ): T[] {
-  return weapons.filter((weapon) => {
-    // Filter by Progress Level
-    if (weapon.progressLevel > designPL) return false;
-    // Filter by Tech Tracks:
-    // - If designTechTracks is empty, show all components (no tech filtering)
-    // - If weapon has no tech requirement, always show it
-    // - If weapon has tech requirements, only show if all required techs are available
-    if (designTechTracks.length > 0 && weapon.techTracks.length > 0) {
-      const hasAllTechs = weapon.techTracks.every((tech) => designTechTracks.includes(tech));
-      if (!hasAllTechs) return false;
-    }
-    return true;
-  });
+  return filterByConstraints(weapons, designPL, designTechTracks, false);
 }
 
 /**
@@ -144,7 +134,7 @@ export function getGunConfigurationModifiers(config: GunConfiguration): { effect
  * Generate unique ID for an installed weapon
  */
 export function generateWeaponId(): string {
-  return `weapon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('weapon');
 }
 
 /**

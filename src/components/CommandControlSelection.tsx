@@ -28,6 +28,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
+import { TabPanel } from './shared';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
@@ -71,20 +72,6 @@ interface CommandControlSelectionProps {
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onSystemsChange: (systems: InstalledCommandControlSystem[]) => void;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
 }
 
 export function CommandControlSelection({

@@ -1,4 +1,5 @@
 import type { Hull, ShipClass, HullCategory } from '../types/hull';
+import { SHIP_CLASS_ORDER } from '../types/common';
 import { getHullsData } from './dataLoader';
 
 /**
@@ -45,5 +46,5 @@ export function getHullById(id: string): Hull | undefined {
  * Get all unique ship classes
  */
 export function getShipClasses(): ShipClass[] {
-  return ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
+  return [...SHIP_CLASS_ORDER];
 }

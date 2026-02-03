@@ -21,6 +21,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
+import { TabPanel } from './shared';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -63,20 +64,6 @@ interface SupportSystemsSelectionProps {
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
   onGravitySystemsChange: (gravitySystems: InstalledGravitySystem[]) => void;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
 }
 
 export function SupportSystemsSelection({

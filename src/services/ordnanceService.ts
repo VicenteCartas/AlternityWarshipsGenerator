@@ -19,6 +19,7 @@ import {
   getWarheadsData,
   getGuidanceSystemsData,
 } from './dataLoader';
+import { generateId } from './utilities';
 
 // ============== Data Getters ==============
 
@@ -294,11 +295,11 @@ export function calculateOrdnanceStats(
 // ============== ID Generation ==============
 
 export function generateOrdnanceDesignId(): string {
-  return `ordnance-design-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return generateId('ordnance-design');
 }
 
 export function generateLaunchSystemId(): string {
-  return `launch-system-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return generateId('launch-system');
 }
 
 // ============== Design Creation Helpers ==============

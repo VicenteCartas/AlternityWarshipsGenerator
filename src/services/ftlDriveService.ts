@@ -1,6 +1,7 @@
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
 import { getFTLDrivesData } from './dataLoader';
+import { generateId } from './utilities';
 
 /**
  * Get all FTL drive types
@@ -166,7 +167,7 @@ export function validateFTLInstallation(
  * Generate a unique installation ID
  */
 export function generateFTLInstallationId(): string {
-  return `ftl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('ftl');
 }
 
 /**
@@ -184,9 +185,8 @@ export function formatFTLRating(rating: number | null, unit: string): string {
 /**
  * Generate a unique FTL fuel tank ID
  */
-let ftlFuelTankCounter = 0;
 export function generateFTLFuelTankId(): string {
-  return `ftl-fuel-${Date.now()}-${++ftlFuelTankCounter}`;
+  return generateId('ftl-fuel');
 }
 
 /**

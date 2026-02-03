@@ -1,5 +1,6 @@
 import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
+import { SHIP_CLASS_ORDER } from '../types/common';
 import { getArmorTypesData, getArmorWeightsData } from './dataLoader';
 
 /**
@@ -21,8 +22,7 @@ export function getAllArmorTypes(): ArmorType[] {
  * Filters based on the armor weight's minShipClass requirement
  */
 export function getArmorTypesForShipClass(shipClass: ShipClass): ArmorType[] {
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const shipClassIndex = classOrder.indexOf(shipClass);
+  const shipClassIndex = SHIP_CLASS_ORDER.indexOf(shipClass);
   const armorWeights = getArmorWeights();
   
   return getAllArmorTypes().filter((armor) => {
@@ -31,7 +31,7 @@ export function getArmorTypesForShipClass(shipClass: ShipClass): ArmorType[] {
     if (!weightConfig) return false;
     
     // Check if ship class meets minimum requirement for this armor weight
-    const minClassIndex = classOrder.indexOf(weightConfig.minShipClass);
+    const minClassIndex = SHIP_CLASS_ORDER.indexOf(weightConfig.minShipClass);
     return shipClassIndex >= minClassIndex;
   });
 }
@@ -51,11 +51,10 @@ export function getArmorTypesByWeight(shipClass: ShipClass, weight: ArmorWeight 
  * Get armor weights available for a specific ship class
  */
 export function getArmorWeightsForShipClass(shipClass: ShipClass): ArmorWeightConfig[] {
-  const classOrder: ShipClass[] = ['small-craft', 'light', 'medium', 'heavy', 'super-heavy'];
-  const classIndex = classOrder.indexOf(shipClass);
+  const classIndex = SHIP_CLASS_ORDER.indexOf(shipClass);
   
   return getArmorWeights().filter((weight) => {
-    const minIndex = classOrder.indexOf(weight.minShipClass);
+    const minIndex = SHIP_CLASS_ORDER.indexOf(weight.minShipClass);
     return classIndex >= minIndex;
   });
 }

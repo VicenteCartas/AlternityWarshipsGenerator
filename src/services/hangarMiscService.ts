@@ -1,5 +1,6 @@
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscStats } from '../types/hangarMisc';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 import hangarMiscData from '../data/hangarMisc.json';
 
 let hangarMiscSystemTypes: HangarMiscSystemType[] | null = null;
@@ -29,26 +30,14 @@ export function filterByDesignConstraints(
   designPL: ProgressLevel,
   designTechTracks: TechTrack[]
 ): HangarMiscSystemType[] {
-  return systems.filter((system) => {
-    // Filter by Progress Level
-    if (system.progressLevel > designPL) return false;
-    // Filter by Tech Tracks:
-    // - If designTechTracks is empty, show all components (no tech filtering)
-    // - If system has no tech requirement, always show it
-    // - If system has tech requirements, only show if all required techs are available
-    if (designTechTracks.length > 0 && system.techTracks.length > 0) {
-      const hasAllTechs = system.techTracks.every((tech) => designTechTracks.includes(tech));
-      if (!hasAllTechs) return false;
-    }
-    return true;
-  });
+  return filterByConstraints(systems, designPL, designTechTracks, false);
 }
 
 /**
  * Generate unique ID for an installed system
  */
 export function generateHangarMiscId(): string {
-  return `hangmisc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return generateId('hangmisc');
 }
 
 /**
