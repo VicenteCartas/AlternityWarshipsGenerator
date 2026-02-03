@@ -36,6 +36,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('read-data-file', fileName),
   getDataPath: () => 
     ipcRenderer.invoke('get-data-path'),
+  
+  // PDF export operations
+  getDocumentsPath: () =>
+    ipcRenderer.invoke('get-documents-path'),
+  savePdfFile: (filePath: string, base64Data: string) =>
+    ipcRenderer.invoke('save-pdf-file', filePath, base64Data),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

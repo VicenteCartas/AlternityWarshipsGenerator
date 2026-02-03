@@ -21,6 +21,7 @@ import {
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -50,6 +51,7 @@ import { calculateHangarMiscStats } from '../services/hangarMiscService';
 import { formatCost } from '../services/formatters';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
+import { exportShipToPDF } from '../services/pdfExportService';
 
 
 interface SummarySelectionProps {
@@ -78,6 +80,7 @@ interface SummarySelectionProps {
   installedHangarMisc: InstalledHangarMiscSystem[];
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
+  currentFilePath: string | null;
 }
 
 interface TabPanelProps {
@@ -128,6 +131,7 @@ export function SummarySelection({
   installedHangarMisc,
   damageDiagramZones,
   designProgressLevel,
+  currentFilePath,
 }: SummarySelectionProps) {
   const [tabValue, setTabValue] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -358,6 +362,55 @@ export function SummarySelection({
     ? `data:${shipDescription.imageMimeType};base64,${shipDescription.imageData}`
     : null;
 
+  const handleExportPDF = async () => {
+    if (!hull) return;
+    
+    try {
+      // Determine target directory: use directory of current file, or Documents folder
+      let targetDirectory: string | undefined;
+      
+      if (window.electronAPI) {
+        if (currentFilePath) {
+          // Extract directory from current file path
+          const separator = currentFilePath.includes('\\') ? '\\' : '/';
+          const lastSeparatorIndex = currentFilePath.lastIndexOf(separator);
+          targetDirectory = currentFilePath.substring(0, lastSeparatorIndex);
+        } else {
+          // No current file, use Documents folder
+          targetDirectory = await window.electronAPI.getDocumentsPath();
+        }
+      }
+      
+      await exportShipToPDF({
+        warshipName,
+        hull,
+        shipDescription,
+        selectedArmorWeight,
+        selectedArmorType,
+        installedPowerPlants,
+        installedFuelTanks,
+        installedEngines,
+        installedEngineFuelTanks,
+        installedFTLDrive,
+        installedFTLFuelTanks,
+        installedLifeSupport,
+        installedAccommodations,
+        installedStoreSystems,
+        installedGravitySystems,
+        installedWeapons,
+        installedLaunchSystems,
+        installedDefenses,
+        installedCommandControl,
+        installedSensors,
+        installedHangarMisc,
+        damageDiagramZones,
+        targetDirectory,
+      });
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Validation alerts */}
@@ -375,14 +428,22 @@ export function SummarySelection({
         </Box>
       )}
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      {/* Tabs and Export Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="summary tabs">
           <Tab label="Description" id="summary-tab-0" aria-controls="summary-tabpanel-0" />
           <Tab label="Systems" id="summary-tab-1" aria-controls="summary-tabpanel-1" />
           <Tab label="Fire Diagram" id="summary-tab-2" aria-controls="summary-tabpanel-2" />
           <Tab label="Damage Zones" id="summary-tab-3" aria-controls="summary-tabpanel-3" />
         </Tabs>
+        <Button
+          variant="contained"
+          startIcon={<PictureAsPdfIcon />}
+          onClick={handleExportPDF}
+          sx={{ mr: 1 }}
+        >
+          Export PDF
+        </Button>
       </Box>
 
       {/* Description Tab */}

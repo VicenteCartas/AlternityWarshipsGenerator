@@ -240,3 +240,19 @@ ipcMain.handle('get-data-path', async () => {
     return path.join(process.resourcesPath, 'data');
   }
 });
+
+// Get the Documents folder path
+ipcMain.handle('get-documents-path', async () => {
+  return app.getPath('documents');
+});
+
+// Save PDF file to a specific path (base64 encoded data)
+ipcMain.handle('save-pdf-file', async (_event, filePath: string, base64Data: string) => {
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+    return { success: true, filePath };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});

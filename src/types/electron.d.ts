@@ -14,6 +14,7 @@ export interface FileOperationResult {
   success: boolean;
   error?: string;
   content?: string;
+  filePath?: string;
 }
 
 export interface DataFileResult {
@@ -40,6 +41,10 @@ export interface ElectronAPI {
   // Data file operations (for externally editable game data)
   readDataFile: (fileName: string) => Promise<DataFileResult>;
   getDataPath: () => Promise<string>;
+  
+  // PDF export operations
+  getDocumentsPath: () => Promise<string>;
+  savePdfFile: (filePath: string, base64Data: string) => Promise<FileOperationResult>;
 }
 
 declare global {

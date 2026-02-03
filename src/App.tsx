@@ -1089,6 +1089,7 @@ function App() {
             installedHangarMisc={installedHangarMisc}
             damageDiagramZones={damageDiagramZones}
             designProgressLevel={designProgressLevel}
+            currentFilePath={currentFilePath}
           />
         );
       default:
@@ -1567,20 +1568,24 @@ function App() {
 
         {/* Navigation Buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={handleBack}
-            disabled={activeStep === 0}
-          >
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleNext}
-            disabled={activeStep === steps.length - 1}
-          >
-            Next
-          </Button>
+          {activeStep > 0 ? (
+            <Button
+              variant="outlined"
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+          ) : (
+            <Box />
+          )}
+          {activeStep < steps.length - 1 && (
+            <Button
+              variant="contained"
+              onClick={handleNext}
+            >
+              Next
+            </Button>
+          )}
         </Box>
       </Container>
 
