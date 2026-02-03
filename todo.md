@@ -6,7 +6,7 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ## 1. Code Logic Cleanup & Refactoring
 
-### ðŸ”´ High Priority
+### High Priority
 
 | Issue | Impact | Recommendation |
 |-------|--------|----------------|
@@ -15,7 +15,7 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 | **ID property naming inconsistent** | `installationId` vs `id` across types | Standardize to `id` everywhere |
 | **Percentage interpolation duplicated** | Same algorithm in engine + FTL services (~60 lines) | Extract to shared utility in formatters.ts |
 
-### ðŸŸ¡ Medium Priority
+### Medium Priority
 
 | Issue | Recommendation |
 |-------|----------------|
@@ -55,7 +55,7 @@ interface PercentageRatings<T = number> {
 
 ## 2. UI Code Cleanup & Unification
 
-### ðŸ”´ High Priority - Extract Shared Components
+### High Priority - Extract Shared Components
 
 | Pattern | Files Affected | Lines Duplicated |
 |---------|---------------|------------------|
@@ -78,7 +78,7 @@ src/components/shared/
 â””â”€â”€ SectionHeader.tsx           # Step title + clear button
 ```
 
-### ðŸŸ¡ Medium Priority - Style Inconsistencies
+### Medium Priority - Style Inconsistencies
 
 | Issue | Fix |
 |-------|-----|
@@ -86,7 +86,7 @@ src/components/shared/
 | Selected row styling repeated 4x | Extract to `selectableRowSx` constant |
 | Summary chip patterns vary slightly | Create `StatsSummary` component |
 
-### ðŸŸ¢ Quick Wins (Immediate)
+### Quick Wins (Immediate)
 
 1. Create `src/constants/tableStyles.ts`:
 ```typescript
@@ -98,20 +98,17 @@ export const selectableRowSx = {
 };
 ```
 
-2. Extract filtering logic to services (already done in supportSystemService as `filterByDesignConstraints`)
-
 ---
 
 ## 3. Missing Features
 
-### ðŸ”´ Critical - Incomplete Rulebook Implementation
+### Critical - Incomplete Rulebook Implementation
 
 | Missing Step | Description | Data File Needed |
 |--------------|-------------|------------------|
-| **Step 7: Weapons** | Beams, projectiles, missiles, bombs, mines | `weapons.json` |
 | **Step 13: Summary** | Final stats, fire diagram, damage diagram | N/A |
 
-### ðŸ”´ High Value - UX Features
+### High Value - UX Features
 
 | Feature | Description |
 |---------|-------------|
@@ -120,7 +117,7 @@ export const selectableRowSx = {
 | **Damage Diagram** | Hit location/damage track visual |
 | **Validation System** | HP/Power budget enforcement with warnings |
 
-### ðŸŸ¡ Medium Value - Quality of Life
+### Medium Value - Quality of Life
 
 | Feature | Description |
 |---------|-------------|
@@ -135,7 +132,7 @@ export const selectableRowSx = {
 | Copy to Clipboard | Quick copy of ship stats for forums/chat |
 | Cost Breakdown | Expandable cost summary by category |
 
-### ðŸŸ¡ Validation Gaps
+### Validation Gaps
 
 | Gap | Impact |
 |-----|--------|
@@ -149,15 +146,8 @@ export const selectableRowSx = {
 
 ## 5. Recommended Action Plan
 
-### Phase 1: Code Cleanup (Low Risk)
-- [x] Consolidate cost formatters to formatters.ts
-- [x] Fix FTL service to use dataLoader
-- [x] Create tableStyles.ts constants
-- [x] Extract TechTrackCell and TruncatedDescription components
-- [x] Standardize ID property naming
-
 ### Phase 2: Complete Core Features
-- [ ] Implement Step 7: Weapons
+- [X] Implement Step 7: Weapons
 - [X] Implement Step 8: Defenses
 - [X] Implement Step 9: Command & Control
 - [X] Implement Step 10: Sensors
@@ -165,6 +155,7 @@ export const selectableRowSx = {
 - [X] Implement Step 12: Miscellaneous
 - [X] Implement Step 13: Summary page
 - [ ] Add real-time validation for HP/Power budgets
+- [ ] Show Area of Effect weapons information
 
 ### Phase 3: Export & Polish
 - [ ] Print/PDF export with ship record sheet
@@ -173,7 +164,6 @@ export const selectableRowSx = {
 - [ ] Ship templates from rulebook
 
 ### Phase 4: Quality of Life
-- [ ] Undo/Redo system
 - [ ] Notes field for ship description
 - [ ] Component search/filter
 - [ ] Recent files list

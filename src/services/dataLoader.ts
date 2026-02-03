@@ -31,6 +31,7 @@ import commandControlDataFallback from '../data/commandControl.json';
 import sensorsDataFallback from '../data/sensors.json';
 import hangarMiscDataFallback from '../data/hangarMisc.json';
 import ordnanceDataFallback from '../data/ordnance.json';
+import damageDiagramDataFallback from '../data/damageDiagram.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -55,6 +56,7 @@ interface DataCache {
   propulsionSystems: PropulsionSystem[] | null;
   warheads: Warhead[] | null;
   guidanceSystems: GuidanceSystem[] | null;
+  damageDiagram: unknown | null;
 }
 
 const cache: DataCache = {
@@ -74,6 +76,7 @@ const cache: DataCache = {
   propulsionSystems: null,
   warheads: null,
   guidanceSystems: null,
+  damageDiagram: null,
 };
 
 let dataLoaded = false;
@@ -128,9 +131,10 @@ export async function loadAllGameData(): Promise<void> {
     const { loadCommandControlSystemsData } = await import('./commandControlService');
     const { loadSensorsData } = await import('./sensorService');
     const { initializeHangarMiscData } = await import('./hangarMiscService');
+    const { loadDamageDiagramData } = await import('./damageDiagramService');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData] = await Promise.all([
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback),
       loadDataFile('armor.json', armorDataFallback),
       loadDataFile('powerPlants.json', powerPlantDataFallback),
@@ -143,6 +147,7 @@ export async function loadAllGameData(): Promise<void> {
       loadDataFile('sensors.json', sensorsDataFallback),
       loadDataFile('hangarMisc.json', hangarMiscDataFallback),
       loadDataFile('ordnance.json', ordnanceDataFallback),
+      loadDataFile('damageDiagram.json', damageDiagramDataFallback),
     ]);
 
     // Store in cache
@@ -167,6 +172,7 @@ export async function loadAllGameData(): Promise<void> {
     cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
     cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
     cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
+    cache.damageDiagram = damageDiagramData;
 
     // Load data into services
     loadSupportSystemsData(cache.supportSystems);
@@ -174,6 +180,8 @@ export async function loadAllGameData(): Promise<void> {
     loadCommandControlSystemsData({ commandSystems: cache.commandControlSystems });
     loadSensorsData({ sensors: cache.sensors });
     initializeHangarMiscData({ hangarMiscSystems: cache.hangarMiscSystems });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    loadDamageDiagramData(cache.damageDiagram as any);
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -288,6 +296,7 @@ export async function reloadAllGameData(): Promise<void> {
   cache.propulsionSystems = null;
   cache.warheads = null;
   cache.guidanceSystems = null;
+  cache.damageDiagram = null;
   await loadAllGameData();
 }
 

@@ -11,3 +11,4 @@ export * from './defense';
 export * from './commandControl';
 export * from './sensor';
 export * from './hangarMisc';
+export * from './summary';

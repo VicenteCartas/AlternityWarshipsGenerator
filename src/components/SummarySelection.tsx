@@ -1,0 +1,945 @@
+import { useState, useRef, useMemo, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Chip,
+  Tabs,
+  Tab,
+  TextField,
+  Button,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  Alert,
+  Divider,
+  Card,
+  CardMedia,
+} from '@mui/material';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import DeleteIcon from '@mui/icons-material/Delete';
+import WarningIcon from '@mui/icons-material/Warning';
+import type { Hull } from '../types/hull';
+import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
+import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
+import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
+import type { InstalledWeapon } from '../types/weapon';
+import type { InstalledDefenseSystem } from '../types/defense';
+import type { InstalledCommandControlSystem } from '../types/commandControl';
+import type { InstalledSensor } from '../types/sensor';
+import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
+import type { DamageZone } from '../types/damageDiagram';
+import type { ShipDescription } from '../types/summary';
+import type { ProgressLevel } from '../types/common';
+import { calculateArmorHullPoints, calculateArmorCost } from '../services/armorService';
+import { calculateTotalPowerPlantStats } from '../services/powerPlantService';
+import { calculateTotalEngineStats } from '../services/engineService';
+import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from '../services/ftlDriveService';
+import { calculateSupportSystemsStats } from '../services/supportSystemService';
+import { calculateWeaponStats } from '../services/weaponService';
+import { calculateOrdnanceStats } from '../services/ordnanceService';
+import { calculateDefenseStats } from '../services/defenseService';
+import { calculateCommandControlStats } from '../services/commandControlService';
+import { calculateSensorStats } from '../services/sensorService';
+import { calculateHangarMiscStats } from '../services/hangarMiscService';
+import { formatCost } from '../services/formatters';
+import { getLaunchSystemsData } from '../services/dataLoader';
+import { getZoneLimitForHull } from '../services/damageDiagramService';
+
+
+interface SummarySelectionProps {
+  hull: Hull | null;
+  warshipName: string;
+  shipDescription: ShipDescription;
+  onShipDescriptionChange: (description: ShipDescription) => void;
+  selectedArmorWeight: ArmorWeight | null;
+  selectedArmorType: ArmorType | null;
+  installedPowerPlants: InstalledPowerPlant[];
+  installedFuelTanks: InstalledFuelTank[];
+  installedEngines: InstalledEngine[];
+  installedEngineFuelTanks: InstalledEngineFuelTank[];
+  installedFTLDrive: InstalledFTLDrive | null;
+  installedFTLFuelTanks: InstalledFTLFuelTank[];
+  installedLifeSupport: InstalledLifeSupport[];
+  installedAccommodations: InstalledAccommodation[];
+  installedStoreSystems: InstalledStoreSystem[];
+  installedGravitySystems: InstalledGravitySystem[];
+  installedWeapons: InstalledWeapon[];
+  installedLaunchSystems: InstalledLaunchSystem[];
+  ordnanceDesigns: OrdnanceDesign[];
+  installedDefenses: InstalledDefenseSystem[];
+  installedCommandControl: InstalledCommandControlSystem[];
+  installedSensors: InstalledSensor[];
+  installedHangarMisc: InstalledHangarMiscSystem[];
+  damageDiagramZones: DamageZone[];
+  designProgressLevel: ProgressLevel;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`summary-tabpanel-${index}`}
+      aria-labelledby={`summary-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
+export function SummarySelection({
+  hull,
+  warshipName,
+  shipDescription,
+  onShipDescriptionChange,
+  selectedArmorWeight,
+  selectedArmorType,
+  installedPowerPlants,
+  installedFuelTanks,
+  installedEngines,
+  installedEngineFuelTanks,
+  installedFTLDrive,
+  installedFTLFuelTanks,
+  installedLifeSupport,
+  installedAccommodations,
+  installedStoreSystems,
+  installedGravitySystems,
+  installedWeapons,
+  installedLaunchSystems,
+  ordnanceDesigns,
+  installedDefenses,
+  installedCommandControl,
+  installedSensors,
+  installedHangarMisc,
+  damageDiagramZones,
+  designProgressLevel,
+}: SummarySelectionProps) {
+  const [tabValue, setTabValue] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  const handleLoreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onShipDescriptionChange({
+      ...shipDescription,
+      lore: event.target.value,
+    });
+  };
+
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      // Extract base64 data (remove the data:image/xxx;base64, prefix for storage)
+      const base64Data = result.split(',')[1];
+      onShipDescriptionChange({
+        ...shipDescription,
+        imageData: base64Data,
+        imageMimeType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input value so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [shipDescription, onShipDescriptionChange]);
+
+  const handleRemoveImage = () => {
+    onShipDescriptionChange({
+      ...shipDescription,
+      imageData: null,
+      imageMimeType: null,
+    });
+  };
+
+  // Calculate all stats
+  const stats = useMemo(() => {
+    if (!hull) {
+      return null;
+    }
+
+    const totalHP = hull.hullPoints + hull.bonusHullPoints;
+    
+    const armorHP = selectedArmorWeight ? calculateArmorHullPoints(hull, selectedArmorWeight) : 0;
+    const armorCost = selectedArmorWeight && selectedArmorType 
+      ? calculateArmorCost(hull, selectedArmorWeight, selectedArmorType) 
+      : 0;
+
+    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
+    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, hull);
+    const ftlStats = installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, hull) : null;
+    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, []);
+    const weaponStats = calculateWeaponStats(installedWeapons);
+    const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
+    const defenseStats = calculateDefenseStats(installedDefenses, hull.hullPoints);
+    const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
+    const sensorStats = calculateSensorStats(installedSensors);
+    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+
+    // Total HP used
+    const usedHP = armorHP + 
+      powerPlantStats.totalHullPoints + 
+      engineStats.totalHullPoints + 
+      (ftlStats?.totalHullPoints || 0) + 
+      ftlFuelStats.totalHullPoints +
+      supportStats.totalHullPoints + 
+      weaponStats.totalHullPoints + 
+      ordnanceStats.totalLauncherHullPoints +
+      defenseStats.totalHullPoints + 
+      ccStats.totalHullPoints + 
+      sensorStats.totalHullPoints + 
+      hangarMiscStats.totalHullPoints;
+
+    // Total power consumed
+    const totalPowerConsumed = engineStats.totalPowerRequired + 
+      (ftlStats?.totalPowerRequired || 0) + 
+      supportStats.totalPowerRequired + 
+      weaponStats.totalPowerRequired + 
+      ordnanceStats.totalLauncherPower +
+      defenseStats.totalPowerRequired + 
+      ccStats.totalPowerRequired + 
+      sensorStats.totalPowerRequired + 
+      hangarMiscStats.totalPowerRequired;
+
+    // Total cost
+    const totalCost = hull.cost + 
+      armorCost + 
+      powerPlantStats.totalCost + 
+      engineStats.totalCost + 
+      (ftlStats?.totalCost || 0) + 
+      ftlFuelStats.totalCost +
+      supportStats.totalCost + 
+      weaponStats.totalCost + 
+      ordnanceStats.totalLauncherCost +
+      defenseStats.totalCost + 
+      ccStats.totalCost + 
+      sensorStats.totalCost + 
+      hangarMiscStats.totalCost;
+
+    // Acceleration (single value, units depend on engine PL)
+    const totalAcceleration = engineStats.totalAcceleration;
+
+    return {
+      totalHP,
+      usedHP,
+      remainingHP: totalHP - usedHP,
+      powerGenerated: powerPlantStats.totalPowerGenerated,
+      powerConsumed: totalPowerConsumed,
+      powerBalance: powerPlantStats.totalPowerGenerated - totalPowerConsumed,
+      totalCost,
+      totalAcceleration,
+      armor: { hp: armorHP, cost: armorCost },
+      powerPlants: { hp: powerPlantStats.totalHullPoints, power: powerPlantStats.totalPowerGenerated, cost: powerPlantStats.totalCost },
+      engines: { hp: engineStats.totalHullPoints, power: engineStats.totalPowerRequired, cost: engineStats.totalCost },
+      ftl: ftlStats ? { hp: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints, power: ftlStats.totalPowerRequired, cost: ftlStats.totalCost + ftlFuelStats.totalCost } : null,
+      support: { hp: supportStats.totalHullPoints, power: supportStats.totalPowerRequired, cost: supportStats.totalCost },
+      weapons: { hp: weaponStats.totalHullPoints + ordnanceStats.totalLauncherHullPoints, power: weaponStats.totalPowerRequired + ordnanceStats.totalLauncherPower, cost: weaponStats.totalCost + ordnanceStats.totalLauncherCost },
+      defenses: { hp: defenseStats.totalHullPoints, power: defenseStats.totalPowerRequired, cost: defenseStats.totalCost },
+      commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
+      sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
+      hangarMisc: { hp: hangarMiscStats.totalHullPoints, power: hangarMiscStats.totalPowerRequired, cost: hangarMiscStats.totalCost },
+    };
+  }, [
+    hull,
+    selectedArmorWeight,
+    selectedArmorType,
+    installedPowerPlants,
+    installedFuelTanks,
+    installedEngines,
+    installedEngineFuelTanks,
+    installedFTLDrive,
+    installedFTLFuelTanks,
+    installedLifeSupport,
+    installedAccommodations,
+    installedStoreSystems,
+    installedGravitySystems,
+    installedWeapons,
+    installedLaunchSystems,
+    ordnanceDesigns,
+    installedDefenses,
+    installedCommandControl,
+    installedSensors,
+    installedHangarMisc,
+    designProgressLevel,
+  ]);
+
+  // Validation checks
+  const validationIssues = useMemo(() => {
+    const issues: { type: 'error' | 'warning'; message: string }[] = [];
+    
+    if (!hull) {
+      issues.push({ type: 'error', message: 'No hull selected' });
+      return issues;
+    }
+
+    if (stats) {
+      if (stats.remainingHP < 0) {
+        issues.push({ type: 'error', message: `Hull points exceeded by ${Math.abs(stats.remainingHP)} HP` });
+      }
+      if (installedPowerPlants.length === 0) {
+        issues.push({ type: 'warning', message: 'No power plants installed' });
+      }
+      if (installedEngines.length === 0) {
+        issues.push({ type: 'warning', message: 'No engines installed' });
+      }
+      if (installedCommandControl.length === 0) {
+        issues.push({ type: 'warning', message: 'No command & control systems installed' });
+      }
+      if (installedSensors.length === 0) {
+        issues.push({ type: 'warning', message: 'No sensors installed' });
+      }
+    }
+
+    // Check damage diagram
+    const zoneLimit = getZoneLimitForHull(hull.id);
+    const unassignedCount = damageDiagramZones.length === 0 ? 'all' : 
+      damageDiagramZones.every(z => z.systems.length === 0) ? 'all' : null;
+    if (unassignedCount === 'all') {
+      issues.push({ type: 'warning', message: 'No systems assigned to damage diagram' });
+    } else {
+      // Check for zones over limit
+      for (const zone of damageDiagramZones) {
+        if (zone.totalHullPoints > zone.maxHullPoints) {
+          issues.push({ type: 'warning', message: `Zone ${zone.code} exceeds HP limit (${zone.totalHullPoints}/${zoneLimit})` });
+          break; // Only show one zone warning
+        }
+      }
+    }
+
+    return issues;
+  }, [hull, stats, installedPowerPlants, installedEngines, installedCommandControl, installedSensors, damageDiagramZones]);
+
+  if (!hull) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          Please select a hull first to view the ship summary.
+        </Alert>
+      </Box>
+    );
+  }
+
+  const imageDataUrl = shipDescription.imageData && shipDescription.imageMimeType
+    ? `data:${shipDescription.imageMimeType};base64,${shipDescription.imageData}`
+    : null;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Validation alerts */}
+      {validationIssues.length > 0 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {validationIssues.map((issue, index) => (
+            <Alert 
+              key={index} 
+              severity={issue.type} 
+              icon={issue.type === 'error' ? <WarningIcon /> : undefined}
+            >
+              {issue.message}
+            </Alert>
+          ))}
+        </Box>
+      )}
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="summary tabs">
+          <Tab label="Description" id="summary-tab-0" aria-controls="summary-tabpanel-0" />
+          <Tab label="Systems" id="summary-tab-1" aria-controls="summary-tabpanel-1" />
+          <Tab label="Damage Zones" id="summary-tab-2" aria-controls="summary-tabpanel-2" />
+        </Tabs>
+      </Box>
+
+      {/* Description Tab */}
+      <TabPanel value={tabValue} index={0}>
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {/* Image upload section */}
+          <Box sx={{ minWidth: 300, maxWidth: 400 }}>
+            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+              Ship Image
+            </Typography>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            {imageDataUrl ? (
+              <Box>
+                <Card variant="outlined">
+                  <CardMedia
+                    component="img"
+                    image={imageDataUrl}
+                    alt={warshipName}
+                    sx={{ maxHeight: 300, objectFit: 'contain' }}
+                  />
+                </Card>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddPhotoAlternateIcon />}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Change
+                  </Button>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={handleRemoveImage}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<AddPhotoAlternateIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                sx={{ width: '100%', height: 150 }}
+              >
+                Upload Image
+              </Button>
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Max 5MB. JPG, PNG, or GIF.
+            </Typography>
+          </Box>
+
+          {/* Lore/Description section */}
+          <Box sx={{ flex: 1, minWidth: 300 }}>
+            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+              Ship Lore & Description
+            </Typography>
+            <TextField
+              multiline
+              rows={12}
+              fullWidth
+              placeholder="Write the history, purpose, and background of your warship..."
+              value={shipDescription.lore}
+              onChange={handleLoreChange}
+              variant="outlined"
+            />
+          </Box>
+        </Box>
+      </TabPanel>
+
+      {/* Systems Tab */}
+      <TabPanel value={tabValue} index={1}>
+        {stats && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Hull & Armor */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Hull & Armor
+              </Typography>
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ width: '40%' }}>{hull.name} ({hull.shipClass.charAt(0).toUpperCase() + hull.shipClass.slice(1)})</TableCell>
+                    <TableCell align="right" sx={{ width: '20%' }}>{hull.hullPoints + hull.bonusHullPoints} HP</TableCell>
+                    <TableCell align="right" sx={{ width: '20%' }}>—</TableCell>
+                    <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hull.cost)}</TableCell>
+                  </TableRow>
+                  {selectedArmorWeight && selectedArmorType && (
+                    <TableRow>
+                      <TableCell>{selectedArmorWeight.charAt(0).toUpperCase() + selectedArmorWeight.slice(1)} {selectedArmorType.name} Armor</TableCell>
+                      <TableCell align="right">{stats.armor.hp} HP</TableCell>
+                      <TableCell align="right">—</TableCell>
+                      <TableCell align="right">{formatCost(stats.armor.cost)}</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
+
+            {/* Power Plants */}
+            {installedPowerPlants.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Power Plants
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedPowerPlants.map((pp, idx) => (
+                      <TableRow key={pp.id}>
+                        <TableCell sx={{ width: '40%' }}>{pp.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{pp.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>+{pp.hullPoints * pp.type.powerPerHullPoint} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(pp.type.baseCost + pp.hullPoints * pp.type.costPerHullPoint)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedFuelTanks.map((ft, idx) => (
+                      <TableRow key={ft.id}>
+                        <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forPowerPlantType.name})</TableCell>
+                        <TableCell align="right">{ft.hullPoints} HP</TableCell>
+                        <TableCell align="right">—</TableCell>
+                        <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.powerPlants.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>+{stats.powerPlants.power} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.powerPlants.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Engines */}
+            {installedEngines.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Engines
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedEngines.map((eng, idx) => (
+                      <TableRow key={eng.id}>
+                        <TableCell sx={{ width: '40%' }}>{eng.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{eng.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>-{eng.hullPoints * eng.type.powerPerHullPoint} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(eng.type.baseCost + eng.hullPoints * eng.type.costPerHullPoint)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedEngineFuelTanks.map((ft, idx) => (
+                      <TableRow key={ft.id}>
+                        <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forEngineType.name})</TableCell>
+                        <TableCell align="right">{ft.hullPoints} HP</TableCell>
+                        <TableCell align="right">—</TableCell>
+                        <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.engines.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>-{stats.engines.power} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.engines.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* FTL Drive */}
+            {installedFTLDrive && stats.ftl && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  FTL Drive
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell sx={{ width: '40%' }}>{installedFTLDrive.type.name}</TableCell>
+                      <TableCell align="right" sx={{ width: '20%' }}>{installedFTLDrive.hullPoints} HP</TableCell>
+                      <TableCell align="right" sx={{ width: '20%' }}>-{installedFTLDrive.type.powerPerHullPoint * installedFTLDrive.hullPoints} PP</TableCell>
+                      <TableCell align="right" sx={{ width: '20%' }}>{formatCost(installedFTLDrive.type.baseCost + installedFTLDrive.hullPoints * installedFTLDrive.type.costPerHullPoint)}</TableCell>
+                    </TableRow>
+                    {installedFTLFuelTanks.map((ft, idx) => (
+                      <TableRow key={ft.id}>
+                        <TableCell sx={{ pl: 4 }}>↳ Fuel Tank</TableCell>
+                        <TableCell align="right">{ft.hullPoints} HP</TableCell>
+                        <TableCell align="right">—</TableCell>
+                        <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(installedFTLFuelTanks.length > 0) && (
+                      <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.ftl.hp} HP</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>-{stats.ftl.power} PP</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.ftl.cost)}</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Weapons */}
+            {(installedWeapons.length > 0 || installedLaunchSystems.length > 0) && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Weapons
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedWeapons.map((w, idx) => (
+                      <TableRow key={w.id}>
+                        <TableCell sx={{ width: '40%' }}>
+                          {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{w.arcs.join(', ')}]
+                        </TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{w.hullPoints * w.quantity} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{w.powerRequired * w.quantity === 0 ? '0' : `-${w.powerRequired * w.quantity}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(w.cost * w.quantity)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedLaunchSystems.map((ls) => {
+                      const launchSystemData = getLaunchSystemsData().find(l => l.id === ls.launchSystemType);
+                      return (
+                        <TableRow key={ls.id}>
+                          <TableCell>
+                            {ls.quantity}x {launchSystemData?.name || ls.launchSystemType}
+                          </TableCell>
+                          <TableCell align="right">{ls.hullPoints * ls.quantity} HP</TableCell>
+                          <TableCell align="right">{ls.powerRequired * ls.quantity === 0 ? '0' : `-${ls.powerRequired * ls.quantity}`} PP</TableCell>
+                          <TableCell align="right">{formatCost(ls.cost * ls.quantity)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.weapons.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.weapons.power === 0 ? '0' : `-${stats.weapons.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.weapons.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Defenses */}
+            {installedDefenses.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Defenses
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedDefenses.map((d, idx) => (
+                      <TableRow key={d.id}>
+                        <TableCell sx={{ width: '40%' }}>{d.quantity}x {d.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{d.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{d.powerRequired === 0 ? '0' : `-${d.powerRequired}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(d.cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.defenses.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.defenses.power === 0 ? '0' : `-${stats.defenses.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.defenses.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Sensors */}
+            {installedSensors.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Sensors
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedSensors.map((s, idx) => (
+                      <TableRow key={s.id}>
+                        <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{s.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{s.powerRequired === 0 ? '0' : `-${s.powerRequired}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(s.cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.sensors.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.sensors.power === 0 ? '0' : `-${stats.sensors.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.sensors.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Command & Control */}
+            {installedCommandControl.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Command & Control
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedCommandControl.map((cc, idx) => (
+                      <TableRow key={cc.id}>
+                        <TableCell sx={{ width: '40%' }}>{cc.quantity}x {cc.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{cc.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{cc.powerRequired === 0 ? '0' : `-${cc.powerRequired}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(cc.cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.commandControl.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.commandControl.power === 0 ? '0' : `-${stats.commandControl.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.commandControl.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Support Systems */}
+            {(installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0 || installedGravitySystems.length > 0) && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Support Systems
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedLifeSupport.map((ls, idx) => (
+                      <TableRow key={ls.id}>
+                        <TableCell sx={{ width: '40%' }}>{ls.quantity}x {ls.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{ls.type.hullPoints * ls.quantity} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{ls.type.powerRequired * ls.quantity === 0 ? '0' : `-${ls.type.powerRequired * ls.quantity}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(ls.type.cost * ls.quantity)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedAccommodations.map((acc, idx) => (
+                      <TableRow key={acc.id}>
+                        <TableCell>{acc.quantity}x {acc.type.name}</TableCell>
+                        <TableCell align="right">{acc.type.hullPoints * acc.quantity} HP</TableCell>
+                        <TableCell align="right">{acc.type.powerRequired * acc.quantity === 0 ? '0' : `-${acc.type.powerRequired * acc.quantity}`} PP</TableCell>
+                        <TableCell align="right">{formatCost(acc.type.cost * acc.quantity)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedStoreSystems.map((ss, idx) => (
+                      <TableRow key={ss.id}>
+                        <TableCell>{ss.quantity}x {ss.type.name}</TableCell>
+                        <TableCell align="right">{ss.type.hullPoints * ss.quantity} HP</TableCell>
+                        <TableCell align="right">{ss.type.powerRequired * ss.quantity === 0 ? '0' : `-${ss.type.powerRequired * ss.quantity}`} PP</TableCell>
+                        <TableCell align="right">{formatCost(ss.type.cost * ss.quantity)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {installedGravitySystems.map((gs, idx) => (
+                      <TableRow key={gs.id}>
+                        <TableCell>{gs.type.name}</TableCell>
+                        <TableCell align="right">{gs.hullPoints} HP</TableCell>
+                        <TableCell align="right">{gs.type.powerRequired === 0 ? '0' : `-${gs.type.powerRequired}`} PP</TableCell>
+                        <TableCell align="right">{formatCost(gs.cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.support.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.support.power === 0 ? '0' : `-${stats.support.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.support.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Hangars & Misc */}
+            {installedHangarMisc.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Hangars & Miscellaneous
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {installedHangarMisc.map((hm, idx) => (
+                      <TableRow key={hm.id}>
+                        <TableCell sx={{ width: '40%' }}>{hm.quantity}x {hm.type.name}</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{hm.hullPoints} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{hm.powerRequired === 0 ? '0' : `-${hm.powerRequired}`} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hm.cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.hangarMisc.hp} HP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.hangarMisc.power === 0 ? '0' : `-${stats.hangarMisc.power}`} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.hangarMisc.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Totals */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Totals
+              </Typography>
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', width: '40%' }}>Hull Points</TableCell>
+                    <TableCell 
+                      align="right"
+                      colSpan={3}
+                      sx={{ color: stats.remainingHP >= 0 ? 'success.main' : 'error.main' }}
+                    >
+                      {stats.usedHP} / {stats.totalHP}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Power</TableCell>
+                    <TableCell 
+                      align="right"
+                      colSpan={3}
+                      sx={{ color: stats.powerBalance >= 0 ? 'success.main' : 'warning.main' }}
+                    >
+                      {stats.powerConsumed} / {stats.powerGenerated}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
+                    <TableCell align="right" colSpan={3}>{formatCost(stats.totalCost)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </Paper>
+          </Box>
+        )}
+      </TabPanel>
+
+      {/* Damage Zones Tab */}
+      <TabPanel value={tabValue} index={2}>
+        <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} selectedArmorWeight={selectedArmorWeight} selectedArmorType={selectedArmorType} />
+      </TabPanel>
+    </Box>
+  );
+}
+
+// Sub-component for damage zones overview
+interface DamageZonesOverviewProps {
+  zones: DamageZone[];
+  hull: Hull;
+  warshipName: string;
+  selectedArmorWeight: ArmorWeight | null;
+  selectedArmorType: ArmorType | null;
+}
+
+function DamageZonesOverview({ zones, hull, warshipName, selectedArmorWeight, selectedArmorType }: DamageZonesOverviewProps) {
+  const zoneLimit = getZoneLimitForHull(hull.id);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Ship Defense Stats */}
+      <Paper sx={{ p: 2 }}>
+        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+          Ship Defense
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          <Chip label={`Toughness: ${hull.toughness}`} size="small" variant="outlined" />
+          <Chip label={`Damage Track: S:${hull.damageTrack.stun} W:${hull.damageTrack.wound} M:${hull.damageTrack.mortal} C:${hull.damageTrack.critical}`} size="small" variant="outlined" />
+          {selectedArmorWeight && selectedArmorType && (
+            <>
+              <Chip label={`Armor: ${selectedArmorWeight.charAt(0).toUpperCase() + selectedArmorWeight.slice(1)} ${selectedArmorType.name}`} size="small" variant="outlined" color="primary" />
+              <Chip label={`LI: ${selectedArmorType.protectionLI}`} size="small" variant="outlined" />
+              <Chip label={`HI: ${selectedArmorType.protectionHI}`} size="small" variant="outlined" />
+              <Chip label={`En: ${selectedArmorType.protectionEn}`} size="small" variant="outlined" />
+            </>
+          )}
+          {!selectedArmorWeight && (
+            <Chip label="No Armor" size="small" variant="outlined" color="warning" />
+          )}
+        </Box>
+      </Paper>
+      
+      {zones.length === 0 ? (
+        <Alert severity="info">
+          No damage zones configured. Go to the Zones step to assign systems to zones.
+        </Alert>
+      ) : (
+        <>
+          <Typography variant="body2" color="text.secondary">
+            The {warshipName || hull.name} has {zones.length} damage zones. Each zone can hold up to {zoneLimit} HP worth of systems.
+            When a ship takes damage, systems in the hit zone are damaged from surface (weapons/defenses) to core (command/power).
+          </Typography>
+      
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {zones.map((zone) => {
+              const isOverLimit = zone.totalHullPoints > zone.maxHullPoints;
+              const isEmpty = zone.systems.length === 0;
+          
+              return (
+                <Paper 
+                  key={zone.code} 
+                  sx={{ 
+                    p: 2, 
+                    width: 300,
+                    height: 250,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderColor: isOverLimit ? 'error.main' : isEmpty ? 'grey.400' : 'success.main',
+                    borderWidth: 2,
+                    borderStyle: 'solid',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Zone {zone.code}
+                    </Typography>
+                    <Chip 
+                      label={`${zone.totalHullPoints}/${zone.maxHullPoints}`} 
+                      size="small"
+                      color={isOverLimit ? 'error' : 'default'}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ flex: 1, overflow: 'auto' }}>
+                    {zone.systems.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        No systems assigned
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {zone.systems.map((sys, idx) => (
+                          <Typography key={sys.id} variant="body2" sx={{ fontSize: '0.85rem' }}>
+                            {idx + 1}. {sys.name} ({sys.hullPoints} HP)
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Box>
+        </>
+      )}
+    </Box>
+  );
+}

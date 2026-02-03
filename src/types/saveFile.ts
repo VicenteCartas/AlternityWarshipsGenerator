@@ -1,4 +1,5 @@
 import type { ProgressLevel, TechTrack } from './common';
+import type { ZoneCode, AttackDirection } from './damageDiagram';
 
 /**
  * Save file format for Alternity Warships
@@ -218,6 +219,65 @@ export interface SavedLaunchSystem {
   loadout: SavedLoadedOrdnance[];
 }
 
+// ============== Damage Diagram ==============
+
+/**
+ * A system reference in a damage zone
+ */
+export interface SavedZoneSystemRef {
+  /** Reference ID */
+  id: string;
+  /** System type category */
+  systemType: string;
+  /** Display name */
+  name: string;
+  /** Hull points in this zone */
+  hullPoints: number;
+  /** Original installed system ID */
+  installedSystemId: string;
+  /** Firepower order for weapons */
+  firepowerOrder?: number;
+}
+
+/**
+ * A damage zone in save file
+ */
+export interface SavedDamageZone {
+  /** Zone code */
+  code: ZoneCode;
+  /** Systems in this zone */
+  systems: SavedZoneSystemRef[];
+  /** Total HP in zone */
+  totalHullPoints: number;
+  /** Max HP for zone */
+  maxHullPoints: number;
+}
+
+/**
+ * Hit location entry in save file
+ */
+export interface SavedHitLocationEntry {
+  minRoll: number;
+  maxRoll: number;
+  zone: ZoneCode;
+}
+
+/**
+ * Hit location column in save file
+ */
+export interface SavedHitLocationColumn {
+  direction: AttackDirection;
+  entries: SavedHitLocationEntry[];
+}
+
+/**
+ * Hit location chart in save file
+ */
+export interface SavedHitLocationChart {
+  hitDie: 6 | 8 | 12 | 20;
+  columns: SavedHitLocationColumn[];
+}
+
 /**
  * The complete warship save file structure
  */
@@ -233,6 +293,15 @@ export interface WarshipSaveFile {
   
   /** ISO timestamp when the file was last modified */
   modifiedAt: string;
+  
+  /** Ship lore/description text */
+  lore?: string;
+  
+  /** Ship image (base64 encoded) */
+  imageData?: string | null;
+  
+  /** Ship image MIME type */
+  imageMimeType?: string | null;
   
   /** Hull configuration */
   hull: {
@@ -302,6 +371,12 @@ export interface WarshipSaveFile {
   
   /** Installed launch systems */
   launchSystems: SavedLaunchSystem[];
+  
+  /** Damage diagram zones */
+  damageDiagramZones: SavedDamageZone[];
+  
+  /** Hit location chart */
+  hitLocationChart: SavedHitLocationChart | null;
   
   /** Installed systems (future) */
   systems: unknown[];

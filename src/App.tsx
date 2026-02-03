@@ -44,6 +44,8 @@ import { DefenseSelection } from './components/DefenseSelection';
 import { CommandControlSelection } from './components/CommandControlSelection';
 import { SensorSelection } from './components/SensorSelection';
 import { HangarMiscSelection } from './components/HangarMiscSelection';
+import { DamageDiagramSelection } from './components/DamageDiagramSelection';
+import { SummarySelection } from './components/SummarySelection';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -57,6 +59,8 @@ import type { InstalledSensor } from './types/sensor';
 import type { InstalledHangarMiscSystem } from './types/hangarMisc';
 import type { OrdnanceDesign, InstalledLaunchSystem } from './types/ordnance';
 import type { ProgressLevel, TechTrack } from './types/common';
+import type { DamageZone, HitLocationChart } from './types/damageDiagram';
+import type { ShipDescription } from './types/summary';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
 import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
@@ -95,6 +99,8 @@ const steps = [
   { label: 'Sensors', required: true },  // Moved before C4 so sensor controls can reference sensors
   { label: 'C4', required: true },       // Command & Control now comes after Sensors
   { label: 'Misc', required: false },
+  { label: 'Zones', required: true },   // Damage Diagram - all systems must be assigned
+  { label: 'Summary', required: false }, // Final summary
 ];
 
 // Progress level display names
@@ -128,6 +134,18 @@ function App() {
   const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
   const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
   const [installedHangarMisc, setInstalledHangarMisc] = useState<InstalledHangarMiscSystem[]>([]);
+  
+  // Damage diagram state
+  const [damageDiagramZones, setDamageDiagramZones] = useState<DamageZone[]>([]);
+  const [hitLocationChart, setHitLocationChart] = useState<HitLocationChart | null>(null);
+  
+  // Ship description (lore and image)
+  const [shipDescription, setShipDescription] = useState<ShipDescription>({
+    lore: '',
+    imageData: null,
+    imageMimeType: null,
+  });
+  
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
@@ -203,6 +221,9 @@ function App() {
     setInstalledCommandControl([]);
     setInstalledSensors([]);
     setInstalledHangarMisc([]);
+    setDamageDiagramZones([]);
+    setHitLocationChart(null);
+    setShipDescription({ lore: '', imageData: null, imageMimeType: null });
     setWarshipName('New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
@@ -263,6 +284,9 @@ function App() {
       setInstalledWeapons(loadResult.state.weapons || []);
       setOrdnanceDesigns(loadResult.state.ordnanceDesigns || []);
       setInstalledLaunchSystems(loadResult.state.launchSystems || []);
+      setDamageDiagramZones(loadResult.state.damageDiagramZones || []);
+      setHitLocationChart(loadResult.state.hitLocationChart || null);
+      setShipDescription(loadResult.state.shipDescription || { lore: '', imageData: null, imageMimeType: null });
       setWarshipName(loadResult.state.name);
       setDesignProgressLevel(loadResult.state.designProgressLevel);
       setDesignTechTracks(loadResult.state.designTechTracks);
@@ -286,6 +310,7 @@ function App() {
 
     const state: WarshipState = {
       name: warshipName,
+      shipDescription,
       hull: selectedHull,
       armorWeight: selectedArmorWeight,
       armorType: selectedArmorType,
@@ -306,6 +331,8 @@ function App() {
       weapons: installedWeapons,
       ordnanceDesigns: ordnanceDesigns,
       launchSystems: installedLaunchSystems,
+      damageDiagramZones: damageDiagramZones,
+      hitLocationChart: hitLocationChart,
       designProgressLevel,
       designTechTracks,
     };
@@ -327,7 +354,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, warshipName, designProgressLevel, designTechTracks]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -343,6 +370,7 @@ function App() {
 
     const state: WarshipState = {
       name: warshipName,
+      shipDescription,
       hull: selectedHull,
       armorWeight: selectedArmorWeight,
       armorType: selectedArmorType,
@@ -363,6 +391,8 @@ function App() {
       weapons: installedWeapons,
       ordnanceDesigns: ordnanceDesigns,
       launchSystems: installedLaunchSystems,
+      damageDiagramZones: damageDiagramZones,
+      hitLocationChart: hitLocationChart,
       designProgressLevel,
       designTechTracks,
     };
@@ -379,7 +409,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, warshipName, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -998,6 +1028,69 @@ function App() {
             onSystemsChange={handleHangarMiscChange}
           />
         );
+      case 11:
+        // Damage Diagram step
+        if (!selectedHull) {
+          return (
+            <Typography color="text.secondary">
+              Please select a hull first.
+            </Typography>
+          );
+        }
+        return (
+          <DamageDiagramSelection
+            hull={selectedHull}
+            installedPowerPlants={installedPowerPlants}
+            installedFuelTanks={installedFuelTanks}
+            installedEngines={installedEngines}
+            installedEngineFuelTanks={installedEngineFuelTanks}
+            installedFTLDrive={installedFTLDrive}
+            installedFTLFuelTanks={installedFTLFuelTanks}
+            installedLifeSupport={installedLifeSupport}
+            installedAccommodations={installedAccommodations}
+            installedStoreSystems={installedStoreSystems}
+            installedGravitySystems={installedGravitySystems}
+            installedWeapons={installedWeapons}
+            installedLaunchSystems={installedLaunchSystems}
+            installedDefenses={installedDefenses}
+            installedCommandControl={installedCommandControl}
+            installedSensors={installedSensors}
+            installedHangarMisc={installedHangarMisc}
+            zones={damageDiagramZones}
+            onZonesChange={setDamageDiagramZones}
+          />
+        );
+      case 12:
+        // Summary step
+        return (
+          <SummarySelection
+            hull={selectedHull}
+            warshipName={warshipName}
+            shipDescription={shipDescription}
+            onShipDescriptionChange={setShipDescription}
+            selectedArmorWeight={selectedArmorWeight}
+            selectedArmorType={selectedArmorType}
+            installedPowerPlants={installedPowerPlants}
+            installedFuelTanks={installedFuelTanks}
+            installedEngines={installedEngines}
+            installedEngineFuelTanks={installedEngineFuelTanks}
+            installedFTLDrive={installedFTLDrive}
+            installedFTLFuelTanks={installedFTLFuelTanks}
+            installedLifeSupport={installedLifeSupport}
+            installedAccommodations={installedAccommodations}
+            installedStoreSystems={installedStoreSystems}
+            installedGravitySystems={installedGravitySystems}
+            installedWeapons={installedWeapons}
+            installedLaunchSystems={installedLaunchSystems}
+            ordnanceDesigns={ordnanceDesigns}
+            installedDefenses={installedDefenses}
+            installedCommandControl={installedCommandControl}
+            installedSensors={installedSensors}
+            installedHangarMisc={installedHangarMisc}
+            damageDiagramZones={damageDiagramZones}
+            designProgressLevel={designProgressLevel}
+          />
+        );
       default:
         return (
           <Typography color="text.secondary">
@@ -1153,6 +1246,11 @@ function App() {
           <Box sx={{ flexGrow: 1 }} />
           {selectedHull && (
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+              <Chip
+                label={selectedHull.name}
+                variant="outlined"
+                size="small"
+              />
               <Chip
                 label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
                 color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
@@ -1414,6 +1512,22 @@ function App() {
                 case 8: return installedSensors.length > 0; // Sensors (required) - now before C4
                 case 9: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
                 case 10: return installedHangarMisc.length > 0; // Misc (optional)
+                case 11: {
+                  // Damage Diagram (required) - all systems must be assigned to zones
+                  if (damageDiagramZones.length === 0) return false;
+                  const totalAssigned = damageDiagramZones.reduce((sum, z) => sum + z.systems.length, 0);
+                  // Count total systems that should be assigned
+                  const totalSystems = installedPowerPlants.length + installedFuelTanks.length +
+                    installedEngines.length + installedEngineFuelTanks.length +
+                    (installedFTLDrive ? 1 : 0) + installedFTLFuelTanks.length +
+                    installedLifeSupport.length + installedAccommodations.length +
+                    installedStoreSystems.length + installedGravitySystems.length +
+                    installedWeapons.length + installedLaunchSystems.length +
+                    installedDefenses.length + installedCommandControl.length +
+                    installedSensors.length + installedHangarMisc.length;
+                  return totalAssigned >= totalSystems && totalSystems > 0;
+                }
+                case 12: return true; // Summary (optional - always "complete")
                 default: return false;
               }
             })();

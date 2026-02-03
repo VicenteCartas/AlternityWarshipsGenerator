@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -12,6 +12,8 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
 import type { ProgressLevel, TechTrack } from '../types/common';
+import type { DamageZone, HitLocationChart, SystemDamageCategory, ZoneCode } from '../types/damageDiagram';
+import type { ShipDescription } from '../types/summary';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
 import { getAllArmorTypes } from './armorService';
@@ -31,6 +33,7 @@ import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems
  */
 export interface WarshipState {
   name: string;
+  shipDescription: ShipDescription;
   hull: Hull | null;
   armorWeight: ArmorWeight | null;
   armorType: ArmorType | null;
@@ -51,6 +54,8 @@ export interface WarshipState {
   weapons: InstalledWeapon[];
   ordnanceDesigns: OrdnanceDesign[];
   launchSystems: InstalledLaunchSystem[];
+  damageDiagramZones: DamageZone[];
+  hitLocationChart: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
 }
@@ -76,6 +81,9 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     name: state.name,
     createdAt: now,
     modifiedAt: now,
+    lore: state.shipDescription.lore || undefined,
+    imageData: state.shipDescription.imageData,
+    imageMimeType: state.shipDescription.imageMimeType,
     hull: state.hull ? { id: state.hull.id } : null,
     armor: state.armorType ? { id: state.armorType.id } : null,
     designProgressLevel: state.designProgressLevel,
@@ -178,6 +186,30 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       extraHp: ls.extraHp,
       loadout: ls.loadout || [],
     })),
+    damageDiagramZones: (state.damageDiagramZones || []).map((zone): SavedDamageZone => ({
+      code: zone.code,
+      systems: zone.systems.map((sys) => ({
+        id: sys.id,
+        systemType: sys.systemType,
+        name: sys.name,
+        hullPoints: sys.hullPoints,
+        installedSystemId: sys.installedSystemId,
+        firepowerOrder: sys.firepowerOrder,
+      })),
+      totalHullPoints: zone.totalHullPoints,
+      maxHullPoints: zone.maxHullPoints,
+    })),
+    hitLocationChart: state.hitLocationChart ? {
+      hitDie: state.hitLocationChart.hitDie,
+      columns: state.hitLocationChart.columns.map((col) => ({
+        direction: col.direction,
+        entries: col.entries.map((e) => ({
+          minRoll: e.minRoll,
+          maxRoll: e.maxRoll,
+          zone: e.zone,
+        })),
+      })),
+    } as SavedHitLocationChart : null,
     systems: [],
   };
 }
@@ -701,6 +733,40 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load damage diagram zones
+  const damageDiagramZones: DamageZone[] = [];
+  for (const savedZone of (saveFile.damageDiagramZones || [])) {
+    damageDiagramZones.push({
+      code: savedZone.code as ZoneCode,
+      systems: savedZone.systems.map((sys) => ({
+        id: sys.id,
+        systemType: sys.systemType as SystemDamageCategory,
+        name: sys.name,
+        hullPoints: sys.hullPoints,
+        installedSystemId: sys.installedSystemId,
+        firepowerOrder: sys.firepowerOrder,
+      })),
+      totalHullPoints: savedZone.totalHullPoints,
+      maxHullPoints: savedZone.maxHullPoints,
+    });
+  }
+  
+  // Load hit location chart
+  let hitLocationChart: HitLocationChart | null = null;
+  if (saveFile.hitLocationChart) {
+    hitLocationChart = {
+      hitDie: saveFile.hitLocationChart.hitDie,
+      columns: saveFile.hitLocationChart.columns.map((col) => ({
+        direction: col.direction,
+        entries: col.entries.map((e) => ({
+          minRoll: e.minRoll,
+          maxRoll: e.maxRoll,
+          zone: e.zone as ZoneCode,
+        })),
+      })),
+    };
+  }
+  
   // If we have critical errors (no hull found when one was specified), fail
   if (errors.length > 0) {
     return { success: false, errors, warnings };
@@ -719,6 +785,11 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     success: true,
     state: {
       name: saveFile.name || 'Unnamed Warship',
+      shipDescription: {
+        lore: saveFile.lore || '',
+        imageData: saveFile.imageData ?? null,
+        imageMimeType: saveFile.imageMimeType ?? null,
+      },
       hull,
       armorWeight,
       armorType,
@@ -739,6 +810,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       weapons,
       ordnanceDesigns,
       launchSystems: launchSystemsList,
+      damageDiagramZones,
+      hitLocationChart,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: saveFile.designTechTracks || [],
     },
