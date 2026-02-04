@@ -11,8 +11,9 @@ import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledLaunchSystem } from '../types/ordnance';
-import type { DamageZone } from '../types/damageDiagram';
+import type { DamageZone, ZoneCode, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
+import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
 
 interface ShipData {
   warshipName: string;
@@ -254,6 +255,63 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
     
     const zoneRows = Math.ceil(numZones / 6);
     y += zoneRows * (zoneHeight + 3) + 5;
+
+    // ---- HIT LOCATION TABLE ----
+    checkNewPage(35);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('HIT LOCATION TABLE', margin, y);
+    y += 4;
+
+    // Generate hit location chart
+    const zoneConfig = getZoneConfigForHull(hull);
+    const hitChart: HitLocationChart = createDefaultHitLocationChart(
+      zoneConfig.zones,
+      zoneConfig.hitDie
+    );
+
+    // Table header
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'bold');
+    const hitTableColWidth = contentWidth / 5;
+    pdf.text(`d${hitChart.hitDie}`, margin, y);
+    pdf.text('Forward', margin + hitTableColWidth, y);
+    pdf.text('Port', margin + hitTableColWidth * 2, y);
+    pdf.text('Starboard', margin + hitTableColWidth * 3, y);
+    pdf.text('Aft', margin + hitTableColWidth * 4, y);
+    y += 1;
+    pdf.setDrawColor(100);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 3;
+
+    // Build roll ranges per zone per direction
+    const directionMap: Record<string, { minRoll: number; maxRoll: number; zone: ZoneCode }[]> = {};
+    for (const col of hitChart.columns) {
+      directionMap[col.direction] = col.entries;
+    }
+
+    // Get all unique roll ranges
+    const forwardEntries = directionMap['forward'] || [];
+    pdf.setFont('helvetica', 'normal');
+    for (const entry of forwardEntries) {
+      const rollText = entry.minRoll === entry.maxRoll 
+        ? `${entry.minRoll}` 
+        : `${entry.minRoll}-${entry.maxRoll}`;
+      pdf.text(rollText, margin, y);
+
+      // Find corresponding zone for each direction at this roll range
+      const directions = ['forward', 'port', 'starboard', 'aft'];
+      for (let d = 0; d < directions.length; d++) {
+        const entries = directionMap[directions[d]] || [];
+        // Find entry that covers minRoll
+        const matchEntry = entries.find(e => e.minRoll === entry.minRoll);
+        if (matchEntry) {
+          pdf.text(matchEntry.zone, margin + hitTableColWidth * (d + 1), y);
+        }
+      }
+      y += 3.5;
+    }
+    y += 3;
   }
 
   // ============ COMBAT SECTION ============
@@ -417,55 +475,151 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
     }
   }
 
-  // Draw fire arc diagram
-  const diagramSize = 50;
-  const diagramCenterX = margin + diagramSize / 2 + 8;
+  // Draw fire arc diagram with two concentric circles
+  const diagramSize = 55;
+  const diagramCenterX = margin + diagramSize / 2 + 10;
   const diagramCenterY = y + diagramSize / 2;
-  const arcRadius = diagramSize / 2 - 3;
+  const outerRadius = diagramSize / 2 - 2;  // Standard arc ring
+  const innerRadius = outerRadius * 0.45;    // Zero arc ring (inner)
+  const hasZeroArcs = Object.values(zeroArcWeapons).some(v => v > 0);
 
-  // Draw circle
-  pdf.setDrawColor(60);
-  pdf.setLineWidth(0.4);
-  pdf.circle(diagramCenterX, diagramCenterY, arcRadius);
+  // Define arc colors
+  const standardArcFill = [200, 200, 200];  // Light gray for unselected
+  const standardArcActive = [100, 149, 237]; // Cornflower blue for selected
+  const zeroArcFill = [220, 220, 220];       // Lighter gray for zero unselected  
+  const zeroArcActive = [186, 85, 211];      // Medium orchid for zero selected
 
-  // Draw arc dividers and labels
-  const drawArcSector = (startAngle: number, label: string, count: number, zeroCount: number) => {
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = ((startAngle + 90) * Math.PI) / 180;
-    const midRad = ((startAngle + 45) * Math.PI) / 180;
+  // Helper to draw a pie sector
+  const drawPieSector = (
+    centerX: number, 
+    centerY: number, 
+    innerR: number, 
+    outerR: number, 
+    startAngleDeg: number, 
+    endAngleDeg: number,
+    fillColor: number[],
+    stroke: boolean = true
+  ) => {
+    const startRad = (startAngleDeg * Math.PI) / 180;
+    const endRad = (endAngleDeg * Math.PI) / 180;
     
-    // Draw sector lines
-    const x1 = diagramCenterX + arcRadius * Math.cos(startRad);
-    const y1 = diagramCenterY + arcRadius * Math.sin(startRad);
-    const x2 = diagramCenterX + arcRadius * Math.cos(endRad);
-    const y2 = diagramCenterY + arcRadius * Math.sin(endRad);
+    // Calculate corner points
+    const x1 = centerX + outerR * Math.cos(startRad);
+    const y1 = centerY + outerR * Math.sin(startRad);
+    const x2 = centerX + outerR * Math.cos(endRad);
+    const y2 = centerY + outerR * Math.sin(endRad);
+    const x3 = centerX + innerR * Math.cos(endRad);
+    const y3 = centerY + innerR * Math.sin(endRad);
+    const x4 = centerX + innerR * Math.cos(startRad);
+    const y4 = centerY + innerR * Math.sin(startRad);
     
-    pdf.line(diagramCenterX, diagramCenterY, x1, y1);
-    pdf.line(diagramCenterX, diagramCenterY, x2, y2);
+    // Use lines and arcs to draw the sector shape
+    pdf.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+    pdf.setDrawColor(80);
+    pdf.setLineWidth(0.3);
     
-    // Label position
-    const labelRadius = arcRadius * 0.6;
-    const labelX = diagramCenterX + labelRadius * Math.cos(midRad);
-    const labelY = diagramCenterY + labelRadius * Math.sin(midRad);
+    // Draw as lines for simplicity (jsPDF doesn't have easy arc filling)
+    // We'll approximate with triangular segments
+    const segments = 8;
+    const angleStep = (endAngleDeg - startAngleDeg) / segments;
     
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(label, labelX, labelY - 1, { align: 'center' });
-    pdf.setFont('helvetica', 'normal');
-    if (count > 0 || zeroCount > 0) {
-      pdf.text(`${count}`, labelX, labelY + 3, { align: 'center' });
-      if (zeroCount > 0) {
-        pdf.setFontSize(5);
-        pdf.text(`(Z:${zeroCount})`, labelX, labelY + 6, { align: 'center' });
+    // Create path points
+    const points: [number, number][] = [];
+    
+    // Outer arc points
+    for (let i = 0; i <= segments; i++) {
+      const angle = ((startAngleDeg + i * angleStep) * Math.PI) / 180;
+      points.push([centerX + outerR * Math.cos(angle), centerY + outerR * Math.sin(angle)]);
+    }
+    
+    // Inner arc points (reverse)
+    for (let i = segments; i >= 0; i--) {
+      const angle = ((startAngleDeg + i * angleStep) * Math.PI) / 180;
+      points.push([centerX + innerR * Math.cos(angle), centerY + innerR * Math.sin(angle)]);
+    }
+    
+    // Draw filled polygon
+    if (points.length > 2) {
+      // jsPDF doesn't have polygon fill, so we draw triangles from center
+      const midX = (x1 + x2 + x3 + x4) / 4;
+      const midY = (y1 + y2 + y3 + y4) / 4;
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        pdf.triangle(
+          midX, midY,
+          points[i][0], points[i][1],
+          points[i + 1][0], points[i + 1][1],
+          'F'
+        );
       }
+    }
+    
+    // Draw outline
+    if (stroke) {
+      pdf.line(x1, y1, x2, y2);
+      pdf.line(x3, y3, x4, y4);
+      pdf.line(x1, y1, x4, y4);
+      pdf.line(x2, y2, x3, y3);
     }
   };
 
-  // Forward at top (-135 to -45 degrees)
-  drawArcSector(-135, 'FWD', arcWeapons.forward, zeroArcWeapons.forward);
-  drawArcSector(-45, 'STBD', arcWeapons.starboard, zeroArcWeapons.starboard);
-  drawArcSector(45, 'AFT', arcWeapons.aft, zeroArcWeapons.aft);
-  drawArcSector(135, 'PORT', arcWeapons.port, zeroArcWeapons.port);
+  // Draw standard arc sectors (outer ring)
+  const arcs = [
+    { arc: 'forward', label: 'FWD', startAngle: -135 },
+    { arc: 'starboard', label: 'STBD', startAngle: -45 },
+    { arc: 'aft', label: 'AFT', startAngle: 45 },
+    { arc: 'port', label: 'PORT', startAngle: 135 },
+  ];
+
+  for (const { arc, label, startAngle } of arcs) {
+    const count = arcWeapons[arc];
+    const fillColor = count > 0 ? standardArcActive : standardArcFill;
+    const innerR = hasZeroArcs ? innerRadius : 3;
+    drawPieSector(diagramCenterX, diagramCenterY, innerR, outerRadius, startAngle, startAngle + 90, fillColor);
+    
+    // Label in outer ring
+    const midAngle = ((startAngle + 45) * Math.PI) / 180;
+    const labelRadius = (innerR + outerRadius) / 2;
+    const labelX = diagramCenterX + labelRadius * Math.cos(midAngle);
+    const labelY = diagramCenterY + labelRadius * Math.sin(midAngle);
+    
+    pdf.setFontSize(6);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(count > 0 ? 255 : 60);
+    pdf.text(label, labelX, labelY - 1, { align: 'center' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.text(`${count}`, labelX, labelY + 3, { align: 'center' });
+  }
+
+  // Draw zero arc sectors (inner ring) if any zero arcs exist
+  if (hasZeroArcs) {
+    const centerDotRadius = 3;
+    for (const { arc, startAngle } of arcs) {
+      const zeroCount = zeroArcWeapons[arc];
+      const fillColor = zeroCount > 0 ? zeroArcActive : zeroArcFill;
+      drawPieSector(diagramCenterX, diagramCenterY, centerDotRadius, innerRadius, startAngle, startAngle + 90, fillColor);
+      
+      // Number in zero ring
+      if (zeroCount > 0) {
+        const midAngle = ((startAngle + 45) * Math.PI) / 180;
+        const labelRadius = (centerDotRadius + innerRadius) / 2;
+        const labelX = diagramCenterX + labelRadius * Math.cos(midAngle);
+        const labelY = diagramCenterY + labelRadius * Math.sin(midAngle);
+        
+        pdf.setFontSize(6);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(255);
+        pdf.text(`${zeroCount}`, labelX, labelY + 1, { align: 'center' });
+      }
+    }
+    
+    // Center dot
+    pdf.setFillColor(255, 255, 255);
+    pdf.circle(diagramCenterX, diagramCenterY, centerDotRadius, 'F');
+  }
+
+  pdf.setTextColor(0);  // Reset text color
 
   // Ship triangle indicator
   pdf.setFillColor(50, 50, 50);
@@ -481,8 +635,17 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
   const legendX = diagramCenterX + diagramSize / 2 + 12;
   pdf.setFontSize(6);
   pdf.setFont('helvetica', 'normal');
-  pdf.text('# = standard range weapons', legendX, diagramCenterY - 8);
-  pdf.text('(Z:#) = zero-range weapons', legendX, diagramCenterY - 3);
+  
+  // Standard arc legend
+  pdf.setFillColor(standardArcActive[0], standardArcActive[1], standardArcActive[2]);
+  pdf.rect(legendX, diagramCenterY - 12, 6, 3, 'F');
+  pdf.text('Standard arc (outer ring)', legendX + 8, diagramCenterY - 10);
+  
+  // Zero arc legend  
+  pdf.setFillColor(zeroArcActive[0], zeroArcActive[1], zeroArcActive[2]);
+  pdf.rect(legendX, diagramCenterY - 6, 6, 3, 'F');
+  pdf.text('Zero-range arc (inner ring)', legendX + 8, diagramCenterY - 4);
+  
   pdf.text('FWD = Forward', legendX, diagramCenterY + 4);
   pdf.text('AFT = Aft', legendX, diagramCenterY + 9);
   pdf.text('STBD = Starboard', legendX, diagramCenterY + 14);
@@ -504,14 +667,75 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
   for (let i = 0; i < notesLines; i++) {
     pdf.line(margin, y + i * 5, pageWidth - margin, y + i * 5);
   }
+  y += notesLines * 5 + 5;
+
+  // ============ SHIP IMAGE & LORE SECTION ============
+  const { shipDescription } = data;
+  const hasImage = shipDescription.imageData && shipDescription.imageMimeType;
+  const hasLore = shipDescription.lore && shipDescription.lore.trim().length > 0;
+
+  if (hasImage || hasLore) {
+    checkNewPage(60);
+    addSectionTitle('Ship Description');
+    y += 4;
+
+    // Ship image
+    if (hasImage) {
+      try {
+        const imageFormat = shipDescription.imageMimeType!.split('/')[1].toUpperCase() as 'PNG' | 'JPEG' | 'JPG';
+        const imageData = `data:${shipDescription.imageMimeType};base64,${shipDescription.imageData}`;
+        
+        // Calculate image dimensions to fit within content width
+        const maxImageWidth = contentWidth * 0.6;
+        const maxImageHeight = 60;
+        
+        // Add the image - jsPDF will auto-scale
+        pdf.addImage(imageData, imageFormat === 'JPG' ? 'JPEG' : imageFormat, margin, y, maxImageWidth, maxImageHeight);
+        y += maxImageHeight + 5;
+      } catch (e) {
+        console.error('Failed to add image to PDF:', e);
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text('(Image could not be rendered)', margin, y);
+        y += 5;
+      }
+    }
+
+    // Ship lore
+    if (hasLore) {
+      checkNewPage(20);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      
+      // Word wrap the lore text
+      const loreLines = pdf.splitTextToSize(shipDescription.lore, contentWidth);
+      const lineHeight = 4;
+      
+      for (const line of loreLines) {
+        if (y + lineHeight > pageHeight - margin - 10) {
+          pdf.addPage();
+          y = margin;
+        }
+        pdf.text(line, margin, y);
+        y += lineHeight;
+      }
+    }
+  }
 
   // ============ FOOTER ============
-  const footerY = pageHeight - 6;
-  pdf.setFontSize(6);
-  pdf.setFont('helvetica', 'italic');
-  pdf.setTextColor(128);
-  pdf.text('Alternity Warship Generator', margin, footerY);
-  pdf.text(new Date().toLocaleDateString(), pageWidth - margin, footerY, { align: 'right' });
+  // Add footer to all pages
+  const totalPages = pdf.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
+    const footerY = pageHeight - 6;
+    pdf.setFontSize(6);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(128);
+    pdf.text('Alternity Warship Generator', margin, footerY);
+    pdf.text(`Page ${i}/${totalPages}`, pageWidth / 2, footerY, { align: 'center' });
+    pdf.text(new Date().toLocaleDateString(), pageWidth - margin, footerY, { align: 'right' });
+  }
+  pdf.setTextColor(0);  // Reset
 
   // Save the PDF
   const filename = `${shipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;

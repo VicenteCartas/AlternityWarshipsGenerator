@@ -95,9 +95,9 @@ const steps = [
   { label: 'FTL', required: false },
   { label: 'Support', required: false },
   { label: 'Weapons', required: false },
-  { label: 'Defense', required: false },
+  { label: 'Defenses', required: false },
   { label: 'Sensors', required: true },  // Moved before C4 so sensor controls can reference sensors
-  { label: 'C4', required: true },       // Command & Control now comes after Sensors
+  { label: 'C4', required: true },
   { label: 'Misc', required: false },
   { label: 'Zones', required: true },   // Damage Diagram - all systems must be assigned
   { label: 'Summary', required: false }, // Final summary
@@ -1477,8 +1477,25 @@ function App() {
       </AppBar>
 
       {/* Stepper */}
-      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }} elevation={0}>
-        <Stepper activeStep={activeStep} nonLinear sx={{ '& .MuiStepButton-root': { outline: 'none', '&:focus': { outline: 'none' }, '&:focus-visible': { outline: 'none' } } }}>
+      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider' }} elevation={0}>
+        <Stepper 
+          activeStep={activeStep} 
+          nonLinear 
+          sx={{ 
+            flexWrap: 'wrap',
+            rowGap: 1,
+            '& .MuiStepConnector-root': {
+              flex: '0 0 auto',
+              minWidth: 8,
+              maxWidth: 16,
+            },
+            '& .MuiStepButton-root': { 
+              outline: 'none', 
+              '&:focus': { outline: 'none' }, 
+              '&:focus-visible': { outline: 'none' } 
+            } 
+          }}
+        >
           {steps.map((step, index) => {
             // Determine if step is completed
             const isStepCompleted = (() => {

@@ -2,32 +2,24 @@
 
 This document tracks technical debt, refactoring opportunities, and planned features.
 
----
-
 ## 1. Missing Features
 
-### Phase 1: Complete Core Features
+### Complete Core Features
 
 - [ ] Add real-time validation for HP/Power budgets
 - [ ] Show Area of Effect weapons information
+- [ ] Fix Attack Computer
+- [ ] Sensors as Tabs
+- [ ] Add some more information to some of the small texts
+- [ ] Fix PDF export
 
-### Phase 2: Quality of Life
-
-- [ ] Ship templates from rulebook
-- [ ] Variant cloning (duplicate ship)
-- [ ] Component search/filter in tables
-
-### Validation Gaps
+### Validation Gaps in Summary
 
 | Gap | Impact |
 | ----- | -------- |
-| No HP overflow prevention | Users can over-allocate hull points |
-| No power budget enforcement | Systems can exceed power generation |
 | No crew capacity validation | Life support vs actual crew needs |
 | No fuel endurance calculation | Users can't determine operational range |
 | No minimum requirements check | Ship may not meet basic requirements |
-
----
 
 ## 2. Code Quality Issues
 
@@ -38,15 +30,12 @@ Analysis of technical debt and code quality problems in the codebase.
 | Issue | Location | Description |
 |-------|----------|-------------|
 | State variable naming | LaunchSystemEditForm.tsx vs OrdnanceSelection.tsx | Uses `quantity` (lowercase) vs `sensorQuantity` - inconsistent naming for the same concept |
-| Selectable row styling | WeaponSelection, OrdnanceSelection | `selectableRowSx` constant exists in tableStyles.ts but components define inline hover/cursor styles |
 | Event handler unused params | Various components | Mix of `_event`, `_e`, and `_` for unused event parameters |
-| 'id' suffix casing | editingInstallationId vs editingSensorId | Inconsistent 'id' vs 'Id' suffix in state variable names |
 
 ### 2.2 Magic Numbers/Strings
 
 | Issue | Location | Value | Should Be |
 |-------|----------|-------|-----------|
-| Computer coverage | commandControlService.ts | `200` | HULL_POINTS_PER_COMPUTER_CORE constant |
 | Progress level names | SummarySelection.tsx | Hardcoded PL record | Shared constants file |
 | Stepper paper height | App.tsx | `minHeight: 400` | Named constant |
 
@@ -56,7 +45,6 @@ Analysis of technical debt and code quality problems in the codebase.
 |-------|----------|----------------|
 | WarshipState construction | App.tsx | `buildSaveObject()` and `resetAll()` both construct identical state objects - create helper |
 | Stats recalculation | App.tsx | Same service functions called multiple times with same args - memoize results |
-| Fuel tank handlers | EngineSelection, PowerPlantSelection | Nearly identical add/edit/remove patterns - could be abstracted |
 
 ### 2.4 Error Handling Gaps
 
@@ -80,8 +68,6 @@ Analysis of technical debt and code quality problems in the codebase.
 |-------|----------|----------------|
 | Empty interfaces | weapon.ts, defense.ts, supportSystem.ts | `BeamWeaponType extends BaseWeaponType {}` could be type aliases |
 | Type assertions without validation | saveService.ts | Multiple `as` casts assume correct structure |
-
----
 
 ## 3. Test
 

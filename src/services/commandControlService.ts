@@ -180,11 +180,21 @@ export function calculateCoverageBasedHullPoints(
 }
 
 /**
- * Calculate required computer core hull points based on ship size
- * Computer cores require 1 HP per 200 hull points of ship
+ * Get the coverage per hull point for computer cores from the JSON data.
+ * Falls back to 200 if no computer core type is found.
+ */
+function getComputerCoreCoverage(): number {
+  const computerCore = commandControlSystemTypes.find(t => t.id.startsWith('computer-core'));
+  return computerCore?.coveragePerHullPoint ?? 200;
+}
+
+/**
+ * Calculate required computer core hull points based on ship size.
+ * Uses the coveragePerHullPoint from the computer core type in the data.
  */
 export function calculateRequiredComputerCoreHullPoints(shipHullPoints: number): number {
-  return Math.ceil(shipHullPoints / 200);
+  const coverage = getComputerCoreCoverage();
+  return Math.ceil(shipHullPoints / coverage);
 }
 
 /**

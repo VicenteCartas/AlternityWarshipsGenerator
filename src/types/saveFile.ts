@@ -9,6 +9,8 @@ import type { ZoneCode, AttackDirection } from './damageDiagram';
  * Installed power plant in save file (stores only IDs and config)
  */
 export interface SavedPowerPlant {
+  /** Installation ID */
+  id: string;
   /** The power plant type ID */
   typeId: string;
   /** Size in hull points */
@@ -19,6 +21,8 @@ export interface SavedPowerPlant {
  * Installed fuel tank in save file
  */
 export interface SavedFuelTank {
+  /** Installation ID */
+  id: string;
   /** The power plant type ID this fuel is for */
   forPowerPlantTypeId: string;
   /** Size in hull points */
@@ -29,6 +33,8 @@ export interface SavedFuelTank {
  * Installed engine in save file (stores only IDs and config)
  */
 export interface SavedEngine {
+  /** Installation ID */
+  id: string;
   /** The engine type ID */
   typeId: string;
   /** Size in hull points */
@@ -39,6 +45,8 @@ export interface SavedEngine {
  * Installed engine fuel tank in save file
  */
 export interface SavedEngineFuelTank {
+  /** Installation ID */
+  id: string;
   /** The engine type ID this fuel is for */
   forEngineTypeId: string;
   /** Size in hull points */
@@ -49,6 +57,8 @@ export interface SavedEngineFuelTank {
  * Installed FTL drive in save file
  */
 export interface SavedFTLDrive {
+  /** Installation ID */
+  id: string;
   /** The FTL drive type ID */
   typeId: string;
   /** Size in hull points (determines hull percentage) */
@@ -59,6 +69,8 @@ export interface SavedFTLDrive {
  * Installed FTL fuel tank in save file
  */
 export interface SavedFTLFuelTank {
+  /** Installation ID */
+  id: string;
   /** The FTL drive type ID this fuel is for */
   forFTLDriveTypeId: string;
   /** Size in hull points */
@@ -69,6 +81,8 @@ export interface SavedFTLFuelTank {
  * Installed life support in save file
  */
 export interface SavedLifeSupport {
+  /** Installation ID */
+  id: string;
   /** The life support type ID */
   typeId: string;
   /** Quantity installed */
@@ -79,6 +93,8 @@ export interface SavedLifeSupport {
  * Installed accommodation in save file
  */
 export interface SavedAccommodation {
+  /** Installation ID */
+  id: string;
   /** The accommodation type ID */
   typeId: string;
   /** Quantity installed */
@@ -89,6 +105,8 @@ export interface SavedAccommodation {
  * Installed store system in save file
  */
 export interface SavedStoreSystem {
+  /** Installation ID */
+  id: string;
   /** The store system type ID */
   typeId: string;
   /** Quantity installed */
@@ -99,6 +117,8 @@ export interface SavedStoreSystem {
  * Installed gravity system in save file
  */
 export interface SavedGravitySystem {
+  /** Installation ID */
+  id: string;
   /** The gravity system type ID */
   typeId: string;
   /** Calculated hull points used */
@@ -109,6 +129,8 @@ export interface SavedGravitySystem {
  * Installed defense system in save file
  */
 export interface SavedDefenseSystem {
+  /** Installation ID */
+  id: string;
   /** The defense system type ID */
   typeId: string;
   /** Quantity installed */
@@ -147,6 +169,8 @@ export interface SavedSensor {
  * Installed hangar/misc system in save file
  */
 export interface SavedHangarMiscSystem {
+  /** Installation ID */
+  id: string;
   /** The hangar/misc system type ID */
   typeId: string;
   /** Quantity installed */
@@ -157,6 +181,8 @@ export interface SavedHangarMiscSystem {
  * Installed weapon in save file
  */
 export interface SavedWeapon {
+  /** Installation ID */
+  id: string;
   /** The weapon type ID */
   typeId: string;
   /** Weapon category */

@@ -89,46 +89,57 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     designProgressLevel: state.designProgressLevel,
     designTechTracks: state.designTechTracks,
     powerPlants: (state.powerPlants || []).map((pp): SavedPowerPlant => ({
+      id: pp.id,
       typeId: pp.type.id,
       hullPoints: pp.hullPoints,
     })),
     fuelTanks: (state.fuelTanks || []).map((ft): SavedFuelTank => ({
+      id: ft.id,
       forPowerPlantTypeId: ft.forPowerPlantType.id,
       hullPoints: ft.hullPoints,
     })),
     engines: (state.engines || []).map((eng): SavedEngine => ({
+      id: eng.id,
       typeId: eng.type.id,
       hullPoints: eng.hullPoints,
     })),
     engineFuelTanks: (state.engineFuelTanks || []).map((ft): SavedEngineFuelTank => ({
+      id: ft.id,
       forEngineTypeId: ft.forEngineType.id,
       hullPoints: ft.hullPoints,
     })),
     ftlDrive: state.ftlDrive ? {
+      id: state.ftlDrive.id,
       typeId: state.ftlDrive.type.id,
       hullPoints: state.ftlDrive.hullPoints,
     } as SavedFTLDrive : null,
     ftlFuelTanks: (state.ftlFuelTanks || []).map((ft): SavedFTLFuelTank => ({
+      id: ft.id,
       forFTLDriveTypeId: ft.forFTLDriveType.id,
       hullPoints: ft.hullPoints,
     })),
     lifeSupport: (state.lifeSupport || []).map((ls): SavedLifeSupport => ({
+      id: ls.id,
       typeId: ls.type.id,
       quantity: ls.quantity,
     })),
     accommodations: (state.accommodations || []).map((acc): SavedAccommodation => ({
+      id: acc.id,
       typeId: acc.type.id,
       quantity: acc.quantity,
     })),
     storeSystems: (state.storeSystems || []).map((ss): SavedStoreSystem => ({
+      id: ss.id,
       typeId: ss.type.id,
       quantity: ss.quantity,
     })),
     gravitySystems: (state.gravitySystems || []).map((gs): SavedGravitySystem => ({
+      id: gs.id,
       typeId: gs.type.id,
       hullPoints: gs.hullPoints,
     })),
     defenses: (state.defenses || []).map((def): SavedDefenseSystem => ({
+      id: def.id,
       typeId: def.type.id,
       quantity: def.quantity,
     })),
@@ -145,10 +156,12 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       quantity: s.quantity,
     })),
     hangarMisc: (state.hangarMisc || []).map((hm): SavedHangarMiscSystem => ({
+      id: hm.id,
       typeId: hm.type.id,
       quantity: hm.quantity,
     })),
     weapons: (state.weapons || []).map((w): SavedWeapon => ({
+      id: w.id,
       typeId: w.weaponType.id,
       category: w.category,
       mountType: w.mountType,
@@ -283,7 +296,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ppType = allPowerPlantTypes.find(t => t.id === savedPP.typeId);
     if (ppType) {
       powerPlants.push({
-        id: crypto.randomUUID(),
+        id: savedPP.id || crypto.randomUUID(),
         type: ppType,
         hullPoints: savedPP.hullPoints,
       });
@@ -299,7 +312,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ppType = allPowerPlantTypes.find(t => t.id === savedFT.forPowerPlantTypeId);
     if (ppType) {
       fuelTanks.push({
-        id: generateFuelTankId(),
+        id: savedFT.id || generateFuelTankId(),
         forPowerPlantType: ppType,
         hullPoints: savedFT.hullPoints,
       });
@@ -316,7 +329,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const engineType = allEngineTypes.find(t => t.id === savedEngine.typeId);
     if (engineType) {
       engines.push({
-        id: generateEngineInstallationId(),
+        id: savedEngine.id || generateEngineInstallationId(),
         type: engineType,
         hullPoints: savedEngine.hullPoints,
       });
@@ -332,7 +345,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const engineType = allEngineTypes.find(t => t.id === savedFT.forEngineTypeId);
     if (engineType) {
       engineFuelTanks.push({
-        id: generateEngineFuelTankId(),
+        id: savedFT.id || generateEngineFuelTankId(),
         forEngineType: engineType,
         hullPoints: savedFT.hullPoints,
       });
@@ -348,7 +361,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ftlType = allFTLTypes.find(t => t.id === saveFile.ftlDrive!.typeId);
     if (ftlType) {
       ftlDrive = {
-        id: generateFTLInstallationId(),
+        id: saveFile.ftlDrive.id || generateFTLInstallationId(),
         type: ftlType,
         hullPoints: saveFile.ftlDrive.hullPoints,
       };
@@ -364,7 +377,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ftlType = allFTLTypes.find(t => t.id === savedFT.forFTLDriveTypeId);
     if (ftlType) {
       ftlFuelTanks.push({
-        id: generateFTLFuelTankId(),
+        id: savedFT.id || generateFTLFuelTankId(),
         forFTLDriveType: ftlType,
         hullPoints: savedFT.hullPoints,
       });
@@ -381,7 +394,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const lsType = allLifeSupportTypes.find(t => t.id === savedLS.typeId);
     if (lsType) {
       lifeSupport.push({
-        id: generateLifeSupportId(),
+        id: savedLS.id || generateLifeSupportId(),
         type: lsType,
         quantity: savedLS.quantity,
       });
@@ -398,7 +411,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const accType = allAccommodationTypes.find(t => t.id === savedAcc.typeId);
     if (accType) {
       accommodations.push({
-        id: generateAccommodationId(),
+        id: savedAcc.id || generateAccommodationId(),
         type: accType,
         quantity: savedAcc.quantity,
       });
@@ -415,7 +428,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ssType = allStoreSystemTypes.find(t => t.id === savedSS.typeId);
     if (ssType) {
       storeSystems.push({
-        id: generateStoreSystemId(),
+        id: savedSS.id || generateStoreSystemId(),
         type: ssType,
         quantity: savedSS.quantity,
       });
@@ -432,7 +445,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const gsType = allGravitySystemTypes.find(t => t.id === savedGS.typeId);
     if (gsType) {
       gravitySystems.push({
-        id: generateGravitySystemId(),
+        id: savedGS.id || generateGravitySystemId(),
         type: gsType,
         hullPoints: savedGS.hullPoints,
         cost: savedGS.hullPoints * gsType.costPerHullPoint,
@@ -454,7 +467,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       const power = calculateDefensePower(defType, shipHullPoints, savedDef.quantity);
       const cost = calculateDefenseCost(defType, shipHullPoints, savedDef.quantity);
       defenses.push({
-        id: generateDefenseId(),
+        id: savedDef.id || generateDefenseId(),
         type: defType,
         quantity: savedDef.quantity,
         hullPoints: hullPts,
@@ -537,7 +550,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       const cost = calculateHangarMiscCost(hmType, shipHullPoints, savedHM.quantity);
       const capacity = calculateHangarMiscCapacity(hmType, shipHullPoints, savedHM.quantity);
       hangarMisc.push({
-        id: generateHangarMiscId(),
+        id: savedHM.id || generateHangarMiscId(),
         type: hmType,
         quantity: savedHM.quantity,
         hullPoints: hullPts,
@@ -570,6 +583,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
           savedWeapon.quantity,
           savedWeapon.arcs as FiringArc[]
         );
+        if (savedWeapon.id) weapon.id = savedWeapon.id;
         weapons.push(weapon);
       } else {
         warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
@@ -586,6 +600,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
           savedWeapon.quantity,
           savedWeapon.arcs as FiringArc[]
         );
+        if (savedWeapon.id) weapon.id = savedWeapon.id;
         weapons.push(weapon);
       } else {
         warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
@@ -602,6 +617,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
           savedWeapon.quantity,
           savedWeapon.arcs as FiringArc[]
         );
+        if (savedWeapon.id) weapon.id = savedWeapon.id;
         weapons.push(weapon);
       } else {
         warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
@@ -618,6 +634,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
           savedWeapon.quantity,
           savedWeapon.arcs as FiringArc[]
         );
+        if (savedWeapon.id) weapon.id = savedWeapon.id;
         weapons.push(weapon);
       } else {
         warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
