@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, Fragment } from 'react';
 import {
   Box,
   Typography,
@@ -14,8 +14,8 @@ import {
   TextField,
   Chip,
   Stack,
-  ToggleButton,
-  ToggleButtonGroup,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -23,7 +23,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
 import {
   getAllHangarMiscSystemTypes,
@@ -56,7 +56,7 @@ export function HangarMiscSelection({
   totalPassengersAndSuspended,
   onSystemsChange,
 }: HangarMiscSelectionProps) {
-  const [categoryFilter, setCategoryFilter] = useState<FilterWithAll<HangarMiscCategory>>('all');
+  const [activeTab, setActiveTab] = useState<HangarMiscCategory>('hangar');
   const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
   const [systemQuantity, setSystemQuantity] = useState<string>('1');
   const [editingSystemId, setEditingSystemId] = useState<string | null>(null);
@@ -67,33 +67,30 @@ export function HangarMiscSelection({
     return filterByDesignConstraints(getAllHangarMiscSystemTypes(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
-  // Apply category filter and exclude installed single-install systems
-  const filteredSystems = useMemo(() => {
+  // Get systems by category (excluding already installed single-install systems)
+  const getSystemsByCategory = (category: HangarMiscCategory) => {
     const installedSingleInstallIds = installedSystems
       .filter((s) => s.type.hullPercentage && s.type.maxQuantity === 1)
       .map((s) => s.type.id);
     
-    let systems = availableSystems.filter(
-      (s) => !installedSingleInstallIds.includes(s.id)
-    );
-    
-    if (categoryFilter !== 'all') {
-      systems = systems.filter((s) => s.category === categoryFilter);
-    }
-    return systems.sort((a, b) => a.progressLevel - b.progressLevel);
-  }, [availableSystems, categoryFilter, installedSystems]);
+    return availableSystems
+      .filter((s) => s.category === category && !installedSingleInstallIds.includes(s.id))
+      .sort((a, b) => a.progressLevel - b.progressLevel);
+  };
 
-  // Count systems by category
-  const categoryCounts = useMemo(() => {
-    return {
-      all: availableSystems.length,
-      hangar: availableSystems.filter((s) => s.category === 'hangar').length,
-      cargo: availableSystems.filter((s) => s.category === 'cargo').length,
-      emergency: availableSystems.filter((s) => s.category === 'emergency').length,
-      facility: availableSystems.filter((s) => s.category === 'facility').length,
-      utility: availableSystems.filter((s) => s.category === 'utility').length,
-    };
-  }, [availableSystems]);
+  // Get installed systems by category
+  const getInstalledByCategory = (category: HangarMiscCategory) => {
+    return installedSystems.filter((s) => s.type.category === category);
+  };
+
+  // Count installed systems by category
+  const installedCounts = useMemo(() => ({
+    hangar: getInstalledByCategory('hangar').length,
+    cargo: getInstalledByCategory('cargo').length,
+    emergency: getInstalledByCategory('emergency').length,
+    facility: getInstalledByCategory('facility').length,
+    utility: getInstalledByCategory('utility').length,
+  }), [installedSystems]);
 
   // Calculate stats
   const stats = useMemo(
@@ -102,13 +99,12 @@ export function HangarMiscSelection({
   );
 
   // Handlers
-  const handleCategoryFilterChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newCategory: FilterWithAll<HangarMiscCategory> | null
-  ) => {
-    if (newCategory !== null) {
-      setCategoryFilter(newCategory);
-    }
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: HangarMiscCategory) => {
+    setActiveTab(newValue);
+    // Clear selection when changing tabs
+    setSelectedSystem(null);
+    setSystemQuantity('1');
+    setEditingSystemId(null);
   };
 
   const handleSelectSystem = (type: HangarMiscSystemType) => {
@@ -257,99 +253,105 @@ export function HangarMiscSelection({
     return `${capacity}`;
   };
 
-  // Render installed systems section
-  const renderInstalledSystems = () => {
-    if (installedSystems.length === 0) return null;
+  // Determine helper text for quantity - only show for special effects, not "X hp each"
+  const getQuantityHelperText = (system: HangarMiscSystemType): string | undefined => {
+    if (system.hullPercentage) {
+      const hpPer = Math.ceil((hull.hullPoints * system.hullPercentage) / 100);
+      return `${hpPer} HP per unit (${system.hullPercentage}% of hull)`;
+    }
+    if (system.capacityPerHull) {
+      return `${system.hullPoints} HP = ${system.capacityPerHull}`;
+    }
+    // Don't show "X HP each" - it's redundant
+    return undefined;
+  };
+
+  // Render installed systems for a category
+  const renderInstalledSystems = (category: HangarMiscCategory) => {
+    const installed = getInstalledByCategory(category);
+    if (installed.length === 0) return null;
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Installed Systems
+          Installed {getCategoryLabel(category)}
         </Typography>
         <Stack spacing={1}>
-          {installedSystems.map((system) => (
-            <Box
-              key={system.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {system.type.name}
-                {system.quantity > 1 && ` (×${system.quantity})`}
-              </Typography>
-              <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
-              <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-              <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
-              {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity) && (
-                <Chip 
-                  label={formatCapacity(system.type, system.capacity)} 
-                  size="small" 
-                  color="primary" 
-                  variant="outlined" 
-                />
-              )}
-              {system.capacity && system.type.cargoCapacity && (
-                <Chip 
-                  label={`Cargo: ${system.capacity} m³`} 
-                  size="small" 
-                  color="primary" 
-                  variant="outlined" 
-                />
-              )}
-              {system.serviceCapacity && (
-                <Chip 
-                  label={`Services ${system.serviceCapacity} HP cargo`} 
-                  size="small" 
-                  color="success" 
-                  variant="outlined" 
-                />
-              )}
-              {system.type.effect && !system.type.cargoServiceCapacity && (
-                <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
-              )}
-              {/* Hide edit button for toggle systems (single-quantity percentage-based) */}
-              {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
-                <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              )}
-              <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
+          {installed.map((system) => {
+            const isEditing = editingSystemId === system.id;
+            
+            return (
+              <Fragment key={system.id}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {system.type.name}
+                    {system.quantity > 1 && ` (×${system.quantity})`}
+                  </Typography>
+                  <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
+                  <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
+                  <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity) && (
+                    <Chip 
+                      label={formatCapacity(system.type, system.capacity)} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.capacity && system.type.cargoCapacity && (
+                    <Chip 
+                      label={`Cargo: ${system.capacity} m³`} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.serviceCapacity && (
+                    <Chip 
+                      label={`Services ${system.serviceCapacity} HP cargo`} 
+                      size="small" 
+                      color="success" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.type.effect && !system.type.cargoServiceCapacity && (
+                    <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
+                  )}
+                  {/* Hide edit button for toggle systems (single-quantity percentage-based) */}
+                  {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
+                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && renderInlineEditForm()}
+              </Fragment>
+            );
+          })}
         </Stack>
       </Paper>
     );
   };
 
-  // Render the configure form
-  const renderConfigureForm = () => {
-    if (!selectedSystem) return null;
-
-    // Determine helper text for quantity
-    let helperText = '';
-    if (selectedSystem.hullPercentage) {
-      const hpPer = Math.ceil((hull.hullPoints * selectedSystem.hullPercentage) / 100);
-      helperText = `${hpPer} HP per unit (${selectedSystem.hullPercentage}% of hull)`;
-    } else if (selectedSystem.capacityPerHull) {
-      helperText = `${selectedSystem.hullPoints} HP = ${selectedSystem.capacityPerHull}`;
-    } else {
-      helperText = `${selectedSystem.hullPoints} HP each`;
-    }
+  // Render inline edit form (shown under the item being edited)
+  const renderInlineEditForm = () => {
+    if (!selectedSystem || !editingSystemId) return null;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-          {editingSystemId ? 'Edit' : 'Add'} {selectedSystem.name}
-        </Typography>
-
+      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
             label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPerHull ? 'Hull Points' : 'Quantity')}
@@ -358,8 +360,8 @@ export function HangarMiscSelection({
             value={systemQuantity}
             onChange={(e) => setSystemQuantity(e.target.value)}
             inputProps={{ min: selectedSystem.minQuantity || 1 }}
-            helperText={helperText}
-            sx={{ width: 180 }}
+            helperText={getQuantityHelperText(selectedSystem)}
+            sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
@@ -372,13 +374,60 @@ export function HangarMiscSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedSystem(null);
+                  setSystemQuantity('1');
+                  setEditingSystemId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
                 variant="contained"
                 size="small"
-                startIcon={editingSystemId ? <SaveIcon /> : <AddIcon />}
+                startIcon={<SaveIcon />}
                 onClick={handleAddSystem}
               >
-                {editingSystemId ? 'Save' : 'Add'}
+                Save
               </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
+  // Render the add form (shown above the grid when adding new)
+  const renderAddForm = () => {
+    if (!selectedSystem || editingSystemId) return null;
+    // Only show if selected system matches current tab
+    if (selectedSystem.category !== activeTab) return null;
+
+    return (
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPerHull ? 'Hull Points' : 'Quantity')}
+            type="number"
+            size="small"
+            value={systemQuantity}
+            onChange={(e) => setSystemQuantity(e.target.value)}
+            inputProps={{ min: selectedSystem.minQuantity || 1 }}
+            helperText={getQuantityHelperText(selectedSystem)}
+            sx={{ width: 150 }}
+          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} |
+              Power: {previewPower} |
+              Cost: {formatCost(previewCost)}
+              {previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity) && (
+                <> | {formatCapacity(selectedSystem, previewCapacity)}</>
+              )}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
                 size="small"
@@ -390,10 +439,105 @@ export function HangarMiscSelection({
               >
                 Cancel
               </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddSystem}
+              >
+                Add
+              </Button>
             </Box>
           </Box>
         </Box>
       </Paper>
+    );
+  };
+
+  // Render table for a category
+  const renderSystemTable = (category: HangarMiscCategory) => {
+    const systems = getSystemsByCategory(category);
+    if (systems.length === 0) {
+      return (
+        <Typography color="text.secondary" sx={{ py: 2 }}>
+          No {getCategoryLabel(category).toLowerCase()} available at current design constraints.
+        </Typography>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Capacity</TableCell>
+              <TableCell sx={headerCellSx}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {systems.map((system) => {
+              const isSelected = selectedSystem?.id === system.id && !editingSystemId;
+              return (
+                <TableRow
+                  key={system.id}
+                  hover
+                  selected={isSelected}
+                  onClick={() => handleSelectSystem(system)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: 'action.selected',
+                    },
+                  }}
+                >
+                  <TableCell sx={{ minWidth: 180 }}>{system.name}</TableCell>
+                  <TableCell>{system.progressLevel}</TableCell>
+                  <TechTrackCell techTracks={system.techTracks} />
+                  <TableCell>
+                    {system.hullPercentage 
+                      ? `${system.hullPercentage}%` 
+                      : system.hullPoints}
+                  </TableCell>
+                  <TableCell>{system.powerRequired}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {formatCost(system.cost)}
+                    {system.costPerHull && '/HP'}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.cargoCapacity 
+                      ? `${system.cargoCapacity} m³`
+                      : system.cargoServiceCapacity
+                      ? `Services ${system.cargoServiceCapacity} HP`
+                      : system.fuelCollectionCapacity
+                      ? `${system.fuelCollectionCapacity} HP fuel/day`
+                      : system.powerPointsCapacity
+                      ? `${system.powerPointsCapacity} PP stored`
+                      : system.troopCapacity
+                      ? `${system.troopCapacity} troops`
+                      : system.capacityPerHull || '-'}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.effect || '-'}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    <TruncatedDescription text={system.description} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
@@ -431,99 +575,53 @@ export function HangarMiscSelection({
         </Box>
       </Paper>
 
-      {/* Installed Systems */}
-      {renderInstalledSystems()}
-
-      {/* Configure Form */}
-      {renderConfigureForm()}
-
-      {/* Category Filter */}
-      <Box sx={{ mb: 2 }}>
-        <ToggleButtonGroup
-          value={categoryFilter}
-          exclusive
-          onChange={handleCategoryFilterChange}
-          size="small"
-        >
-          <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
-          <ToggleButton value="hangar">Hangars ({categoryCounts.hangar})</ToggleButton>
-          <ToggleButton value="cargo">Cargo ({categoryCounts.cargo})</ToggleButton>
-          <ToggleButton value="emergency">Emergency ({categoryCounts.emergency})</ToggleButton>
-          <ToggleButton value="facility">Facilities ({categoryCounts.facility})</ToggleButton>
-          <ToggleButton value="utility">Utility ({categoryCounts.utility})</ToggleButton>
-        </ToggleButtonGroup>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tab label={`Hangars (${installedCounts.hangar})`} value="hangar" />
+          <Tab label={`Cargo (${installedCounts.cargo})`} value="cargo" />
+          <Tab label={`Emergency (${installedCounts.emergency})`} value="emergency" />
+          <Tab label={`Facilities (${installedCounts.facility})`} value="facility" />
+          <Tab label={`Utility (${installedCounts.utility})`} value="utility" />
+        </Tabs>
       </Box>
 
-      {/* Systems Grid */}
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1200 } }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={headerCellSx}>PL</TableCell>
-              <TableCell sx={headerCellSx}>Tech</TableCell>
-              <TableCell sx={headerCellSx}>Category</TableCell>
-              <TableCell sx={headerCellSx}>HP</TableCell>
-              <TableCell sx={headerCellSx}>Power</TableCell>
-              <TableCell sx={headerCellSx}>Cost</TableCell>
-              <TableCell sx={headerCellSx}>Capacity</TableCell>
-              <TableCell sx={headerCellSx}>Effect</TableCell>
-              <TableCell sx={headerCellSx}>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredSystems.map((system) => (
-              <TableRow
-                key={system.id}
-                hover
-                onClick={() => handleSelectSystem(system)}
-                sx={{
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedSystem?.id === system.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
-                }}
-              >
-                <TableCell sx={{ minWidth: 180 }}>{system.name}</TableCell>
-                <TableCell>{system.progressLevel}</TableCell>
-                <TechTrackCell techTracks={system.techTracks} />
-                <TableCell>{getCategoryLabel(system.category)}</TableCell>
-                <TableCell>
-                  {system.hullPercentage 
-                    ? `${system.hullPercentage}%` 
-                    : system.hullPoints}
-                </TableCell>
-                <TableCell>{system.powerRequired}</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                  {formatCost(system.cost)}
-                  {system.costPerHull && '/HP'}
-                </TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                  {system.cargoCapacity 
-                    ? `${system.cargoCapacity} m³`
-                    : system.cargoServiceCapacity
-                    ? `Services ${system.cargoServiceCapacity} HP`
-                    : system.fuelCollectionCapacity
-                    ? `${system.fuelCollectionCapacity} HP fuel/day`
-                    : system.powerPointsCapacity
-                    ? `${system.powerPointsCapacity} PP stored`
-                    : system.troopCapacity
-                    ? `${system.troopCapacity} troops`
-                    : system.capacityPerHull || '-'}
-                </TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                  {system.effect || '-'}
-                </TableCell>
-                <TableCell sx={{ maxWidth: 300 }}>
-                  <TruncatedDescription text={system.description} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Tab Content */}
+      {activeTab === 'hangar' && (
+        <>
+          {renderInstalledSystems('hangar')}
+          {renderAddForm()}
+          {renderSystemTable('hangar')}
+        </>
+      )}
+      {activeTab === 'cargo' && (
+        <>
+          {renderInstalledSystems('cargo')}
+          {renderAddForm()}
+          {renderSystemTable('cargo')}
+        </>
+      )}
+      {activeTab === 'emergency' && (
+        <>
+          {renderInstalledSystems('emergency')}
+          {renderAddForm()}
+          {renderSystemTable('emergency')}
+        </>
+      )}
+      {activeTab === 'facility' && (
+        <>
+          {renderInstalledSystems('facility')}
+          {renderAddForm()}
+          {renderSystemTable('facility')}
+        </>
+      )}
+      {activeTab === 'utility' && (
+        <>
+          {renderInstalledSystems('utility')}
+          {renderAddForm()}
+          {renderSystemTable('utility')}
+        </>
+      )}
     </Box>
   );
 }
