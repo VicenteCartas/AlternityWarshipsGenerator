@@ -44,6 +44,10 @@ export interface DefenseSystemType {
   allowVariableSize?: boolean;
   /** IDs of components that this system requires at least one of to function */
   requiresComponents?: string[];
+  /** If true, coverage must exactly match full hull - no editing allowed (for screens) */
+  fixedCoverage?: boolean;
+  /** If true, coverage must be in multiples of full hull coverage (for countermeasures) */
+  coverageMultiples?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

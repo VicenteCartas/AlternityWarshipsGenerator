@@ -13,6 +13,7 @@
       "cost": 50000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "+1 step to missiles, sensors",
       "description": "Chaff launchers that disperse clouds of reflective material to confuse missiles and sensors.",
       "incompatibleWith": ["cloaking-unit"]
@@ -47,6 +48,7 @@
       "cost": 600000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "3 drones per launcher",
       "description": "Automated drones that mimic the ship's sensor signature to confuse enemy targeting systems. Each launcher carries 3 drones."
     },
@@ -63,6 +65,7 @@
       "cost": 100000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "+2 steps to missiles, sensors",
       "description": "Electronic warfare systems that broadcast interference to disrupt enemy missiles and sensor systems.",
       "incompatibleWith": ["stealth-shield", "cloaking-unit"]
@@ -80,6 +83,7 @@
       "cost": 400000,
       "costPerHull": false,
       "coverage": 20,
+      "fixedCoverage": true,
       "effect": "+2 steps to missiles, projectiles",
       "description": "Magnetic field generators that deflect missiles and projectile weapons. Only one screen type can be active at a time."
     },
@@ -96,6 +100,7 @@
       "cost": 500000,
       "costPerHull": false,
       "coverage": 50,
+      "coverageMultiples": true,
       "effect": "+2 steps to enemy Sensor Checks",
       "description": "Specialized hull coatings and shape design that reduce the ship's sensor signature."
     },
@@ -112,6 +117,7 @@
       "cost": 500000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "Coordinates point defense weapons",
       "description": "Computer-controlled system that coordinates point defense weapons for more effective anti-missile fire."
     },
@@ -128,6 +134,7 @@
       "cost": 500000,
       "costPerHull": false,
       "coverage": 20,
+      "fixedCoverage": true,
       "effect": "+2 step penalty to enemy attacks",
       "description": "Gravitic energy belts that deflect incoming fire. Only one screen type can be active at a time."
     },
@@ -144,6 +151,7 @@
       "cost": 750000,
       "costPerHull": false,
       "coverage": 20,
+      "fixedCoverage": true,
       "effect": "Adds d4 (LI), d4 (HI), d6 (En) armor",
       "description": "Energy screen that provides additional armor protection. Only one screen type can be active at a time."
     },
@@ -160,6 +168,7 @@
       "cost": 2000000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "+3 steps to missiles, sensors",
       "description": "Advanced stealth technology using matter coding to reduce sensor signature.",
       "incompatibleWith": ["jammer"]
@@ -177,6 +186,7 @@
       "cost": 200000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "+4 step penalty to drive detectors",
       "description": "Gravitic device that masks the ship's stardrive signature from detection."
     },
@@ -264,6 +274,7 @@
       "cost": 1000000,
       "costPerHull": false,
       "coverage": 100,
+      "coverageMultiples": true,
       "effect": "+4 steps to missiles, sensors",
       "description": "Matter coding technology that renders the ship nearly invisible to sensors.",
       "incompatibleWith": ["chaff", "jammer"]
@@ -281,6 +292,7 @@
       "cost": 1000000,
       "costPerHull": false,
       "coverage": 20,
+      "fixedCoverage": true,
       "effect": "+3 step penalty to enemy attacks",
       "description": "Teleportation technology that shifts the ship slightly, causing attacks to miss. Only one screen type can be active at a time."
     },

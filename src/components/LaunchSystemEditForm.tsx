@@ -421,7 +421,7 @@ export function LaunchSystemEditForm({
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>Design</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Qty</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Capacity</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
@@ -467,8 +467,8 @@ export function LaunchSystemEditForm({
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>Design</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Class</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Cap</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
@@ -752,7 +752,7 @@ export function LaunchSystemEditForm({
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Chip label={`Accuracy: ${formatAccuracyModifier(designPreview.totalAccuracy)}`} size="small" />
                           <Chip label={`Cost: ${formatCost(designPreview.totalCost)}`} size="small" />
-                          <Chip label={`Capacity: ${designPreview.capacityRequired}`} size="small" color="primary" />
+                          <Chip label={`Size: ${designPreview.capacityRequired}`} size="small" />
                         </Stack>
                       </Paper>
                     )}
@@ -962,7 +962,7 @@ export function LaunchSystemEditForm({
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Chip label={`Accuracy: ${formatAccuracyModifier(designPreview.totalAccuracy)}`} size="small" />
                           <Chip label={`Cost: ${formatCost(designPreview.totalCost)}`} size="small" />
-                          <Chip label={`Capacity: ${designPreview.capacityRequired}`} size="small" color="primary" />
+                          <Chip label={`Size: ${designPreview.capacityRequired}`} size="small" />
                         </Stack>
                       </Paper>
                     )}
@@ -1223,7 +1223,7 @@ export function LaunchSystemEditForm({
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Chip label={`Accuracy: ${formatAccuracyModifier(designPreview.totalAccuracy)}`} size="small" />
                           <Chip label={`Cost: ${formatCost(designPreview.totalCost)}`} size="small" />
-                          <Chip label={`Capacity: ${designPreview.capacityRequired}`} size="small" color="primary" />
+                          <Chip label={`Size: ${designPreview.capacityRequired}`} size="small" />
                         </Stack>
                       </Paper>
                     )}

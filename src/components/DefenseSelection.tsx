@@ -16,12 +16,15 @@ import {
   Chip,
   Stack,
   Alert,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
+import { TabPanel } from './shared';
 import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -55,6 +58,7 @@ export function DefenseSelection({
   designTechTracks,
   onDefensesChange,
 }: DefenseSelectionProps) {
+  const [activeTab, setActiveTab] = useState(0);
   const [selectedDefense, setSelectedDefense] = useState<DefenseSystemType | null>(null);
   const [defenseQuantity, setDefenseQuantity] = useState<string>('1');
   const [editingDefenseId, setEditingDefenseId] = useState<string | null>(null);
@@ -89,6 +93,21 @@ export function DefenseSelection({
     }
     return groups;
   }, [availableDefenses]);
+
+  // Count installed defenses by category
+  const installedByCategory = useMemo(() => {
+    const counts = { screen: 0, countermeasure: 0, repair: 0 };
+    for (const defense of installedDefenses) {
+      if (defense.type.category === 'screen' || defense.type.category === 'shield-component') {
+        counts.screen++;
+      } else if (defense.type.category === 'countermeasure') {
+        counts.countermeasure++;
+      } else if (defense.type.category === 'repair') {
+        counts.repair++;
+      }
+    }
+    return counts;
+  }, [installedDefenses]);
 
   // Handlers
   const handleSelectDefense = (type: DefenseSystemType) => {
@@ -242,6 +261,341 @@ export function DefenseSelection({
     }
   };
 
+  // Helper to render installed defenses for a specific category
+  const renderInstalledDefenses = (category: 'screen' | 'countermeasure' | 'repair') => {
+    const categoryDefenses = installedDefenses.filter((d) => 
+      category === 'screen' 
+        ? (d.type.category === 'screen' || d.type.category === 'shield-component')
+        : d.type.category === category
+    );
+    
+    if (categoryDefenses.length === 0) return null;
+
+    return (
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Installed {getCategoryLabel(category)}
+        </Typography>
+        <Stack spacing={1}>
+          {categoryDefenses.map((defense) => (
+            <Box
+              key={defense.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1,
+                bgcolor: editingDefenseId === defense.id ? 'action.selected' : 'action.hover',
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="body2" sx={{ flex: 1 }}>
+                {defense.type.name}
+                {defense.quantity > 1 && ` (×${defense.quantity})`}
+              </Typography>
+              <Chip
+                label={`${defense.hullPoints} HP`}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={`${defense.powerRequired} Power`}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={formatCost(defense.cost)}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={defense.type.shieldPoints 
+                  ? `${defense.type.shieldPoints * defense.quantity} shield points`
+                  : defense.type.effect
+                }
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+              {/* Multiple screens warning */}
+              {defense.type.category === 'screen' && installedScreenNames.length > 1 && (
+                <Chip
+                  icon={<WarningIcon />}
+                  label="Multiple Screens"
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+              {/* Countermeasure incompatibility warning */}
+              {defense.type.incompatibleWith?.some((id) => 
+                installedDefenses.some((d) => d.type.id === id)
+              ) && (
+                <Chip
+                  icon={<WarningIcon />}
+                  label="Incompatible"
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+              {/* Missing required components warning */}
+              {defense.type.requiresComponents?.length && !defense.type.requiresComponents.some((reqId) =>
+                installedDefenses.some((d) => d.type.id === reqId)
+              ) && (
+                <Chip
+                  icon={<WarningIcon />}
+                  label="Missing Components"
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+              {/* Edit button - not shown for percentage-based or fixed coverage systems */}
+              {!defense.type.hullPercentage && !defense.type.fixedCoverage && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleEditDefense(defense)}
+                  color="primary"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
+              <IconButton
+                size="small"
+                onClick={() => handleRemoveDefense(defense.id)}
+                color="error"
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
+        </Stack>
+      </Paper>
+    );
+  };
+
+  // Helper to render configure form (only if selected defense matches category)
+  const renderConfigureForm = (category: 'screen' | 'countermeasure' | 'repair') => {
+    if (!selectedDefense) return null;
+    
+    const defenseCategory = selectedDefense.category === 'shield-component' ? 'screen' : selectedDefense.category;
+    if (defenseCategory !== category) return null;
+
+    const minCoverage = selectedDefense.coverage > 0 
+      ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) 
+      : 1;
+
+    // For coverageMultiples, quantity must be in increments of minCoverage
+    const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (selectedDefense.coverageMultiples) {
+        const value = parseInt(e.target.value, 10) || minCoverage;
+        // Round to nearest multiple of minCoverage
+        const rounded = Math.max(minCoverage, Math.round(value / minCoverage) * minCoverage);
+        setDefenseQuantity(rounded.toString());
+      } else {
+        setDefenseQuantity(e.target.value);
+      }
+    };
+
+    // Determine if quantity input should be shown
+    const showQuantityInput = !selectedDefense.hullPercentage && !selectedDefense.fixedCoverage;
+
+    return (
+      <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          {/* Quantity/Size input - not shown for percentage-based or fixed coverage */}
+          {showQuantityInput && (
+            <TextField
+              type="number"
+              size="small"
+              value={defenseQuantity}
+              onChange={handleQuantityChange}
+              inputProps={{ 
+                min: minCoverage, 
+                max: 99,
+                step: selectedDefense.coverageMultiples ? minCoverage : 1,
+                style: { textAlign: 'center', width: 40 } 
+              }}
+              sx={{ width: 90 }}
+              label={selectedDefense.allowVariableSize ? "Size" : "Quantity"}
+              helperText={selectedDefense.coverageMultiples ? `Cov: ×${minCoverage}` : undefined}
+            />
+          )}
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            {selectedDefense.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {previewHullPts} HP | {previewPower} Power | {formatCost(previewCost)}
+            {selectedDefense.fixedCoverage && ` | Qty: ${minCoverage} (full coverage)`}
+          </Typography>
+
+          {/* Actions - moved to same row */}
+          <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setSelectedDefense(null);
+                setDefenseQuantity('1');
+                setEditingDefenseId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={editingDefenseId ? <SaveIcon /> : <AddIcon />}
+              onClick={handleAddDefense}
+            >
+              {editingDefenseId ? 'Save' : 'Add'}
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Warnings */}
+        {screenConflict && (
+          <Alert severity="warning" sx={{ mb: 1 }} icon={<WarningIcon />}>
+            Only one screen type may be active at a time. You already have: {installedScreenNames.join(', ')}
+          </Alert>
+        )}
+        {repairConflict && (
+          <Alert severity="warning" sx={{ mb: 1 }} icon={<WarningIcon />}>
+            Only one repair system can be installed. Adding this will replace: {installedRepairSystem?.type.name}
+          </Alert>
+        )}
+        {incompatibleCountermeasures.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 1 }} icon={<WarningIcon />}>
+            Cannot be used at the same time as: {incompatibleCountermeasures.join(', ')}
+          </Alert>
+        )}
+      </Box>
+    );
+  };
+
+  // Helper to render the defense grid for a category
+  const renderDefenseGrid = (category: 'screen' | 'countermeasure' | 'repair') => {
+    // For screens, include both screen and shield-component categories
+    const defenses = category === 'screen' 
+      ? [...(defensesByCategory.screen || []), ...(defensesByCategory['shield-component'] || [])]
+      : defensesByCategory[category] || [];
+    
+    if (defenses.length === 0) return null;
+
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }} align="center">PL</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">HP</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">Power</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }} align="right">Cost</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }} align="right">Coverage</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: 250, whiteSpace: 'nowrap' }}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {defenses
+              .sort((a, b) => a.progressLevel - b.progressLevel)
+              .map((defense) => {
+                const isSelected = selectedDefense?.id === defense.id;
+                const hpDisplay = defense.hullPercentage ? `${defense.hullPercentageValue}%` : defense.hullPoints;
+                const powerDisplay = defense.powerPerHull ? `${defense.powerRequired}/HP` : defense.powerRequired;
+                const costDisplay = defense.costPerHull ? `${formatCost(defense.cost)}/HP` : formatCost(defense.cost);
+                const coverageDisplay = defense.coverage > 0 ? `${defense.coverage} HP` : '-';
+
+                // Check if this is a shield component and indent if parent is installed
+                const isShieldComponent = defense.category === 'shield-component';
+                const parentInstalled = isShieldComponent && defense.requiresInstalled && 
+                  installedDefenses.some((d) => d.type.id === defense.requiresInstalled);
+
+                return (
+                  <TableRow
+                    key={defense.id}
+                    hover
+                    selected={isSelected}
+                    sx={{
+                      cursor: 'pointer',
+                      '&.Mui-selected': { backgroundColor: 'action.selected' },
+                      '&.Mui-selected:hover': { backgroundColor: 'action.selected' },
+                    }}
+                    onClick={() => handleSelectDefense(defense)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap', pl: parentInstalled ? 2 : 0 }}>
+                        {parentInstalled && '↳ '}{defense.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">{defense.progressLevel}</TableCell>
+                    <TableCell>
+                      <Tooltip title={defense.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
+                        <Typography variant="caption">
+                          {defense.techTracks.length > 0 ? defense.techTracks.join(', ') : 'None'}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">{hpDisplay}</TableCell>
+                    <TableCell align="right">{powerDisplay}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{costDisplay}</TableCell>
+                    <TableCell align="right">{coverageDisplay}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{defense.effect}</TableCell>
+                    <TableCell>
+                      <Tooltip title={defense.description} placement="left">
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {defense.description}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  // Tab render functions
+  const renderScreensTab = () => (
+    <Box>
+      {renderInstalledDefenses('screen')}
+      {renderConfigureForm('screen')}
+      {renderDefenseGrid('screen')}
+    </Box>
+  );
+
+  const renderCountermeasuresTab = () => (
+    <Box>
+      {renderInstalledDefenses('countermeasure')}
+      {renderConfigureForm('countermeasure')}
+      {renderDefenseGrid('countermeasure')}
+    </Box>
+  );
+
+  const renderRepairTab = () => (
+    <Box>
+      {renderInstalledDefenses('repair')}
+      {renderConfigureForm('repair')}
+      {renderDefenseGrid('repair')}
+    </Box>
+  );
+
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
@@ -323,351 +677,27 @@ export function DefenseSelection({
         </Box>
       </Paper>
 
-      {/* Installed Defenses */}
-      {installedDefenses.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Defenses
-          </Typography>
-          <Stack spacing={1}>
-            {installedDefenses.map((defense) => (
-              <Box
-                key={defense.id}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ flex: 1 }}>
-                  {defense.type.name}
-                  {defense.quantity > 1 && ` (×${defense.quantity})`}
-                </Typography>
-                <Chip
-                  label={`${defense.hullPoints} HP`}
-                  size="small"
-                  variant="outlined"
-                />
-                <Chip
-                  label={`${defense.powerRequired} Power`}
-                  size="small"
-                  variant="outlined"
-                />
-                <Chip
-                  label={formatCost(defense.cost)}
-                  size="small"
-                  variant="outlined"
-                />
-                <Chip
-                  label={defense.type.shieldPoints 
-                    ? `${defense.type.shieldPoints * defense.quantity} shield points`
-                    : defense.type.effect
-                  }
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-                {/* Multiple screens warning */}
-                {defense.type.category === 'screen' && installedScreenNames.length > 1 && (
-                  <Chip
-                    icon={<WarningIcon />}
-                    label="Multiple Screens"
-                    size="small"
-                    color="warning"
-                    variant="outlined"
-                  />
-                )}
-                {/* Countermeasure incompatibility warning */}
-                {defense.type.incompatibleWith?.some((id) => 
-                  installedDefenses.some((d) => d.type.id === id)
-                ) && (
-                  <Chip
-                    icon={<WarningIcon />}
-                    label="Incompatible"
-                    size="small"
-                    color="warning"
-                    variant="outlined"
-                  />
-                )}
-                {/* Missing required components warning */}
-                {defense.type.requiresComponents?.length && !defense.type.requiresComponents.some((reqId) =>
-                  installedDefenses.some((d) => d.type.id === reqId)
-                ) && (
-                  <Chip
-                    icon={<WarningIcon />}
-                    label="Missing Components"
-                    size="small"
-                    color="warning"
-                    variant="outlined"
-                  />
-                )}
-                {/* Edit button only for defenses where quantity/size can be changed */}
-                {!defense.type.hullPercentage && (!defense.type.coverage || defense.type.allowVariableSize) && (
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEditDefense(defense)}
-                    color="primary"
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                )}
-                <IconButton
-                  size="small"
-                  onClick={() => handleRemoveDefense(defense.id)}
-                  color="error"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
-      )}
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
+        >
+          <Tab label={`Screens (${installedByCategory.screen})`} />
+          <Tab label={`Countermeasures (${installedByCategory.countermeasure})`} />
+          <Tab label={`Repair Systems (${installedByCategory.repair})`} />
+        </Tabs>
+      </Box>
 
-      {/* Configure Form - appears when a defense is selected */}
-      {selectedDefense && (
-        <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingDefenseId ? 'Edit' : 'Add'} {selectedDefense.name}
-          </Typography>
-
-          {/* Screen conflict warning */}
-          {screenConflict && (
-            <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-              Only one screen type may be active at a time. You already have: {installedScreenNames.join(', ')}
-            </Alert>
-          )}
-
-          {/* Repair system conflict warning */}
-          {repairConflict && (
-            <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-              Only one repair system can be installed. Adding this will replace: {installedRepairSystem?.type.name}
-            </Alert>
-          )}
-
-          {/* Countermeasure incompatibility warning */}
-          {incompatibleCountermeasures.length > 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-              Cannot be used at the same time as: {incompatibleCountermeasures.join(', ')}
-            </Alert>
-          )}
-
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {/* Quantity input - for non-percentage, non-coverage systems, or coverage systems with allowVariableSize */}
-            {!selectedDefense.hullPercentage && (!selectedDefense.coverage || selectedDefense.allowVariableSize) && (
-              <TextField
-                label={selectedDefense.allowVariableSize ? "Size" : "Quantity"}
-                type="number"
-                size="small"
-                value={defenseQuantity}
-                onChange={(e) => setDefenseQuantity(e.target.value)}
-                inputProps={{ min: selectedDefense.allowVariableSize ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) : 1 }}
-                helperText={selectedDefense.allowVariableSize ? `Min: ${calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints)} (full coverage)` : undefined}
-                sx={{ width: selectedDefense.allowVariableSize ? 180 : 100 }}
-              />
-            )}
-            {/* Coverage-based systems without variable size show auto-calculated size */}
-            {selectedDefense.coverage > 0 && !selectedDefense.allowVariableSize && (
-              <Chip
-                label={`Size: ${previewQuantity} (auto-calculated for full coverage)`}
-                size="small"
-                color="info"
-                variant="outlined"
-              />
-            )}
-
-            {/* Preview stats */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Chip label={`HP: ${previewHullPts}`} size="small" variant="outlined" />
-              <Chip label={`Power: ${previewPower}`} size="small" variant="outlined" />
-              <Chip label={`Cost: ${formatCost(previewCost)}`} size="small" variant="outlined" />
-            </Box>
-
-            {/* Buttons */}
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={editingDefenseId ? <SaveIcon /> : <AddIcon />}
-                onClick={handleAddDefense}
-              >
-                {editingDefenseId ? 'Save' : 'Add'}
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  setSelectedDefense(null);
-                  setDefenseQuantity('1');
-                  setEditingDefenseId(null);
-                }}
-              >
-                Cancel
-              </Button>
-            </Box>
-          </Box>
-
-          {/* Description */}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {selectedDefense.description}
-          </Typography>
-          <Typography variant="body2" color="primary" sx={{ mt: 0.5 }}>
-            Effect: {selectedDefense.effect}
-          </Typography>
-        </Paper>
-      )}
-
-      {/* Available Defenses by Category */}
-      {Object.entries(defensesByCategory).map(([category, defenses]) => {
-        // Skip shield-component category - these are shown inline under their parent system
-        if (category === 'shield-component' || defenses.length === 0) return null;
-        
-        return (
-          <Paper key={category} variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-              {getCategoryLabel(category)}
-            </Typography>
-            <TableContainer sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
-              <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }} align="center">PL</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">HP</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">Power</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }} align="right">Cost</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }} align="right">Coverage</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 250, whiteSpace: 'nowrap' }}>Effect</TableCell>
-                    <TableCell sx={headerCellSx}>Description</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {defenses.map((defense) => {
-                    const isSelected = selectedDefense?.id === defense.id;
-                    const hpDisplay = defense.hullPercentage ? `${defense.hullPoints}%` : defense.hullPoints;
-                    const powerDisplay = defense.powerPerHull ? `${defense.powerRequired}/HP` : defense.powerRequired;
-                    const costDisplay = defense.costPerHull ? `${formatCost(defense.cost)}/HP` : formatCost(defense.cost);
-                    const coverageDisplay = defense.coverage > 0 ? `${defense.coverage} HP` : '-';
-
-                    // Get required components for this defense (if any and if the defense is installed)
-                    const requiredComponents = defense.requiresComponents && 
-                      installedDefenses.some((d) => d.type.id === defense.id)
-                        ? availableDefenses.filter((d) => defense.requiresComponents?.includes(d.id))
-                        : [];
-
-                    return (
-                      <Fragment key={defense.id}>
-                        <TableRow
-                          hover
-                          selected={isSelected}
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => handleSelectDefense(defense)}
-                        >
-                          <TableCell>
-                            <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
-                              {defense.name}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">{defense.progressLevel}</TableCell>
-                          <TableCell>
-                            <Tooltip title={defense.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
-                              <Typography variant="caption">
-                                {defense.techTracks.length > 0 ? defense.techTracks.join(', ') : 'None'}
-                              </Typography>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell align="right">{hpDisplay}</TableCell>
-                          <TableCell align="right">{powerDisplay}</TableCell>
-                          <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{costDisplay}</TableCell>
-                          <TableCell align="right">{coverageDisplay}</TableCell>
-                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{defense.effect}</TableCell>
-                          <TableCell>
-                            <Tooltip title={defense.description} placement="left">
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  lineHeight: 1.3,
-                                }}
-                              >
-                                {defense.description}
-                              </Typography>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                        {/* Render required components inline under parent */}
-                        {requiredComponents.map((comp) => {
-                          const compIsSelected = selectedDefense?.id === comp.id;
-                          const compHpDisplay = comp.hullPercentage ? `${comp.hullPoints}%` : comp.hullPoints;
-                          const compPowerDisplay = comp.powerPerHull ? `${comp.powerRequired}/HP` : comp.powerRequired;
-                          const compCostDisplay = comp.costPerHull ? `${formatCost(comp.cost)}/HP` : formatCost(comp.cost);
-                          const compCoverageDisplay = comp.coverage > 0 ? `${comp.coverage} HP` : '-';
-
-                          return (
-                            <TableRow
-                              key={comp.id}
-                              hover
-                              selected={compIsSelected}
-                              sx={{ cursor: 'pointer', bgcolor: 'action.hover' }}
-                              onClick={() => handleSelectDefense(comp)}
-                            >
-                              <TableCell>
-                                <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap', pl: 2 }}>
-                                  ↳ {comp.name}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="center">{comp.progressLevel}</TableCell>
-                              <TableCell>
-                                <Tooltip title={comp.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
-                                  <Typography variant="caption">
-                                    {comp.techTracks.length > 0 ? comp.techTracks.join(', ') : 'None'}
-                                  </Typography>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell align="right">{compHpDisplay}</TableCell>
-                              <TableCell align="right">{compPowerDisplay}</TableCell>
-                              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{compCostDisplay}</TableCell>
-                              <TableCell align="right">{compCoverageDisplay}</TableCell>
-                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{comp.effect}</TableCell>
-                              <TableCell>
-                                <Tooltip title={comp.description} placement="left">
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      lineHeight: 1.3,
-                                    }}
-                                  >
-                                    {comp.description}
-                                  </Typography>
-                                </Tooltip>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </Fragment>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        );
-      })}
+      <TabPanel value={activeTab} index={0}>
+        {renderScreensTab()}
+      </TabPanel>
+      <TabPanel value={activeTab} index={1}>
+        {renderCountermeasuresTab()}
+      </TabPanel>
+      <TabPanel value={activeTab} index={2}>
+        {renderRepairTab()}
+      </TabPanel>
     </Box>
   );
 }

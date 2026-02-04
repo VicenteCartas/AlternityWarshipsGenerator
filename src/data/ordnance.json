@@ -93,7 +93,7 @@
       "expansionCostPerHp": 25000,
       "rateOfFire": 4,
       "spaceReload": true,
-      "ordnanceTypes": ["missile", "mine"],
+      "ordnanceTypes": ["missile", "bomb", "mine"],
       "description": "Vertical launch cells similar to modern naval vessels. Flexible ordnance loading."
     }
   ],
