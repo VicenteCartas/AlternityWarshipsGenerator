@@ -492,15 +492,6 @@ export function PowerPlantSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<SaveIcon />}
-                              onClick={handleAddPowerPlant}
-                              disabled={validationErrors.length > 0}
-                            >
-                              Update
-                            </Button>
-                            <Button
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -509,6 +500,15 @@ export function PowerPlantSelection({
                               }}
                             >
                               Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddPowerPlant}
+                              disabled={validationErrors.length > 0}
+                            >
+                              Update
                             </Button>
                           </Box>
                         </Box>
@@ -612,15 +612,6 @@ export function PowerPlantSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<SaveIcon />}
-                              onClick={handleAddFuelTank}
-                              disabled={fuelTankValidationErrors.length > 0}
-                            >
-                              Update
-                            </Button>
-                            <Button
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -629,6 +620,15 @@ export function PowerPlantSelection({
                               }}
                             >
                               Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddFuelTank}
+                              disabled={fuelTankValidationErrors.length > 0}
+                            >
+                              Update
                             </Button>
                           </Box>
                         </Box>
@@ -674,15 +674,6 @@ export function PowerPlantSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddFuelTank}
-                  disabled={fuelTankValidationErrors.length > 0}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -691,6 +682,15 @@ export function PowerPlantSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddFuelTank}
+                  disabled={fuelTankValidationErrors.length > 0}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
@@ -756,15 +756,6 @@ export function PowerPlantSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddPowerPlant}
-                  disabled={validationErrors.length > 0}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -773,6 +764,15 @@ export function PowerPlantSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddPowerPlant}
+                  disabled={validationErrors.length > 0}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>

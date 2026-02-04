@@ -310,22 +310,37 @@ export function WeaponSelection({
   // Check if bank mount is available for selected weapon (PL8+ beam weapons only)
   const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon, activeTab) : false;
 
-  // Render installed weapons section
-  const renderInstalledWeapons = () => {
-    if (installedWeapons.length === 0) return null;
+  // Filter installed weapons by category
+  const getInstalledWeaponsByCategory = (category: WeaponCategory) => {
+    return installedWeapons.filter((w) => w.category === category);
+  };
+
+  // Render installed weapons section for a specific category
+  const renderInstalledWeaponsForCategory = (category: WeaponCategory) => {
+    const categoryWeapons = getInstalledWeaponsByCategory(category);
+    if (categoryWeapons.length === 0) return null;
+
+    const categoryNames: Record<WeaponCategory, string> = {
+      beam: 'Beam Weapons',
+      projectile: 'Projectile Weapons',
+      torpedo: 'Torpedo Weapons',
+      special: 'Special Weapons',
+      ordnance: 'Ordnance',
+    };
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Installed Weapons
+          Installed {categoryNames[category]}
         </Typography>
         <Stack spacing={1}>
-          {installedWeapons.map((weapon) => {
+          {categoryWeapons.map((weapon) => {
             // Check if this weapon's battery has Fire Control
             const batteryKey = createWeaponBatteryKey(weapon.weaponType.id, weapon.mountType);
             const hasFireControl = batteryHasFireControl(batteryKey, installedCommandControl);
             const fireControls = getFireControlsForBattery(batteryKey, installedCommandControl);
             const fireControlName = fireControls.length > 0 ? fireControls[0].type.name : undefined;
+            const isEditing = editingWeaponId === weapon.id;
             
             return (
               <React.Fragment key={weapon.id}>
@@ -336,7 +351,7 @@ export function WeaponSelection({
                     alignItems: 'center',
                     gap: 1,
                     p: 1,
-                    bgcolor: editingWeaponId === weapon.id ? 'primary.light' : 'action.hover',
+                    bgcolor: 'action.hover',
                     borderRadius: 1,
                   }}
                 >
@@ -371,7 +386,7 @@ export function WeaponSelection({
                   </IconButton>
                 </Box>
                 {/* Render edit form inline when this weapon is being edited */}
-                {editingWeaponId === weapon.id && renderConfigureForm()}
+                {isEditing && renderConfigureForm()}
               </React.Fragment>
             );
           })}
@@ -384,9 +399,8 @@ export function WeaponSelection({
   const renderConfigureForm = () => {
     if (!selectedWeapon) return null;
 
-    // Build dynamic weapon name based on configuration
+    // Build dynamic weapon name based on configuration (without quantity prefix)
     const configuredWeaponName = [
-      `${quantity}×`,
       getMountTypeName(mountType),
       gunConfiguration !== 'single' ? getGunConfigurationName(gunConfiguration) : '',
       concealed ? 'Concealed' : '',
@@ -394,27 +408,27 @@ export function WeaponSelection({
     ].filter(Boolean).join(' ');
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
-        {/* Header with dynamic name and quantity */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {configuredWeaponName}
-            </Typography>
-            <TextField
-              type="number"
-              size="small"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              inputProps={{ min: 1, max: 99, style: { textAlign: 'center', width: 40 } }}
-              sx={{ width: 70 }}
-              label="Qty"
-            />
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Chip label={`PL${selectedWeapon.progressLevel}`} size="small" variant="outlined" />
-            <Chip label={`${selectedWeapon.damageType}/${selectedWeapon.firepower}`} size="small" variant="outlined" />
-          </Stack>
+      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1, mb: 2 }}>
+        {/* Header with quantity spinner, name, and stats */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          <TextField
+            type="number"
+            size="small"
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            inputProps={{ min: 1, max: 99, style: { textAlign: 'center', width: 40 } }}
+            sx={{ width: 70 }}
+            label="Quantity"
+          />
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            {configuredWeaponName}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {quantity > 1 
+              ? `HP: ${previewHullPts * quantity} | Power: ${previewPower * quantity} | Cost: ${formatCost(previewCost * quantity)}`
+              : `HP: ${previewHullPts} | Power: ${previewPower} | Cost: ${formatCost(previewCost)}`
+            }
+          </Typography>
         </Box>
 
         <Divider sx={{ mb: 2 }} />
@@ -512,53 +526,42 @@ export function WeaponSelection({
               </Typography>
             )}
           </Box>
-        </Box>
 
-        <Divider sx={{ my: 2 }} />
-
-        {/* Summary Card */}
-        <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'action.hover' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Typography variant="body2" color="text.secondary">
-                Arcs: {formatArcs(selectedArcs)}
-              </Typography>
-            </Stack>
-            
-            <Stack direction="row" spacing={1} alignItems="center">
-              {quantity > 1 ? (
-                <>
-                  <Chip label={`${previewHullPts * quantity} HP`} size="small" variant="outlined" color="default" />
-                  <Chip label={`${previewPower * quantity} Pwr`} size="small" variant="outlined" color="primary" />
-                  <Chip label={formatCost(previewCost * quantity)} size="small" variant="outlined" color="default" />
-                </>
-              ) : (
-                <>
-                  <Chip label={`${previewHullPts} HP`} size="small" variant="outlined" color="default" />
-                  <Chip label={`${previewPower} Pwr`} size="small" variant="outlined" color="primary" />
-                  <Chip label={formatCost(previewCost)} size="small" variant="outlined" color="default" />
-                </>
-              )}
-            </Stack>
+          {/* Column 3: Actions */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={editingWeaponId ? <SaveIcon /> : <AddIcon />}
+                onClick={handleAddWeapon}
+                disabled={!!arcValidationError}
+              >
+                {editingWeaponId ? 'Update' : 'Add'}
+              </Button>
+            </Box>
           </Box>
-        </Paper>
-
-        {/* Actions */}
-        <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-          <Button variant="outlined" size="small" onClick={handleCancelEdit}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={editingWeaponId ? <SaveIcon /> : <AddIcon />}
-            onClick={handleAddWeapon}
-            disabled={!!arcValidationError}
-          >
-            {editingWeaponId ? 'Save Changes' : 'Add Weapon'}
-          </Button>
         </Box>
-      </Paper>
+      </Box>
+    );
+  };
+
+  // Render beam weapons tab content
+  const renderBeamWeaponsTab = () => {
+    return (
+      <Box>
+        {/* Installed beam weapons */}
+        {renderInstalledWeaponsForCategory('beam')}
+
+        {/* Add new weapon form - only show when adding (not editing) */}
+        {!editingWeaponId && renderConfigureForm()}
+
+        {/* Available beam weapons grid */}
+        {renderBeamWeaponsGrid()}
+      </Box>
     );
   };
 
@@ -588,14 +591,16 @@ export function WeaponSelection({
               <TableRow
                 key={weapon.id}
                 hover
+                selected={selectedWeapon?.id === weapon.id}
                 onClick={() => handleSelectWeapon(weapon)}
                 sx={{
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedWeapon?.id === weapon.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
                 }}
               >
                 <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
@@ -617,6 +622,22 @@ export function WeaponSelection({
           </TableBody>
         </Table>
       </TableContainer>
+    );
+  };
+
+  // Render projectile weapons tab content
+  const renderProjectileWeaponsTab = () => {
+    return (
+      <Box>
+        {/* Installed projectile weapons */}
+        {renderInstalledWeaponsForCategory('projectile')}
+
+        {/* Add new weapon form - only show when adding (not editing) */}
+        {!editingWeaponId && renderConfigureForm()}
+
+        {/* Available projectile weapons grid */}
+        {renderProjectileWeaponsGrid()}
+      </Box>
     );
   };
 
@@ -646,14 +667,16 @@ export function WeaponSelection({
               <TableRow
                 key={weapon.id}
                 hover
+                selected={selectedWeapon?.id === weapon.id}
                 onClick={() => handleSelectWeapon(weapon)}
                 sx={{
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedWeapon?.id === weapon.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
                 }}
               >
                 <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
@@ -704,14 +727,16 @@ export function WeaponSelection({
               <TableRow
                 key={weapon.id}
                 hover
+                selected={selectedWeapon?.id === weapon.id}
                 onClick={() => handleSelectWeapon(weapon)}
                 sx={{
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedWeapon?.id === weapon.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
                 }}
               >
                 <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
@@ -733,6 +758,38 @@ export function WeaponSelection({
           </TableBody>
         </Table>
       </TableContainer>
+    );
+  };
+
+  // Render torpedo weapons tab content
+  const renderTorpedoWeaponsTab = () => {
+    return (
+      <Box>
+        {/* Installed torpedo weapons */}
+        {renderInstalledWeaponsForCategory('torpedo')}
+
+        {/* Add new weapon form - only show when adding (not editing) */}
+        {!editingWeaponId && renderConfigureForm()}
+
+        {/* Available torpedo weapons grid */}
+        {renderTorpedoWeaponsGrid()}
+      </Box>
+    );
+  };
+
+  // Render special weapons tab content
+  const renderSpecialWeaponsTab = () => {
+    return (
+      <Box>
+        {/* Installed special weapons */}
+        {renderInstalledWeaponsForCategory('special')}
+
+        {/* Add new weapon form - only show when adding (not editing) */}
+        {!editingWeaponId && renderConfigureForm()}
+
+        {/* Available special weapons grid */}
+        {renderSpecialWeaponsGrid()}
+      </Box>
     );
   };
 
@@ -763,14 +820,16 @@ export function WeaponSelection({
               <TableRow
                 key={weapon.id}
                 hover
+                selected={selectedWeapon?.id === weapon.id}
                 onClick={() => handleSelectWeapon(weapon)}
                 sx={{
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedWeapon?.id === weapon.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
                 }}
               >
                 <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
@@ -825,60 +884,55 @@ export function WeaponSelection({
         </Box>
       </Paper>
 
-      {/* Installed Weapons */}
-      {renderInstalledWeapons()}
-
-      {/* Installed Launch Systems */}
-      <InstalledLaunchSystems
-        launchSystems={launchSystems}
-        ordnanceDesigns={ordnanceDesigns}
-        onEdit={(ls) => {
-          setEditingLaunchSystemId(ls.id);
-          // Don't switch tabs - edit form renders inline
-        }}
-        onRemove={(id) => {
-          onLaunchSystemsChange(launchSystems.filter(ls => ls.id !== id));
-          if (editingLaunchSystemId === id) {
-            setEditingLaunchSystemId(null);
-          }
-        }}
-        editingId={editingLaunchSystemId}
-        onLaunchSystemsChange={onLaunchSystemsChange}
-        onOrdnanceDesignsChange={onOrdnanceDesignsChange}
-        onEditComplete={() => setEditingLaunchSystemId(null)}
-        designProgressLevel={designProgressLevel}
-        designTechTracks={designTechTracks}
-      />
-
-      {/* Configure Form - only shown here when adding a new weapon (not editing) */}
-      {!editingWeaponId && renderConfigureForm()}
-
       {/* Weapon Category Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tab label="Beam" value="beam" />
-          <Tab label="Projectile" value="projectile" />
-          <Tab label="Ordnance" value="ordnance" />
-          <Tab label="Torpedo" value="torpedo" />
-          <Tab label="Special" value="special" />
+          <Tab label={`Beam (${getInstalledWeaponsByCategory('beam').length})`} value="beam" />
+          <Tab label={`Projectile (${getInstalledWeaponsByCategory('projectile').length})`} value="projectile" />
+          <Tab label={`Ordnance (${launchSystems.length})`} value="ordnance" />
+          <Tab label={`Torpedo (${getInstalledWeaponsByCategory('torpedo').length})`} value="torpedo" />
+          <Tab label={`Special (${getInstalledWeaponsByCategory('special').length})`} value="special" />
         </Tabs>
       </Box>
 
       {/* Tab Content */}
-      {activeTab === 'beam' && renderBeamWeaponsGrid()}
-      {activeTab === 'projectile' && renderProjectileWeaponsGrid()}
-      {activeTab === 'torpedo' && renderTorpedoWeaponsGrid()}
-      {activeTab === 'special' && renderSpecialWeaponsGrid()}
+      {activeTab === 'beam' && renderBeamWeaponsTab()}
+      {activeTab === 'projectile' && renderProjectileWeaponsTab()}
+      {activeTab === 'torpedo' && renderTorpedoWeaponsTab()}
+      {activeTab === 'special' && renderSpecialWeaponsTab()}
       {activeTab === 'ordnance' && (
-        <OrdnanceSelection
-          ordnanceDesigns={ordnanceDesigns}
-          launchSystems={launchSystems}
-          designProgressLevel={designProgressLevel}
-          designTechTracks={designTechTracks}
-          onOrdnanceDesignsChange={onOrdnanceDesignsChange}
-          onLaunchSystemsChange={onLaunchSystemsChange}
-          onEditComplete={() => setEditingLaunchSystemId(null)}
-        />
+        <>
+          {/* Installed Launch Systems */}
+          <InstalledLaunchSystems
+            launchSystems={launchSystems}
+            ordnanceDesigns={ordnanceDesigns}
+            onEdit={(ls) => {
+              setEditingLaunchSystemId(ls.id);
+              // Don't switch tabs - edit form renders inline
+            }}
+            onRemove={(id) => {
+              onLaunchSystemsChange(launchSystems.filter(ls => ls.id !== id));
+              if (editingLaunchSystemId === id) {
+                setEditingLaunchSystemId(null);
+              }
+            }}
+            editingId={editingLaunchSystemId}
+            onLaunchSystemsChange={onLaunchSystemsChange}
+            onOrdnanceDesignsChange={onOrdnanceDesignsChange}
+            onEditComplete={() => setEditingLaunchSystemId(null)}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+          />
+          <OrdnanceSelection
+            ordnanceDesigns={ordnanceDesigns}
+            launchSystems={launchSystems}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            onOrdnanceDesignsChange={onOrdnanceDesignsChange}
+            onLaunchSystemsChange={onLaunchSystemsChange}
+            onEditComplete={() => setEditingLaunchSystemId(null)}
+          />
+        </>
       )}
     </Box>
   );

@@ -18,7 +18,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
   Stepper,
   Step,
   StepLabel,
@@ -132,7 +131,7 @@ export function InstalledLaunchSystems({
                   alignItems: 'center',
                   gap: 1,
                   p: 1,
-                  bgcolor: isEditing ? 'primary.light' : 'action.hover',
+                  bgcolor: isEditing ? 'action.selected' : 'action.hover',
                   borderRadius: 1,
                 }}
               >
@@ -556,13 +555,11 @@ export function OrdnanceSelection({
     const remainingCap = totalCap - usedCap;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {`${quantity}× `}{selectedLaunchSystem.name}
-            </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+          {/* Column 1: Quantity + Name + Stats */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
             <TextField
               type="number"
               size="small"
@@ -570,8 +567,11 @@ export function OrdnanceSelection({
               onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
               inputProps={{ min: 1, max: 99, style: { textAlign: 'center', width: 40 } }}
               sx={{ width: 70 }}
-              label="Qty"
+              label="Quantity"
             />
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              {selectedLaunchSystem.name}
+            </Typography>
             {selectedLaunchSystem.expandable && (
               <TextField
                 type="number"
@@ -583,27 +583,28 @@ export function OrdnanceSelection({
                 label="Extra HP"
               />
             )}
+            {previewStats && (
+              <Typography variant="caption" color="text.secondary">
+                {previewStats.hullPoints} HP | {previewStats.powerRequired} Power | {previewStats.totalCapacity} Cap | ROF {selectedLaunchSystem.rateOfFire} | {formatCost(previewStats.cost)}
+              </Typography>
+            )}
           </Box>
-          <Stack direction="row" spacing={1}>
-            <Chip label={`PL${selectedLaunchSystem.progressLevel}`} size="small" variant="outlined" />
-            <Chip label={`ROF: ${selectedLaunchSystem.rateOfFire}`} size="small" variant="outlined" />
-          </Stack>
+
+          {/* Column 2: Actions */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
+              onClick={handleAddOrUpdateLaunchSystem}
+            >
+              {isEditing ? 'Update' : 'Add'}
+            </Button>
+          </Box>
         </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
-        {/* Summary */}
-        {previewStats && (
-          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'action.hover', mb: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Chip label={`${previewStats.hullPoints} HP`} size="small" variant="outlined" />
-              <Chip label={`${previewStats.powerRequired} Power`} size="small" variant="outlined" />
-              <Chip label={`${previewStats.totalCapacity} Capacity`} size="small" variant="outlined" color="primary" />
-              <Chip label={formatCost(previewStats.cost)} size="small" variant="outlined" />
-              <Chip label={selectedLaunchSystem.spaceReload ? 'Space Reload' : 'No Space Reload'} size="small" variant="outlined" color={selectedLaunchSystem.spaceReload ? 'success' : 'default'} />
-            </Stack>
-          </Paper>
-        )}
 
         {/* Ordnance Loading Section - Only when editing */}
         {isEditing && currentLS && (
@@ -721,22 +722,7 @@ export function OrdnanceSelection({
             </Stack>
           </>
         )}
-
-        {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-          <Button variant="outlined" size="small" onClick={handleCancelEdit}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
-            onClick={handleAddOrUpdateLaunchSystem}
-          >
-            {isEditing ? 'Save Changes' : 'Add Launch System'}
-          </Button>
-        </Box>
-      </Paper>
+      </Box>
     );
   };
 
@@ -765,14 +751,12 @@ export function OrdnanceSelection({
               <TableRow
                 key={ls.id}
                 hover
+                selected={selectedLaunchSystem?.id === ls.id}
                 onClick={() => handleSelectLaunchSystem(ls)}
                 sx={{
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  ...(selectedLaunchSystem?.id === ls.id && {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
-                  }),
+                  '&.Mui-selected': { backgroundColor: 'action.selected' },
+                  '&.Mui-selected:hover': { backgroundColor: 'action.selected' },
                 }}
               >
                 <TableCell sx={{ minWidth: 180 }}>{ls.name}</TableCell>

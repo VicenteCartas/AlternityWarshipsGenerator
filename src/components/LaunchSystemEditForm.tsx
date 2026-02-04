@@ -18,7 +18,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
   Stepper,
   Step,
   StepLabel,
@@ -358,13 +357,11 @@ export function LaunchSystemEditForm({
 
   return (
     <>
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {`${quantity}× `}{launchSystemType.name}
-            </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+          {/* Column 1: Quantity + Name + Stats */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
             <TextField
               type="number"
               size="small"
@@ -372,8 +369,11 @@ export function LaunchSystemEditForm({
               onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
               inputProps={{ min: 1, max: 99, style: { textAlign: 'center', width: 40 } }}
               sx={{ width: 70 }}
-              label="Qty"
+              label="Quantity"
             />
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              {launchSystemType.name}
+            </Typography>
             {launchSystemType.expandable && (
               <TextField
                 type="number"
@@ -385,27 +385,28 @@ export function LaunchSystemEditForm({
                 label="Extra HP"
               />
             )}
+            {previewStats && (
+              <Typography variant="caption" color="text.secondary">
+                {previewStats.hullPoints} HP | {previewStats.powerRequired} Power | {previewStats.totalCapacity} Cap | ROF {launchSystemType.rateOfFire} | {formatCost(previewStats.cost)}
+              </Typography>
+            )}
           </Box>
-          <Stack direction="row" spacing={1}>
-            <Chip label={`PL${launchSystemType.progressLevel}`} size="small" variant="outlined" />
-            <Chip label={`ROF: ${launchSystemType.rateOfFire}`} size="small" variant="outlined" />
-          </Stack>
+
+          {/* Column 2: Actions */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" size="small" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<SaveIcon />}
+              onClick={handleSave}
+            >
+              Update
+            </Button>
+          </Box>
         </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
-        {/* Summary */}
-        {previewStats && (
-          <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'action.hover', mb: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Chip label={`${previewStats.hullPoints} HP`} size="small" variant="outlined" />
-              <Chip label={`${previewStats.powerRequired} Power`} size="small" variant="outlined" />
-              <Chip label={`${previewStats.totalCapacity} Capacity`} size="small" variant="outlined" color="primary" />
-              <Chip label={formatCost(previewStats.cost)} size="small" variant="outlined" />
-              <Chip label={launchSystemType.spaceReload ? 'Space Reload' : 'No Space Reload'} size="small" variant="outlined" color={launchSystemType.spaceReload ? 'success' : 'default'} />
-            </Stack>
-          </Paper>
-        )}
 
         {/* Ordnance Loading Section */}
         <Typography variant="subtitle2" gutterBottom>
@@ -519,22 +520,7 @@ export function LaunchSystemEditForm({
             </Button>
           )}
         </Stack>
-
-        {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-          <Button variant="outlined" size="small" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-          >
-            Save Changes
-          </Button>
-        </Box>
-      </Paper>
+      </Box>
 
       {/* Missile Design Dialog */}
       {designCategory === 'missile' && (

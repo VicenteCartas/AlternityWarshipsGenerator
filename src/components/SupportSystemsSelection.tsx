@@ -364,14 +364,6 @@ export function SupportSystemsSelection({
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddLifeSupport}
-                          >
-                            Save
-                          </Button>
-                          <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
@@ -380,6 +372,14 @@ export function SupportSystemsSelection({
                             }}
                           >
                             Cancel
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddLifeSupport}
+                          >
+                            Update
                           </Button>
                         </Box>
                       </Box>
@@ -418,14 +418,6 @@ export function SupportSystemsSelection({
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddLifeSupport}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -434,6 +426,14 @@ export function SupportSystemsSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddLifeSupport}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
@@ -465,7 +465,16 @@ export function SupportSystemsSelection({
               <TableRow
                 key={type.id}
                 hover
-                sx={{ cursor: 'pointer' }}
+                selected={selectedLifeSupport?.id === type.id}
+                sx={{
+                  cursor: 'pointer',
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
                 onClick={() => handleSelectLifeSupport(type)}
               >
                 <TableCell>
@@ -592,14 +601,6 @@ export function SupportSystemsSelection({
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddAccommodation}
-                          >
-                            Save
-                          </Button>
-                          <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
@@ -608,6 +609,14 @@ export function SupportSystemsSelection({
                             }}
                           >
                             Cancel
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddAccommodation}
+                          >
+                            Update
                           </Button>
                         </Box>
                       </Box>
@@ -646,14 +655,6 @@ export function SupportSystemsSelection({
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddAccommodation}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -662,6 +663,14 @@ export function SupportSystemsSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddAccommodation}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
@@ -695,7 +704,16 @@ export function SupportSystemsSelection({
               <TableRow
                 key={type.id}
                 hover
-                sx={{ cursor: 'pointer' }}
+                selected={selectedAccommodation?.id === type.id}
+                sx={{
+                  cursor: 'pointer',
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
                 onClick={() => handleSelectAccommodation(type)}
               >
                 <TableCell>
@@ -849,14 +867,6 @@ export function SupportSystemsSelection({
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddStoreSystem}
-                          >
-                            Save
-                          </Button>
-                          <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
@@ -865,6 +875,14 @@ export function SupportSystemsSelection({
                             }}
                           >
                             Cancel
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddStoreSystem}
+                          >
+                            Update
                           </Button>
                         </Box>
                       </Box>
@@ -905,14 +923,6 @@ export function SupportSystemsSelection({
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddStoreSystem}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -921,6 +931,14 @@ export function SupportSystemsSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddStoreSystem}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
@@ -952,7 +970,16 @@ export function SupportSystemsSelection({
               <TableRow
                 key={type.id}
                 hover
-                sx={{ cursor: 'pointer' }}
+                selected={selectedStoreSystem?.id === type.id}
+                sx={{
+                  cursor: 'pointer',
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
                 onClick={() => handleSelectStoreSystem(type)}
               >
                 <TableCell>
@@ -1275,18 +1302,17 @@ export function SupportSystemsSelection({
       </Paper>
 
       {/* Tabs */}
-      <Paper variant="outlined" sx={{ mb: 2 }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs
           value={activeTab}
           onChange={(_, newValue) => setActiveTab(newValue)}
-          variant="fullWidth"
         >
           <Tab label={`Life Support (${installedLifeSupport.length})`} />
           <Tab label={`Accommodations (${installedAccommodations.length})`} />
           <Tab label={`Stores (${installedStoreSystems.length})`} />
           <Tab label="Gravity" />
         </Tabs>
-      </Paper>
+      </Box>
 
       <TabPanel value={activeTab} index={0}>
         {renderLifeSupportTab()}

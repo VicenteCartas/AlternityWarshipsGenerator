@@ -131,7 +131,7 @@ export function ArmorSelection({
             color="secondary"
             onClick={onArmorClear}
           >
-            Clear Armor
+            Remove Armor
           </Button>
         )}
       </Box>

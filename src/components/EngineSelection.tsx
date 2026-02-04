@@ -550,15 +550,6 @@ export function EngineSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<SaveIcon />}
-                              onClick={handleAddEngine}
-                              disabled={validationErrors.length > 0}
-                            >
-                              Save
-                            </Button>
-                            <Button
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -567,6 +558,15 @@ export function EngineSelection({
                               }}
                             >
                               Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddEngine}
+                              disabled={validationErrors.length > 0}
+                            >
+                              Update
                             </Button>
                           </Box>
                         </Box>
@@ -671,15 +671,6 @@ export function EngineSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<SaveIcon />}
-                              onClick={handleAddFuelTank}
-                              disabled={fuelTankValidationErrors.length > 0}
-                            >
-                              Update
-                            </Button>
-                            <Button
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -688,6 +679,15 @@ export function EngineSelection({
                               }}
                             >
                               Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={handleAddFuelTank}
+                              disabled={fuelTankValidationErrors.length > 0}
+                            >
+                              Update
                             </Button>
                           </Box>
                         </Box>
@@ -733,15 +733,6 @@ export function EngineSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddFuelTank}
-                  disabled={fuelTankValidationErrors.length > 0}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -750,6 +741,15 @@ export function EngineSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddFuelTank}
+                  disabled={fuelTankValidationErrors.length > 0}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
@@ -814,15 +814,6 @@ export function EngineSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddEngine}
-                  disabled={validationErrors.length > 0}
-                >
-                  Add
-                </Button>
-                <Button
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -831,6 +822,15 @@ export function EngineSelection({
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddEngine}
+                  disabled={validationErrors.length > 0}
+                >
+                  Add
                 </Button>
               </Box>
             </Box>
