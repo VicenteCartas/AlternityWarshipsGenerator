@@ -454,6 +454,7 @@ export function CommandControlSelection({
             const isFireControl = system.type.linkedSystemType === 'weapon';
             const isSensorControl = system.type.linkedSystemType === 'sensor';
             const isLinkedControl = isFireControl || isSensorControl;
+            const isEditing = editingSystemId === system.id;
             
             // Determine linked system info
             let linkedSystemName: string | undefined;
@@ -485,62 +486,65 @@ export function CommandControlSelection({
             }
             
             return (
-              <Box
-                key={system.id}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ flex: 1 }}>
-                  {system.type.name}
-                  {system.quantity > 1 && ` (×${system.quantity})`}
-                </Typography>
-                <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
-                <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
-                {system.type.requiresCore && system.type.effect && (
-                  <Chip label={system.type.effect} size="small" color="primary" variant="outlined" />
-                )}
-                {isOrphaned && (
-                  <Chip
-                    icon={<WarningIcon />}
-                    label="Orphaned"
-                    size="small"
-                    color="error"
-                    variant="outlined"
-                  />
-                )}
-                {linkedSystemName && (
-                  <Chip
-                    label={linkedSystemName}
-                    size="small"
-                    color="success"
-                    variant="outlined"
-                  />
-                )}
-                {hasQualityIssue && (
-                  <Chip
-                    icon={<WarningIcon />}
-                    label={hasCore ? "Exceeds Core" : "No Core"}
-                    size="small"
-                    color="warning"
-                    variant="outlined"
-                  />
-                )}
-                {(!isLinkedControl || isOrphaned) && (
-                  <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                    <EditIcon fontSize="small" />
+              <Fragment key={system.id}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {system.type.name}
+                    {system.quantity > 1 && ` (×${system.quantity})`}
+                  </Typography>
+                  <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
+                  <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
+                  <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                  {system.type.requiresCore && system.type.effect && (
+                    <Chip label={system.type.effect} size="small" color="primary" variant="outlined" />
+                  )}
+                  {isOrphaned && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label="Orphaned"
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                    />
+                  )}
+                  {linkedSystemName && (
+                    <Chip
+                      label={linkedSystemName}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
+                  {hasQualityIssue && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label={hasCore ? "Exceeds Core" : "No Core"}
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
+                  )}
+                  {(!isLinkedControl || isOrphaned) && (
+                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
-                )}
-                <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && renderInlineEditForm()}
+              </Fragment>
             );
           })}
         </Stack>
@@ -548,9 +552,88 @@ export function CommandControlSelection({
     );
   };
 
-  // Render the configure form
-  const renderConfigureForm = () => {
-    if (!selectedSystem) return null;
+  // Render inline edit form (shown under the item being edited)
+  const renderInlineEditForm = () => {
+    if (!selectedSystem || !editingSystemId) return null;
+
+    const isFireControl = selectedSystem.linkedSystemType === 'weapon';
+    const isSensorControl = selectedSystem.linkedSystemType === 'sensor';
+    const isLinkedControl = isFireControl || isSensorControl;
+
+    return (
+      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+        {controlQualityWarning && (
+          <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
+            {coreQuality 
+              ? `This ${selectedSystem.quality} control requires a ${selectedSystem.quality} or better computer core (you have ${coreQuality}).`
+              : 'This control computer requires a computer core to be installed.'}
+          </Alert>
+        )}
+
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* Systems with coverage-based HP (command deck, computer cores) */}
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && (
+            <TextField
+              label="Quantity"
+              type="number"
+              size="small"
+              value={systemQuantity}
+              onChange={(e) => setSystemQuantity(e.target.value)}
+              inputProps={{ min: 1 }}
+              sx={{ width: 100 }}
+            />
+          )}
+          {/* Standard systems: simple quantity */}
+          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && (
+            <TextField
+              label="Quantity"
+              type="number"
+              size="small"
+              value={systemQuantity}
+              onChange={(e) => setSystemQuantity(e.target.value)}
+              inputProps={{ min: 1, ...(selectedSystem.maxQuantity && { max: selectedSystem.maxQuantity }) }}
+              helperText={selectedSystem.maxQuantity ? `Max ${selectedSystem.maxQuantity}` : undefined}
+              sx={{ width: 100 }}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} |
+              Power: {previewPower} |
+              Cost: {formatCost(previewCost)}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedSystem(null);
+                  setSystemQuantity('1');
+                  setEditingSystemId(null);
+                  setSelectedBattery('');
+                  setSelectedSensorId('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<SaveIcon />}
+                onClick={handleAddSystem}
+              >
+                Save
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
+  // Render the add form (shown above the grid when adding new)
+  const renderAddForm = () => {
+    if (!selectedSystem || editingSystemId) return null;
 
     const isFireControl = selectedSystem.linkedSystemType === 'weapon';
     const isSensorControl = selectedSystem.linkedSystemType === 'sensor';
@@ -563,10 +646,6 @@ export function CommandControlSelection({
 
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-          {editingSystemId ? 'Edit' : 'Add'} {selectedSystem.name}
-        </Typography>
-
         {controlQualityWarning && (
           <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
             {coreQuality 
@@ -659,15 +738,6 @@ export function CommandControlSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
-                variant="contained"
-                size="small"
-                startIcon={editingSystemId ? <SaveIcon /> : <AddIcon />}
-                onClick={handleAddSystem}
-                disabled={!canAdd}
-              >
-                {editingSystemId ? 'Save' : 'Add'}
-              </Button>
-              <Button
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -679,6 +749,15 @@ export function CommandControlSelection({
                 }}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddSystem}
+                disabled={!canAdd}
+              >
+                Add
               </Button>
             </Box>
           </Box>
@@ -929,32 +1008,32 @@ export function CommandControlSelection({
       </Paper>
 
       {/* Tabs */}
-      <Paper variant="outlined" sx={{ mb: 2 }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label={`Command (${getInstalledByCategory('command').length})`} />
           <Tab label={`Communications (${getInstalledByCategory('communication').length})`} />
           <Tab label={`Computers (${getInstalledByCategory('computer').length})`} />
         </Tabs>
-      </Paper>
+      </Box>
 
       {/* Command Tab */}
       <TabPanel value={activeTab} index={0}>
         {renderInstalledSystems('command')}
-        {selectedSystem?.category === 'command' && renderConfigureForm()}
+        {selectedSystem?.category === 'command' && renderAddForm()}
         {renderSystemTable(systemsByCategory.command)}
       </TabPanel>
 
       {/* Communications Tab */}
       <TabPanel value={activeTab} index={1}>
         {renderInstalledSystems('communication')}
-        {selectedSystem?.category === 'communication' && renderConfigureForm()}
+        {selectedSystem?.category === 'communication' && renderAddForm()}
         {renderSystemTable(systemsByCategory.communication)}
       </TabPanel>
 
       {/* Computers Tab */}
       <TabPanel value={activeTab} index={2}>
         {renderInstalledSystems('computer')}
-        {selectedSystem?.category === 'computer' && renderConfigureForm()}
+        {selectedSystem?.category === 'computer' && renderAddForm()}
         {renderComputerTable()}
       </TabPanel>
     </Box>

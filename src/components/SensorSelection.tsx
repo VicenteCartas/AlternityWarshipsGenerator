@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, Fragment } from 'react';
 import {
   Box,
   Typography,
@@ -91,6 +91,14 @@ export function SensorSelection({
     [installedSensors]
   );
 
+  // Filter installed sensors by category
+  const filteredInstalledSensors = useMemo(() => {
+    if (categoryFilter === 'all') {
+      return installedSensors;
+    }
+    return installedSensors.filter((s) => s.type.category === categoryFilter);
+  }, [installedSensors, categoryFilter]);
+
   // Handlers
   const handleCategoryFilterChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -170,61 +178,65 @@ export function SensorSelection({
 
   // Render installed sensors section
   const renderInstalledSensors = () => {
-    if (installedSensors.length === 0) return null;
+    if (filteredInstalledSensors.length === 0) return null;
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Installed Sensors
+          Installed Sensors{categoryFilter !== 'all' ? ` (${getCategoryLabel(categoryFilter)})` : ''}
         </Typography>
         <Stack spacing={1}>
-          {installedSensors.map((sensor) => {
+          {filteredInstalledSensors.map((sensor) => {
             // Check if this sensor has Sensor Control assigned
             const hasSensorControl = sensorHasSensorControl(sensor.id, installedCommandControl);
             const sensorControl = getSensorControlForSensor(sensor.id, installedCommandControl);
             const sensorControlName = sensorControl?.type.name;
+            const isEditing = editingSensorId === sensor.id;
             
             return (
-              <Box
-                key={sensor.id}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ flex: 1 }}>
-                  {sensor.type.name}
-                  {sensor.quantity > 1 && ` (×${sensor.quantity})`}
-                  <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    [{getCategoryLabel(sensor.type.category)}]
+              <Fragment key={sensor.id}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {sensor.type.name}
+                    {sensor.quantity > 1 && ` (×${sensor.quantity})`}
+                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      [{getCategoryLabel(sensor.type.category)}]
+                    </Typography>
                   </Typography>
-                </Typography>
-                <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
-                <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
-                <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
-                <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
-                <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
-                {hasSensorControl && (
-                  <Tooltip title={sensorControlName}>
-                    <Chip 
-                      label={`${sensorControl!.type.quality} Sensor Control`} 
-                      size="small" 
-                      color="success" 
-                      variant="outlined" 
-                    />
-                  </Tooltip>
-                )}
-                <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
+                  <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
+                  <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
+                  <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
+                  <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
+                  <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
+                  {hasSensorControl && (
+                    <Tooltip title={sensorControlName}>
+                      <Chip 
+                        label={`${sensorControl!.type.quality} Sensor Control`} 
+                        size="small" 
+                        color="success" 
+                        variant="outlined" 
+                      />
+                    </Tooltip>
+                  )}
+                  <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && renderInlineEditForm()}
+              </Fragment>
             );
           })}
         </Stack>
@@ -232,18 +244,14 @@ export function SensorSelection({
     );
   };
 
-  // Render the configure form
-  const renderConfigureForm = () => {
-    if (!selectedSensor) return null;
+  // Render inline edit form (shown under the item being edited)
+  const renderInlineEditForm = () => {
+    if (!selectedSensor || !editingSensorId) return null;
 
     const maxQuantity = calculateUnitsForFullCoverage(selectedSensor);
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-          {editingSensorId ? 'Edit' : 'Add'} {selectedSensor.name}
-        </Typography>
-
+      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
             label="Quantity"
@@ -252,7 +260,7 @@ export function SensorSelection({
             value={sensorQuantity}
             onChange={(e) => setSensorQuantity(e.target.value)}
             inputProps={{ min: 1 }}
-            helperText={`${maxQuantity} units for full arc coverage`}
+            helperText={`${maxQuantity} for full arc coverage`}
             sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -264,13 +272,62 @@ export function SensorSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedSensor(null);
+                  setSensorQuantity('1');
+                  setEditingSensorId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
                 variant="contained"
                 size="small"
-                startIcon={editingSensorId ? <SaveIcon /> : <AddIcon />}
+                startIcon={<SaveIcon />}
                 onClick={handleAddSensor}
               >
-                {editingSensorId ? 'Save' : 'Add'}
+                Save
               </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
+  // Render the add form (shown above the grid when adding new)
+  const renderAddForm = () => {
+    if (!selectedSensor || editingSensorId) return null;
+
+    const maxQuantity = calculateUnitsForFullCoverage(selectedSensor);
+
+    return (
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+          Add {selectedSensor.name}
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label="Quantity"
+            type="number"
+            size="small"
+            value={sensorQuantity}
+            onChange={(e) => setSensorQuantity(e.target.value)}
+            inputProps={{ min: 1 }}
+            helperText={`${maxQuantity} for full arc coverage`}
+            sx={{ width: 150 }}
+          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} |
+              Power: {previewPower} |
+              Cost: {formatCost(previewCost)} |
+              Arcs: {previewArcs}/4
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
                 size="small"
@@ -281,6 +338,14 @@ export function SensorSelection({
                 }}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddSensor}
+              >
+                Add
               </Button>
             </Box>
           </Box>
@@ -313,8 +378,8 @@ export function SensorSelection({
       {/* Installed Sensors */}
       {renderInstalledSensors()}
 
-      {/* Configuration Form (appears when sensor selected) */}
-      {renderConfigureForm()}
+      {/* Add Form (appears when sensor selected for adding, not editing) */}
+      {renderAddForm()}
 
       {/* Category Filter */}
       <Box sx={{ mb: 2 }}>
@@ -366,8 +431,12 @@ export function SensorSelection({
                     selected={isSelected}
                     sx={{
                       cursor: 'pointer',
-                      '&:hover': { bgcolor: 'action.hover' },
-                      '&.Mui-selected': { bgcolor: 'primary.light' },
+                      '&.Mui-selected': {
+                        backgroundColor: 'action.selected',
+                      },
+                      '&.Mui-selected:hover': {
+                        backgroundColor: 'action.selected',
+                      },
                     }}
                     onClick={() => handleSelectSensor(sensor)}
                   >

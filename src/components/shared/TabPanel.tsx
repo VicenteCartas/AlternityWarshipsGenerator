@@ -22,7 +22,7 @@ export function TabPanel({ children, value, index, id }: TabPanelProps) {
       id={panelId}
       aria-labelledby={`tab-${index}`}
     >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <Box>{children}</Box>}
     </div>
   );
 }
