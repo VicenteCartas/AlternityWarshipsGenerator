@@ -4,26 +4,6 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ---
 
-## 3. Code Quality - Code Smells
-
-### 3.1 Overly Long Components - TODO
-**Impact:** High - affects maintainability
-
-| Component | Lines | Recommendation |
-|-----------|-------|----------------|
-| SummarySelection.tsx | ~1,300 | Split into 4 sub-components (one per tab) |
-| EngineSelection.tsx | ~1,000 | Extract fuel tank logic to separate component |
-| HangarMiscSelection.tsx | ~980 | Split by tab |
-| WeaponSelection.tsx | ~960 | Extract weapon tables to shared component |
-| PowerPlantSelection.tsx | ~930 | Extract fuel tank logic |
-
-### 3.2 Unused Parameters with Underscores - TODO
-**Impact:** Low
-Several functions have unused `_hull`, `_designProgressLevel` parameters that were added for future validation.
-**Fix:** Either implement validation or remove from signatures.
-
----
-
 ## 4. Code Quality - UI Duplication
 
 ### 4.1 Table Header Styling - TODO

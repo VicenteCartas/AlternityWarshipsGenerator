@@ -287,23 +287,12 @@ export function PowerPlantSelection({
     if (!selectedType) return [];
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     
-    const plantsForValidation = editingInstallationId
-      ? installedPowerPlants.filter((p) => p.id !== editingInstallationId)
-      : installedPowerPlants;
-    
-    const hpUsedByOtherPlants = editingInstallationId
-      ? calculateTotalPowerPlantStats(plantsForValidation, installedFuelTanks).totalHullPoints
-      : totalStats.totalHullPoints;
-    
     const validation = validatePowerPlantInstallation(
       selectedType,
-      hullPoints,
-      hull,
-      plantsForValidation,
-      usedHullPoints + hpUsedByOtherPlants
+      hullPoints
     );
     return validation.errors;
-  }, [selectedType, hullPointsInput, hull, installedPowerPlants, installedFuelTanks, usedHullPoints, totalStats.totalHullPoints, editingInstallationId]);
+  }, [selectedType, hullPointsInput]);
 
   const fuelTankValidationErrors = useMemo(() => {
     if (!addingFuelTankForType) return [];

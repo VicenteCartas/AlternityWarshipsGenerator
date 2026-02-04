@@ -238,10 +238,7 @@ export function calculateTotalEngineStats(
  */
 export function validateEngineInstallation(
   engine: EngineType,
-  hullPoints: number,
-  _hull: Hull,
-  _usedHullPoints: number,
-  _availablePower: number
+  hullPoints: number
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   

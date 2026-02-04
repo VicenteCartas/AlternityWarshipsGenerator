@@ -1005,7 +1005,6 @@ function App() {
         }
         return (
           <SensorSelection
-            hull={selectedHull}
             installedSensors={installedSensors}
             installedCommandControl={installedCommandControl}
             designProgressLevel={designProgressLevel}

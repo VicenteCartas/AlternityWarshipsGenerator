@@ -137,24 +137,10 @@ export function EngineSelection({
     const enginesForValidation = editingid
       ? installedEngines.filter((e) => e.id !== editingid)
       : installedEngines;
-    
-    const hpUsedByOtherEngines = editingid
-      ? calculateTotalEngineStats(enginesForValidation, installedFuelTanks, hull).totalHullPoints
-      : totalStats.totalHullPoints;
-
-    // Calculate remaining power after current engines
-    const powerUsedByOthers = enginesForValidation.reduce(
-      (sum, e) => sum + calculateEnginePowerRequired(e.type, e.hullPoints),
-      0
-    );
-    const remainingPower = availablePower - powerUsedByOthers;
 
     const validation = validateEngineInstallation(
       selectedType,
-      hullPoints,
-      hull,
-      usedHullPoints + hpUsedByOtherEngines,
-      remainingPower
+      hullPoints
     );
 
     if (!validation.valid) {
@@ -293,29 +279,12 @@ export function EngineSelection({
     if (!selectedType) return [];
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
     
-    const enginesForValidation = editingid
-      ? installedEngines.filter((e) => e.id !== editingid)
-      : installedEngines;
-    
-    const hpUsedByOtherEngines = editingid
-      ? calculateTotalEngineStats(enginesForValidation, installedFuelTanks, hull).totalHullPoints
-      : totalStats.totalHullPoints;
-    
-    const powerUsedByOthers = enginesForValidation.reduce(
-      (sum, e) => sum + calculateEnginePowerRequired(e.type, e.hullPoints),
-      0
-    );
-    const remainingPower = availablePower - powerUsedByOthers;
-    
     const validation = validateEngineInstallation(
       selectedType,
-      hullPoints,
-      hull,
-      usedHullPoints + hpUsedByOtherEngines,
-      remainingPower
+      hullPoints
     );
     return validation.errors;
-  }, [selectedType, hullPointsInput, hull, usedHullPoints, totalStats.totalHullPoints, availablePower, installedEngines, installedFuelTanks, editingid]);
+  }, [selectedType, hullPointsInput]);
 
   const fuelTankValidationErrors = useMemo(() => {
     if (!addingFuelTankForType) return [];

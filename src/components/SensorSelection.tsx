@@ -22,7 +22,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
-import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
@@ -39,7 +38,6 @@ import { TechTrackCell, TruncatedDescription } from './shared';
 import { sensorHasSensorControl, getSensorControlForSensor } from '../services/commandControlService';
 
 interface SensorSelectionProps {
-  hull: Hull;
   installedSensors: InstalledSensor[];
   installedCommandControl: InstalledCommandControlSystem[];
   designProgressLevel: ProgressLevel;
@@ -48,7 +46,6 @@ interface SensorSelectionProps {
 }
 
 export function SensorSelection({
-  hull: _hull,
   installedSensors,
   installedCommandControl,
   designProgressLevel,

@@ -164,10 +164,7 @@ export function calculateTotalPowerPlantStats(
  */
 export function validatePowerPlantInstallation(
   plant: PowerPlantType,
-  hullPoints: number,
-  _hull: Hull,
-  _existingInstallations: InstalledPowerPlant[],
-  _usedHullPoints: number
+  hullPoints: number
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   

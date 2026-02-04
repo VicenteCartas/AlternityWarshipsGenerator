@@ -30,7 +30,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
-import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
   OrdnanceCategory,
@@ -180,28 +179,23 @@ export function InstalledLaunchSystems({
 }
 
 interface OrdnanceSelectionProps {
-  hull: Hull;  // Reserved for future use (hull-specific restrictions)
   ordnanceDesigns: OrdnanceDesign[];
   launchSystems: InstalledLaunchSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onOrdnanceDesignsChange: (designs: OrdnanceDesign[]) => void;
   onLaunchSystemsChange: (systems: InstalledLaunchSystem[]) => void;
-  /** ID of launch system to edit (triggers edit mode when set) */
-  editLaunchSystemId?: string | null;
   /** Called when edit is complete or cancelled */
   onEditComplete?: () => void;
 }
 
 export function OrdnanceSelection({
-  hull: _hull,  // Reserved for future use
   ordnanceDesigns,
   launchSystems,
   designProgressLevel,
   designTechTracks,
   onOrdnanceDesignsChange,
   onLaunchSystemsChange,
-  editLaunchSystemId: _editLaunchSystemId,
   onEditComplete,
 }: OrdnanceSelectionProps) {
   // Configuration panel state
@@ -318,10 +312,6 @@ export function OrdnanceSelection({
     if (!selectedLaunchSystem) return null;
     return calculateLaunchSystemStats(selectedLaunchSystem, quantity, extraHp);
   }, [selectedLaunchSystem, quantity, extraHp]);
-
-  // Note: editLaunchSystemId from props is used for INLINE editing in InstalledLaunchSystems (rendered by WeaponSelection).
-  // OrdnanceSelection's configure form is only for ADDING new launch systems, not editing existing ones.
-  // Editing is handled entirely by LaunchSystemEditForm rendered inline in InstalledLaunchSystems.
 
   // Handlers
   const handleSelectLaunchSystem = (ls: LaunchSystem) => {

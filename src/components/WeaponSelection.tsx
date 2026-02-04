@@ -924,14 +924,12 @@ export function WeaponSelection({
       {activeTab === 'special' && renderSpecialWeaponsGrid()}
       {activeTab === 'ordnance' && (
         <OrdnanceSelection
-          hull={hull}
           ordnanceDesigns={ordnanceDesigns}
           launchSystems={launchSystems}
           designProgressLevel={designProgressLevel}
           designTechTracks={designTechTracks}
           onOrdnanceDesignsChange={onOrdnanceDesignsChange}
           onLaunchSystemsChange={onLaunchSystemsChange}
-          editLaunchSystemId={editingLaunchSystemId}
           onEditComplete={() => setEditingLaunchSystemId(null)}
         />
       )}
