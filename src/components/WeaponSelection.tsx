@@ -26,6 +26,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import { headerCellSx } from '../constants/tableStyles';
 import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
@@ -63,7 +64,7 @@ import {
   formatArcs,
   validateArcs,
 } from '../services/weaponService';
-import { formatCost, formatAccuracyModifier } from '../services/formatters';
+import { formatCost, formatAccuracyModifier, getAreaEffectTooltip } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
 import { createWeaponBatteryKey, batteryHasFireControl, getFireControlsForBattery } from '../services/commandControlService';
 
@@ -131,6 +132,11 @@ export function WeaponSelection({
     () => calculateWeaponStats(installedWeapons),
     [installedWeapons]
   );
+
+  // Check for launchers without ordnance
+  const launchersWithoutOrdnance = useMemo(() => {
+    return launchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length;
+  }, [launchSystems]);
 
   // Check if selected weapon can use zero arcs
   const weaponCanUseZero = selectedWeapon ? canUseZeroArcs(selectedWeapon) : false;
@@ -371,10 +377,24 @@ export function WeaponSelection({
                   {hasFireControl && (
                     <Tooltip title={fireControlName}>
                       <Chip 
-                        label={`${fireControls[0].type.quality} Fire Control`} 
+                        label={fireControls[0].type.quality 
+                          ? `${fireControls[0].type.quality} Fire Control`
+                          : fireControls[0].type.name
+                        } 
                         size="small" 
                         color="success" 
                         variant="outlined" 
+                      />
+                    </Tooltip>
+                  )}
+                  {weapon.weaponType.area && (
+                    <Tooltip title={getAreaEffectTooltip(weapon.weaponType.area)}>
+                      <Chip 
+                        label="Area" 
+                        size="small" 
+                        color="warning" 
+                        variant="outlined"
+                        icon={<BlurCircularIcon />}
                       />
                     </Tooltip>
                   )}
@@ -580,6 +600,7 @@ export function WeaponSelection({
               <TableCell sx={headerCellSx}>Cost</TableCell>
               <TableCell sx={headerCellSx}>Acc</TableCell>
               <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Area</TableCell>
               <TableCell sx={headerCellSx}>Type/FP</TableCell>
               <TableCell sx={headerCellSx}>Damage</TableCell>
               <TableCell sx={headerCellSx}>Fire</TableCell>
@@ -611,6 +632,13 @@ export function WeaponSelection({
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(weapon.cost)}</TableCell>
                 <TableCell>{formatAccuracyModifier(weapon.accuracyModifier)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
+                <TableCell>
+                  {weapon.area ? (
+                    <Tooltip title={getAreaEffectTooltip(weapon.area)}>
+                      <BlurCircularIcon fontSize="small" color="primary" />
+                    </Tooltip>
+                  ) : '-'}
+                </TableCell>
                 <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
@@ -656,6 +684,7 @@ export function WeaponSelection({
               <TableCell sx={headerCellSx}>Cost</TableCell>
               <TableCell sx={headerCellSx}>Acc</TableCell>
               <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Area</TableCell>
               <TableCell sx={headerCellSx}>Type/FP</TableCell>
               <TableCell sx={headerCellSx}>Damage</TableCell>
               <TableCell sx={headerCellSx}>Fire</TableCell>
@@ -687,6 +716,13 @@ export function WeaponSelection({
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(weapon.cost)}</TableCell>
                 <TableCell>{formatAccuracyModifier(weapon.accuracyModifier)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
+                <TableCell>
+                  {weapon.area ? (
+                    <Tooltip title={getAreaEffectTooltip(weapon.area)}>
+                      <BlurCircularIcon fontSize="small" color="primary" />
+                    </Tooltip>
+                  ) : '-'}
+                </TableCell>
                 <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
@@ -716,6 +752,7 @@ export function WeaponSelection({
               <TableCell sx={headerCellSx}>Cost</TableCell>
               <TableCell sx={headerCellSx}>Acc</TableCell>
               <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Area</TableCell>
               <TableCell sx={headerCellSx}>Type/FP</TableCell>
               <TableCell sx={headerCellSx}>Damage</TableCell>
               <TableCell sx={headerCellSx}>Fire</TableCell>
@@ -747,6 +784,13 @@ export function WeaponSelection({
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(weapon.cost)}</TableCell>
                 <TableCell>{formatAccuracyModifier(weapon.accuracyModifier)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
+                <TableCell>
+                  {weapon.area ? (
+                    <Tooltip title={getAreaEffectTooltip(weapon.area)}>
+                      <BlurCircularIcon fontSize="small" color="primary" />
+                    </Tooltip>
+                  ) : '-'}
+                </TableCell>
                 <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
@@ -808,6 +852,7 @@ export function WeaponSelection({
               <TableCell sx={headerCellSx}>Cost</TableCell>
               <TableCell sx={headerCellSx}>Acc</TableCell>
               <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Area</TableCell>
               <TableCell sx={headerCellSx}>Type/FP</TableCell>
               <TableCell sx={headerCellSx}>Damage</TableCell>
               <TableCell sx={headerCellSx}>Fire</TableCell>
@@ -840,6 +885,13 @@ export function WeaponSelection({
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(weapon.cost)}</TableCell>
                 <TableCell>{formatAccuracyModifier(weapon.accuracyModifier)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${weapon.rangeShort}/${weapon.rangeMedium}/${weapon.rangeLong}`}</TableCell>
+                <TableCell>
+                  {weapon.area ? (
+                    <Tooltip title={getAreaEffectTooltip(weapon.area)}>
+                      <BlurCircularIcon fontSize="small" color="primary" />
+                    </Tooltip>
+                  ) : '-'}
+                </TableCell>
                 <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
@@ -874,6 +926,12 @@ export function WeaponSelection({
           )}
           {stats.projectileCount > 0 && (
             <Chip label={`Projectiles: ${stats.projectileCount}`} color="primary" variant="outlined" />
+          )}
+          {launchSystems.length > 0 && (
+            <Chip label={`Launchers: ${launchSystems.length}`} color="primary" variant="outlined" />
+          )}
+          {launchersWithoutOrdnance > 0 && (
+            <Chip label={`${launchersWithoutOrdnance} Launcher${launchersWithoutOrdnance !== 1 ? 's' : ''} without ordnance`} color="warning" variant="outlined" />
           )}
           {stats.torpedoCount > 0 && (
             <Chip label={`Torpedoes: ${stats.torpedoCount}`} color="primary" variant="outlined" />

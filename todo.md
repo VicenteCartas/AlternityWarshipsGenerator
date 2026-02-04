@@ -6,10 +6,6 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ### Complete Core Features
 
-- [ ] Add real-time validation for HP/Power budgets
-- [ ] Show Area of Effect weapons information
-- [ ] Fix Attack Computer
-- [ ] Sensors as Tabs
 - [ ] Add some more information to some of the small texts
 - [ ] Fix PDF export
 

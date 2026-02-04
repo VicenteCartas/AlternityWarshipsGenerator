@@ -15,13 +15,19 @@ import {
   Alert,
   Card,
   CardMedia,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
+import ErrorIcon from '@mui/icons-material/Error';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { TabPanel } from './shared';
 import { FireDiagram, DamageZonesOverview } from './summary';
+import { PdfExportDialog, type PdfExportOptions } from './PdfExportDialog';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -114,6 +120,7 @@ export function SummarySelection({
   onShowNotification,
 }: SummarySelectionProps) {
   const [tabValue, setTabValue] = useState(0);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -284,28 +291,110 @@ export function SummarySelection({
 
   // Validation checks
   const validationIssues = useMemo(() => {
-    const issues: { type: 'error' | 'warning'; message: string }[] = [];
+    const errors: string[] = [];
+    const warnings: string[] = [];
     
     if (!hull) {
-      issues.push({ type: 'error', message: 'No hull selected' });
-      return issues;
+      errors.push('No hull selected');
+      return { errors, warnings };
     }
 
     if (stats) {
+      // ERROR: HP exceeded
       if (stats.remainingHP < 0) {
-        issues.push({ type: 'error', message: `Hull points exceeded by ${Math.abs(stats.remainingHP)} HP` });
+        errors.push(`Hull points exceeded by ${Math.abs(stats.remainingHP)} HP`);
       }
+
+      // ERROR: Mandatory steps not completed
+      const missingMandatory: string[] = [];
       if (installedPowerPlants.length === 0) {
-        issues.push({ type: 'warning', message: 'No power plants installed' });
+        missingMandatory.push('Power Plant');
       }
       if (installedEngines.length === 0) {
-        issues.push({ type: 'warning', message: 'No engines installed' });
+        missingMandatory.push('Engines');
+      }
+      if (missingMandatory.length > 0) {
+        errors.push(`Mandatory steps not completed: ${missingMandatory.join(', ')}`);
+      }
+
+      // WARNING: Power consumption exceeds generation (excluding FTL)
+      const powerConsumedWithoutFTL = stats.powerConsumed - (stats.ftl?.power || 0);
+      if (powerConsumedWithoutFTL > stats.powerGenerated) {
+        warnings.push(`Power consumption (${powerConsumedWithoutFTL}) exceeds generation (${stats.powerGenerated}) - excluding FTL`);
+      }
+
+      // WARNING: Optional steps not completed
+      const missingOptional: string[] = [];
+      if (!selectedArmorWeight) {
+        missingOptional.push('Armor');
+      }
+      if (!installedFTLDrive) {
+        missingOptional.push('FTL Drive');
+      }
+      if (installedLifeSupport.length === 0 && installedAccommodations.length === 0) {
+        missingOptional.push('Support Systems');
+      }
+      if (installedWeapons.length === 0 && installedLaunchSystems.length === 0) {
+        missingOptional.push('Weapons');
+      }
+      if (installedDefenses.length === 0) {
+        missingOptional.push('Defenses');
       }
       if (installedCommandControl.length === 0) {
-        issues.push({ type: 'warning', message: 'No command & control systems installed' });
+        missingOptional.push('Command & Control');
       }
       if (installedSensors.length === 0) {
-        issues.push({ type: 'warning', message: 'No sensors installed' });
+        missingOptional.push('Sensors');
+      }
+      if (missingOptional.length > 0) {
+        warnings.push(`Optional steps not completed: ${missingOptional.join(', ')}`);
+      }
+
+      // Calculate support stats for accommodation/life support warnings
+      const supportStats = calculateSupportSystemsStats(
+        installedLifeSupport, 
+        installedAccommodations, 
+        installedStoreSystems, 
+        installedGravitySystems, 
+        designProgressLevel, 
+        []
+      );
+      
+      // Calculate hangar/misc stats for evacuation capacity
+      const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+      
+      // Calculate sensor stats for active sensors check
+      const sensorStats = calculateSensorStats(installedSensors);
+
+      // WARNING: Crew without 100% accommodations
+      if (hull.crew > 0 && supportStats.crewCapacity < hull.crew) {
+        const percentage = Math.round((supportStats.crewCapacity / hull.crew) * 100);
+        warnings.push(`Crew accommodations at ${percentage}% (${supportStats.crewCapacity}/${hull.crew} crew)`);
+      }
+
+      // WARNING: Hull without 100% life support coverage
+      if (supportStats.totalCoverage < hull.hullPoints) {
+        const percentage = Math.round((supportStats.totalCoverage / hull.hullPoints) * 100);
+        warnings.push(`Life support coverage at ${percentage}% (${supportStats.totalCoverage}/${hull.hullPoints} HP)`);
+      }
+
+      // WARNING: Crew without 100% escape systems
+      if (hull.crew > 0 && hangarMiscStats.totalEvacCapacity < hull.crew) {
+        const percentage = Math.round((hangarMiscStats.totalEvacCapacity / hull.crew) * 100);
+        warnings.push(`Evacuation capacity at ${percentage}% (${hangarMiscStats.totalEvacCapacity}/${hull.crew} crew)`);
+      }
+
+      // WARNING: Launchers without ordnance
+      const launchersWithoutOrdnance = installedLaunchSystems.filter(
+        ls => !ls.loadout || ls.loadout.length === 0
+      ).length;
+      if (launchersWithoutOrdnance > 0) {
+        warnings.push(`${launchersWithoutOrdnance} launcher${launchersWithoutOrdnance !== 1 ? 's' : ''} without ordnance`);
+      }
+
+      // WARNING: No active sensors
+      if (!sensorStats.hasBasicSensors) {
+        warnings.push('No active sensors installed');
       }
     }
 
@@ -314,19 +403,41 @@ export function SummarySelection({
     const unassignedCount = damageDiagramZones.length === 0 ? 'all' : 
       damageDiagramZones.every(z => z.systems.length === 0) ? 'all' : null;
     if (unassignedCount === 'all') {
-      issues.push({ type: 'warning', message: 'No systems assigned to damage diagram' });
+      warnings.push('No systems assigned to damage diagram');
     } else {
       // Check for zones over limit
       for (const zone of damageDiagramZones) {
         if (zone.totalHullPoints > zone.maxHullPoints) {
-          issues.push({ type: 'warning', message: `Zone ${zone.code} exceeds HP limit (${zone.totalHullPoints}/${zoneLimit})` });
+          warnings.push(`Zone ${zone.code} exceeds HP limit (${zone.totalHullPoints}/${zoneLimit})`);
           break; // Only show one zone warning
         }
       }
     }
 
-    return issues;
-  }, [hull, stats, installedPowerPlants, installedEngines, installedCommandControl, installedSensors, damageDiagramZones]);
+    return { errors, warnings };
+  }, [
+    hull, 
+    stats, 
+    selectedArmorWeight,
+    installedPowerPlants, 
+    installedEngines, 
+    installedFTLDrive,
+    installedLifeSupport,
+    installedAccommodations,
+    installedStoreSystems,
+    installedGravitySystems,
+    installedWeapons,
+    installedLaunchSystems,
+    installedDefenses,
+    installedCommandControl, 
+    installedSensors,
+    installedHangarMisc,
+    damageDiagramZones,
+    designProgressLevel,
+  ]);
+
+  // Check if there are any issues
+  const hasIssues = validationIssues.errors.length > 0 || validationIssues.warnings.length > 0;
 
   if (!hull) {
     return (
@@ -342,7 +453,7 @@ export function SummarySelection({
     ? `data:${shipDescription.imageMimeType};base64,${shipDescription.imageData}`
     : null;
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (options: PdfExportOptions) => {
     if (!hull) return;
     
     try {
@@ -385,7 +496,7 @@ export function SummarySelection({
         installedHangarMisc,
         damageDiagramZones,
         targetDirectory,
-      });
+      }, options);
       const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;
       
       // Create action to open the PDF file
@@ -409,24 +520,17 @@ export function SummarySelection({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Validation alerts */}
-      {validationIssues.length > 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {validationIssues.map((issue, index) => (
-            <Alert 
-              key={index} 
-              severity={issue.type} 
-              icon={issue.type === 'error' ? <WarningIcon /> : undefined}
-            >
-              {issue.message}
-            </Alert>
-          ))}
-        </Box>
-      )}
-
       {/* Tabs and Export Button */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="summary tabs">
+          {hasIssues && (
+            <Tab 
+              label={`Issues (${validationIssues.errors.length + validationIssues.warnings.length})`} 
+              id="summary-tab-issues" 
+              aria-controls="summary-tabpanel-issues"
+              sx={{ color: validationIssues.errors.length > 0 ? 'error.main' : 'warning.main' }}
+            />
+          )}
           <Tab label="Description" id="summary-tab-0" aria-controls="summary-tabpanel-0" />
           <Tab label="Systems" id="summary-tab-1" aria-controls="summary-tabpanel-1" />
           <Tab label="Fire Diagram" id="summary-tab-2" aria-controls="summary-tabpanel-2" />
@@ -435,15 +539,75 @@ export function SummarySelection({
         <Button
           variant="contained"
           startIcon={<PictureAsPdfIcon />}
-          onClick={handleExportPDF}
+          onClick={() => setExportDialogOpen(true)}
           sx={{ mr: 1 }}
         >
           Export PDF
         </Button>
       </Box>
 
+      {/* PDF Export Dialog */}
+      <PdfExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        onExport={handleExportPDF}
+        hasImage={!!(shipDescription.imageData && shipDescription.imageMimeType)}
+        hasLore={!!(shipDescription.lore && shipDescription.lore.trim().length > 0)}
+      />
+
+      {/* Issues Tab - only shown when there are issues */}
+      {hasIssues && (
+        <TabPanel value={tabValue} index={0}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Errors Section */}
+            {validationIssues.errors.length > 0 && (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="h6" color="error.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ErrorIcon /> Errors ({validationIssues.errors.length})
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  These issues must be resolved before the ship design is valid.
+                </Typography>
+                <List dense>
+                  {validationIssues.errors.map((error, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ErrorIcon color="error" fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText primary={error} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            )}
+
+            {/* Warnings Section */}
+            {validationIssues.warnings.length > 0 && (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <WarningIcon /> Warnings ({validationIssues.warnings.length})
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  These are recommendations that may affect ship functionality.
+                </Typography>
+                <List dense>
+                  {validationIssues.warnings.map((warning, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <WarningIcon color="warning" fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText primary={warning} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            )}
+          </Box>
+        </TabPanel>
+      )}
+
       {/* Description Tab */}
-      <TabPanel value={tabValue} index={0}>
+      <TabPanel value={tabValue} index={hasIssues ? 1 : 0}>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {/* Image upload section */}
           <Box sx={{ minWidth: 300, maxWidth: 400 }}>
@@ -519,7 +683,7 @@ export function SummarySelection({
       </TabPanel>
 
       {/* Systems Tab */}
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={hasIssues ? 2 : 1}>
         {stats && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Hull & Armor */}
@@ -892,12 +1056,12 @@ export function SummarySelection({
       </TabPanel>
 
       {/* Fire Diagram Tab */}
-      <TabPanel value={tabValue} index={2}>
+            <TabPanel value={tabValue} index={hasIssues ? 3 : 2}>
         <FireDiagram weapons={installedWeapons} warshipName={warshipName} hullName={hull.name} />
       </TabPanel>
 
       {/* Damage Zones Tab */}
-      <TabPanel value={tabValue} index={3}>
+            <TabPanel value={tabValue} index={hasIssues ? 4 : 3}>
         <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} selectedArmorWeight={selectedArmorWeight} selectedArmorType={selectedArmorType} />
       </TabPanel>
     </Box>

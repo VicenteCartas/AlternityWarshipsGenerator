@@ -41,10 +41,28 @@ interface ShipData {
   targetDirectory?: string; // Directory to save the PDF (from current file path or Documents)
 }
 
+export interface PdfExportOptions {
+  includeDefenses: boolean;
+  includeDamageZones: boolean;
+  includeCombat: boolean;
+  includeFireDiagram: boolean;
+  includeNotes: boolean;
+  includeShipDescription: boolean;
+}
+
+const defaultExportOptions: PdfExportOptions = {
+  includeDefenses: true,
+  includeDamageZones: true,
+  includeCombat: true,
+  includeFireDiagram: true,
+  includeNotes: true,
+  includeShipDescription: true,
+};
+
 // Helper to capitalize first letter
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export async function exportShipToPDF(data: ShipData): Promise<string> {
+export async function exportShipToPDF(data: ShipData, options: PdfExportOptions = defaultExportOptions): Promise<string> {
   const {
     warshipName,
     hull,
@@ -141,54 +159,55 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
   y += 8;
 
   // ============ DEFENSES SECTION ============
-  addSectionTitle('Defenses');
-  y += 3;
+  if (options.includeDefenses) {
+    addSectionTitle('Defenses');
+    y += 3;
 
-  // Row 1: Toughness and Armor Type
-  const col1 = margin;
-  const col2 = margin + contentWidth / 3;
-  
-  addLabel('Toughness', hull.toughness.toString(), col1);
-  
-  if (selectedArmorWeight && selectedArmorType) {
-    addLabel('Armor', `${capitalize(selectedArmorWeight)} ${selectedArmorType.name}`, col2);
-  } else {
-    addLabel('Armor', 'None', col2);
-  }
-  y += 5;
-
-  // Row 2: Armor Protection values
-  if (selectedArmorWeight && selectedArmorType) {
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`Protection – LI: ${selectedArmorType.protectionLI}  |  HI: ${selectedArmorType.protectionHI}  |  En: ${selectedArmorType.protectionEn}`, col1, y);
+    // Row 1: Toughness and Armor Type
+    const col1 = margin;
+    const col2 = margin + contentWidth / 3;
+    
+    addLabel('Toughness', hull.toughness.toString(), col1);
+    
+    if (selectedArmorWeight && selectedArmorType) {
+      addLabel('Armor', `${capitalize(selectedArmorWeight)} ${selectedArmorType.name}`, col2);
+    } else {
+      addLabel('Armor', 'None', col2);
+    }
     y += 5;
-  }
 
-  // Damage Track with fillable checkboxes
-  y += 2;
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('DAMAGE TRACK', margin, y);
-  y += 5;
+    // Row 2: Armor Protection values
+    if (selectedArmorWeight && selectedArmorType) {
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Protection – LI: ${selectedArmorType.protectionLI}  |  HI: ${selectedArmorType.protectionHI}  |  En: ${selectedArmorType.protectionEn}`, col1, y);
+      y += 5;
+    }
 
-  const trackWidth = contentWidth / 2 - 5;
-  
-  // Draw damage tracks in 2x2 grid layout
-  const stunRows = drawDamageTrackBoxes(`Stun (${hull.damageTrack.stun})`, hull.damageTrack.stun, col1, trackWidth);
-  const woundRows = drawDamageTrackBoxes(`Wound (${hull.damageTrack.wound})`, hull.damageTrack.wound, col1 + trackWidth + 10, trackWidth);
-  y += Math.max(stunRows, woundRows) * 5 + 3;
-  
-  const mortalRows = drawDamageTrackBoxes(`Mortal (${hull.damageTrack.mortal})`, hull.damageTrack.mortal, col1, trackWidth);
-  const critRows = drawDamageTrackBoxes(`Critical (${hull.damageTrack.critical})`, hull.damageTrack.critical, col1 + trackWidth + 10, trackWidth);
-  y += Math.max(mortalRows, critRows) * 5 + 5;
-
-  // ============ DEFENSES (active defenses like shields, ECM) ============
-  if (installedDefenses.length > 0) {
+    // Damage Track with fillable checkboxes
+    y += 2;
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('ACTIVE DEFENSES', margin, y);
-    y += 4;
+    pdf.text('DAMAGE TRACK', margin, y);
+    y += 5;
+
+    const trackWidth = contentWidth / 2 - 5;
+    
+    // Draw damage tracks in 2x2 grid layout
+    const stunRows = drawDamageTrackBoxes(`Stun (${hull.damageTrack.stun})`, hull.damageTrack.stun, col1, trackWidth);
+    const woundRows = drawDamageTrackBoxes(`Wound (${hull.damageTrack.wound})`, hull.damageTrack.wound, col1 + trackWidth + 10, trackWidth);
+    y += Math.max(stunRows, woundRows) * 5 + 3;
+    
+    const mortalRows = drawDamageTrackBoxes(`Mortal (${hull.damageTrack.mortal})`, hull.damageTrack.mortal, col1, trackWidth);
+    const critRows = drawDamageTrackBoxes(`Critical (${hull.damageTrack.critical})`, hull.damageTrack.critical, col1 + trackWidth + 10, trackWidth);
+    y += Math.max(mortalRows, critRows) * 5 + 5;
+
+    // ============ DEFENSES (active defenses like shields, ECM) ============
+    if (installedDefenses.length > 0) {
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('ACTIVE DEFENSES', margin, y);
+      y += 4;
     
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -201,9 +220,10 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
     }
     y += 3;
   }
+  } // End of options.includeDefenses
 
   // ============ DAMAGE ZONES ============
-  if (damageDiagramZones.length > 0) {
+  if (options.includeDamageZones && damageDiagramZones.length > 0) {
     checkNewPage(45);
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
@@ -315,14 +335,15 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
   }
 
   // ============ COMBAT SECTION ============
-  checkNewPage(50);
-  addSectionTitle('Combat');
-  y += 3;
+  if (options.includeCombat) {
+    checkNewPage(50);
+    addSectionTitle('Combat');
+    y += 3;
 
-  // ---- SENSORS ----
-  if (installedSensors.length > 0) {
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
+    // ---- SENSORS ----
+    if (installedSensors.length > 0) {
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
     pdf.text('SENSORS', margin, y);
     y += 4;
 
@@ -448,25 +469,27 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
     }
     y += 4;
   }
+  } // End of options.includeCombat
 
   // ---- FIRE ARCS DIAGRAM ----
-  checkNewPage(70);
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('FIRE ARCS', margin, y);
-  y += 4;
+  if (options.includeFireDiagram) {
+    checkNewPage(70);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('FIRE ARCS', margin, y);
+    y += 4;
 
-  // Group weapons by arc
-  const arcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
-  const zeroArcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
-  
-  for (const weapon of installedWeapons) {
-    for (const arc of weapon.arcs) {
-      if (arc.startsWith('zero-')) {
-        const baseArc = arc.replace('zero-', '');
-        if (baseArc in zeroArcWeapons) {
-          zeroArcWeapons[baseArc] += weapon.quantity;
-        }
+    // Group weapons by arc
+    const arcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
+    const zeroArcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
+    
+    for (const weapon of installedWeapons) {
+      for (const arc of weapon.arcs) {
+        if (arc.startsWith('zero-')) {
+          const baseArc = arc.replace('zero-', '');
+          if (baseArc in zeroArcWeapons) {
+            zeroArcWeapons[baseArc] += weapon.quantity;
+          }
       } else {
         if (arc in arcWeapons) {
           arcWeapons[arc] += weapon.quantity;
@@ -652,31 +675,35 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
   pdf.text('PORT = Port', legendX, diagramCenterY + 19);
 
   y = diagramCenterY + diagramSize / 2 + 8;
+  } // End of options.includeFireDiagram
 
   // ============ NOTES SECTION ============
-  checkNewPage(30);
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('NOTES', margin, y);
-  y += 4;
-  
-  // Draw lined area for player notes
-  pdf.setDrawColor(180, 180, 180);
-  pdf.setLineWidth(0.15);
-  const notesLines = 8;
-  for (let i = 0; i < notesLines; i++) {
-    pdf.line(margin, y + i * 5, pageWidth - margin, y + i * 5);
+  if (options.includeNotes) {
+    checkNewPage(30);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('NOTES', margin, y);
+    y += 4;
+    
+    // Draw lined area for player notes
+    pdf.setDrawColor(180, 180, 180);
+    pdf.setLineWidth(0.15);
+    const notesLines = 8;
+    for (let i = 0; i < notesLines; i++) {
+      pdf.line(margin, y + i * 5, pageWidth - margin, y + i * 5);
+    }
+    y += notesLines * 5 + 5;
   }
-  y += notesLines * 5 + 5;
 
   // ============ SHIP IMAGE & LORE SECTION ============
-  const { shipDescription } = data;
-  const hasImage = shipDescription.imageData && shipDescription.imageMimeType;
-  const hasLore = shipDescription.lore && shipDescription.lore.trim().length > 0;
+  if (options.includeShipDescription) {
+    const { shipDescription } = data;
+    const hasImage = shipDescription.imageData && shipDescription.imageMimeType;
+    const hasLore = shipDescription.lore && shipDescription.lore.trim().length > 0;
 
-  if (hasImage || hasLore) {
-    checkNewPage(60);
-    addSectionTitle('Ship Description');
+    if (hasImage || hasLore) {
+      checkNewPage(60);
+      addSectionTitle('Ship Description');
     y += 4;
 
     // Ship image
@@ -721,6 +748,7 @@ export async function exportShipToPDF(data: ShipData): Promise<string> {
       }
     }
   }
+  } // End of options.includeShipDescription
 
   // ============ FOOTER ============
   // Add footer to all pages

@@ -49,6 +49,8 @@ export interface CommandControlSystemType {
   requiresCore?: boolean;
   /** Maximum quality of core this computer can work with (Ordinary can't exceed Ordinary core, etc.) */
   maxQuality?: QualityLevel;
+  /** Maximum size (HP) of linked system allowed (e.g., attack computer only for weapons ≤ 5 HP) */
+  maximumLinkedSystemSize?: number;
 }
 
 // ============== Weapon Battery Key ==============

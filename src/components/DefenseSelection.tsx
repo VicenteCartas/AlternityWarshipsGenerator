@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, Fragment } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,

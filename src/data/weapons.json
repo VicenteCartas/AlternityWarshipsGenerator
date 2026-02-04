@@ -319,6 +319,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d4w/3d4m/3d4c",
+      "area": {
+        "rangeAmazing": "100m",
+        "rangeGood": "200m",
+        "rangeOrdinary": "300m",
+        "notes": "TA"
+      },
       "description": "This mammoth weapon is basically a fusion torch drive designed to function as a weapon. It uses magnetic fields to direct a blast of fusing hydrogen at its target. The temperature of the hydrogen bore’s discharge approaches ten thousand degrees.",
       "fireModes": [
         "F"
@@ -586,6 +592,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d6m/3d4c/3d6c",
+      "area": {
+        "rangeAmazing": "200m",
+        "rangeGood": "400m",
+        "rangeOrdinary": "600m",
+        "notes": "TA"
+      },
       "description": "The colossal fusion bore is simply an exceedingly large example of a fusion beam.",
       "fireModes": [
         "F"
@@ -845,6 +857,12 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "3d6+2m/3d4c/4d6c",
+      "area": {
+        "rangeAmazing": "150m",
+        "rangeGood": "300m",
+        "rangeOrdinary": "600m",
+        "notes": "TA"
+      },
       "description": "The nuclear strong force is the force that binds atoms together. The strong force beam emitted by this weapon causes the target’s atomic nuclei to bind together so tightly that they fuse, releasing an incredible amount of energy. The target, in effect, becomes its own hydrogen bomb.",
       "fireModes": [
         "F",
@@ -868,6 +886,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "4d6m/3d6c/3d8c",
+      "area": {
+        "rangeAmazing": "300m",
+        "rangeGood": "600m",
+        "rangeOrdinary": "1km",
+        "notes": "MD"
+      },
       "description": "The zero bore creates a stream of energy that encourages extraordinary amounts of quantum energy fluctuation—the so-called “zero point” energy. Anything in its path is wrecked by the spontaneous detonation of space itself.",
       "fireModes": [
         "F"
@@ -1182,6 +1206,12 @@
       "rangeLong": 12,
       "damageType": "En",
       "damage": "3d6w/3d4m/3d4c",
+      "area": {
+        "rangeAmazing": "100m",
+        "rangeGood": "200m",
+        "rangeOrdinary": "300m",
+        "notes": "MD"
+      },
       "description": "The antimatter gun fires projectiles containing antimatter warheads. The annihilation reaction on impact is extremely destructive, and the splatter of antimatter creates a cluster-bomb effect.",
       "firepower": "H",
       "fireModes": [
@@ -1316,6 +1346,12 @@
       "rangeLong": 16,
       "damageType": "LI",
       "damage": "d12+3w/d12+3m/d12+1c",
+      "area": {
+        "rangeAmazing": "200m",
+        "rangeGood": "400m",
+        "rangeOrdinary": "800m",
+        "notes": "MD"
+      },
       "description": "The kinetic converter uses energy transformation technology to amplify the kinetic energy of its projectiles, creating devastating low-impact damage.",
       "firepower": "H",
       "fireModes": [

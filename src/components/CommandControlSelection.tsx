@@ -665,19 +665,31 @@ export function CommandControlSelection({
                 onChange={(e) => setSelectedBattery(e.target.value as WeaponBatteryKey)}
                 label="Weapon Battery"
               >
-                {availableWeaponBatteries.length === 0 ? (
-                  <MenuItem disabled>No unassigned batteries</MenuItem>
-                ) : (
-                  availableWeaponBatteries.map((battery) => {
+                {(() => {
+                  // Filter batteries by max size if the control has a limit
+                  const maxSize = selectedSystem.maximumLinkedSystemSize;
+                  const filteredBatteries = maxSize !== undefined
+                    ? availableWeaponBatteries.filter(b => b.totalHullPoints <= maxSize)
+                    : availableWeaponBatteries;
+                  
+                  if (filteredBatteries.length === 0) {
+                    return <MenuItem disabled>No eligible batteries{maxSize ? ` (max ${maxSize} HP)` : ''}</MenuItem>;
+                  }
+                  return filteredBatteries.map((battery) => {
                     const mountLabel = battery.mountType.charAt(0).toUpperCase() + battery.mountType.slice(1);
                     return (
                       <MenuItem key={battery.key} value={battery.key}>
                         {battery.weaponTypeName} {mountLabel} ({battery.totalHullPoints} HP)
                       </MenuItem>
                     );
-                  })
-                )}
+                  });
+                })()}
               </Select>
+              {selectedSystem.maximumLinkedSystemSize && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Max weapon size: {selectedSystem.maximumLinkedSystemSize} HP
+                </Typography>
+              )}
             </FormControl>
           )}
 

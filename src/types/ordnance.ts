@@ -1,4 +1,5 @@
 import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs } from './common';
+import type { AreaEffect } from './weapon';
 
 // ============== Ordnance Categories ==============
 
@@ -118,8 +119,8 @@ export interface Warhead {
   firepower: string;
   /** Damage string (Ordinary/Good/Amazing) */
   damage: string;
-  /** Is area effect weapon */
-  isAreaEffect: boolean;
+  /** Area effect information (if warhead has area effect) */
+  area?: AreaEffect;
   description: string;
 }
 

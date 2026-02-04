@@ -10,7 +10,7 @@ interface TechTrackCellProps {
 /**
  * Table cell component for displaying tech tracks with tooltip showing full names
  */
-export function TechTrackCell({ techTracks, align = 'center' }: TechTrackCellProps) {
+export function TechTrackCell({ techTracks, align = 'left' }: TechTrackCellProps) {
   return (
     <TableCell align={align}>
       {techTracks.length > 0 ? (

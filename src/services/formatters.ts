@@ -1,5 +1,6 @@
 import type { ShipClass } from '../types/hull';
 import type { TechTrack } from '../types/common';
+import type { AreaEffect } from '../types/weapon';
 
 /**
  * Shared formatting utility functions
@@ -169,4 +170,36 @@ export function formatSensorAccuracyModifier(modifier: number): string {
     return `+${modifier} ${stepWord} penalty`;
   }
   return `${modifier} ${stepWord} bonus`;
+}
+
+/**
+ * Format area effect for display
+ * @param area - The area effect object (optional)
+ * @returns Formatted string like "200m/300m/400m (TA)" or "-" if no area
+ */
+export function formatAreaEffect(area?: AreaEffect): string {
+  if (!area) {
+    return '-';
+  }
+  const ranges = `${area.rangeAmazing}/${area.rangeGood}/${area.rangeOrdinary}`;
+  if (area.notes) {
+    return `${ranges} (${area.notes})`;
+  }
+  return ranges;
+}
+
+/**
+ * Get area effect tooltip text
+ * @param area - The area effect object (optional)
+ * @returns Detailed tooltip text or empty string
+ */
+export function getAreaEffectTooltip(area?: AreaEffect): string {
+  if (!area) {
+    return '';
+  }
+  let tooltip = `Area Effect:\nAmazing: ${area.rangeAmazing}\nGood: ${area.rangeGood}\nOrdinary: ${area.rangeOrdinary}`;
+  if (area.notes) {
+    tooltip += `\nType: ${area.notes}`;
+  }
+  return tooltip;
 }

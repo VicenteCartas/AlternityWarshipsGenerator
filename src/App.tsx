@@ -759,6 +759,50 @@ function App() {
     return cost;
   };
 
+  // Calculate summary validation state for stepper icon
+  const getSummaryValidationState = (): 'valid' | 'error' | 'warning' => {
+    if (!selectedHull) return 'error';
+    
+    // Check for errors
+    const remainingHP = getRemainingHullPoints();
+    if (remainingHP < 0) return 'error'; // HP exceeded
+    if (installedPowerPlants.length === 0 || installedEngines.length === 0) return 'error'; // Mandatory steps
+    
+    // Check for warnings
+    const powerGenerated = getTotalPower();
+    const ftlPower = installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0;
+    const totalPowerConsumed = getTotalPowerConsumed();
+    const powerConsumedWithoutFTL = totalPowerConsumed - ftlPower;
+    if (powerConsumedWithoutFTL > powerGenerated) return 'warning'; // Power issue
+    
+    // Check support systems
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+    if (supportStats.crewCapacity < selectedHull.crew) return 'warning'; // Crew accommodations
+    if (supportStats.totalCoverage < selectedHull.hullPoints) return 'warning'; // Life support
+    
+    // Check escape systems
+    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+    if (hangarMiscStats.totalEvacCapacity < selectedHull.crew) return 'warning'; // Evacuation
+    
+    // Check launchers without ordnance
+    const launchersWithoutOrdnance = installedLaunchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length;
+    if (launchersWithoutOrdnance > 0) return 'warning';
+    
+    // Check active sensors
+    const sensorStats = calculateSensorStats(installedSensors);
+    if (!sensorStats.hasBasicSensors && installedSensors.length > 0) return 'warning'; // Has sensors but no active
+    
+    // Check optional steps
+    if (!selectedArmorWeight || !installedFTLDrive || installedDefenses.length === 0 || 
+        installedCommandControl.length === 0 || installedSensors.length === 0 ||
+        (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
+        (installedLifeSupport.length === 0 && installedAccommodations.length === 0)) {
+      return 'warning';
+    }
+    
+    return 'valid';
+  };
+
   // Get unique tech tracks required by all selected components
   const getUniqueTechTracks = (): TechTrack[] => {
     const tracks = new Set<TechTrack>();
@@ -1526,13 +1570,28 @@ function App() {
                     installedSensors.length + installedHangarMisc.length;
                   return totalAssigned >= totalSystems && totalSystems > 0;
                 }
-                case 12: return true; // Summary (optional - always "complete")
+                case 12: return getSummaryValidationState() === 'valid'; // Summary - only complete if no issues
                 default: return false;
               }
             })();
 
+            // Get summary validation state for special handling
+            const summaryState = index === 12 ? getSummaryValidationState() : null;
+
             // Determine icon based on required status and completion
             const getStepIcon = () => {
+              // Special handling for Summary step
+              if (index === 12) {
+                if (summaryState === 'valid') {
+                  return <CheckCircleIcon color="success" />;
+                } else if (summaryState === 'error') {
+                  return <ErrorOutlineIcon color={activeStep === index ? 'warning' : 'error'} />;
+                } else {
+                  // warning state
+                  return <ErrorOutlineIcon color="warning" />;
+                }
+              }
+              
               if (isStepCompleted) {
                 // Completed (both mandatory and optional)
                 return <CheckCircleIcon color="success" />;

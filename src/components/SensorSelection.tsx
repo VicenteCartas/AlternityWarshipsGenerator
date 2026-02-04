@@ -14,8 +14,8 @@ import {
   TextField,
   Chip,
   Stack,
-  ToggleButton,
-  ToggleButtonGroup,
+  Tabs,
+  Tab,
   Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,7 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import { headerCellSx } from '../constants/tableStyles';
-import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import {
@@ -53,7 +53,7 @@ export function SensorSelection({
   designTechTracks,
   onSensorsChange,
 }: SensorSelectionProps) {
-  const [categoryFilter, setCategoryFilter] = useState<FilterWithAll<SensorCategory>>('all');
+  const [activeTab, setActiveTab] = useState<SensorCategory>('active');
   const [selectedSensor, setSelectedSensor] = useState<SensorType | null>(null);
   const [sensorQuantity, setSensorQuantity] = useState<string>('1');
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);
@@ -64,26 +64,17 @@ export function SensorSelection({
     return filterByDesignConstraints(getAllSensorTypes(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
-  // Apply category filter
-  const filteredSensors = useMemo(() => {
-    if (categoryFilter === 'all') {
-      return availableSensors.sort((a, b) => a.progressLevel - b.progressLevel);
-    }
+  // Get sensors by category
+  const getSensorsByCategory = (category: SensorCategory) => {
     return availableSensors
-      .filter((s) => s.category === categoryFilter)
+      .filter((s) => s.category === category)
       .sort((a, b) => a.progressLevel - b.progressLevel);
-  }, [availableSensors, categoryFilter]);
+  };
 
-  // Count sensors by category
-  const categoryCounts = useMemo(() => {
-    return {
-      all: availableSensors.length,
-      active: availableSensors.filter((s) => s.category === 'active').length,
-      passive: availableSensors.filter((s) => s.category === 'passive').length,
-      remote: availableSensors.filter((s) => s.category === 'remote').length,
-      special: availableSensors.filter((s) => s.category === 'special').length,
-    };
-  }, [availableSensors]);
+  // Get installed sensors by category
+  const getInstalledSensorsByCategory = (category: SensorCategory) => {
+    return installedSensors.filter((s) => s.type.category === category);
+  };
 
   // Calculate stats
   const stats = useMemo(
@@ -91,22 +82,13 @@ export function SensorSelection({
     [installedSensors]
   );
 
-  // Filter installed sensors by category
-  const filteredInstalledSensors = useMemo(() => {
-    if (categoryFilter === 'all') {
-      return installedSensors;
-    }
-    return installedSensors.filter((s) => s.type.category === categoryFilter);
-  }, [installedSensors, categoryFilter]);
-
   // Handlers
-  const handleCategoryFilterChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newCategory: FilterWithAll<SensorCategory> | null
-  ) => {
-    if (newCategory !== null) {
-      setCategoryFilter(newCategory);
-    }
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: SensorCategory) => {
+    setActiveTab(newValue);
+    // Clear selection when switching tabs
+    setSelectedSensor(null);
+    setSensorQuantity('1');
+    setEditingSensorId(null);
   };
 
   const handleSelectSensor = (type: SensorType) => {
@@ -176,17 +158,25 @@ export function SensorSelection({
     }
   };
 
-  // Render installed sensors section
-  const renderInstalledSensors = () => {
-    if (filteredInstalledSensors.length === 0) return null;
+  // Render installed sensors section for a specific category
+  const renderInstalledSensorsForCategory = (category: SensorCategory) => {
+    const categorySensors = getInstalledSensorsByCategory(category);
+    if (categorySensors.length === 0) return null;
+
+    const categoryNames: Record<SensorCategory, string> = {
+      active: 'Active Sensors',
+      passive: 'Passive Sensors',
+      remote: 'Remote Sensors',
+      special: 'Special Sensors',
+    };
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Installed Sensors{categoryFilter !== 'all' ? ` (${getCategoryLabel(categoryFilter)})` : ''}
+          Installed {categoryNames[category]}
         </Typography>
         <Stack spacing={1}>
-          {filteredInstalledSensors.map((sensor) => {
+          {categorySensors.map((sensor) => {
             // Check if this sensor has Sensor Control assigned
             const hasSensorControl = sensorHasSensorControl(sensor.id, installedCommandControl);
             const sensorControl = getSensorControlForSensor(sensor.id, installedCommandControl);
@@ -208,9 +198,6 @@ export function SensorSelection({
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     {sensor.type.name}
                     {sensor.quantity > 1 && ` (×${sensor.quantity})`}
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      [{getCategoryLabel(sensor.type.category)}]
-                    </Typography>
                   </Typography>
                   <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
@@ -297,7 +284,7 @@ export function SensorSelection({
     );
   };
 
-  // Render the add form (shown above the grid when adding new)
+  // Render the add form (shown below installed sensors when adding new)
   const renderAddForm = () => {
     if (!selectedSensor || editingSensorId) return null;
 
@@ -354,6 +341,95 @@ export function SensorSelection({
     );
   };
 
+  // Render sensor grid for a category
+  const renderSensorGrid = (category: SensorCategory) => {
+    const sensors = getSensorsByCategory(category);
+
+    if (sensors.length === 0) {
+      return (
+        <Typography color="text.secondary" sx={{ py: 2 }}>
+          No {getCategoryLabel(category).toLowerCase()} sensors available at current design constraints.
+        </Typography>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Range (S/M/L)</TableCell>
+              <TableCell sx={headerCellSx}>Arcs</TableCell>
+              <TableCell sx={headerCellSx}>Tracking</TableCell>
+              <TableCell sx={headerCellSx}>Targeting</TableCell>
+              <TableCell sx={headerCellSx}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sensors.map((sensor) => {
+              const isSelected = selectedSensor?.id === sensor.id;
+              return (
+                <TableRow
+                  key={sensor.id}
+                  hover
+                  selected={isSelected}
+                  sx={{
+                    cursor: 'pointer',
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: 'action.selected',
+                    },
+                  }}
+                  onClick={() => handleSelectSensor(sensor)}
+                >
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.name}</TableCell>
+                  <TableCell>{sensor.progressLevel}</TableCell>
+                  <TechTrackCell techTracks={sensor.techTracks} />
+                  <TableCell>{sensor.hullPoints}</TableCell>
+                  <TableCell>{sensor.powerRequired}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(sensor.cost)}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatSensorRange(sensor)}</TableCell>
+                  <TableCell>{sensor.arcsCovered}</TableCell>
+                  <TableCell>{formatTracking(sensor.trackingCapability)}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.accuracyDescription}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.effect}</TableCell>
+                  <TableCell>
+                    <TruncatedDescription text={sensor.description} maxWidth={200} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  // Render tab content for a category
+  const renderTabContent = (category: SensorCategory) => {
+    return (
+      <Box>
+        {/* Installed sensors for this category */}
+        {renderInstalledSensorsForCategory(category)}
+
+        {/* Add new sensor form - only show when adding (not editing) */}
+        {!editingSensorId && renderAddForm()}
+
+        {/* Available sensors grid */}
+        {renderSensorGrid(category)}
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
@@ -375,92 +451,21 @@ export function SensorSelection({
         </Box>
       </Paper>
 
-      {/* Installed Sensors */}
-      {renderInstalledSensors()}
-
-      {/* Add Form (appears when sensor selected for adding, not editing) */}
-      {renderAddForm()}
-
-      {/* Category Filter */}
-      <Box sx={{ mb: 2 }}>
-        <ToggleButtonGroup
-          value={categoryFilter}
-          exclusive
-          onChange={handleCategoryFilterChange}
-          size="small"
-        >
-          <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
-          <ToggleButton value="active">Active ({categoryCounts.active})</ToggleButton>
-          <ToggleButton value="passive">Passive ({categoryCounts.passive})</ToggleButton>
-          <ToggleButton value="remote">Remote ({categoryCounts.remote})</ToggleButton>
-          <ToggleButton value="special">Special ({categoryCounts.special})</ToggleButton>
-        </ToggleButtonGroup>
+      {/* Sensor Category Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tab label={`Active (${getInstalledSensorsByCategory('active').length})`} value="active" />
+          <Tab label={`Passive (${getInstalledSensorsByCategory('passive').length})`} value="passive" />
+          <Tab label={`Remote (${getInstalledSensorsByCategory('remote').length})`} value="remote" />
+          <Tab label={`Special (${getInstalledSensorsByCategory('special').length})`} value="special" />
+        </Tabs>
       </Box>
 
-      {/* Sensor Table */}
-      {filteredSensors.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 2 }}>
-          No sensors available at current design constraints.
-        </Typography>
-      ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={headerCellSx}>Name</TableCell>
-                <TableCell sx={headerCellSx}>Category</TableCell>
-                <TableCell sx={headerCellSx}>PL</TableCell>
-                <TableCell sx={headerCellSx}>Tech</TableCell>
-                <TableCell sx={headerCellSx}>HP</TableCell>
-                <TableCell sx={headerCellSx}>Power</TableCell>
-                <TableCell sx={headerCellSx}>Cost</TableCell>
-                <TableCell sx={headerCellSx}>Range (S/M/L)</TableCell>
-                <TableCell sx={headerCellSx}>Arcs</TableCell>
-                <TableCell sx={headerCellSx}>Targeting</TableCell>
-                <TableCell sx={headerCellSx}>Effect</TableCell>
-                <TableCell sx={headerCellSx}>Description</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredSensors.map((sensor) => {
-                const isSelected = selectedSensor?.id === sensor.id;
-                return (
-                  <TableRow
-                    key={sensor.id}
-                    hover
-                    selected={isSelected}
-                    sx={{
-                      cursor: 'pointer',
-                      '&.Mui-selected': {
-                        backgroundColor: 'action.selected',
-                      },
-                      '&.Mui-selected:hover': {
-                        backgroundColor: 'action.selected',
-                      },
-                    }}
-                    onClick={() => handleSelectSensor(sensor)}
-                  >
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.name}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{getCategoryLabel(sensor.category)}</TableCell>
-                    <TableCell>{sensor.progressLevel}</TableCell>
-                    <TechTrackCell techTracks={sensor.techTracks} />
-                    <TableCell>{sensor.hullPoints}</TableCell>
-                    <TableCell>{sensor.powerRequired}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(sensor.cost)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatSensorRange(sensor)}</TableCell>
-                    <TableCell>{sensor.arcsCovered}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.accuracyDescription}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.effect}</TableCell>
-                    <TableCell>
-                      <TruncatedDescription text={sensor.description} maxWidth={200} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      {/* Tab Content */}
+      {activeTab === 'active' && renderTabContent('active')}
+      {activeTab === 'passive' && renderTabContent('passive')}
+      {activeTab === 'remote' && renderTabContent('remote')}
+      {activeTab === 'special' && renderTabContent('special')}
     </Box>
   );
 }

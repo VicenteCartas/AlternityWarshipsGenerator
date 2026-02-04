@@ -315,7 +315,12 @@
       "damageType": "HI",
       "firepower": "S",
       "damage": "d8w/d6m/2d4m",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "10m",
+        "rangeGood": "20m",
+        "rangeOrdinary": "40m",
+        "notes": "TA"
+      },
       "description": "Anti-aircraft burst warhead. Effective against small craft and missiles."
     },
     {
@@ -329,7 +334,12 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d6+1s/d6+1w/d4+2m",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "20m",
+        "rangeGood": "40m",
+        "rangeOrdinary": "60m",
+        "notes": "TA"
+      },
       "description": "Conventional high-explosive warhead. Good against small craft."
     },
     {
@@ -343,7 +353,12 @@
       "damageType": "HI",
       "firepower": "L",
       "damage": "d6+2s/d6+2w/d6+4w",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "200m",
+        "rangeGood": "200m",
+        "rangeOrdinary": "200m",
+        "notes": "TA"
+      },
       "description": "Kinetic energy submunitions. Spreads tungsten darts on impact."
     },
     {
@@ -357,7 +372,12 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d6s/2d6w/2d6m",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "200m",
+        "rangeGood": "400m",
+        "rangeOrdinary": "800m",
+        "notes": "MD"
+      },
       "description": "Small nuclear warhead (2-3 kilotons). Area effect weapon."
     },
     {
@@ -371,7 +391,12 @@
       "damageType": "En",
       "firepower": "H",
       "damage": "2d6w/2d6m/2d6c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "5km",
+        "rangeGood": "10km",
+        "rangeOrdinary": "20km",
+        "notes": "SA"
+      },
       "description": "Large nuclear warhead (1 megaton). City-killer strategic weapon."
     },
     {
@@ -385,7 +410,12 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "d6+3w/d8+3w/d6+2m",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "60m",
+        "rangeGood": "120m",
+        "rangeOrdinary": "180m",
+        "notes": "TA"
+      },
       "description": "Plasma warhead. White-hot plasma explosion."
     },
     {
@@ -399,7 +429,12 @@
       "damageType": "En",
       "firepower": "M",
       "damage": "2d4+1s/2d4w/d8+1m",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "500m",
+        "rangeGood": "1km",
+        "rangeOrdinary": "2km",
+        "notes": "SA"
+      },
       "description": "Dark matter reaction warhead. Concentrated energy wave."
     },
     {
@@ -413,7 +448,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d6w/3d6m/2d6+2c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "10km",
+        "rangeGood": "20km",
+        "rangeOrdinary": "40km",
+        "notes": "SA"
+      },
       "description": "Antimatter warhead. Equivalent to nuclear weapon."
     },
     {
@@ -427,7 +467,12 @@
       "damageType": "En",
       "firepower": "L",
       "damage": "2d6w/2d6m/2d4c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "80m",
+        "rangeGood": "160m",
+        "rangeOrdinary": "240m",
+        "notes": "TA"
+      },
       "description": "Miniaturized dark matter reaction warhead. Powerful tactical weapon."
     },
     {
@@ -441,7 +486,12 @@
       "damageType": "LI",
       "firepower": "H",
       "damage": "2d8w/2d6m/2d4c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "100m",
+        "rangeGood": "200m",
+        "rangeOrdinary": "400m",
+        "notes": "MD"
+      },
       "description": "Gravitational compression warhead. Can cripple destroyers or cruisers."
     },
     {
@@ -455,7 +505,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "3d8w/3d8m/3d6c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "1km",
+        "rangeGood": "2km",
+        "rangeOrdinary": "4km",
+        "notes": "SA"
+      },
       "description": "Quantum fluctuation warhead. Devastates thousands of square kilometers."
     },
     {
@@ -469,7 +524,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "4d6w/4d6m/4d6c",
-      "isAreaEffect": true,
+      "area": {
+        "rangeAmazing": "2km",
+        "rangeGood": "4km",
+        "rangeOrdinary": "8km",
+        "notes": "SA"
+      },
       "description": "Disintegration field warhead. Reduces all matter to subatomic dust."
     }
   ],

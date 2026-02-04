@@ -68,6 +68,22 @@ export type FirepowerRating = 'S' | 'L' | 'M' | 'H' | 'SH' | 'Gd'; // Small, Lig
 
 export type FireMode = 'F' | 'G' | 'B' | 'A'; // Fire modes: F=single fire, G=burst, B=burst, A=autofire
 
+// ============== Area Effect ==============
+
+/**
+ * Area effect information for weapons that affect an area
+ */
+export interface AreaEffect {
+  /** Area of effect radius for Amazing hits */
+  rangeAmazing: string;
+  /** Area of effect radius for Good hits */
+  rangeGood: string;
+  /** Area of effect radius for Ordinary hits */
+  rangeOrdinary: string;
+  /** Notes: TA (Tactical Arms), MD (Mass Destruction), SA (Strategic Arms) */
+  notes?: string;
+}
+
 // ============== Base Weapon Type ==============
 
 /**
@@ -102,6 +118,8 @@ export interface BaseWeaponType {
   fireModes: FireMode[];
   /** Description */
   description: string;
+  /** Area effect information (if weapon has area effect) */
+  area?: AreaEffect;
 }
 
 // ============== Beam Weapon Type ==============

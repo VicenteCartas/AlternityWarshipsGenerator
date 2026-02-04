@@ -403,9 +403,13 @@
       "powerRequired": 0,
       "cost": 200000,
       "costPerHull": false,
-      "effect": "-1 step to all attacks",
-      "description": "This unit combines a small computer core with a small fire control computer. It provides a -1 step bonus to all attack rolls made by the ship, without requiring a dedicated fire control computer for each weapon.",
-      "stepBonus": -1
+      "linkedSystemType": "weapon",
+      "effect": "-1 step to dedicated weapon (5 HP max)",
+      "description": "This unit combines a small computer core with a small fire control computer. It provides a -1 step bonus to attack rolls for a single dedicated weapon system of 5 hull points or less, without requiring a separate computer core.",
+      "stepBonus": -1,
+      "isDedicated": true,
+      "requiresCore": false,
+      "maximumLinkedSystemSize": 5
     }
   ]
 }
