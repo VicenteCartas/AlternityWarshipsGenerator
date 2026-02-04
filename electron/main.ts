@@ -177,10 +177,15 @@ function createMenu() {
 }
 
 function createWindow() {
+  // In development, logo is in public/. In production, it's bundled into dist/
+  const iconPath = isDev 
+    ? path.join(__dirname, '../public/logo.png')
+    : path.join(__dirname, '../dist/logo.png');
+    
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, '../public/logo.png'),
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
