@@ -1,4 +1,5 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack, Firepower } from '../types/common';
+import { FIREPOWER_ORDER } from '../types/common';
 import type { ShipClass } from '../types/hull';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 import type {
@@ -19,7 +20,14 @@ import type {
   GunConfigModifier,
 } from '../types/weapon';
 import { ALL_ZERO_ARCS } from '../types/weapon';
-import weaponsData from '../data/weapons.json';
+import {
+  getBeamWeaponsData,
+  getProjectileWeaponsData,
+  getTorpedoWeaponsData,
+  getSpecialWeaponsData,
+  getMountModifiersData,
+  getGunConfigurationsData,
+} from './dataLoader';
 
 let beamWeapons: BeamWeaponType[] | null = null;
 let projectileWeapons: ProjectileWeaponType[] | null = null;
@@ -29,46 +37,56 @@ let mountModifiers: Record<MountType, MountModifier> | null = null;
 let gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null = null;
 
 /**
- * Initialize weapons data from JSON
+ * Weapons data type for initialization
  */
-export function initializeWeaponsData(data: typeof weaponsData): void {
-  beamWeapons = data.beamWeapons as BeamWeaponType[];
-  projectileWeapons = (data as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons as ProjectileWeaponType[] || [];
-  torpedoWeapons = (data as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons as TorpedoWeaponType[] || [];
-  specialWeapons = (data as { specialWeapons?: SpecialWeaponType[] }).specialWeapons as SpecialWeaponType[] || [];
-  mountModifiers = (data as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
-  gunConfigurations = (data as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
+interface WeaponsDataInput {
+  beamWeapons: BeamWeaponType[];
+  projectileWeapons?: ProjectileWeaponType[];
+  torpedoWeapons?: TorpedoWeaponType[];
+  specialWeapons?: SpecialWeaponType[];
+  mountModifiers?: Record<MountType, MountModifier>;
+  gunConfigurations?: Record<GunConfiguration, GunConfigModifier>;
 }
 
-// Initialize with bundled data
-initializeWeaponsData(weaponsData);
+/**
+ * Initialize weapons data from JSON (called by dataLoader)
+ */
+export function initializeWeaponsData(data: WeaponsDataInput): void {
+  beamWeapons = data.beamWeapons;
+  projectileWeapons = data.projectileWeapons || [];
+  torpedoWeapons = data.torpedoWeapons || [];
+  specialWeapons = data.specialWeapons || [];
+  mountModifiers = data.mountModifiers || null;
+  gunConfigurations = data.gunConfigurations || null;
+}
 
 /**
  * Get all beam weapon types
  */
 export function getAllBeamWeaponTypes(): BeamWeaponType[] {
-  return beamWeapons || [];
+  // Use cached data if initialized, otherwise get from dataLoader
+  return beamWeapons || getBeamWeaponsData();
 }
 
 /**
  * Get all projectile weapon types
  */
 export function getAllProjectileWeaponTypes(): ProjectileWeaponType[] {
-  return projectileWeapons || [];
+  return projectileWeapons || getProjectileWeaponsData();
 }
 
 /**
  * Get all torpedo weapon types
  */
 export function getAllTorpedoWeaponTypes(): TorpedoWeaponType[] {
-  return torpedoWeapons || [];
+  return torpedoWeapons || getTorpedoWeaponsData();
 }
 
 /**
  * Get all special weapon types
  */
 export function getAllSpecialWeaponTypes(): SpecialWeaponType[] {
-  return specialWeapons || [];
+  return specialWeapons || getSpecialWeaponsData();
 }
 
 /**
@@ -81,6 +99,33 @@ export function filterByDesignConstraints<T extends WeaponType>(
   designTechTracks: TechTrack[]
 ): T[] {
   return filterByConstraints(weapons, designPL, designTechTracks, false);
+}
+
+/**
+ * Sort weapons by Progress Level, Firepower, Accuracy, Range, HP, Power, Cost
+ * This provides a consistent ordering for weapon tables
+ */
+export function sortWeapons<T extends WeaponType>(weapons: T[]): T[] {
+  return [...weapons].sort((a, b) => {
+    // Sort by PL first
+    if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+    // Then by Firepower (using order: S, A, B, C, D, E, F, G)
+    const fpA = FIREPOWER_ORDER[a.firepower as Firepower] ?? 99;
+    const fpB = FIREPOWER_ORDER[b.firepower as Firepower] ?? 99;
+    if (fpA !== fpB) return fpA - fpB;
+    // Then by Accuracy (negative to positive, so lower/better first)
+    if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
+    // Then by ranges (short, medium, long)
+    if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
+    if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
+    if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
+    // Then by HP
+    if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+    // Then by Power
+    if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
+    // Finally by Cost
+    return a.cost - b.cost;
+  });
 }
 
 /**
@@ -117,7 +162,9 @@ export function getMountModifiers(mountType: MountType): MountModifier {
     sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
     bank: { costMultiplier: 1.25, hpMultiplier: 1 },
   };
-  return mountModifiers?.[mountType] || defaults[mountType];
+  // Try cache first, then dataLoader, then hardcoded defaults
+  const modifiers = mountModifiers || getMountModifiersData();
+  return modifiers?.[mountType] || defaults[mountType];
 }
 
 /**
@@ -135,7 +182,9 @@ export function getGunConfigurationModifiers(config: GunConfiguration): GunConfi
     triple: { effectiveGunCount: 2, actualGunCount: 3 },
     quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
   };
-  return gunConfigurations?.[config] || defaults[config];
+  // Try cache first, then dataLoader, then hardcoded defaults
+  const configs = gunConfigurations || getGunConfigurationsData();
+  return configs?.[config] || defaults[config];
 }
 
 /**
@@ -160,7 +209,7 @@ export function calculateWeaponHullPoints(
   const gunMod = getGunConfigurationModifiers(gunConfig);
   
   // HP per gun with mount modifier
-  let hpPerGun = weapon.hullPoints * mountMod.hpMultiplier;
+  const hpPerGun = weapon.hullPoints * mountMod.hpMultiplier;
   
   // Total HP = HP per gun × effective gun count (e.g., triple = 2)
   let totalHp = hpPerGun * gunMod.effectiveGunCount;
@@ -197,7 +246,7 @@ export function calculateWeaponCost(
   const gunMod = getGunConfigurationModifiers(gunConfig);
   
   // Cost per gun with mount modifier
-  let costPerGun = weapon.cost * mountMod.costMultiplier;
+  const costPerGun = weapon.cost * mountMod.costMultiplier;
   
   // Total cost = cost per gun × effective gun count (e.g., triple = 2)
   let totalCost = costPerGun * gunMod.effectiveGunCount;

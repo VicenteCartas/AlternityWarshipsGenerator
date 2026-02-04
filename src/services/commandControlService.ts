@@ -181,7 +181,7 @@ export function calculateCoverageBasedHullPoints(
 
 /**
  * Calculate required computer core hull points based on ship size
- * @deprecated Use calculateCoverageBasedHullPoints instead
+ * Computer cores require 1 HP per 200 hull points of ship
  */
 export function calculateRequiredComputerCoreHullPoints(shipHullPoints: number): number {
   return Math.ceil(shipHullPoints / 200);

@@ -23,6 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import WarningIcon from '@mui/icons-material/Warning';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { InstalledPowerPlant } from '../types/powerPlant';
@@ -55,7 +56,6 @@ interface FTLDriveSelectionProps {
   installedFTLDrive: InstalledFTLDrive | null;
   installedFTLFuelTanks: InstalledFTLFuelTank[];
   installedPowerPlants: InstalledPowerPlant[];
-  usedHullPoints: number;
   availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
@@ -68,7 +68,6 @@ export function FTLDriveSelection({
   installedFTLDrive,
   installedFTLFuelTanks,
   installedPowerPlants,
-  usedHullPoints: _usedHullPoints,
   availablePower,
   designProgressLevel,
   designTechTracks,
@@ -316,7 +315,7 @@ export function FTLDriveSelection({
       }
     }
     return errors;
-  }, [addingFuelTank, fuelTankHullPointsInput]);
+  }, [addingFuelTank, fuelTankHullPointsInput, installedFTLDrive, hull]);
 
   // Preview stats for selected FTL drive
   const previewStats = useMemo(() => {
@@ -728,16 +727,16 @@ export function FTLDriveSelection({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>FTL Drive</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                <TableCell sx={headerCellSx}>FTL Drive</TableCell>
+                <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+                <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+                <TableCell align="right" sx={headerCellSx}>Power/HP</TableCell>
+                <TableCell align="right" sx={headerCellSx}>Base Cost</TableCell>
+                <TableCell align="right" sx={headerCellSx}>Cost/HP</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Size</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Performance</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                <TableCell align="center" sx={headerCellSx}>Fuel</TableCell>
+                <TableCell sx={headerCellSx}>Performance</TableCell>
+                <TableCell sx={headerCellSx}>Description</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -848,16 +847,16 @@ export function FTLDriveSelection({
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
+                  <TableCell sx={headerCellSx}>Name</TableCell>
+                  <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+                  <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+                  <TableCell align="right" sx={headerCellSx}>Power/HP</TableCell>
+                  <TableCell align="right" sx={headerCellSx}>Base Cost</TableCell>
+                  <TableCell align="right" sx={headerCellSx}>Cost/HP</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Min Size</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Performance</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                  <TableCell align="center" sx={headerCellSx}>Fuel</TableCell>
+                  <TableCell sx={headerCellSx}>Performance</TableCell>
+                  <TableCell sx={headerCellSx}>Description</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

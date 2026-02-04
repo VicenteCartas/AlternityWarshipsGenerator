@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -26,11 +26,11 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { headerCellSx } from '../constants/tableStyles';
 import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
-import { FIREPOWER_ORDER as firepowerOrder } from '../types/common';
 import type {
   WeaponType,
   WeaponCategory,
@@ -47,6 +47,7 @@ import {
   getAllTorpedoWeaponTypes,
   getAllSpecialWeaponTypes,
   filterByDesignConstraints,
+  sortWeapons,
   calculateWeaponStats,
   createInstalledWeapon,
   updateInstalledWeapon,
@@ -107,78 +108,22 @@ export function WeaponSelection({
 
   // Get filtered beam weapons
   const availableBeamWeapons = useMemo(() => {
-    return filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks)
-      .sort((a, b) => {
-        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
-        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
-        const fpA = firepowerOrder[a.firepower] ?? 99;
-        const fpB = firepowerOrder[b.firepower] ?? 99;
-        if (fpA !== fpB) return fpA - fpB;
-        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
-        if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
-        if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
-        if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
-        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
-        if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
-        return a.cost - b.cost;
-      });
+    return sortWeapons(filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered projectile weapons
   const availableProjectileWeapons = useMemo(() => {
-    return filterByDesignConstraints(getAllProjectileWeaponTypes(), designProgressLevel, designTechTracks)
-      .sort((a, b) => {
-        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
-        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
-        const fpA = firepowerOrder[a.firepower] ?? 99;
-        const fpB = firepowerOrder[b.firepower] ?? 99;
-        if (fpA !== fpB) return fpA - fpB;
-        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
-        if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
-        if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
-        if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
-        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
-        if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
-        return a.cost - b.cost;
-      });
+    return sortWeapons(filterByDesignConstraints(getAllProjectileWeaponTypes(), designProgressLevel, designTechTracks));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered torpedo weapons
   const availableTorpedoWeapons = useMemo(() => {
-    return filterByDesignConstraints(getAllTorpedoWeaponTypes(), designProgressLevel, designTechTracks)
-      .sort((a, b) => {
-        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
-        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
-        const fpA = firepowerOrder[a.firepower] ?? 99;
-        const fpB = firepowerOrder[b.firepower] ?? 99;
-        if (fpA !== fpB) return fpA - fpB;
-        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
-        if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
-        if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
-        if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
-        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
-        if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
-        return a.cost - b.cost;
-      });
+    return sortWeapons(filterByDesignConstraints(getAllTorpedoWeaponTypes(), designProgressLevel, designTechTracks));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered special weapons
   const availableSpecialWeapons = useMemo(() => {
-    return filterByDesignConstraints(getAllSpecialWeaponTypes(), designProgressLevel, designTechTracks)
-      .sort((a, b) => {
-        // Sort by PL, Firepower, Acc (negative to positive), Short, Medium, Long range, HP, Power, Cost
-        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
-        const fpA = firepowerOrder[a.firepower] ?? 99;
-        const fpB = firepowerOrder[b.firepower] ?? 99;
-        if (fpA !== fpB) return fpA - fpB;
-        if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
-        if (a.rangeShort !== b.rangeShort) return a.rangeShort - b.rangeShort;
-        if (a.rangeMedium !== b.rangeMedium) return a.rangeMedium - b.rangeMedium;
-        if (a.rangeLong !== b.rangeLong) return a.rangeLong - b.rangeLong;
-        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
-        if (a.powerRequired !== b.powerRequired) return a.powerRequired - b.powerRequired;
-        return a.cost - b.cost;
-      });
+    return sortWeapons(filterByDesignConstraints(getAllSpecialWeaponTypes(), designProgressLevel, designTechTracks));
   }, [designProgressLevel, designTechTracks]);
 
   // Calculate stats
@@ -198,12 +143,14 @@ export function WeaponSelection({
     ? validateArcs(selectedArcs, mountType, shipClass, weaponCanUseZero)
     : '';
 
-  // Update arcs when mount type changes
-  useEffect(() => {
+  // Handler for mount type change - also resets arcs to defaults
+  const handleMountTypeChange = (newMountType: MountType) => {
+    setMountType(newMountType);
+    // Reset arcs to defaults for the new mount type (only for new weapons, not when editing)
     if (selectedWeapon && !editingWeaponId) {
-      setSelectedArcs(getDefaultArcs(mountType, shipClass, canUseZeroArcs(selectedWeapon)));
+      setSelectedArcs(getDefaultArcs(newMountType, shipClass, canUseZeroArcs(selectedWeapon)));
     }
-  }, [mountType, selectedWeapon, shipClass, editingWeaponId]);
+  };
 
   // Handlers
   const handleTabChange = (_event: React.SyntheticEvent, newValue: WeaponCategory) => {
@@ -484,7 +431,7 @@ export function WeaponSelection({
             <ToggleButtonGroup
               value={mountType}
               exclusive
-              onChange={(_, value) => value && setMountType(value as MountType)}
+              onChange={(_, value) => value && handleMountTypeChange(value as MountType)}
               size="small"
               sx={{ flexWrap: 'wrap', mb: 2 }}
             >
@@ -623,17 +570,17 @@ export function WeaponSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fire</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Acc</TableCell>
+              <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Type/FP</TableCell>
+              <TableCell sx={headerCellSx}>Damage</TableCell>
+              <TableCell sx={headerCellSx}>Fire</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -681,17 +628,17 @@ export function WeaponSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fire</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Acc</TableCell>
+              <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Type/FP</TableCell>
+              <TableCell sx={headerCellSx}>Damage</TableCell>
+              <TableCell sx={headerCellSx}>Fire</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -739,17 +686,17 @@ export function WeaponSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fire</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Acc</TableCell>
+              <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Type/FP</TableCell>
+              <TableCell sx={headerCellSx}>Damage</TableCell>
+              <TableCell sx={headerCellSx}>Fire</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -797,18 +744,18 @@ export function WeaponSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Acc</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type/FP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Damage</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fire</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Special Effect</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Acc</TableCell>
+              <TableCell sx={headerCellSx}>Range</TableCell>
+              <TableCell sx={headerCellSx}>Type/FP</TableCell>
+              <TableCell sx={headerCellSx}>Damage</TableCell>
+              <TableCell sx={headerCellSx}>Fire</TableCell>
+              <TableCell sx={headerCellSx}>Special Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

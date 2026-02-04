@@ -108,7 +108,6 @@ export function LaunchSystemEditForm({
 
   // Design form state
   const [designName, setDesignName] = useState('');
-  const [_designSize, setDesignSize] = useState<OrdnanceSize>('light');
   const [selectedPropulsion, setSelectedPropulsion] = useState<string>('');
   const [selectedGuidance, setSelectedGuidance] = useState<string>('');
   const [selectedWarhead, setSelectedWarhead] = useState<string>('');
@@ -262,7 +261,6 @@ export function LaunchSystemEditForm({
     setDesignCategory(category);
     setEditingDesign(null);
     setDesignName('');
-    setDesignSize('light');
     setSelectedPropulsion('');
     setSelectedGuidance('');
     setSelectedWarhead('');

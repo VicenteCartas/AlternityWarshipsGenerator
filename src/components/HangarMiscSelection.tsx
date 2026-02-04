@@ -21,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack, FilterWithAll } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
@@ -101,7 +102,7 @@ export function HangarMiscSelection({
   // Handlers
   const handleCategoryFilterChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newCategory: CategoryFilter | null
+    newCategory: FilterWithAll<HangarMiscCategory> | null
   ) => {
     if (newCategory !== null) {
       setCategoryFilter(newCategory);
@@ -453,15 +454,15 @@ export function HangarMiscSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Capacity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Effect</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>Category</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Capacity</TableCell>
+              <TableCell sx={headerCellSx}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

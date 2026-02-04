@@ -4,50 +4,23 @@ This document tracks technical debt, refactoring opportunities, and planned feat
 
 ---
 
-## 4. Code Quality - UI Duplication
+## 1. Missing Features
 
-### 4.1 Table Header Styling - TODO
-**Impact:** Medium
-`sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}` appears 100+ times. There IS a `headerCellSx` constant in tableStyles.ts, but it's not consistently used.
+### Phase 1: Complete Core Features
 
-**Files not using the constant:**
-- SummarySelection.tsx
-- WeaponSelection.tsx
-- DefenseSelection.tsx
-- SensorSelection.tsx
-- HangarMiscSelection.tsx
-
-### 4.2 Add/Edit/Remove Handler Pattern - TODO
-**Impact:** High
-Every selection component repeats the same CRUD handler pattern (~400 lines total duplicated).
-**Fix:** Create a custom hook `useInstalledItemsCRUD()`.
-
-### 4.3 Installed Items Display Pattern - TODO
-**Impact:** High
-Each component has nearly identical "Installed Items" section structure (~300 lines total duplicated).
-**Fix:** Create `<InstalledItemsList>` shared component.
-
-### 4.4 Summary Chips Pattern - TODO
-**Impact:** Medium
-The summary `<Box>` with `<Stack direction="row">` containing `<Chip>` components appears in every selection component (~150 lines total duplicated).
-**Fix:** Create `<StatsSummary>` shared component.
-
----
-
-## 6. Missing Features
-
-### Phase 2: Complete Core Features
 - [ ] Add real-time validation for HP/Power budgets
 - [ ] Show Area of Effect weapons information
 
-### Phase 3: Quality of Life
+### Phase 2: Quality of Life
+
 - [ ] Ship templates from rulebook
 - [ ] Variant cloning (duplicate ship)
 - [ ] Component search/filter in tables
 
 ### Validation Gaps
+
 | Gap | Impact |
-|-----|--------|
+| ----- | -------- |
 | No HP overflow prevention | Users can over-allocate hull points |
 | No power budget enforcement | Systems can exceed power generation |
 | No crew capacity validation | Life support vs actual crew needs |
@@ -56,7 +29,61 @@ The summary `<Box>` with `<Stack direction="row">` containing `<Chip>` component
 
 ---
 
-## 7. Test
+## 2. Code Quality Issues
+
+Analysis of technical debt and code quality problems in the codebase.
+
+### 2.1 Inconsistencies
+
+| Issue | Location | Description |
+|-------|----------|-------------|
+| State variable naming | LaunchSystemEditForm.tsx vs OrdnanceSelection.tsx | Uses `quantity` (lowercase) vs `sensorQuantity` - inconsistent naming for the same concept |
+| Selectable row styling | WeaponSelection, OrdnanceSelection | `selectableRowSx` constant exists in tableStyles.ts but components define inline hover/cursor styles |
+| Event handler unused params | Various components | Mix of `_event`, `_e`, and `_` for unused event parameters |
+| 'id' suffix casing | editingInstallationId vs editingSensorId | Inconsistent 'id' vs 'Id' suffix in state variable names |
+
+### 2.2 Magic Numbers/Strings
+
+| Issue | Location | Value | Should Be |
+|-------|----------|-------|-----------|
+| Computer coverage | commandControlService.ts | `200` | HULL_POINTS_PER_COMPUTER_CORE constant |
+| Progress level names | SummarySelection.tsx | Hardcoded PL record | Shared constants file |
+| Stepper paper height | App.tsx | `minHeight: 400` | Named constant |
+
+### 2.3 Code Duplication
+
+| Issue | Location | Recommendation |
+|-------|----------|----------------|
+| WarshipState construction | App.tsx | `buildSaveObject()` and `resetAll()` both construct identical state objects - create helper |
+| Stats recalculation | App.tsx | Same service functions called multiple times with same args - memoize results |
+| Fuel tank handlers | EngineSelection, PowerPlantSelection | Nearly identical add/edit/remove patterns - could be abstracted |
+
+### 2.4 Error Handling Gaps
+
+| Issue | Location | Risk |
+|-------|----------|------|
+| JSON parsing without validation | saveService.ts | `loadWarship()` returns parsed JSON as `any` without schema validation |
+| Explicit `any` cast | damageDiagramService.ts | Uses eslint-disable for `@typescript-eslint/no-explicit-any` to bypass type checking |
+
+### 2.5 Performance Concerns
+
+| Issue | Location | Impact |
+|-------|----------|--------|
+| Repeated calculations | App.tsx | `getUsedHullPointsBeforePowerPlants()`, `getRemainingHullPoints()` called multiple times per render |
+| Missing useMemo | App.tsx | Stats calculation functions recalculate from scratch each call |
+| Inline sx objects | SummarySelection.tsx, others | Large sx objects recreated on every render - should be constants |
+| Handler recreation | Most components | Event handlers without useCallback cause unnecessary child re-renders |
+
+### 2.6 Type Safety Issues
+
+| Issue | Location | Recommendation |
+|-------|----------|----------------|
+| Empty interfaces | weapon.ts, defense.ts, supportSystem.ts | `BeamWeaponType extends BaseWeaponType {}` could be type aliases |
+| Type assertions without validation | saveService.ts | Multiple `as` casts assume correct structure |
+
+---
+
+## 3. Test
 
 Use ships from this thread:
 
@@ -64,4 +91,4 @@ https://www.alternityrpg.net/onlineforums/index.php?s=0&showtopic=8562
 
 ---
 
-*Last updated: February 2026*
+Last updated: February 2026

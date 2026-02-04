@@ -17,6 +17,7 @@ import type { CommandControlSystemType } from '../types/commandControl';
 import type { SensorType, TrackingTable } from '../types/sensor';
 import type { HangarMiscSystemType } from '../types/hangarMisc';
 import type { LaunchSystem, PropulsionSystem, Warhead, GuidanceSystem } from '../types/ordnance';
+import type { BeamWeaponType, ProjectileWeaponType, TorpedoWeaponType, SpecialWeaponType, MountModifier, GunConfigModifier, MountType, GunConfiguration } from '../types/weapon';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -32,6 +33,7 @@ import sensorsDataFallback from '../data/sensors.json';
 import hangarMiscDataFallback from '../data/hangarMisc.json';
 import ordnanceDataFallback from '../data/ordnance.json';
 import damageDiagramDataFallback from '../data/damageDiagram.json';
+import weaponsDataFallback from '../data/weapons.json';
 
 // Cache for loaded data
 interface DataCache {
@@ -58,6 +60,13 @@ interface DataCache {
   warheads: Warhead[] | null;
   guidanceSystems: GuidanceSystem[] | null;
   damageDiagram: unknown | null;
+  // Weapons data
+  beamWeapons: BeamWeaponType[] | null;
+  projectileWeapons: ProjectileWeaponType[] | null;
+  torpedoWeapons: TorpedoWeaponType[] | null;
+  specialWeapons: SpecialWeaponType[] | null;
+  mountModifiers: Record<MountType, MountModifier> | null;
+  gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null;
 }
 
 const cache: DataCache = {
@@ -79,16 +88,40 @@ const cache: DataCache = {
   warheads: null,
   guidanceSystems: null,
   damageDiagram: null,
+  // Weapons
+  beamWeapons: null,
+  projectileWeapons: null,
+  torpedoWeapons: null,
+  specialWeapons: null,
+  mountModifiers: null,
+  gunConfigurations: null,
 };
 
 let dataLoaded = false;
-let loadPromise: Promise<void> | null = null;
+let loadPromise: Promise<DataLoadResult> | null = null;
+
+// Track files that failed to load from external source
+interface FailedFile {
+  fileName: string;
+  reason: string;
+}
+
+// Result of data loading
+export interface DataLoadResult {
+  failedFiles: FailedFile[];
+  isElectron: boolean;
+}
 
 /**
  * Load a data file using Electron IPC, with fallback to bundled data
+ * Returns the data and tracks if the file failed to load externally
  */
-async function loadDataFile<T>(fileName: string, fallbackData: T): Promise<T> {
-  // If not in Electron, use bundled data
+async function loadDataFile<T>(
+  fileName: string, 
+  fallbackData: T, 
+  failedFiles: FailedFile[]
+): Promise<T> {
+  // If not in Electron, use bundled data (not a failure, just development mode)
   if (!window.electronAPI) {
     console.log(`[DataLoader] No Electron API, using bundled ${fileName}`);
     return fallbackData;
@@ -100,11 +133,15 @@ async function loadDataFile<T>(fileName: string, fallbackData: T): Promise<T> {
       console.log(`[DataLoader] Loaded ${fileName} from ${result.path}`);
       return JSON.parse(result.content) as T;
     } else {
-      console.warn(`[DataLoader] Failed to load ${fileName}: ${result.error}, using bundled data`);
+      const reason = result.error || 'Unknown error';
+      console.warn(`[DataLoader] Failed to load ${fileName}: ${reason}, using bundled data`);
+      failedFiles.push({ fileName, reason });
       return fallbackData;
     }
   } catch (error) {
+    const reason = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[DataLoader] Error loading ${fileName}:`, error);
+    failedFiles.push({ fileName, reason });
     return fallbackData;
   }
 }
@@ -112,8 +149,9 @@ async function loadDataFile<T>(fileName: string, fallbackData: T): Promise<T> {
 /**
  * Load all game data files
  * Call this once at app startup
+ * Returns information about any files that failed to load from external sources
  */
-export async function loadAllGameData(): Promise<void> {
+export async function loadAllGameData(): Promise<DataLoadResult> {
   // Return existing promise if already loading
   if (loadPromise) {
     return loadPromise;
@@ -121,11 +159,13 @@ export async function loadAllGameData(): Promise<void> {
 
   // Return immediately if already loaded
   if (dataLoaded) {
-    return;
+    return { failedFiles: [], isElectron: !!window.electronAPI };
   }
 
   loadPromise = (async () => {
     console.log('[DataLoader] Loading game data...');
+    const failedFiles: FailedFile[] = [];
+    const isElectron = !!window.electronAPI;
 
     // Import services that need data
     const { loadSupportSystemsData } = await import('./supportSystemService');
@@ -134,22 +174,24 @@ export async function loadAllGameData(): Promise<void> {
     const { loadSensorsData } = await import('./sensorService');
     const { initializeHangarMiscData } = await import('./hangarMiscService');
     const { loadDamageDiagramData } = await import('./damageDiagramService');
+    const { initializeWeaponsData } = await import('./weaponService');
 
     // Load all data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData] = await Promise.all([
-      loadDataFile('hulls.json', hullsDataFallback),
-      loadDataFile('armor.json', armorDataFallback),
-      loadDataFile('powerPlants.json', powerPlantDataFallback),
-      loadDataFile('fuelTank.json', fuelTankDataFallback),
-      loadDataFile('engines.json', enginesDataFallback),
-      loadDataFile('ftlDrives.json', ftlDrivesDataFallback),
-      loadDataFile('supportSystems.json', supportSystemsDataFallback),
-      loadDataFile('defenses.json', defensesDataFallback),
-      loadDataFile('commandControl.json', commandControlDataFallback),
-      loadDataFile('sensors.json', sensorsDataFallback),
-      loadDataFile('hangarMisc.json', hangarMiscDataFallback),
-      loadDataFile('ordnance.json', ordnanceDataFallback),
-      loadDataFile('damageDiagram.json', damageDiagramDataFallback),
+    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
+      loadDataFile('hulls.json', hullsDataFallback, failedFiles),
+      loadDataFile('armor.json', armorDataFallback, failedFiles),
+      loadDataFile('powerPlants.json', powerPlantDataFallback, failedFiles),
+      loadDataFile('fuelTank.json', fuelTankDataFallback, failedFiles),
+      loadDataFile('engines.json', enginesDataFallback, failedFiles),
+      loadDataFile('ftlDrives.json', ftlDrivesDataFallback, failedFiles),
+      loadDataFile('supportSystems.json', supportSystemsDataFallback, failedFiles),
+      loadDataFile('defenses.json', defensesDataFallback, failedFiles),
+      loadDataFile('commandControl.json', commandControlDataFallback, failedFiles),
+      loadDataFile('sensors.json', sensorsDataFallback, failedFiles),
+      loadDataFile('hangarMisc.json', hangarMiscDataFallback, failedFiles),
+      loadDataFile('ordnance.json', ordnanceDataFallback, failedFiles),
+      loadDataFile('damageDiagram.json', damageDiagramDataFallback, failedFiles),
+      loadDataFile('weapons.json', weaponsDataFallback, failedFiles),
     ]);
 
     // Store in cache
@@ -176,6 +218,13 @@ export async function loadAllGameData(): Promise<void> {
     cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
     cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
     cache.damageDiagram = damageDiagramData;
+    // Weapons data
+    cache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
+    cache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
+    cache.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
+    cache.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
+    cache.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+    cache.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
 
     // Load data into services
     loadSupportSystemsData(cache.supportSystems);
@@ -185,9 +234,16 @@ export async function loadAllGameData(): Promise<void> {
     initializeHangarMiscData({ hangarMiscSystems: cache.hangarMiscSystems });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     loadDamageDiagramData(cache.damageDiagram as any);
+    initializeWeaponsData(weaponsData as Parameters<typeof initializeWeaponsData>[0]);
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
+    
+    if (failedFiles.length > 0) {
+      console.warn('[DataLoader] Some files failed to load from external sources:', failedFiles);
+    }
+    
+    return { failedFiles, isElectron };
   })();
 
   return loadPromise;
@@ -300,6 +356,12 @@ export async function reloadAllGameData(): Promise<void> {
   cache.warheads = null;
   cache.guidanceSystems = null;
   cache.damageDiagram = null;
+  cache.beamWeapons = null;
+  cache.projectileWeapons = null;
+  cache.torpedoWeapons = null;
+  cache.specialWeapons = null;
+  cache.mountModifiers = null;
+  cache.gunConfigurations = null;
   await loadAllGameData();
 }
 
@@ -377,4 +439,70 @@ export function getGuidanceSystemsData(): GuidanceSystem[] {
     return (ordnanceDataFallback as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
   }
   return cache.guidanceSystems!;
+}
+
+/**
+ * Get all beam weapon types (must call loadAllGameData first)
+ */
+export function getBeamWeaponsData(): BeamWeaponType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { beamWeapons: BeamWeaponType[] }).beamWeapons;
+  }
+  return cache.beamWeapons!;
+}
+
+/**
+ * Get all projectile weapon types (must call loadAllGameData first)
+ */
+export function getProjectileWeaponsData(): ProjectileWeaponType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
+  }
+  return cache.projectileWeapons!;
+}
+
+/**
+ * Get all torpedo weapon types (must call loadAllGameData first)
+ */
+export function getTorpedoWeaponsData(): TorpedoWeaponType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
+  }
+  return cache.torpedoWeapons!;
+}
+
+/**
+ * Get all special weapon types (must call loadAllGameData first)
+ */
+export function getSpecialWeaponsData(): SpecialWeaponType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
+  }
+  return cache.specialWeapons!;
+}
+
+/**
+ * Get mount modifiers (must call loadAllGameData first)
+ */
+export function getMountModifiersData(): Record<MountType, MountModifier> | null {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+  }
+  return cache.mountModifiers;
+}
+
+/**
+ * Get gun configurations (must call loadAllGameData first)
+ */
+export function getGunConfigurationsData(): Record<GunConfiguration, GunConfigModifier> | null {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
+  }
+  return cache.gunConfigurations;
 }

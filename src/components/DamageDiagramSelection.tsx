@@ -620,7 +620,7 @@ export function DamageDiagramSelection({
       // For weapons, filter by arc compatibility
       if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
         const arcCompatibleZones = candidateZones.filter((zone) =>
-          canWeaponBeInZone(system.arcs!, zone.code, hull.shipClass)
+          canWeaponBeInZone(system.arcs!, zone.code)
         );
         // Only use arc-compatible zones if there are any; otherwise fall back to all candidates
         if (arcCompatibleZones.length > 0) {
@@ -669,7 +669,7 @@ export function DamageDiagramSelection({
     }
 
     onZonesChange(newZones);
-  }, [unassignedSystems, effectiveZones, onZonesChange, hull.shipClass]);
+  }, [unassignedSystems, effectiveZones, onZonesChange]);
 
   // ============== Render ==============
 
@@ -773,7 +773,7 @@ export function DamageDiagramSelection({
                     {effectiveZones.map((zone) => {
                       const wouldExceed = zone.totalHullPoints + system.hullPoints > zone.maxHullPoints;
                       const isArcCompatible = system.category !== 'weapon' || !system.arcs || system.arcs.length === 0 ||
-                        canWeaponBeInZone(system.arcs, zone.code, hull.shipClass);
+                        canWeaponBeInZone(system.arcs, zone.code);
                       return (
                         <Tooltip
                           key={zone.code}

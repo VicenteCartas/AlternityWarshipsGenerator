@@ -20,6 +20,7 @@ import {
   getShipClasses,
 } from '../services/hullService';
 import { formatCost, formatTargetModifier, getShipClassDisplayName } from '../services/formatters';
+import { headerCellSx } from '../constants/tableStyles';
 
 interface HullSelectionProps {
   selectedHull: Hull | null;
@@ -165,7 +166,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
               <TableCell sx={{ fontWeight: 'bold', width: 115, whiteSpace: 'nowrap' }}>Damage Track</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Crew</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

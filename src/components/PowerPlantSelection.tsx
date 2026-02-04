@@ -22,6 +22,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -75,7 +76,7 @@ export function PowerPlantSelection({
 
   // Get power plants filtered by ship class, then apply design constraints
   const availablePowerPlants = useMemo(() => {
-    const byShipClass = getPowerPlantTypesForShipClass(hull.shipClass);
+    const byShipClass = getPowerPlantTypesForShipClass();
     return byShipClass.filter((plant) => {
       // Filter by progress level
       if (plant.progressLevel > designProgressLevel) {
@@ -93,7 +94,7 @@ export function PowerPlantSelection({
       }
       return true;
     }).sort((a, b) => a.progressLevel - b.progressLevel);
-  }, [hull.shipClass, designProgressLevel, designTechTracks]);
+  }, [designProgressLevel, designTechTracks]);
 
   // Get installed power plants that require fuel (for the fuel tank dropdown)
   const fuelRequiringPlants = useMemo(
@@ -132,22 +133,10 @@ export function PowerPlantSelection({
     if (!selectedType) return;
 
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
-
-    // When editing, exclude the current installation from validation
-    const plantsForValidation = editingInstallationId
-      ? installedPowerPlants.filter((p) => p.id !== editingInstallationId)
-      : installedPowerPlants;
     
-    const hpUsedByOtherPlants = editingInstallationId
-      ? calculateTotalPowerPlantStats(plantsForValidation, installedFuelTanks).totalHullPoints
-      : totalStats.totalHullPoints;
-
     const validation = validatePowerPlantInstallation(
       selectedType,
-      hullPoints,
-      hull,
-      plantsForValidation,
-      usedHullPoints + hpUsedByOtherPlants
+      hullPoints
     );
 
     if (!validation.valid) {
@@ -811,7 +800,7 @@ export function PowerPlantSelection({
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Min Size</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Fuel</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

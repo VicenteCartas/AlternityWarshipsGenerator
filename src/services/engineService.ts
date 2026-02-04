@@ -1,5 +1,5 @@
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
-import type { Hull, ShipClass } from '../types/hull';
+import type { Hull } from '../types/hull';
 import { getEnginesData, getFuelTankData } from './dataLoader';
 import { generateId } from './utilities';
 
@@ -12,10 +12,9 @@ export function getAllEngineTypes(): EngineType[] {
 
 /**
  * Get engine types available for a specific ship class
- * Currently all engines are available for all ship classes
+ * Note: Currently all engines are available for all ship classes
  */
-export function getEngineTypesForShipClass(_shipClass: ShipClass): EngineType[] {
-  // All engines are available for all ship classes
+export function getEngineTypesForShipClass(): EngineType[] {
   return getAllEngineTypes();
 }
 

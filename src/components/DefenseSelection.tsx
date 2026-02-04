@@ -22,6 +22,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { DefenseSystemType, InstalledDefenseSystem } from '../types/defense';
@@ -42,8 +43,6 @@ import { formatCost, getTechTrackName } from '../services/formatters';
 interface DefenseSelectionProps {
   hull: Hull;
   installedDefenses: InstalledDefenseSystem[];
-  usedHullPoints: number;
-  availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onDefensesChange: (defenses: InstalledDefenseSystem[]) => void;
@@ -52,8 +51,6 @@ interface DefenseSelectionProps {
 export function DefenseSelection({
   hull,
   installedDefenses,
-  usedHullPoints: _usedHullPoints,
-  availablePower: _availablePower,
   designProgressLevel,
   designTechTracks,
   onDefensesChange,
@@ -75,8 +72,8 @@ export function DefenseSelection({
 
   // Calculate stats
   const stats = useMemo(
-    () => calculateDefenseStats(installedDefenses, hull.hullPoints),
-    [installedDefenses, hull.hullPoints]
+    () => calculateDefenseStats(installedDefenses),
+    [installedDefenses]
   );
 
   // Group defenses by category for display
@@ -545,7 +542,7 @@ export function DefenseSelection({
                     <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }} align="right">Cost</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }} align="right">Coverage</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', width: 250, whiteSpace: 'nowrap' }}>Effect</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                    <TableCell sx={headerCellSx}>Description</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

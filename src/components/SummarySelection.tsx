@@ -190,7 +190,7 @@ export function SummarySelection({
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, []);
     const weaponStats = calculateWeaponStats(installedWeapons);
     const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
-    const defenseStats = calculateDefenseStats(installedDefenses, hull.hullPoints);
+    const defenseStats = calculateDefenseStats(installedDefenses);
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(installedSensors);
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);

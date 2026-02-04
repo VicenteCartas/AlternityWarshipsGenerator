@@ -24,6 +24,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
+import { headerCellSx } from '../constants/tableStyles';
 import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -53,7 +54,6 @@ interface EngineSelectionProps {
   installedEngines: InstalledEngine[];
   installedFuelTanks: InstalledEngineFuelTank[];
   usedHullPoints: number;
-  availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onEnginesChange: (engines: InstalledEngine[]) => void;
@@ -65,7 +65,6 @@ export function EngineSelection({
   installedEngines,
   installedFuelTanks,
   usedHullPoints,
-  availablePower,
   designProgressLevel,
   designTechTracks,
   onEnginesChange,
@@ -83,7 +82,7 @@ export function EngineSelection({
 
   // Get engines filtered by ship class, then apply design constraints
   const availableEngines = useMemo(() => {
-    const byShipClass = getEngineTypesForShipClass(hull.shipClass);
+    const byShipClass = getEngineTypesForShipClass();
     return byShipClass.filter((engine) => {
       // Filter by progress level
       if (engine.progressLevel > designProgressLevel) {
@@ -101,7 +100,7 @@ export function EngineSelection({
       }
       return true;
     }).sort((a, b) => a.progressLevel - b.progressLevel);
-  }, [hull.shipClass, designProgressLevel, designTechTracks]);
+  }, [designProgressLevel, designTechTracks]);
 
   // Get unique engine types that require fuel (from installed engines)
   const fuelRequiringTypes = useMemo(
@@ -132,11 +131,6 @@ export function EngineSelection({
     if (!selectedType) return;
 
     const hullPoints = parseInt(hullPointsInput, 10) || 0;
-
-    // When editing, exclude the current installation from validation
-    const enginesForValidation = editingid
-      ? installedEngines.filter((e) => e.id !== editingid)
-      : installedEngines;
 
     const validation = validateEngineInstallation(
       selectedType,
@@ -865,21 +859,21 @@ export function EngineSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Base Cost</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Min Size</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Fuel</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Atmo</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>5%</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>10%</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>15%</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>20%</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>30%</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Power/HP</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Base Cost</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Cost/HP</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Min Size</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Fuel</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Atmo</TableCell>
+              <TableCell align="center" sx={headerCellSx}>5%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>10%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>15%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>20%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>30%</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

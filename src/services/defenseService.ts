@@ -116,8 +116,7 @@ export function calculateTotalCoverage(
 // ============== Stats Calculation ==============
 
 export function calculateDefenseStats(
-  installedDefenses: InstalledDefenseSystem[],
-  _shipHullPoints: number
+  installedDefenses: InstalledDefenseSystem[]
 ): DefenseStats {
   let totalHullPoints = 0;
   let totalPowerRequired = 0;
@@ -146,13 +145,14 @@ export function calculateDefenseStats(
       case 'countermeasure':
         countermeasureCoverage += coverage;
         break;
-      case 'repair':
+      case 'repair': {
         // Parse damage check bonus from effect string (e.g., "-2 step bonus to Damage Checks")
         const match = type.effect.match(/-(\d+)\s*step/i);
         if (match) {
           damageCheckBonus += parseInt(match[1], 10);
         }
         break;
+      }
       case 'shield-component':
         if (type.shieldPoints) {
           totalShieldPoints += type.shieldPoints * defense.quantity;

@@ -22,6 +22,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import { TabPanel } from './shared';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -56,8 +57,6 @@ interface SupportSystemsSelectionProps {
   installedAccommodations: InstalledAccommodation[];
   installedStoreSystems: InstalledStoreSystem[];
   installedGravitySystems: InstalledGravitySystem[];
-  usedHullPoints: number;
-  availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
@@ -72,8 +71,6 @@ export function SupportSystemsSelection({
   installedAccommodations,
   installedStoreSystems,
   installedGravitySystems,
-  usedHullPoints: _usedHullPoints,
-  availablePower: _availablePower,
   designProgressLevel,
   designTechTracks,
   onLifeSupportChange,
@@ -403,14 +400,14 @@ export function SupportSystemsSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Covers</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Covers</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -582,16 +579,16 @@ export function SupportSystemsSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Capacity</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Type</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Airlock</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Capacity</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Type</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Airlock</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -787,14 +784,14 @@ export function SupportSystemsSelection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Effect</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -923,12 +920,12 @@ export function SupportSystemsSelection({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Hull %</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP Used</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
+                    <TableCell sx={headerCellSx}>Action</TableCell>
+                    <TableCell sx={headerCellSx}>Name</TableCell>
+                    <TableCell sx={headerCellSx}>PL</TableCell>
+                    <TableCell sx={headerCellSx}>Hull %</TableCell>
+                    <TableCell sx={headerCellSx}>HP Used</TableCell>
+                    <TableCell sx={headerCellSx}>Cost</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -966,15 +963,15 @@ export function SupportSystemsSelection({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Hull %</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Est. HP</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Est. Cost</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                    <TableCell sx={headerCellSx}>Action</TableCell>
+                    <TableCell sx={headerCellSx}>Name</TableCell>
+                    <TableCell sx={headerCellSx}>PL</TableCell>
+                    <TableCell sx={headerCellSx}>Tech</TableCell>
+                    <TableCell sx={headerCellSx}>Hull %</TableCell>
+                    <TableCell sx={headerCellSx}>Est. HP</TableCell>
+                    <TableCell sx={headerCellSx}>Cost/HP</TableCell>
+                    <TableCell sx={headerCellSx}>Est. Cost</TableCell>
+                    <TableCell sx={headerCellSx}>Description</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

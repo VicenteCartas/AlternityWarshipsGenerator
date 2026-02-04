@@ -45,6 +45,6 @@ export function getHullById(id: string): Hull | undefined {
 /**
  * Get all unique ship classes
  */
-export function getShipClasses(): ShipClass[] {
+export function getShipClasses(): readonly ShipClass[] {
   return [...SHIP_CLASS_ORDER];
 }

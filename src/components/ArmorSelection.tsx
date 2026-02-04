@@ -25,6 +25,7 @@ import {
   calculateArmorCost,
 } from '../services/armorService';
 import { formatCost, getTechTrackName } from '../services/formatters';
+import { headerCellSx } from '../constants/tableStyles';
 
 interface ArmorSelectionProps {
   hull: Hull;
@@ -190,7 +191,7 @@ export function ArmorSelection({
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP Cost</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Total Cost</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+                <TableCell sx={headerCellSx}>Description</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

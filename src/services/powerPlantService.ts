@@ -1,5 +1,5 @@
 import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
-import type { Hull, ShipClass } from '../types/hull';
+import type { Hull } from '../types/hull';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
 import { generateId } from './utilities';
 
@@ -19,8 +19,9 @@ export function getFuelTankType(): FuelTankType {
 
 /**
  * Get power plant types available for a specific ship class
+ * Note: Currently all power plants are available for all ship classes
  */
-export function getPowerPlantTypesForShipClass(_shipClass: ShipClass): PowerPlantType[] {
+export function getPowerPlantTypesForShipClass(): PowerPlantType[] {
   return getAllPowerPlantTypes();
 }
 

@@ -46,6 +46,7 @@ export interface DefenseSystemType {
   requiresComponents?: string[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InstalledDefenseSystem extends InstalledSystemBase<DefenseSystemType> {}
 
 // ============== Stats ==============

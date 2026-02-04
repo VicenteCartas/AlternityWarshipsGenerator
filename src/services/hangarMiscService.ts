@@ -1,25 +1,23 @@
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscStats } from '../types/hangarMisc';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
-import hangarMiscData from '../data/hangarMisc.json';
+import { getHangarMiscSystemsData } from './dataLoader';
 
 let hangarMiscSystemTypes: HangarMiscSystemType[] | null = null;
 
 /**
- * Initialize hangar/misc data from JSON
+ * Initialize hangar/misc data from JSON (called by dataLoader)
  */
 export function initializeHangarMiscData(data: { hangarMiscSystems: HangarMiscSystemType[] }): void {
   hangarMiscSystemTypes = data.hangarMiscSystems;
 }
 
-// Initialize with bundled data
-initializeHangarMiscData(hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] });
-
 /**
  * Get all hangar/misc system types
  */
 export function getAllHangarMiscSystemTypes(): HangarMiscSystemType[] {
-  return hangarMiscSystemTypes || [];
+  // Use cached data if initialized, otherwise get from dataLoader
+  return hangarMiscSystemTypes || getHangarMiscSystemsData();
 }
 
 /**

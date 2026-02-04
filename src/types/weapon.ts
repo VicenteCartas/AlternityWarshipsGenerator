@@ -109,6 +109,7 @@ export interface BaseWeaponType {
 /**
  * Beam weapons extend the base weapon type
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface BeamWeaponType extends BaseWeaponType {}
 
 // ============== Projectile Weapon Type ==============
@@ -116,6 +117,7 @@ export interface BeamWeaponType extends BaseWeaponType {}
 /**
  * Projectile weapons extend the base weapon type
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ProjectileWeaponType extends BaseWeaponType {}
 
 // ============== Torpedo Weapon Type ==============
@@ -124,6 +126,7 @@ export interface ProjectileWeaponType extends BaseWeaponType {}
  * Torpedo weapons extend the base weapon type
  * Torpedoes can use standard, fixed, or turret mounts
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TorpedoWeaponType extends BaseWeaponType {}
 
 // ============== Special Weapon Type ==============

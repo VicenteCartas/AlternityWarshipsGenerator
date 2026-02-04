@@ -1,4 +1,3 @@
-import type { ShipClass } from '../types/hull';
 import type { Hull } from '../types/hull';
 import type {
   ZoneCode,
@@ -296,11 +295,11 @@ export function sortSystemsByDamagePriority(systems: ZoneSystemReference[]): Zon
 
 /**
  * Check if a weapon can be placed in a zone based on its arcs
+ * Note: Currently zone rules are the same for all ship classes
  */
 export function canWeaponBeInZone(
   arcs: string[],
-  zoneCode: ZoneCode,
-  _shipClass: ShipClass
+  zoneCode: ZoneCode
 ): boolean {
   // Define which zones are valid for each arc
   const arcZoneMap: Record<string, ZoneCode[]> = {

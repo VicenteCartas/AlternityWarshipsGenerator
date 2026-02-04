@@ -28,6 +28,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { headerCellSx } from '../constants/tableStyles';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -212,7 +213,6 @@ export function OrdnanceSelection({
 
   // Design form state
   const [designName, setDesignName] = useState('');
-  const [designSize, setDesignSize] = useState<OrdnanceSize>('light');
   const [selectedPropulsion, setSelectedPropulsion] = useState<string>('');
   const [selectedGuidance, setSelectedGuidance] = useState<string>('');
   const [selectedWarhead, setSelectedWarhead] = useState<string>('');
@@ -305,7 +305,7 @@ export function OrdnanceSelection({
       }
     }
     return null;
-  }, [designCategory, selectedPropulsion, selectedGuidance, selectedWarhead, designSize, allPropulsion, allGuidance, allWarheads]);
+  }, [designCategory, selectedPropulsion, selectedGuidance, selectedWarhead, allPropulsion, allGuidance, allWarheads]);
 
   // Calculate preview for launch system
   const previewStats = useMemo(() => {
@@ -404,7 +404,6 @@ export function OrdnanceSelection({
     setDesignCategory(category);
     setEditingDesign(null);
     setDesignName('');
-    setDesignSize('light');
     setSelectedPropulsion('');
     setSelectedGuidance('');
     setSelectedWarhead('');
@@ -418,7 +417,6 @@ export function OrdnanceSelection({
     setDesignCategory(design.category);
     setEditingDesign(design);
     setDesignName(design.name);
-    setDesignSize(design.size);
     if (design.category === 'missile') {
       const missile = design as MissileDesign;
       setSelectedPropulsion(missile.propulsionId);
@@ -750,15 +748,15 @@ export function OrdnanceSelection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Power</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cap</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>ROF</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Reload</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Types</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cap</TableCell>
+              <TableCell sx={headerCellSx}>ROF</TableCell>
+              <TableCell sx={headerCellSx}>Reload</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Types</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
             </TableRow>
           </TableHead>

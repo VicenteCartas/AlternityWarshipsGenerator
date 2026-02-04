@@ -29,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel } from './shared';
+import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
@@ -67,8 +68,6 @@ interface CommandControlSelectionProps {
   installedSystems: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedWeapons: InstalledWeapon[];
-  usedHullPoints: number;
-  availablePower: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onSystemsChange: (systems: InstalledCommandControlSystem[]) => void;
@@ -79,8 +78,6 @@ export function CommandControlSelection({
   installedSystems,
   installedSensors,
   installedWeapons,
-  usedHullPoints: _usedHullPoints,
-  availablePower: _availablePower,
   designProgressLevel,
   designTechTracks,
   onSystemsChange,
@@ -705,7 +702,7 @@ export function CommandControlSelection({
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Power</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -842,7 +839,7 @@ export function CommandControlSelection({
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Power</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Cost</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 250, whiteSpace: 'nowrap' }}>Effect</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Description</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

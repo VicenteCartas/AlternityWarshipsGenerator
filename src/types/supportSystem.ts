@@ -17,6 +17,7 @@ export interface LifeSupportType {
   description: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InstalledLifeSupport extends InstalledQuantityItem<LifeSupportType> {}
 
 // ============== Accommodation Types ==============
@@ -42,6 +43,7 @@ export interface AccommodationType {
   description: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InstalledAccommodation extends InstalledQuantityItem<AccommodationType> {}
 
 // ============== Stores Types ==============
@@ -65,6 +67,7 @@ export interface StoreSystemType {
   description: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InstalledStoreSystem extends InstalledQuantityItem<StoreSystemType> {}
 
 // ============== Gravity Systems Types ==============
