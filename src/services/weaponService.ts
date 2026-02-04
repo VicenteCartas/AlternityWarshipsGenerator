@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, Firepower } from '../types/common';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import { FIREPOWER_ORDER } from '../types/common';
 import type { ShipClass } from '../types/hull';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
@@ -18,6 +18,7 @@ import type {
   ZeroArc,
   MountModifier,
   GunConfigModifier,
+  FirepowerRating,
 } from '../types/weapon';
 import { ALL_ZERO_ARCS } from '../types/weapon';
 import {
@@ -109,9 +110,9 @@ export function sortWeapons<T extends WeaponType>(weapons: T[]): T[] {
   return [...weapons].sort((a, b) => {
     // Sort by PL first
     if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
-    // Then by Firepower (using order: S, A, B, C, D, E, F, G)
-    const fpA = FIREPOWER_ORDER[a.firepower as Firepower] ?? 99;
-    const fpB = FIREPOWER_ORDER[b.firepower as Firepower] ?? 99;
+    // Then by Firepower (using order: Gd, S, L, M, H, SH)
+    const fpA = FIREPOWER_ORDER[a.firepower as FirepowerRating] ?? 99;
+    const fpB = FIREPOWER_ORDER[b.firepower as FirepowerRating] ?? 99;
     if (fpA !== fpB) return fpA - fpB;
     // Then by Accuracy (negative to positive, so lower/better first)
     if (a.accuracyModifier !== b.accuracyModifier) return a.accuracyModifier - b.accuracyModifier;
