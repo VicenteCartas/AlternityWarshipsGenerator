@@ -814,7 +814,7 @@ export function DamageDiagramSelection({
                 bgcolor: zone.totalHullPoints > zone.maxHullPoints
                   ? 'error.light'
                   : zone.systems.length === 0
-                    ? 'warning.light'
+                    ? 'rgba(237, 108, 2, 0.50)'  // Subtle orange for empty zones
                     : 'background.paper',
               }}
             >
@@ -846,7 +846,7 @@ export function DamageDiagramSelection({
 
               {zone.systems.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                  No systems assigned - drag systems here or use the dropdown
+                  No systems assigned to this zone.
                 </Typography>
               ) : (
                 <Table size="small">

@@ -44,6 +44,7 @@ interface HangarMiscSelectionProps {
   installedSystems: InstalledHangarMiscSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
+  totalPassengersAndSuspended: number;  // Passengers + suspended from accommodations (crew comes from hull)
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
 }
 
@@ -52,6 +53,7 @@ export function HangarMiscSelection({
   installedSystems,
   designProgressLevel,
   designTechTracks,
+  totalPassengersAndSuspended,
   onSystemsChange,
 }: HangarMiscSelectionProps) {
   const [categoryFilter, setCategoryFilter] = useState<FilterWithAll<HangarMiscCategory>>('all');
@@ -417,7 +419,11 @@ export function HangarMiscSelection({
             <Chip label={`Cargo: ${stats.totalCargoCapacity} m³`} color="primary" variant="outlined" />
           )}
           {stats.totalEvacCapacity > 0 && (
-            <Chip label={`Evac: ${stats.totalEvacCapacity} people`} color="primary" variant="outlined" />
+            <Chip 
+              label={`Evac: ${stats.totalEvacCapacity}/${hull.crew + totalPassengersAndSuspended} people`} 
+              color={stats.totalEvacCapacity >= hull.crew + totalPassengersAndSuspended ? 'success' : 'warning'} 
+              variant="outlined" 
+            />
           )}
           {stats.totalMagazineCapacity > 0 && (
             <Chip label={`Magazine: ${stats.totalMagazineCapacity} pts`} color="primary" variant="outlined" />

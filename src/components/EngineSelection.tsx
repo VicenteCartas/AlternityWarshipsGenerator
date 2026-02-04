@@ -528,7 +528,7 @@ export function EngineSelection({
                   </Box>
                   {/* Inline edit form when editing this engine */}
                   {isEditing && selectedType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Hull Points"
@@ -537,7 +537,7 @@ export function EngineSelection({
                           value={hullPointsInput}
                           onChange={(e) => setHullPointsInput(e.target.value)}
                           inputProps={{ min: selectedType.minSize }}
-                          helperText={<>Min: {selectedType.minSize}<br />Power: {selectedType.powerPerHullPoint}/HP</>}
+                          helperText={`Min: ${selectedType.minSize}`}
                           sx={{ width: 140 }}
                         />
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -651,7 +651,7 @@ export function EngineSelection({
                   </Box>
                   {/* Inline edit form when editing this fuel tank */}
                   {isEditing && addingFuelTankForType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Hull Points"

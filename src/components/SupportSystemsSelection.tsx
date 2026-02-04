@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   Chip,
   Tabs,
   Tab,
+  Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -289,11 +290,114 @@ export function SupportSystemsSelection({
 
   const renderLifeSupportTab = () => (
     <Box>
-      {/* Configure Form */}
-      {selectedLifeSupport && (
+      {/* Installed Life Support */}
+      {installedLifeSupport.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed Life Support
+          </Typography>
+          <Stack spacing={1}>
+            {installedLifeSupport.map((installed) => {
+              const isEditing = editingLifeSupportId === installed.id;
+              return (
+                <Fragment key={installed.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {installed.quantity}x {installed.type.name}
+                  </Typography>
+                  <Chip
+                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${installed.type.powerRequired * installed.quantity} Power`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity} HP`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={formatCost(installed.type.cost * installed.quantity)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <IconButton size="small" color="primary" onClick={() => handleEditLifeSupport(installed)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveLifeSupport(installed.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && selectedLifeSupport && (
+                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <TextField
+                        label="Quantity"
+                        type="number"
+                        size="small"
+                        value={lifeSupportQuantity}
+                        onChange={(e) => setLifeSupportQuantity(e.target.value)}
+                        inputProps={{ min: 1 }}
+                        sx={{ width: 100 }}
+                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1)} |
+                          Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
+                          Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))} |
+                          Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1)} HP
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddLifeSupport}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setSelectedLifeSupport(null);
+                              setEditingLifeSupportId(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+              </Fragment>
+            );
+          })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Add new Life Support - Only show when adding new (not editing) */}
+      {selectedLifeSupport && !editingLifeSupportId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingLifeSupportId ? 'Edit' : 'Add'} {selectedLifeSupport.name}
+            Add {selectedLifeSupport.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -316,10 +420,10 @@ export function SupportSystemsSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingLifeSupportId ? <SaveIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                   onClick={handleAddLifeSupport}
                 >
-                  {editingLifeSupportId ? 'Save' : 'Add'}
+                  Add
                 </Button>
                 <Button
                   variant="outlined"
@@ -334,60 +438,6 @@ export function SupportSystemsSelection({
               </Box>
             </Box>
           </Box>
-        </Paper>
-      )}
-
-      {/* Installed Life Support */}
-      {installedLifeSupport.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Life Support
-          </Typography>
-          {installedLifeSupport.map((installed) => (
-            <Box
-              key={installed.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                mb: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {installed.quantity}x {installed.type.name}
-              </Typography>
-              <Chip
-                label={`${installed.type.hullPoints * installed.quantity} HP`}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={`${installed.type.powerRequired * installed.quantity} Power`}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity} HP`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                label={formatCost(installed.type.cost * installed.quantity)}
-                size="small"
-                variant="outlined"
-              />
-              <IconButton size="small" color="primary" onClick={() => handleEditLifeSupport(installed)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" color="error" onClick={() => handleRemoveLifeSupport(installed.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
         </Paper>
       )}
 
@@ -465,11 +515,117 @@ export function SupportSystemsSelection({
 
   const renderAccommodationsTab = () => (
     <Box>
-      {/* Configure Form */}
-      {selectedAccommodation && (
+      {/* Installed Accommodations */}
+      {installedAccommodations.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed Accommodations
+          </Typography>
+          <Stack spacing={1}>
+            {installedAccommodations.map((installed) => {
+              const isEditing = editingAccommodationId === installed.id;
+              return (
+                <Fragment key={installed.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {installed.quantity}x {installed.type.name}
+                  </Typography>
+                  <Chip
+                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${installed.type.capacity * installed.quantity} ${installed.type.category}`}
+                    size="small"
+                    color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
+                    variant="outlined"
+                  />
+                  {installed.type.includesAirlock && (
+                    <Chip
+                      label={`${installed.quantity} airlock${installed.quantity > 1 ? 's' : ''}`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
+                  <Chip
+                    label={formatCost(installed.type.cost * installed.quantity)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <IconButton size="small" color="primary" onClick={() => handleEditAccommodation(installed)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveAccommodation(installed.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && selectedAccommodation && (
+                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <TextField
+                        label="Quantity"
+                        type="number"
+                        size="small"
+                        value={accommodationQuantity}
+                        onChange={(e) => setAccommodationQuantity(e.target.value)}
+                        inputProps={{ min: 1 }}
+                        sx={{ width: 100 }}
+                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1)} |
+                          Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
+                          Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1))} |
+                          Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1)}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddAccommodation}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setSelectedAccommodation(null);
+                              setEditingAccommodationId(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+              </Fragment>
+            );
+          })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Add new Accommodation - Only show when adding new (not editing) */}
+      {selectedAccommodation && !editingAccommodationId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingAccommodationId ? 'Edit' : 'Add'} {selectedAccommodation.name}
+            Add {selectedAccommodation.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -492,10 +648,10 @@ export function SupportSystemsSelection({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingAccommodationId ? <SaveIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                   onClick={handleAddAccommodation}
                 >
-                  {editingAccommodationId ? 'Save' : 'Add'}
+                  Add
                 </Button>
                 <Button
                   variant="outlined"
@@ -510,63 +666,6 @@ export function SupportSystemsSelection({
               </Box>
             </Box>
           </Box>
-        </Paper>
-      )}
-
-      {/* Installed Accommodations */}
-      {installedAccommodations.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Accommodations
-          </Typography>
-          {installedAccommodations.map((installed) => (
-            <Box
-              key={installed.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                mb: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {installed.quantity}x {installed.type.name}
-              </Typography>
-              <Chip
-                label={`${installed.type.hullPoints * installed.quantity} HP`}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={`${installed.type.capacity * installed.quantity} ${installed.type.category}`}
-                size="small"
-                color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
-                variant="outlined"
-              />
-              {installed.type.includesAirlock && (
-                <Chip
-                  label={`${installed.quantity} airlock${installed.quantity > 1 ? 's' : ''}`}
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                />
-              )}
-              <Chip
-                label={formatCost(installed.type.cost * installed.quantity)}
-                size="small"
-                variant="outlined"
-              />
-              <IconButton size="small" color="primary" onClick={() => handleEditAccommodation(installed)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" color="error" onClick={() => handleRemoveAccommodation(installed.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
         </Paper>
       )}
 
@@ -661,11 +760,129 @@ export function SupportSystemsSelection({
 
   const renderStoresTab = () => (
     <Box>
-      {/* Configure Form */}
-      {selectedStoreSystem && (
+      {/* Installed Store Systems */}
+      {installedStoreSystems.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed Store Systems
+          </Typography>
+          <Stack spacing={1}>
+            {installedStoreSystems.map((installed) => {
+              const isEditing = editingStoreSystemId === installed.id;
+              return (
+                <Fragment key={installed.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {installed.quantity}x {installed.type.name}
+                  </Typography>
+                  <Chip
+                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {installed.type.effect === 'feeds' && (
+                    <Chip
+                      label={`Feeds ${installed.type.effectValue * installed.quantity}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  {installed.type.effect === 'reduces-consumption' && (
+                    <Chip
+                      label={`Recycles for ${(installed.type.affectedPeople || 0) * installed.quantity}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  {installed.type.effect === 'adds-stores' && (
+                    <Chip
+                      label={`+${(installed.type.effectValue * installed.quantity).toLocaleString()} days`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  <Chip
+                    label={formatCost(installed.type.cost * installed.quantity)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <IconButton size="small" color="primary" onClick={() => handleEditStoreSystem(installed)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveStoreSystem(installed.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && selectedStoreSystem && (
+                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <TextField
+                        label="Quantity"
+                        type="number"
+                        size="small"
+                        value={storeSystemQuantity}
+                        onChange={(e) => setStoreSystemQuantity(e.target.value)}
+                        inputProps={{ min: 1 }}
+                        sx={{ width: 100 }}
+                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1)} |
+                          Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
+                          Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
+                          {selectedStoreSystem.effect === 'feeds' && ` | Feeds ${selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)}`}
+                          {selectedStoreSystem.effect === 'reduces-consumption' && ` | Recycles for ${(selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1)}`}
+                          {selectedStoreSystem.effect === 'adds-stores' && ` | +${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)).toLocaleString()} days`}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<SaveIcon />}
+                            onClick={handleAddStoreSystem}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setSelectedStoreSystem(null);
+                              setEditingStoreSystemId(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+              </Fragment>
+            );
+          })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Add new Store System - Only show when adding new (not editing) */}
+      {selectedStoreSystem && !editingStoreSystemId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            {editingStoreSystemId ? 'Edit' : 'Add'} {selectedStoreSystem.name}
+            Add {selectedStoreSystem.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
@@ -682,15 +899,18 @@ export function SupportSystemsSelection({
                 HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1)} |
                 Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
                 Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
+                {selectedStoreSystem.effect === 'feeds' && ` | Feeds ${selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)}`}
+                {selectedStoreSystem.effect === 'reduces-consumption' && ` | Recycles for ${(selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1)}`}
+                {selectedStoreSystem.effect === 'adds-stores' && ` | +${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)).toLocaleString()} days`}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={editingStoreSystemId ? <SaveIcon /> : <AddIcon />}
+                  startIcon={<AddIcon />}
                   onClick={handleAddStoreSystem}
                 >
-                  {editingStoreSystemId ? 'Save' : 'Add'}
+                  Add
                 </Button>
                 <Button
                   variant="outlined"
@@ -705,73 +925,6 @@ export function SupportSystemsSelection({
               </Box>
             </Box>
           </Box>
-        </Paper>
-      )}
-
-      {/* Installed Store Systems */}
-      {installedStoreSystems.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Store Systems
-          </Typography>
-          {installedStoreSystems.map((installed) => (
-            <Box
-              key={installed.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                mb: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {installed.quantity}x {installed.type.name}
-              </Typography>
-              <Chip
-                label={`${installed.type.hullPoints * installed.quantity} HP`}
-                size="small"
-                variant="outlined"
-              />
-              {installed.type.effect === 'feeds' && (
-                <Chip
-                  label={`Feeds ${installed.type.effectValue * installed.quantity}`}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-              {installed.type.effect === 'reduces-consumption' && (
-                <Chip
-                  label={`Recycles for ${(installed.type.affectedPeople || 0) * installed.quantity}`}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-              {installed.type.effect === 'adds-stores' && (
-                <Chip
-                  label={`+${(installed.type.effectValue * installed.quantity).toLocaleString()} days`}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-              <Chip
-                label={formatCost(installed.type.cost * installed.quantity)}
-                size="small"
-                variant="outlined"
-              />
-              <IconButton size="small" color="primary" onClick={() => handleEditStoreSystem(installed)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" color="error" onClick={() => handleRemoveStoreSystem(installed.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
         </Paper>
       )}
 
@@ -1059,13 +1212,13 @@ export function SupportSystemsSelection({
             variant="outlined"
           />
           <Chip
-            label={`Life Support: ${stats.totalCoverage} HP`}
-            color="primary"
+            label={`Life Support: ${stats.totalCoverage}/${hull.hullPoints} HP`}
+            color={stats.totalCoverage >= hull.hullPoints ? 'success' : 'warning'}
             variant="outlined"
           />
           <Chip
-            label={`Accommodations: ${stats.crewCapacity}`}
-            color="primary"
+            label={`Crew: ${stats.crewCapacity}/${hull.crew}`}
+            color={stats.crewCapacity >= hull.crew ? 'success' : 'warning'}
             variant="outlined"
           />
           {stats.passengerCapacity > 0 && (

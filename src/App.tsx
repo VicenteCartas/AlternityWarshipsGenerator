@@ -995,15 +995,19 @@ function App() {
             </Typography>
           );
         }
-        return (
-          <HangarMiscSelection
-            hull={selectedHull}
-            installedSystems={installedHangarMisc}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onSystemsChange={handleHangarMiscChange}
-          />
-        );
+        {
+          const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+          return (
+            <HangarMiscSelection
+              hull={selectedHull}
+              installedSystems={installedHangarMisc}
+              designProgressLevel={designProgressLevel}
+              designTechTracks={designTechTracks}
+              totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity}
+              onSystemsChange={handleHangarMiscChange}
+            />
+          );
+        }
       case 11:
         // Damage Diagram step
         if (!selectedHull) {

@@ -469,7 +469,7 @@ export function PowerPlantSelection({
                   </Box>
                   {/* Inline edit form when editing this power plant */}
                   {isEditing && selectedType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Hull Points"
@@ -592,7 +592,7 @@ export function PowerPlantSelection({
                   </Box>
                   {/* Inline edit form when editing this fuel tank */}
                   {isEditing && addingFuelTankForType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Hull Points"
