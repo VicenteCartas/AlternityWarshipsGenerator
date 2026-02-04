@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Desktop application for generating Warships for the Alternity RPG",
-  "author": "Your Name",
+  "author": "Vicente Cartas",
   "license": "MIT",
   "main": "dist-electron/main.mjs",
   "type": "module",

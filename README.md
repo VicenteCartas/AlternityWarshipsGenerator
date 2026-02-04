@@ -4,6 +4,12 @@ A desktop application for generating Warships for the Alternity sci-fi role-play
 
 Built with Electron + React + TypeScript + Vite.
 
+## Download
+
+Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases).
+
+- **Windows:** Download `Alternity.Warship.Generator.Setup.X.X.X.exe`
+
 ## Development
 
 ### Prerequisites
@@ -75,6 +81,30 @@ The installer will be created in the `release/` folder.
 ├── public/             # Static assets
 └── Warships.pdf        # Source material for warship generation rules
 ```
+
+## Creating a Release
+
+Releases are automated via GitHub Actions. To create a new release:
+
+1. **Update the version** in `package.json`:
+   ```json
+   "version": "0.2.0"
+   ```
+
+2. **Commit and tag** the release:
+   ```bash
+   git add -A
+   git commit -m "Release v0.2.0"
+   git tag v0.2.0
+   git push origin main --tags
+   ```
+
+3. **GitHub Actions will automatically:**
+   - Build the Windows installer
+   - Create a GitHub Release
+   - Attach the installer for download
+
+The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases) within a few minutes.
 
 ## Tech Stack
 
