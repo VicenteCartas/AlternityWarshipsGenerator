@@ -12,63 +12,77 @@ The application guides users through a step-by-step warship building process, si
 - **UI Framework**: Material-UI (MUI) v6
 - **Build Tool**: Vite
 - **Desktop**: Electron (with context isolation enabled)
+- **PDF Generation**: jsPDF
 - **Package Manager**: npm
 
 ## Project Structure
 
 ```
 src/
-â”œâ”€â”€ components/       # React components for each build step
-â”‚   â”œâ”€â”€ WelcomePage.tsx
-â”‚   â”œâ”€â”€ HullSelection.tsx
-â”‚   â”œâ”€â”€ ArmorSelection.tsx
-â”‚   â”œâ”€â”€ PowerPlantSelection.tsx
-â”‚   â”œâ”€â”€ EngineSelection.tsx
-â”‚   â”œâ”€â”€ FTLDriveSelection.tsx
-â”‚   â”œâ”€â”€ SupportSystemsSelection.tsx
-â”‚   â””â”€â”€ shared/            # Reusable UI components
-â”‚       â”œâ”€â”€ TechTrackCell.tsx
-â”‚       â””â”€â”€ TruncatedDescription.tsx
-â”œâ”€â”€ constants/        # Shared constants and styling
-â”‚   â””â”€â”€ tableStyles.ts
-â”œâ”€â”€ services/         # Business logic and calculations
-â”‚   â”œâ”€â”€ dataLoader.ts      # Runtime data loading (externally editable)
-â”‚   â”œâ”€â”€ formatters.ts      # All UI formatting functions (cost, acceleration, etc.)
-â”‚   â”œâ”€â”€ hullService.ts
-â”‚   â”œâ”€â”€ armorService.ts
-â”‚   â”œâ”€â”€ powerPlantService.ts
-â”‚   â”œâ”€â”€ engineService.ts
-â”‚   â”œâ”€â”€ ftlDriveService.ts
-â”‚   â”œâ”€â”€ supportSystemService.ts
-â”‚   â””â”€â”€ saveService.ts
-â”œâ”€â”€ types/            # TypeScript type definitions
-â”‚   â”œâ”€â”€ hull.ts
-â”‚   â”œâ”€â”€ armor.ts
-â”‚   â”œâ”€â”€ powerPlant.ts
-â”‚   â”œâ”€â”€ engine.ts
-â”‚   â”œâ”€â”€ ftlDrive.ts
-â”‚   â”œâ”€â”€ supportSystem.ts
-â”‚   â”œâ”€â”€ saveFile.ts
-â”‚   â””â”€â”€ common.ts
-â”œâ”€â”€ data/             # JSON data files (externally editable in production)
-â”‚   â”œâ”€â”€ hulls.json
-â”‚   â”œâ”€â”€ armor.json
-â”‚   â”œâ”€â”€ powerPlants.json
-â”‚   â”œâ”€â”€ engines.json
-â”‚   â”œâ”€â”€ ftlDrives.json
-â”‚   â”œâ”€â”€ fuelTank.json
-â”‚   â””â”€â”€ supportSystems.json
-â””â”€â”€ App.tsx           # Main app with stepper/wizard flow
+├── components/       # React components for each build step
+│   ├── WelcomePage.tsx
+│   ├── HullSelection.tsx
+│   ├── ArmorSelection.tsx
+│   ├── PowerPlantSelection.tsx
+│   ├── EngineSelection.tsx
+│   ├── FTLDriveSelection.tsx
+│   ├── SupportSystemsSelection.tsx
+│   ├── WeaponSelection.tsx
+│   ├── OrdnanceSelection.tsx
+│   ├── DefenseSelection.tsx
+│   ├── SensorSelection.tsx
+│   ├── CommandControlSelection.tsx
+│   ├── HangarMiscSelection.tsx
+│   ├── DamageDiagramSelection.tsx
+│   ├── SummarySelection.tsx
+│   ├── AboutDialog.tsx
+│   ├── PdfExportDialog.tsx
+│   └── shared/            # Reusable UI components
+│       ├── TechTrackCell.tsx
+│       ├── TruncatedDescription.tsx
+│       └── ArcRadarSelector.tsx
+├── constants/        # Shared constants and styling
+│   ├── tableStyles.ts
+│   └── version.ts         # APP_VERSION and related constants
+├── services/         # Business logic and calculations
+│   ├── dataLoader.ts      # Runtime data loading (externally editable)
+│   ├── formatters.ts      # All UI formatting functions
+│   ├── hullService.ts
+│   ├── armorService.ts
+│   ├── powerPlantService.ts
+│   ├── engineService.ts
+│   ├── ftlDriveService.ts
+│   ├── supportSystemService.ts
+│   ├── weaponService.ts
+│   ├── ordnanceService.ts
+│   ├── defenseService.ts
+│   ├── sensorService.ts
+│   ├── commandControlService.ts
+│   ├── hangarMiscService.ts
+│   ├── damageDiagramService.ts
+│   ├── pdfExportService.ts
+│   └── saveService.ts
+├── types/            # TypeScript type definitions
+│   ├── hull.ts, armor.ts, powerPlant.ts, engine.ts
+│   ├── ftlDrive.ts, supportSystem.ts, weapon.ts
+│   ├── ordnance.ts, defense.ts, sensor.ts
+│   ├── commandControl.ts, hangarMisc.ts
+│   ├── damageDiagram.ts, summary.ts
+│   ├── saveFile.ts, common.ts
+│   └── electron.d.ts
+├── data/             # JSON data files (externally editable in production)
+│   └── [hulls, armor, weapons, sensors, etc.].json
+└── App.tsx           # Main app with stepper/wizard flow
 
 electron/
-â”œâ”€â”€ main.ts           # Electron main process
-â””â”€â”€ preload.ts        # IPC bridge for renderer
+├── main.ts           # Electron main process
+└── preload.ts        # IPC bridge for renderer
 ```
 
 ## Architecture Patterns
 
 ### Data Flow
-- **JSON data files** â†’ **dataLoader.ts** (runtime load) â†’ **Services** (calculate) â†’ **Components** (display)
+- **JSON data files** → **dataLoader.ts** (runtime load) → **Services** (calculate) → **Components** (display)
 - Data files are loaded at app startup via Electron IPC, allowing users to edit them externally
 - State is managed in `App.tsx` and passed down to step components
 - Save/Load uses Electron IPC for native file dialogs
@@ -86,8 +100,15 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 2. **Armor** - Choose armor weight and type (optional)
 3. **Power Plant** - Install power plants for energy (required)
 4. **Engines** - Install engines for movement (required)
-5. **FTL Drive** - Faster-than-light capability (optional, not yet implemented)
-6. **Systems** - Additional ship systems (optional, not yet implemented)
+5. **FTL Drive** - Faster-than-light capability (optional)
+6. **Support** - Life support, accommodations, stores, gravity
+7. **Weapons** - Beam weapons, projectile weapons, launch systems
+8. **Defenses** - Shields, ECM, point defense
+9. **Sensors** - Active and passive sensor suites
+10. **C4** - Command, control, communications, computers
+11. **Misc** - Hangars, cargo, escape pods, etc.
+12. **Zones** - Damage diagram assignment
+13. **Summary** - Final review, PDF export, ship description
 
 ### Key Concepts from Alternity Warships
 - **Hull Points (HP)**: Space available for installations; each component uses HP
@@ -97,127 +118,74 @@ The game data (hulls, armor, power plants, etc.) is stored in JSON files that ca
 - **Toughness Rating**: Determines weapon effectiveness against the ship
 - **Progress Level (PL)**: Technology era (6=Fusion, 7=Gravity, 8=Energy, 9=Matter)
 - **Tech Tracks**: Specialized technology fields (G, D, A, M, F, Q, T, S, P, X, C)
+- **Fire Arcs**: forward, starboard, aft, port (and zero-range variants)
 
 ### Design Constraints
 The app bar contains global design constraints that filter available components:
 - **Progress Level**: Maximum PL allowed for components (components with higher PL are hidden)
 - **Tech Tracks**: When tech tracks are selected, only components that require those techs (or no tech) are shown
-- **All component grids** (Armor, Power Plant, Engines, and future grids) must be filtered by these constraints
-- Components receive `designProgressLevel` and `designTechTracks` props and filter their available options accordingly
+- Components receive `designProgressLevel` and `designTechTracks` props and filter accordingly
 
 ## Coding Conventions
 
 - Use TypeScript strict mode
-- **Line endings**: All files must use LF (Unix-style) line endings, not CRLF. This applies to all source files (.ts, .tsx, .json, .md, .css, .html).
+- **Line endings**: All files must use LF (Unix-style) line endings, not CRLF
 - Prefer functional React components with hooks
 - Use MUI components for consistent UI
 - Keep calculations in service files, not components
 - All game data comes from JSON files in `src/data/`
 - Type definitions mirror the Warships rulebook terminology
-- **Defensive array access**: Always use `|| []` when accessing arrays that might be undefined/null (e.g., from save files, loaded state, or optional properties). This prevents crashes from older save files, corrupted data, or missing properties. Apply consistently to all similar array access patterns (e.g., `state.powerPlants || []`, `state.engines || []`).
+- **Defensive array access**: Always use `|| []` when accessing arrays that might be undefined/null
 
 ### Avoiding Code Duplication
 
 **DO NOT create duplicate utility functions.** Before adding a new helper function, check if it already exists:
 
-1. **Cost Formatting**: Always use `formatCost()` from `src/services/formatters.ts`. Never create service-specific cost formatters like `formatArmorCost()`, `formatEngineCost()`, etc.
+1. **Cost Formatting**: Always use `formatCost()` from `src/services/formatters.ts`
+2. **Data Loading**: All services must load data through `src/services/dataLoader.ts` getters
+3. **Table Styling**: Use constants from `src/constants/tableStyles.ts`
+4. **Shared Components**: Use components from `src/components/shared/`
+5. **ID Properties**: Use `id` for unique identifiers in installed items
 
-2. **Data Loading**: All services must load data through `src/services/dataLoader.ts` getters (e.g., `getHullsData()`, `getEnginesData()`). Never import JSON files directly in services. If a getter doesn't exist, add it to dataLoader.ts first.
+### Version Management
 
-3. **Table Styling**: Use constants from `src/constants/tableStyles.ts`:
-   - `headerCellSx` - for table header cells
-   - `selectableRowSx` - for clickable/selectable table rows
-   - `truncatedDescriptionSx` - for description cells with ellipsis
-
-4. **Shared Components**: Use components from `src/components/shared/`:
-   - `TechTrackCell` - for displaying tech track arrays in table cells
-   - `TruncatedDescription` - for description text with tooltip on overflow
-
-5. **ID Properties**: Use `id` for unique identifiers in installed items (e.g., `InstalledPowerPlant.id`), not `installationId`. The generator function can still be named `generateInstallationId()`.
-
-**Before creating any new utility function or component**, search the codebase to verify it doesn't already exist in:
-- `src/services/formatters.ts` - all formatting functions
-- `src/constants/` - shared constants and styles
-- `src/components/shared/` - reusable components
+- **App version**: Defined in `src/constants/version.ts` as `APP_VERSION`
+- **Save file version**: Defined in `src/types/saveFile.ts` as `SAVE_FILE_VERSION`
+- **Package version**: In `package.json`
+- **Electron title**: Set in `electron/main.ts`
+- **HTML title**: In `index.html`
+- When releasing, update ALL of these to stay in sync
 
 ## UI Conventions
 
 - **Maximize screen usage**: UI should expand to fill all available screen space
-- **Tables/Grids**: Should take all the horizontal space they need - avoid wrapping content awkwardly
-- **Single horizontal scrollbar**: When content overflows, use ONE horizontal scrollbar at the container level, not multiple nested scrollbars
-- **Responsive but desktop-first**: This is an Electron desktop app, so optimize for larger screens
-- **Action columns last**: In data tables with action buttons (Add, Edit, Delete), place the Action column at the end (rightmost) to keep the focus on the data
-- **Grid sorting by Progress Level**: All component grids with a Progress Level column must be sorted by Progress Level from lowest to highest. Apply `.sort((a, b) => a.progressLevel - b.progressLevel)` after filtering.
-- **Consistent styling across steps**: New step components (like FTL Drive, Systems) must match the styling of existing steps (Engines, Power Plants). Reference existing components for:
-  - Table header styling: `sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}`
-  - TableContainer with minWidth: `sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: X } }}`
-  - No `stickyHeader` on Table component
-  - Summary chips at top of section using the chip color scheme below
+- **Tables/Grids**: Should take all the horizontal space they need
+- **Single horizontal scrollbar**: When content overflows, use ONE scrollbar at container level
+- **Responsive but desktop-first**: Optimize for larger screens
+- **Action columns last**: Place action buttons at the end (rightmost)
+- **Grid sorting by Progress Level**: Sort from lowest to highest PL
+- **Inline editing**: All edits must be done inline within the same view - never navigate to a separate page or route for editing. Use expandable rows, inline forms, or dialogs that overlay the current view.
 
 ### Chip Color Scheme
-MUI Chips are used throughout the app to display stats. Follow this consistent color scheme:
 
-**Section Page Chips** (Armor, PowerPlant, Engines summary sections):
+**Section Page Chips**:
 - **Gray (default, outlined)**: Consumption metrics - HP used, Power consumed, Cost
 - **Blue (primary, outlined)**: Production metrics - Power generated, Acceleration
-- **Green (success, outlined)**: Fuel available (has fuel installed)
-- **Red (error, outlined)**: Fuel missing (no fuel installed)
+- **Green (success, outlined)**: Positive state (fuel available, at capacity)
+- **Red (error, outlined)**: Missing/negative state (no fuel)
+- **Yellow (warning, outlined)**: Partial state (not at full capacity)
 
-**App Bar Chips** (validation indicators):
-- **Green (success)**: Validation passed - HP within budget, Power sufficient
-- **Red (error)**: Critical problem - HP over budget
-- **Orange (warning)**: Warning - Power consumption exceeds production
-- **Gray (default)**: Informational - Cost, Tech tracks
-
-**Acceleration Notes**:
-- PL6 engines (hexes/round) and non-PL6 engines (km/sÂ²) should display as separate chips, never summed together
-- Use `formatAcceleration()` from formatters.ts with the appropriate `isPL6` flag
-
-### Add/Edit UI Patterns
-When creating UI for adding/editing ship components, **always ask the user** whether the component is:
-
-1. **Quantity-based**: User enters number of systems to install. Each system has a fixed (or ship-size-calculated) HP cost.
-   - Examples: Command & Control systems, Support Systems, Communications
-   - UI shows: "Quantity" field with helper text showing HP per system
-   - Calculation: `totalHP = hpPerSystem × quantity`
-   - Some systems have variable HP based on ship size (e.g., computer cores: `ceil(shipHP/200)` per system)
-
-2. **Size-based**: User enters the size/HP of the system directly. Output scales with size.
-   - Examples: Power Plants, Engines
-   - UI shows: "Size" or "Hull Points" field
-   - The size determines the system's output (power generated, acceleration, etc.)
-
-**Key distinction**: In Quantity-based, HP is derived from quantity. In Size-based, HP IS the input.
+**App Bar Chips**:
+- **Green (success)**: Validation passed
+- **Red (error)**: Critical problem
+- **Orange (warning)**: Warning state
+- **Gray (default)**: Informational
 
 ## Data Format Conventions
 
-### General Principles
-- **No derived/display fields**: JSON data files should never contain fields that are simple transformations of other fields (e.g., no `costDisplay: "$500 K"` when `cost: 500000` exists). Display formatting is done at render time.
-- **Raw values only**: Store raw numeric values, enums, and IDs. Let the UI layer handle formatting.
-
-### UI Formatting
-- All helper functions that transform data into UI representation belong in `src/services/formatters.ts`
-- Examples: `formatCost()` for currency display, `formatTargetModifier()` for step modifiers
-- Components import formatting functions from `formatters.ts`, not from domain services
-
-### Tech Tracks
-Technology tracks are represented as arrays in all data files (hulls, armor, power plants, engines):
-- **Empty array `[]`**: No special technology required
-- **Single tech `["G"]`**: Requires one technology track (e.g., Gravity Manipulation)
-- **Multiple techs `["P", "X"]`**: Requires multiple technology tracks
-
-Available tech track codes:
-- `G` - Gravity Manipulation
-- `D` - Dark Matter Tech
-- `A` - Antimatter Tech
-- `M` - Matter Coding
-- `F` - Fusion Tech
-- `Q` - Quantum Manipulation
-- `T` - Matter Transmission
-- `S` - Super-Materials
-- `P` - Psi-tech
-- `X` - Energy Transformation
-- `C` - Computer Tech
+- **No derived/display fields**: JSON data files store raw values only
+- **UI Formatting**: All formatting functions in `src/services/formatters.ts`
+- **Tech Tracks**: Arrays in data files (`[]`, `["G"]`, `["P", "X"]`)
 
 ## Development Commands
 
@@ -227,28 +195,30 @@ npm run build:electron  # Build for production
 npm run dist:win        # Create Windows installer
 ```
 
-## Current State / TODO
+## Current State (v0.2.0)
 
 ### Implemented
-- [x] Hull selection with stats display
-- [x] Armor selection (weight + type)
-- [x] Power plant installation (multiple plants, fuel tanks)
-- [x] Engine installation (multiple engines, fuel tanks, acceleration calculations)
-- [x] FTL Drive selection (optional)
+- [x] Complete ship construction wizard (all 13 steps)
+- [x] Hull, Armor, Power Plants, Engines, FTL Drive
 - [x] Support Systems (Life Support, Accommodations, Stores, Gravity)
+- [x] Weapons (beam, projectile, launch systems with ordnance)
+- [x] Defenses (shields, ECM, interceptors, point defense)
+- [x] Sensors (active/passive suites, sensor controls)
+- [x] Command & Control (computer cores, communications, fire control)
+- [x] Hangars & Miscellaneous (bays, cargo, escape pods, etc.)
+- [x] Damage Diagram (zone assignment, hit location chart)
+- [x] Summary (stats overview, fire diagram, PDF export)
 - [x] Save/Load warship to .warship.json files
-- [x] Electron menu with keyboard shortcuts
-- [x] Externally editable data files (loaded at runtime)
+- [x] PDF export with customizable sections
+- [x] Validation with errors/warnings in Summary
+- [x] About dialog with version info
+- [x] Externally editable data files
 
-### Not Yet Implemented
-- [ ] Weapons step
-- [ ] Defenses step
-- [ ] Command & Control step
-- [ ] Sensors step
-- [ ] Hangars step
-- [ ] Miscellaneous Systems step
-- [ ] Final summary/export step
-- [ ] Validation for minimum requirements
+### Future Enhancements
+- [ ] macOS/Linux builds
+- [ ] Import/Export ship designs in other formats
+- [ ] Fleet management (multiple ships)
+- [ ] Print-optimized PDF layouts
 
 ## Reference Material
 
@@ -260,4 +230,4 @@ The `Warships.txt` file in the project root contains the full text of the Altern
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*

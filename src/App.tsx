@@ -186,6 +186,13 @@ function App() {
   // About dialog state
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
 
+  // Sync app mode with Electron to enable/disable menu items
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.setBuilderMode(mode === 'builder');
+    }
+  }, [mode]);
+
   // Load game data on startup
   useEffect(() => {
     async function initializeApp() {

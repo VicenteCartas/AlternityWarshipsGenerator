@@ -14,6 +14,9 @@ const APP_NAME = 'Alternity Warship Generator';
 
 let mainWindow: BrowserWindow | null = null;
 
+// Track if app is in builder mode (About dialog only available in builder mode)
+let isInBuilderMode = false;
+
 // Recent files management
 const MAX_RECENT_FILES = 10;
 const recentFilesPath = path.join(app.getPath('userData'), 'recent-files.json');
@@ -180,6 +183,7 @@ function createMenu() {
       submenu: [
         {
           label: 'About',
+          enabled: isInBuilderMode,
           click: () => {
             mainWindow?.webContents.send('menu-show-about');
           },
@@ -373,5 +377,12 @@ ipcMain.handle('get-recent-files', async () => {
 
 ipcMain.handle('clear-recent-files', async () => {
   clearRecentFiles();
+  return { success: true };
+});
+
+// App mode management - updates menu state
+ipcMain.handle('set-builder-mode', async (_event, isBuilder: boolean) => {
+  isInBuilderMode = isBuilder;
+  createMenu(); // Recreate menu with updated enabled state
   return { success: true };
 });

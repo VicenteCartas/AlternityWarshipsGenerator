@@ -1,10 +1,18 @@
 {
   "name": "alternity-warship-generator",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Desktop application for generating Warships for the Alternity RPG",
   "author": "Vicente Cartas",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VicenteCartas/AlternityWarshipsGenerator"
+  },
+  "bugs": {
+    "url": "https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues"
+  },
+  "homepage": "https://github.com/VicenteCartas/AlternityWarshipsGenerator#readme",
   "main": "dist-electron/main.mjs",
   "type": "module",
   "scripts": {

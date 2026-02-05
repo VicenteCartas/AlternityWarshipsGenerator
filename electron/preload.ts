@@ -58,6 +58,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-recent-files'),
   clearRecentFiles: () =>
     ipcRenderer.invoke('clear-recent-files'),
+  
+  // App mode management
+  setBuilderMode: (isBuilder: boolean) =>
+    ipcRenderer.invoke('set-builder-mode', isBuilder),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

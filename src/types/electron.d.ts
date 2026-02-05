@@ -53,6 +53,9 @@ export interface ElectronAPI {
   addRecentFile: (filePath: string) => Promise<FileOperationResult>;
   getRecentFiles: () => Promise<string[]>;
   clearRecentFiles: () => Promise<FileOperationResult>;
+  
+  // App mode management
+  setBuilderMode: (isBuilder: boolean) => Promise<FileOperationResult>;
 }
 
 declare global {
