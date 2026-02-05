@@ -24,6 +24,9 @@
     "build:electron": "npm run build && npm run electron:build",
     "dist": "npm run build:electron && electron-builder",
     "dist:win": "npm run build:electron && electron-builder --win",
+    "dist:mac": "npm run build:electron && electron-builder --mac",
+    "dist:linux": "npm run build:electron && electron-builder --linux",
+    "dist:all": "npm run build:electron && electron-builder --win --mac --linux",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -56,13 +59,13 @@
       "target": [
         "dmg"
       ],
-      "icon": "public/icon.icns"
+      "icon": "public/logo.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "public/icon.png"
+      "icon": "public/logo.png"
     },
     "nsis": {
       "oneClick": false,

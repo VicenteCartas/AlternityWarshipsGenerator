@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   Box,
   Typography,
@@ -15,7 +15,6 @@ import {
   Divider,
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -41,8 +40,6 @@ import type {
 } from '../types/damageDiagram';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import {
-  getZoneConfigForHull,
-  getZoneLimitForHull,
   createEmptyZones,
   generateZoneSystemRefId,
   sortSystemsByDamagePriority,
@@ -85,6 +82,42 @@ interface UnassignedSystem {
   firepowerOrder?: number;
   arcs?: string[];
   originalType: string;
+}
+
+// Category filter options with display names
+const CATEGORY_FILTERS: { key: SystemDamageCategory | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'weapon', label: 'Weapons' },
+  { key: 'defense', label: 'Defenses' },
+  { key: 'sensor', label: 'Sensors' },
+  { key: 'command', label: 'Command' },
+  { key: 'engine', label: 'Engines' },
+  { key: 'powerPlant', label: 'Power' },
+  { key: 'ftlDrive', label: 'FTL' },
+  { key: 'fuel', label: 'Fuel' },
+  { key: 'support', label: 'Support' },
+  { key: 'accommodation', label: 'Quarters' },
+  { key: 'hangar', label: 'Hangars' },
+  { key: 'miscellaneous', label: 'Misc' },
+];
+
+// Format arcs in short mode (e.g., "FPSA" for forward-port-starboard-aft)
+function formatArcsShort(arcs: string[] | undefined): string {
+  if (!arcs || arcs.length === 0) return '';
+  const arcMap: Record<string, string> = {
+    'forward': 'F',
+    'port': 'P',
+    'starboard': 'S',
+    'aft': 'A',
+    'zero-forward': 'zF',
+    'zero-port': 'zP',
+    'zero-starboard': 'zS',
+    'zero-aft': 'zA',
+  };
+  // Sort arcs in a consistent order: F, P, S, A, then zero arcs
+  const order = ['forward', 'port', 'starboard', 'aft', 'zero-forward', 'zero-port', 'zero-starboard', 'zero-aft'];
+  const sorted = [...arcs].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  return sorted.map(arc => arcMap[arc] || arc[0].toUpperCase()).join('');
 }
 
 /**
@@ -259,7 +292,7 @@ function buildUnassignedSystemsList(
     if (!assignedSystemIds.has(id)) {
       systems.push({
         id,
-        name: `${wpn.weaponType.name} (${wpn.mountType}, ${wpn.quantity}x)`,
+        name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}, ${wpn.quantity}x)`,
         hullPoints: wpn.hullPoints * wpn.quantity,
         category: 'weapon',
         firepowerOrder: getFirepowerOrder(wpn.weaponType.firepower),
@@ -372,9 +405,8 @@ export function DamageDiagramSelection({
   onZonesChange,
 }: DamageDiagramSelectionProps) {
 
-  // Get zone configuration for this hull
-  const zoneConfig = useMemo(() => getZoneConfigForHull(hull), [hull]);
-  const zoneLimit = useMemo(() => getZoneLimitForHull(hull.id), [hull]);
+  // Filter state
+  const [categoryFilter, setCategoryFilter] = useState<SystemDamageCategory | 'all'>('all');
 
   // Initialize zones if empty
   const effectiveZones = useMemo(() => {
@@ -394,6 +426,46 @@ export function DamageDiagramSelection({
     }
     return ids;
   }, [effectiveZones]);
+
+  // Build list of ALL systems (for counting totals per category)
+  const allSystems = useMemo(() => {
+    return buildUnassignedSystemsList(
+      installedPowerPlants,
+      installedFuelTanks,
+      installedEngines,
+      installedEngineFuelTanks,
+      installedFTLDrive,
+      installedFTLFuelTanks,
+      installedLifeSupport,
+      installedAccommodations,
+      installedStoreSystems,
+      installedGravitySystems,
+      installedWeapons,
+      installedLaunchSystems,
+      installedDefenses,
+      installedCommandControl,
+      installedSensors,
+      installedHangarMisc,
+      new Set() // Empty set = nothing assigned, so we get ALL systems
+    );
+  }, [
+    installedPowerPlants,
+    installedFuelTanks,
+    installedEngines,
+    installedEngineFuelTanks,
+    installedFTLDrive,
+    installedFTLFuelTanks,
+    installedLifeSupport,
+    installedAccommodations,
+    installedStoreSystems,
+    installedGravitySystems,
+    installedWeapons,
+    installedLaunchSystems,
+    installedDefenses,
+    installedCommandControl,
+    installedSensors,
+    installedHangarMisc,
+  ]);
 
   // Build list of unassigned systems
   const unassignedSystems = useMemo(() => {
@@ -435,6 +507,35 @@ export function DamageDiagramSelection({
     installedHangarMisc,
     assignedSystemIds,
   ]);
+
+  // Calculate category counts (assigned / total)
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, { assigned: number; total: number }> = {};
+    
+    // Count totals per category
+    for (const sys of allSystems) {
+      if (!counts[sys.category]) {
+        counts[sys.category] = { assigned: 0, total: 0 };
+      }
+      counts[sys.category].total++;
+    }
+    
+    // Count assigned (total - unassigned)
+    for (const cat of Object.keys(counts)) {
+      const unassignedInCat = unassignedSystems.filter(s => s.category === cat).length;
+      counts[cat].assigned = counts[cat].total - unassignedInCat;
+    }
+    
+    return counts;
+  }, [allSystems, unassignedSystems]);
+
+  // Filter unassigned systems by selected category
+  const filteredUnassignedSystems = useMemo(() => {
+    if (categoryFilter === 'all') {
+      return unassignedSystems;
+    }
+    return unassignedSystems.filter(s => s.category === categoryFilter);
+  }, [unassignedSystems, categoryFilter]);
 
   // Total systems count
   const totalSystemsCount = useMemo(() => {
@@ -671,6 +772,72 @@ export function DamageDiagramSelection({
     onZonesChange(newZones);
   }, [unassignedSystems, effectiveZones, onZonesChange]);
 
+  const handleAutoAssignCategory = useCallback((category: SystemDamageCategory) => {
+    // Auto-assign only systems of the specified category
+    let newZones = [...effectiveZones];
+    const systemsToAssign = unassignedSystems.filter(s => s.category === category);
+
+    for (const system of systemsToAssign) {
+      // Find candidate zones
+      let candidateZones = newZones.filter((zone) => {
+        const spaceAvailable = zone.maxHullPoints - zone.totalHullPoints;
+        if (spaceAvailable < system.hullPoints) {
+          return false;
+        }
+        return true;
+      });
+
+      // For weapons, filter by arc compatibility
+      if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
+        const arcCompatibleZones = candidateZones.filter((zone) =>
+          canWeaponBeInZone(system.arcs!, zone.code)
+        );
+        if (arcCompatibleZones.length > 0) {
+          candidateZones = arcCompatibleZones;
+        }
+      }
+
+      if (candidateZones.length === 0) {
+        continue;
+      }
+
+      // Find zone with most room
+      let bestZone = candidateZones[0];
+      let bestSpace = bestZone.maxHullPoints - bestZone.totalHullPoints;
+
+      for (const zone of candidateZones) {
+        const space = zone.maxHullPoints - zone.totalHullPoints;
+        if (space > bestSpace) {
+          bestSpace = space;
+          bestZone = zone;
+        }
+      }
+
+      const newRef: ZoneSystemReference = {
+        id: generateZoneSystemRefId(),
+        systemType: system.category,
+        name: system.name,
+        hullPoints: system.hullPoints,
+        installedSystemId: system.id,
+        firepowerOrder: system.firepowerOrder,
+      };
+
+      newZones = newZones.map((zone) => {
+        if (zone.code === bestZone.code) {
+          const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
+          return {
+            ...zone,
+            systems: newSystems,
+            totalHullPoints: zone.totalHullPoints + system.hullPoints,
+          };
+        }
+        return zone;
+      });
+    }
+
+    onZonesChange(newZones);
+  }, [unassignedSystems, effectiveZones, onZonesChange]);
+
   // ============== Render ==============
 
   return (
@@ -685,31 +852,44 @@ export function DamageDiagramSelection({
           hit is determined by die roll, and systems within that zone are damaged from surface to core.
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-          <Chip
-            label={`${zoneConfig.zoneCount} Zones`}
-            variant="outlined"
-            color="primary"
-          />
-          <Chip
-            label={`${zoneLimit} HP/Zone Limit`}
-            variant="outlined"
-            color="default"
-          />
-          <Chip
-            label={`${stats.totalSystemsAssigned}/${totalSystemsCount} Systems Assigned`}
-            variant="outlined"
-            color={stats.unassignedSystems === 0 ? 'success' : 'warning'}
-            icon={stats.unassignedSystems === 0 ? <CheckCircleIcon /> : <WarningIcon />}
-          />
-          {stats.zonesOverLimit > 0 && (
-            <Chip
-              label={`${stats.zonesOverLimit} Zone(s) Over Limit`}
-              variant="outlined"
-              color="error"
-              icon={<WarningIcon />}
-            />
-          )}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, alignItems: 'center' }}>
+          {CATEGORY_FILTERS.map((filter) => {
+            const count = filter.key === 'all' 
+              ? { assigned: allSystems.length - unassignedSystems.length, total: allSystems.length }
+              : categoryCounts[filter.key];
+            
+            // Skip categories with no systems
+            if (filter.key !== 'all' && (!count || count.total === 0)) {
+              return null;
+            }
+            
+            const isActive = categoryFilter === filter.key;
+            const isComplete = count && count.assigned === count.total;
+            const hasUnassigned = count && count.assigned < count.total;
+            
+            // For "All" chip, show warning icon when incomplete
+            const chipColor = isComplete ? 'success' : (filter.key === 'all' ? 'warning' : (isActive ? 'primary' : 'default'));
+            const chipIcon = filter.key === 'all' && !isComplete ? <WarningIcon /> : undefined;
+            
+            return (
+              <Tooltip 
+                key={filter.key}
+                title={hasUnassigned && filter.key !== 'all' ? `Click to filter, click wand to auto-assign` : ''}
+              >
+                <Chip
+                  label={count ? `${filter.label} ${count.assigned}/${count.total}` : filter.label}
+                  size="small"
+                  variant={isActive ? "filled" : "outlined"}
+                  color={chipColor}
+                  icon={chipIcon}
+                  onClick={() => setCategoryFilter(filter.key)}
+                  onDelete={hasUnassigned && filter.key !== 'all' ? () => handleAutoAssignCategory(filter.key as SystemDamageCategory) : undefined}
+                  deleteIcon={hasUnassigned && filter.key !== 'all' ? <AutoFixHighIcon fontSize="small" /> : undefined}
+                  sx={{ cursor: 'pointer' }}
+                />
+              </Tooltip>
+            );
+          })}
           {stats.totalSystemsAssigned > 0 && (
             <Button
               size="small"
@@ -717,17 +897,17 @@ export function DamageDiagramSelection({
               startIcon={<ClearAllIcon />}
               onClick={handleClearAllZones}
             >
-              Clear All Zones
+              Clear All
             </Button>
           )}
         </Box>
       </Box>
 
       {/* Main content: side by side layout */}
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 280px)', minHeight: 400 }}>
         {/* Unassigned Systems Panel */}
-        <Paper sx={{ width: 500, p: 2, flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Paper sx={{ width: 500, p: 2, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexShrink: 0 }}>
             <Typography variant="subtitle1" fontWeight="bold">
               Unassigned Systems ({unassignedSystems.length})
             </Typography>
@@ -748,26 +928,27 @@ export function DamageDiagramSelection({
             <Alert severity="success" sx={{ mb: 2 }}>
               All systems have been assigned to zones.
             </Alert>
+          ) : filteredUnassignedSystems.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              All {CATEGORY_FILTERS.find(f => f.key === categoryFilter)?.label.toLowerCase()} assigned.
+            </Alert>
           ) : (
-            <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
-              {unassignedSystems.map((system) => (
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {filteredUnassignedSystems.map((system) => (
                 <Box
                   key={system.id}
                   sx={{
-                    py: 1,
+                    py: 0.75,
                     px: 1,
                     borderBottom: 1,
                     borderColor: 'divider',
                     '&:hover': { bgcolor: 'action.hover' },
                   }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
-                    <Box>
-                      <Typography variant="body2">{system.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {system.hullPoints} HP • {system.category}
-                      </Typography>
-                    </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="body2">
+                      {system.name} <Typography component="span" variant="body2" color="text.secondary">- {system.hullPoints} HP{system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}</Typography>
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {effectiveZones.map((zone) => {
@@ -805,7 +986,7 @@ export function DamageDiagramSelection({
         </Paper>
 
         {/* Zones Panel - Vertical List */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'auto' }}>
           {effectiveZones.map((zone) => (
             <Paper
               key={zone.code}

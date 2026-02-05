@@ -19,7 +19,9 @@ A desktop application for generating Warships for the **Alternity** sci-fi table
 
 Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases).
 
-- **Windows:** Download `Alternity.Warship.Generator.Setup.X.X.X.exe`
+- **Windows:** `Alternity.Warship.Generator.Setup.X.X.X.exe`
+- **macOS:** `Alternity.Warship.Generator-X.X.X.dmg`
+- **Linux:** `Alternity.Warship.Generator-X.X.X.AppImage`
 
 ## Development
 
@@ -60,11 +62,16 @@ npm run electron:start
 # Build the app
 npm run build:electron
 
-# Create Windows installer
-npm run dist:win
+# Create platform-specific installers
+npm run dist:win     # Windows installer (.exe)
+npm run dist:mac     # macOS disk image (.dmg)
+npm run dist:linux   # Linux AppImage
+npm run dist:all     # All platforms
 ```
 
-The installer will be created in the `release/` folder.
+The installers will be created in the `release/` folder.
+
+> **Note:** macOS builds created on Windows will be unsigned and may show security warnings. For proper macOS distribution, build on a Mac with code signing.
 
 ## Available Scripts
 
@@ -76,6 +83,9 @@ The installer will be created in the `release/` folder.
 | `npm run build` | Build React app for production |
 | `npm run build:electron` | Build both React and Electron for production |
 | `npm run dist:win` | Create Windows installer |
+| `npm run dist:mac` | Create macOS disk image |
+| `npm run dist:linux` | Create Linux AppImage |
+| `npm run dist:all` | Create installers for all platforms |
 | `npm run lint` | Run ESLint |
 
 ## Project Structure
@@ -125,9 +135,9 @@ Releases are automated via GitHub Actions. To create a new release:
    ```
 
 3. **GitHub Actions will automatically:**
-   - Build the Windows installer
+   - Build installers for Windows, macOS, and Linux
    - Create a GitHub Release
-   - Attach the installer for download
+   - Attach all installers for download
 
 The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases) within a few minutes.
 
