@@ -1,7 +1,7 @@
 {
   "name": "alternity-warship-generator",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Desktop application for generating Warships for the Alternity RPG",
   "author": "Vicente Cartas",
   "license": "MIT",
