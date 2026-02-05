@@ -147,22 +147,11 @@ export function SupportSystemsSelection({
         )
       );
     } else {
-      // Check if same type already exists
-      const existing = installedLifeSupport.find((ls) => ls.type.id === selectedLifeSupport.id);
-      if (existing) {
-        onLifeSupportChange(
-          installedLifeSupport.map((ls) =>
-            ls.id === existing.id
-              ? { ...ls, quantity: ls.quantity + quantity }
-              : ls
-          )
-        );
-      } else {
-        onLifeSupportChange([
-          ...installedLifeSupport,
-          { id: generateLifeSupportId(), type: selectedLifeSupport, quantity },
-        ]);
-      }
+      // Always add as a new installation (don't combine with existing)
+      onLifeSupportChange([
+        ...installedLifeSupport,
+        { id: generateLifeSupportId(), type: selectedLifeSupport, quantity },
+      ]);
     }
 
     setSelectedLifeSupport(null);
@@ -201,21 +190,11 @@ export function SupportSystemsSelection({
         )
       );
     } else {
-      const existing = installedAccommodations.find((acc) => acc.type.id === selectedAccommodation.id);
-      if (existing) {
-        onAccommodationsChange(
-          installedAccommodations.map((acc) =>
-            acc.id === existing.id
-              ? { ...acc, quantity: acc.quantity + quantity }
-              : acc
-          )
-        );
-      } else {
-        onAccommodationsChange([
-          ...installedAccommodations,
-          { id: generateAccommodationId(), type: selectedAccommodation, quantity },
-        ]);
-      }
+      // Always add as a new installation (don't combine with existing)
+      onAccommodationsChange([
+        ...installedAccommodations,
+        { id: generateAccommodationId(), type: selectedAccommodation, quantity },
+      ]);
     }
 
     setSelectedAccommodation(null);
@@ -254,21 +233,11 @@ export function SupportSystemsSelection({
         )
       );
     } else {
-      const existing = installedStoreSystems.find((store) => store.type.id === selectedStoreSystem.id);
-      if (existing) {
-        onStoreSystemsChange(
-          installedStoreSystems.map((store) =>
-            store.id === existing.id
-              ? { ...store, quantity: store.quantity + quantity }
-              : store
-          )
-        );
-      } else {
-        onStoreSystemsChange([
-          ...installedStoreSystems,
-          { id: generateStoreSystemId(), type: selectedStoreSystem, quantity },
-        ]);
-      }
+      // Always add as a new installation (don't combine with existing)
+      onStoreSystemsChange([
+        ...installedStoreSystems,
+        { id: generateStoreSystemId(), type: selectedStoreSystem, quantity },
+      ]);
     }
 
     setSelectedStoreSystem(null);
