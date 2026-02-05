@@ -408,6 +408,10 @@ export function DamageDiagramSelection({
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<SystemDamageCategory | 'all'>('all');
 
+  // Multiselect state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
   // Initialize zones if empty
   const effectiveZones = useMemo(() => {
     if (zones.length === 0) {
@@ -583,8 +587,99 @@ export function DamageDiagramSelection({
 
   // ============== Actions ==============
 
+  // Handle row click for selection
+  const handleRowClick = useCallback(
+    (systemId: string, event: React.MouseEvent) => {
+      if (event.shiftKey && lastSelectedId) {
+        // Shift+click: select range
+        const currentIndex = filteredUnassignedSystems.findIndex(s => s.id === systemId);
+        const lastIndex = filteredUnassignedSystems.findIndex(s => s.id === lastSelectedId);
+        if (currentIndex !== -1 && lastIndex !== -1) {
+          const start = Math.min(currentIndex, lastIndex);
+          const end = Math.max(currentIndex, lastIndex);
+          const rangeIds = filteredUnassignedSystems.slice(start, end + 1).map(s => s.id);
+          setSelectedIds(prev => {
+            const newSet = new Set(prev);
+            rangeIds.forEach(id => newSet.add(id));
+            return newSet;
+          });
+        }
+      } else {
+        // Regular click: toggle selection
+        setSelectedIds(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(systemId)) {
+            newSet.delete(systemId);
+          } else {
+            newSet.add(systemId);
+          }
+          return newSet;
+        });
+        setLastSelectedId(systemId);
+      }
+    },
+    [filteredUnassignedSystems, lastSelectedId]
+  );
+
+  // Clear selection
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastSelectedId(null);
+  }, []);
+
+  // Assign multiple systems to a zone
+  const handleAssignMultiple = useCallback(
+    (systemIds: string[], zoneCode: ZoneCode) => {
+      let newZones = [...effectiveZones];
+      
+      for (const systemId of systemIds) {
+        const system = unassignedSystems.find((s) => s.id === systemId);
+        if (!system) continue;
+
+        // Check arc compatibility for weapons
+        if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
+          if (!canWeaponBeInZone(system.arcs, zoneCode)) {
+            continue; // Skip weapons that can't go to this zone
+          }
+        }
+
+        const newRef: ZoneSystemReference = {
+          id: generateZoneSystemRefId(),
+          systemType: system.category,
+          name: system.name,
+          hullPoints: system.hullPoints,
+          installedSystemId: systemId,
+          firepowerOrder: system.firepowerOrder,
+        };
+
+        newZones = newZones.map((zone) => {
+          if (zone.code === zoneCode) {
+            const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
+            return {
+              ...zone,
+              systems: newSystems,
+              totalHullPoints: zone.totalHullPoints + system.hullPoints,
+            };
+          }
+          return zone;
+        });
+      }
+
+      onZonesChange(newZones);
+      setSelectedIds(new Set());
+      setLastSelectedId(null);
+    },
+    [unassignedSystems, effectiveZones, onZonesChange]
+  );
+
   const handleAssignSystem = useCallback(
     (systemId: string, zoneCode: ZoneCode) => {
+      // If there are selected items and this system is one of them, assign all selected
+      if (selectedIds.size > 0 && selectedIds.has(systemId)) {
+        handleAssignMultiple(Array.from(selectedIds), zoneCode);
+        return;
+      }
+
       const system = unassignedSystems.find((s) => s.id === systemId);
       if (!system) return;
 
@@ -611,7 +706,7 @@ export function DamageDiagramSelection({
 
       onZonesChange(newZones);
     },
-    [unassignedSystems, effectiveZones, onZonesChange]
+    [unassignedSystems, effectiveZones, onZonesChange, selectedIds, handleAssignMultiple]
   );
 
   const handleRemoveFromZone = useCallback(
@@ -897,7 +992,7 @@ export function DamageDiagramSelection({
               startIcon={<ClearAllIcon />}
               onClick={handleClearAllZones}
             >
-              Clear All
+              Unassign All
             </Button>
           )}
         </Box>
@@ -911,17 +1006,28 @@ export function DamageDiagramSelection({
             <Typography variant="subtitle1" fontWeight="bold">
               Unassigned Systems ({unassignedSystems.length})
             </Typography>
-            {unassignedSystems.length > 0 && (
-              <Tooltip title="Auto-assign all systems evenly across zones">
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {selectedIds.size > 0 && (
                 <Button
                   size="small"
-                  startIcon={<AutoFixHighIcon />}
-                  onClick={handleAutoAssign}
+                  variant="outlined"
+                  onClick={handleClearSelection}
                 >
-                  Auto-Assign
+                  Clear
                 </Button>
-              </Tooltip>
-            )}
+              )}
+              {unassignedSystems.length > 0 && (
+                <Tooltip title="Auto-assign all systems evenly across zones">
+                  <Button
+                    size="small"
+                    startIcon={<AutoFixHighIcon />}
+                    onClick={handleAutoAssign}
+                  >
+                    Auto-Assign
+                  </Button>
+                </Tooltip>
+              )}
+            </Box>
           </Box>
 
           {unassignedSystems.length === 0 ? (
@@ -934,53 +1040,61 @@ export function DamageDiagramSelection({
             </Alert>
           ) : (
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {filteredUnassignedSystems.map((system) => (
-                <Box
-                  key={system.id}
-                  sx={{
-                    py: 0.75,
-                    px: 1,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                    <Typography variant="body2">
-                      {system.name} <Typography component="span" variant="body2" color="text.secondary">- {system.hullPoints} HP{system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}</Typography>
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {effectiveZones.map((zone) => {
-                      const wouldExceed = zone.totalHullPoints + system.hullPoints > zone.maxHullPoints;
-                      const isArcCompatible = system.category !== 'weapon' || !system.arcs || system.arcs.length === 0 ||
-                        canWeaponBeInZone(system.arcs, zone.code);
-                      return (
-                        <Tooltip
-                          key={zone.code}
-                          title={`${ZONE_NAMES[zone.code]} (${zone.totalHullPoints}/${zone.maxHullPoints} HP)${wouldExceed ? ' - Would exceed limit!' : ''}${!isArcCompatible ? ' - Arc mismatch' : ''}`}
-                        >
-                          <Button
-                            size="small"
-                            variant={isArcCompatible ? "outlined" : "text"}
-                            color={wouldExceed ? "error" : isArcCompatible ? "primary" : "inherit"}
-                            onClick={() => handleAssignSystem(system.id, zone.code)}
-                            sx={{
-                              minWidth: 36,
-                              px: 1,
-                              py: 0.25,
-                              fontSize: '0.75rem',
-                              opacity: !isArcCompatible ? 0.5 : 1,
-                            }}
+              {filteredUnassignedSystems.map((system) => {
+                const isSelected = selectedIds.has(system.id);
+                return (
+                  <Box
+                    key={system.id}
+                    onClick={(e) => handleRowClick(system.id, e)}
+                    sx={{
+                      py: 0.75,
+                      px: 1,
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                      bgcolor: isSelected ? 'action.selected' : 'transparent',
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: isSelected ? 'action.selected' : 'action.hover' },
+                    }}
+                  >
+                    <Box 
+                      sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
+                    >
+                      <Typography variant="body2">
+                        {system.name} <Typography component="span" variant="body2" color="text.secondary">- {system.hullPoints} HP{system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}</Typography>
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {effectiveZones.map((zone) => {
+                        const wouldExceed = zone.totalHullPoints + system.hullPoints > zone.maxHullPoints;
+                        const isArcCompatible = system.category !== 'weapon' || !system.arcs || system.arcs.length === 0 ||
+                          canWeaponBeInZone(system.arcs, zone.code);
+                        return (
+                          <Tooltip
+                            key={zone.code}
+                            title={`${ZONE_NAMES[zone.code]} (${zone.totalHullPoints}/${zone.maxHullPoints} HP)${wouldExceed ? ' - Would exceed limit!' : ''}${!isArcCompatible ? ' - Arc mismatch' : ''}${isSelected && selectedIds.size > 1 ? ` - Assign ${selectedIds.size} selected` : ''}`}
                           >
-                            {zone.code}
-                          </Button>
-                        </Tooltip>
-                      );
-                    })}
+                            <Button
+                              size="small"
+                              variant={isArcCompatible ? "outlined" : "text"}
+                              color={wouldExceed ? "error" : isArcCompatible ? "primary" : "inherit"}
+                              onClick={(e) => { e.stopPropagation(); handleAssignSystem(system.id, zone.code); }}
+                              sx={{
+                                minWidth: 36,
+                                px: 1,
+                                py: 0.25,
+                                fontSize: '0.75rem',
+                                opacity: !isArcCompatible ? 0.5 : 1,
+                              }}
+                            >
+                              {zone.code}{isSelected && selectedIds.size > 1 ? ` (${selectedIds.size})` : ''}
+                            </Button>
+                          </Tooltip>
+                        );
+                      })}
+                    </Box>
                   </Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           )}
         </Paper>
