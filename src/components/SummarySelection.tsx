@@ -396,6 +396,40 @@ export function SummarySelection({
       if (!sensorStats.hasBasicSensors) {
         warnings.push('No active sensors installed');
       }
+
+      // WARNING: Power plants requiring fuel without fuel
+      const powerPlantsNeedingFuel = installedPowerPlants.filter(pp => pp.type.requiresFuel);
+      if (powerPlantsNeedingFuel.length > 0) {
+        // Check if there's fuel for each power plant type that needs it
+        const plantTypesNeedingFuel = [...new Set(powerPlantsNeedingFuel.map(pp => pp.type.id))];
+        const fuelTanksByPlantType = new Set(installedFuelTanks.map(ft => ft.forPowerPlantType.id));
+        const plantTypesWithoutFuel = plantTypesNeedingFuel.filter(typeId => !fuelTanksByPlantType.has(typeId));
+        
+        if (plantTypesWithoutFuel.length > 0) {
+          const plantNames = plantTypesWithoutFuel.map(typeId => {
+            const plant = powerPlantsNeedingFuel.find(pp => pp.type.id === typeId);
+            return plant?.type.name || typeId;
+          });
+          warnings.push(`Power plant${plantNames.length > 1 ? 's' : ''} without fuel: ${plantNames.join(', ')}`);
+        }
+      }
+
+      // WARNING: Engines requiring fuel without fuel
+      const enginesNeedingFuel = installedEngines.filter(e => e.type.requiresFuel && !e.type.fuelOptional);
+      if (enginesNeedingFuel.length > 0) {
+        // Check if there's fuel for each engine type that needs it
+        const engineTypesNeedingFuel = [...new Set(enginesNeedingFuel.map(e => e.type.id))];
+        const fuelTanksByEngineType = new Set(installedEngineFuelTanks.map(ft => ft.forEngineType.id));
+        const engineTypesWithoutFuel = engineTypesNeedingFuel.filter(typeId => !fuelTanksByEngineType.has(typeId));
+        
+        if (engineTypesWithoutFuel.length > 0) {
+          const engineNames = engineTypesWithoutFuel.map(typeId => {
+            const engine = enginesNeedingFuel.find(e => e.type.id === typeId);
+            return engine?.type.name || typeId;
+          });
+          warnings.push(`Engine${engineNames.length > 1 ? 's' : ''} without fuel: ${engineNames.join(', ')}`);
+        }
+      }
     }
 
     // Check damage diagram
@@ -419,8 +453,10 @@ export function SummarySelection({
     hull, 
     stats, 
     selectedArmorWeight,
-    installedPowerPlants, 
-    installedEngines, 
+    installedPowerPlants,
+    installedFuelTanks,
+    installedEngines,
+    installedEngineFuelTanks,
     installedFTLDrive,
     installedLifeSupport,
     installedAccommodations,

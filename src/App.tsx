@@ -46,6 +46,7 @@ import { SensorSelection } from './components/SensorSelection';
 import { HangarMiscSelection } from './components/HangarMiscSelection';
 import { DamageDiagramSelection } from './components/DamageDiagramSelection';
 import { SummarySelection } from './components/SummarySelection';
+import { AboutDialog } from './components/AboutDialog';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -181,6 +182,9 @@ function App() {
     severity: 'success' | 'error' | 'warning' | 'info';
     action?: { label: string; onClick: () => void };
   }>({ open: false, message: '', severity: 'info' });
+
+  // About dialog state
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
 
   // Load game data on startup
   useEffect(() => {
@@ -481,6 +485,9 @@ function App() {
       window.electronAPI.onOpenRecent((filePath: string) => {
         loadFromFile(filePath);
       });
+      window.electronAPI.onShowAbout(() => {
+        setAboutDialogOpen(true);
+      });
 
       return () => {
         window.electronAPI?.removeAllListeners('menu-new-warship');
@@ -488,6 +495,7 @@ function App() {
         window.electronAPI?.removeAllListeners('menu-save-warship');
         window.electronAPI?.removeAllListeners('menu-save-warship-as');
         window.electronAPI?.removeAllListeners('menu-open-recent');
+        window.electronAPI?.removeAllListeners('menu-show-about');
       };
     }
   }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile]);
@@ -1673,6 +1681,12 @@ function App() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* About Dialog */}
+      <AboutDialog 
+        open={aboutDialogOpen} 
+        onClose={() => setAboutDialogOpen(false)} 
+      />
     </Box>
   );
 }

@@ -31,6 +31,7 @@ export interface ElectronAPI {
   onSaveWarship: (callback: () => void) => void;
   onSaveWarshipAs: (callback: () => void) => void;
   onOpenRecent: (callback: (filePath: string) => void) => void;
+  onShowAbout: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   
   // File operations

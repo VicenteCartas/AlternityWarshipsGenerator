@@ -512,7 +512,7 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   const zeroArcFill = [220, 220, 220];       // Lighter gray for zero unselected  
   const zeroArcActive = [186, 85, 211];      // Medium orchid for zero selected
 
-  // Helper to draw a pie sector
+  // Helper to draw a pie sector (annular segment)
   const drawPieSector = (
     centerX: number, 
     centerY: number, 
@@ -523,67 +523,52 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
     fillColor: number[],
     stroke: boolean = true
   ) => {
-    const startRad = (startAngleDeg * Math.PI) / 180;
-    const endRad = (endAngleDeg * Math.PI) / 180;
-    
-    // Calculate corner points
-    const x1 = centerX + outerR * Math.cos(startRad);
-    const y1 = centerY + outerR * Math.sin(startRad);
-    const x2 = centerX + outerR * Math.cos(endRad);
-    const y2 = centerY + outerR * Math.sin(endRad);
-    const x3 = centerX + innerR * Math.cos(endRad);
-    const y3 = centerY + innerR * Math.sin(endRad);
-    const x4 = centerX + innerR * Math.cos(startRad);
-    const y4 = centerY + innerR * Math.sin(startRad);
-    
-    // Use lines and arcs to draw the sector shape
     pdf.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
     pdf.setDrawColor(80);
     pdf.setLineWidth(0.3);
     
-    // Draw as lines for simplicity (jsPDF doesn't have easy arc filling)
-    // We'll approximate with triangular segments
-    const segments = 8;
+    // Approximate the arc with line segments
+    const segments = 12;
     const angleStep = (endAngleDeg - startAngleDeg) / segments;
     
-    // Create path points
-    const points: [number, number][] = [];
+    // Build the polygon path as relative line segments for jsPDF lines() method
+    // Start at outer arc, start angle
+    const startRad = (startAngleDeg * Math.PI) / 180;
+    const startX = centerX + outerR * Math.cos(startRad);
+    const startY = centerY + outerR * Math.sin(startRad);
     
-    // Outer arc points
-    for (let i = 0; i <= segments; i++) {
+    // Collect all points to create relative movements
+    const allPoints: [number, number][] = [];
+    
+    // Outer arc: from start angle to end angle
+    for (let i = 1; i <= segments; i++) {
       const angle = ((startAngleDeg + i * angleStep) * Math.PI) / 180;
-      points.push([centerX + outerR * Math.cos(angle), centerY + outerR * Math.sin(angle)]);
+      allPoints.push([centerX + outerR * Math.cos(angle), centerY + outerR * Math.sin(angle)]);
     }
     
-    // Inner arc points (reverse)
-    for (let i = segments; i >= 0; i--) {
+    // Line from outer end to inner end (same end angle)
+    const endRad = (endAngleDeg * Math.PI) / 180;
+    allPoints.push([centerX + innerR * Math.cos(endRad), centerY + innerR * Math.sin(endRad)]);
+    
+    // Inner arc: from end angle back to start angle (reverse direction)
+    for (let i = segments - 1; i >= 0; i--) {
       const angle = ((startAngleDeg + i * angleStep) * Math.PI) / 180;
-      points.push([centerX + innerR * Math.cos(angle), centerY + innerR * Math.sin(angle)]);
+      allPoints.push([centerX + innerR * Math.cos(angle), centerY + innerR * Math.sin(angle)]);
     }
     
-    // Draw filled polygon
-    if (points.length > 2) {
-      // jsPDF doesn't have polygon fill, so we draw triangles from center
-      const midX = (x1 + x2 + x3 + x4) / 4;
-      const midY = (y1 + y2 + y3 + y4) / 4;
-      
-      for (let i = 0; i < points.length - 1; i++) {
-        pdf.triangle(
-          midX, midY,
-          points[i][0], points[i][1],
-          points[i + 1][0], points[i + 1][1],
-          'F'
-        );
-      }
+    // Convert absolute points to relative movements for jsPDF lines()
+    const lines: [number, number][] = [];
+    let prevX = startX;
+    let prevY = startY;
+    for (const [x, y] of allPoints) {
+      lines.push([x - prevX, y - prevY]);
+      prevX = x;
+      prevY = y;
     }
     
-    // Draw outline
-    if (stroke) {
-      pdf.line(x1, y1, x2, y2);
-      pdf.line(x3, y3, x4, y4);
-      pdf.line(x1, y1, x4, y4);
-      pdf.line(x2, y2, x3, y3);
-    }
+    // Draw filled and stroked polygon using jsPDF lines()
+    // 'FD' = fill and draw (stroke)
+    pdf.lines(lines, startX, startY, [1, 1], stroke ? 'FD' : 'F', true);
   };
 
   // Draw standard arc sectors (outer ring)
@@ -712,13 +697,26 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
         const imageFormat = shipDescription.imageMimeType!.split('/')[1].toUpperCase() as 'PNG' | 'JPEG' | 'JPG';
         const imageData = `data:${shipDescription.imageMimeType};base64,${shipDescription.imageData}`;
         
-        // Calculate image dimensions to fit within content width
+        // Get image properties to maintain aspect ratio
+        const imgProps = pdf.getImageProperties(imageData);
+        const aspectRatio = imgProps.width / imgProps.height;
+        
+        // Calculate image dimensions to fit within bounds while maintaining aspect ratio
         const maxImageWidth = contentWidth * 0.6;
         const maxImageHeight = 60;
         
-        // Add the image - jsPDF will auto-scale
-        pdf.addImage(imageData, imageFormat === 'JPG' ? 'JPEG' : imageFormat, margin, y, maxImageWidth, maxImageHeight);
-        y += maxImageHeight + 5;
+        let displayWidth = maxImageWidth;
+        let displayHeight = displayWidth / aspectRatio;
+        
+        // If height exceeds max, scale down based on height instead
+        if (displayHeight > maxImageHeight) {
+          displayHeight = maxImageHeight;
+          displayWidth = displayHeight * aspectRatio;
+        }
+        
+        // Add the image with correct aspect ratio
+        pdf.addImage(imageData, imageFormat === 'JPG' ? 'JPEG' : imageFormat, margin, y, displayWidth, displayHeight);
+        y += displayHeight + 5;
       } catch (e) {
         console.error('Failed to add image to PDF:', e);
         pdf.setFontSize(7);

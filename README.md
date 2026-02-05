@@ -1,8 +1,19 @@
 # Alternity Warship Generator
 
-A desktop application for generating Warships for the Alternity sci-fi role-playing game.
+A desktop application for generating Warships for the **Alternity** sci-fi tabletop role-playing game. The app implements the ship construction rules from the "Warships" sourcebook by Richard Baker.
 
-Built with Electron + React + TypeScript + Vite.
+![Screenshot](docs/screenshot.png)
+
+## Features
+
+- **Step-by-step warship building** - Guided wizard similar to character creation
+- **Complete ship construction** - Hull, armor, power plants, engines, FTL drives, weapons, defenses, sensors, command & control, and more
+- **Progress Level & Tech Track filtering** - Design constraints to limit available components
+- **Damage diagram editor** - Assign systems to damage zones with hit location chart
+- **Ordnance design** - Create custom missile, bomb, and mine designs
+- **PDF export** - Generate printable ship sheets
+- **Save/Load** - Save your designs to `.warship.json` files
+- **Externally editable data** - Customize game data (hulls, weapons, etc.) via JSON files
 
 ## Download
 
@@ -75,12 +86,26 @@ The installer will be created in the `release/` folder.
 │   ├── preload.ts      # Preload script for IPC
 │   └── tsconfig.json   # TypeScript config for Electron
 ├── scripts/            # Build scripts
-├── src/                # React application code
-│   ├── App.tsx         # Main React component
+├── src/
+│   ├── components/     # React components for each build step
+│   ├── constants/      # Shared constants and styling
+│   ├── data/           # JSON game data files (hulls, weapons, etc.)
+│   ├── services/       # Business logic and calculations
+│   ├── types/          # TypeScript type definitions
+│   ├── App.tsx         # Main React component with stepper/wizard
 │   └── main.tsx        # React entry point
-├── public/             # Static assets
-└── Warships.pdf        # Source material for warship generation rules
+├── public/             # Static assets (logo, etc.)
+└── Warships.txt        # Reference material for warship rules
 ```
+
+## Customizing Game Data
+
+The game data (hulls, armor, power plants, weapons, etc.) is stored in JSON files that can be edited:
+
+- **In development:** Files are in `src/data/`
+- **In production:** Files are copied to `resources/data/` alongside the app
+
+Users can modify these files to add custom hulls, adjust costs, create new weapons, etc. Changes require an app restart to take effect.
 
 ## Creating a Release
 
@@ -109,6 +134,16 @@ The release will appear on the [Releases page](https://github.com/VicenteCartas/
 ## Tech Stack
 
 - **Electron** - Desktop app framework
-- **React** - UI library
+- **React 18** - UI library
 - **TypeScript** - Type safety
+- **Material-UI (MUI) v6** - UI component framework
 - **Vite** - Fast build tool with HMR
+- **jsPDF** - PDF generation
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This is a fan-made tool. Alternity is a trademark of Wizards of the Coast. This project is not affiliated with or endorsed by Wizards of the Coast.

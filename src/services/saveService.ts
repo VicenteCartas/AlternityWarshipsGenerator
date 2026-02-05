@@ -258,11 +258,16 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     return { success: false, errors };
   }
   
-  const [major] = saveFile.version.split('.');
-  const [currentMajor] = SAVE_FILE_VERSION.split('.');
+  const [major, minor] = saveFile.version.split('.').map(Number);
+  const [currentMajor, currentMinor] = SAVE_FILE_VERSION.split('.').map(Number);
   if (major !== currentMajor) {
     errors.push(`Incompatible save file version: ${saveFile.version} (current: ${SAVE_FILE_VERSION})`);
     return { success: false, errors };
+  }
+  
+  // Warn if minor version differs
+  if (minor !== currentMinor) {
+    warnings.push(`Save file was created with a different version (${saveFile.version}, current: ${SAVE_FILE_VERSION}). Some features may behave differently.`);
   }
   
   // Load hull

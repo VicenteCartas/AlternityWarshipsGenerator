@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onOpenRecent: (callback: (filePath: string) => void) => {
     ipcRenderer.on('menu-open-recent', (_event: unknown, filePath: string) => callback(filePath));
   },
+  onShowAbout: (callback: () => void) => {
+    ipcRenderer.on('menu-show-about', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },

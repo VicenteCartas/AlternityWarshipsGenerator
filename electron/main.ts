@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
 
+// App version - keep in sync with src/constants/version.ts
+const APP_VERSION = '0.2.0';
+const APP_NAME = 'Alternity Warship Generator';
+
 let mainWindow: BrowserWindow | null = null;
 
 // Recent files management
@@ -170,6 +174,31 @@ function createMenu() {
         ]),
       ],
     },
+    // Help menu
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About',
+          click: () => {
+            mainWindow?.webContents.send('menu-show-about');
+          },
+        },
+        { type: 'separator' as const },
+        {
+          label: 'View on GitHub',
+          click: () => {
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator');
+          },
+        },
+        {
+          label: 'Report Issue',
+          click: () => {
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues');
+          },
+        },
+      ],
+    },
   ];
 
   const menu = Menu.buildFromTemplate(template);
@@ -185,6 +214,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: `${APP_NAME} v${APP_VERSION}`,
     icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
