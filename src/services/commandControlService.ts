@@ -7,7 +7,9 @@ import type {
 } from '../types/commandControl';
 import type { InstalledWeapon, MountType } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
+import type { InstalledLaunchSystem } from '../types/ordnance';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { getLaunchSystemsData } from './dataLoader';
 
 // ============== Data Loading ==============
 
@@ -87,8 +89,18 @@ export function parseWeaponBatteryKey(key: WeaponBatteryKey): { weaponTypeId: st
 /**
  * Get a display name for a weapon battery
  */
-export function getWeaponBatteryDisplayName(key: WeaponBatteryKey, weapons: InstalledWeapon[]): string {
+export function getWeaponBatteryDisplayName(key: WeaponBatteryKey, weapons: InstalledWeapon[], launchSystems?: InstalledLaunchSystem[]): string {
   const { weaponTypeId, mountType } = parseWeaponBatteryKey(key);
+  
+  // Check if it's a launch system (mountType will be 'launcher')
+  if (mountType === 'launcher' && launchSystems) {
+    const ls = launchSystems.find(l => l.launchSystemType === weaponTypeId);
+    if (ls) {
+      const lsData = getLaunchSystemsData().find(d => d.id === ls.launchSystemType);
+      return lsData ? `${lsData.name} Launcher` : key;
+    }
+  }
+  
   const weapon = weapons.find(w => w.weaponType.id === weaponTypeId && w.mountType === mountType);
   if (!weapon) return key;
   const mountLabel = mountType.charAt(0).toUpperCase() + mountType.slice(1);
@@ -96,25 +108,27 @@ export function getWeaponBatteryDisplayName(key: WeaponBatteryKey, weapons: Inst
 }
 
 /**
- * Get all unique weapon batteries from installed weapons
+ * Get all unique weapon batteries from installed weapons and launch systems
  * A battery = all weapons of the same type AND mount type
+ * Launch systems are treated as a special mount type 'launcher'
  */
-export function getWeaponBatteries(weapons: InstalledWeapon[]): Array<{
+export function getWeaponBatteries(weapons: InstalledWeapon[], launchSystems?: InstalledLaunchSystem[]): Array<{
   key: WeaponBatteryKey;
   weaponTypeId: string;
   weaponTypeName: string;
-  mountType: MountType;
+  mountType: MountType | 'launcher';
   totalHullPoints: number;
   weaponCount: number;
 }> {
   const batteryMap = new Map<WeaponBatteryKey, {
     weaponTypeId: string;
     weaponTypeName: string;
-    mountType: MountType;
+    mountType: MountType | 'launcher';
     totalHullPoints: number;
     weaponCount: number;
   }>();
 
+  // Add regular weapons
   for (const weapon of weapons) {
     const key = createWeaponBatteryKey(weapon.weaponType.id, weapon.mountType);
     const existing = batteryMap.get(key);
@@ -132,14 +146,44 @@ export function getWeaponBatteries(weapons: InstalledWeapon[]): Array<{
     }
   }
 
+  // Add launch systems as a special 'launcher' mount type
+  if (launchSystems) {
+    const launchSystemDefs = getLaunchSystemsData();
+    for (const ls of launchSystems) {
+      const lsDef = launchSystemDefs.find(d => d.id === ls.launchSystemType);
+      const key = createWeaponBatteryKey(ls.launchSystemType, 'launcher' as MountType);
+      const existing = batteryMap.get(key);
+      if (existing) {
+        existing.totalHullPoints += ls.hullPoints;
+        existing.weaponCount += ls.quantity;
+      } else {
+        batteryMap.set(key, {
+          weaponTypeId: ls.launchSystemType,
+          weaponTypeName: lsDef?.name ?? ls.launchSystemType,
+          mountType: 'launcher' as MountType,
+          totalHullPoints: ls.hullPoints,
+          weaponCount: ls.quantity,
+        });
+      }
+    }
+  }
+
   return Array.from(batteryMap.entries()).map(([key, data]) => ({ key, ...data }));
 }
 
 /**
  * Get the total hull points for a weapon battery
  */
-export function getWeaponBatteryHullPoints(batteryKey: WeaponBatteryKey, weapons: InstalledWeapon[]): number {
+export function getWeaponBatteryHullPoints(batteryKey: WeaponBatteryKey, weapons: InstalledWeapon[], launchSystems?: InstalledLaunchSystem[]): number {
   const { weaponTypeId, mountType } = parseWeaponBatteryKey(batteryKey);
+  
+  // Check if it's a launch system
+  if (mountType === 'launcher' && launchSystems) {
+    return launchSystems
+      .filter(ls => ls.launchSystemType === weaponTypeId)
+      .reduce((total, ls) => total + ls.hullPoints, 0);
+  }
+  
   return weapons
     .filter(w => w.weaponType.id === weaponTypeId && w.mountType === mountType)
     .reduce((total, w) => total + (w.hullPoints * w.quantity), 0);
@@ -261,11 +305,12 @@ export function calculateCommandControlCost(
 export function calculateFireControlCost(
   fireControlType: CommandControlSystemType,
   batteryKey: WeaponBatteryKey | undefined,
-  weapons: InstalledWeapon[]
+  weapons: InstalledWeapon[],
+  launchSystems?: InstalledLaunchSystem[]
 ): number {
   if (!batteryKey) return 0;
   
-  const batteryHP = getWeaponBatteryHullPoints(batteryKey, weapons);
+  const batteryHP = getWeaponBatteryHullPoints(batteryKey, weapons, launchSystems);
   return fireControlType.cost * batteryHP;
 }
 
@@ -376,13 +421,23 @@ export function hasComputerCoreInstalled(
 }
 
 /**
- * Get the installed computer core quality (if any)
+ * Get the best installed computer core quality (if any)
+ * Returns the highest quality among all installed cores
  */
 export function getInstalledComputerCoreQuality(
   installedSystems: InstalledCommandControlSystem[]
 ): 'Ordinary' | 'Good' | 'Amazing' | null {
-  const core = installedSystems.find((s) => s.type.id.startsWith('computer-core'));
-  return core?.type.quality ?? null;
+  const cores = installedSystems.filter((s) => s.type.id.startsWith('computer-core'));
+  if (cores.length === 0) return null;
+  
+  // Return the best quality (Amazing > Good > Ordinary)
+  const qualityOrder = ['Ordinary', 'Good', 'Amazing'] as const;
+  let bestIndex = -1;
+  for (const core of cores) {
+    const idx = qualityOrder.indexOf(core.type.quality as typeof qualityOrder[number]);
+    if (idx > bestIndex) bestIndex = idx;
+  }
+  return bestIndex >= 0 ? qualityOrder[bestIndex] : null;
 }
 
 /**
@@ -425,9 +480,10 @@ export function getSensorControlForSensor(
  */
 export function getOrphanedFireControls(
   installedSystems: InstalledCommandControlSystem[],
-  weapons: InstalledWeapon[]
+  weapons: InstalledWeapon[],
+  launchSystems?: InstalledLaunchSystem[]
 ): InstalledCommandControlSystem[] {
-  const batteries = getWeaponBatteries(weapons);
+  const batteries = getWeaponBatteries(weapons, launchSystems);
   const batteryKeys = new Set(batteries.map(b => b.key));
   
   return installedSystems.filter(s => {

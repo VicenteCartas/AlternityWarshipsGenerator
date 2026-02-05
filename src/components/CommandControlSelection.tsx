@@ -35,6 +35,7 @@ import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledWeapon } from '../types/weapon';
+import type { InstalledLaunchSystem } from '../types/ordnance';
 import {
   getAllCommandControlSystemTypes,
   filterByDesignConstraints,
@@ -68,6 +69,7 @@ interface CommandControlSelectionProps {
   installedSystems: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedWeapons: InstalledWeapon[];
+  installedLaunchSystems: InstalledLaunchSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onSystemsChange: (systems: InstalledCommandControlSystem[]) => void;
@@ -78,6 +80,7 @@ export function CommandControlSelection({
   installedSystems,
   installedSensors,
   installedWeapons,
+  installedLaunchSystems,
   designProgressLevel,
   designTechTracks,
   onSystemsChange,
@@ -163,27 +166,41 @@ export function CommandControlSelection({
 
   // Get weapon batteries for Fire Control assignment
   const weaponBatteries = useMemo(() => {
-    return getWeaponBatteries(installedWeapons);
-  }, [installedWeapons]);
+    return getWeaponBatteries(installedWeapons, installedLaunchSystems);
+  }, [installedWeapons, installedLaunchSystems]);
 
-  // Get available weapon batteries (not already assigned to a Fire Control)
+  // Get available weapon batteries (not already assigned to a Fire Control, or the one being edited)
   const availableWeaponBatteries = useMemo(() => {
-    return weaponBatteries.filter(
-      (battery) => !batteryHasFireControl(battery.key, installedSystems)
-    );
-  }, [weaponBatteries, installedSystems]);
+    return weaponBatteries.filter((battery) => {
+      // If editing, include the battery currently assigned to the system being edited
+      if (editingSystemId) {
+        const editingSystem = installedSystems.find(s => s.id === editingSystemId);
+        if (editingSystem?.linkedWeaponBatteryKey === battery.key) {
+          return true;
+        }
+      }
+      return !batteryHasFireControl(battery.key, installedSystems);
+    });
+  }, [weaponBatteries, installedSystems, editingSystemId]);
 
-  // Get available sensors (not already assigned to a Sensor Control)
+  // Get available sensors (not already assigned to a Sensor Control, or the one being edited)
   const availableSensorsForControl = useMemo(() => {
-    return installedSensors.filter(
-      (sensor) => !sensorHasSensorControl(sensor.id, installedSystems)
-    );
-  }, [installedSensors, installedSystems]);
+    return installedSensors.filter((sensor) => {
+      // If editing, include the sensor currently assigned to the system being edited
+      if (editingSystemId) {
+        const editingSystem = installedSystems.find(s => s.id === editingSystemId);
+        if (editingSystem?.linkedSensorId === sensor.id) {
+          return true;
+        }
+      }
+      return !sensorHasSensorControl(sensor.id, installedSystems);
+    });
+  }, [installedSensors, installedSystems, editingSystemId]);
 
   // Get orphaned Fire Controls (battery no longer exists)
   const orphanedFireControls = useMemo(() => {
-    return getOrphanedFireControls(installedSystems, installedWeapons);
-  }, [installedSystems, installedWeapons]);
+    return getOrphanedFireControls(installedSystems, installedWeapons, installedLaunchSystems);
+  }, [installedSystems, installedWeapons, installedLaunchSystems]);
 
   // Get orphaned Sensor Controls (sensor no longer exists)
   const orphanedSensorControls = useMemo(() => {
@@ -237,7 +254,7 @@ export function CommandControlSelection({
     // Handle Fire Control
     if (selectedSystem.linkedSystemType === 'weapon') {
       if (!selectedBattery) return;
-      const cost = calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons);
+      const cost = calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems);
       const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, 1);
       const power = calculateCommandControlPower(selectedSystem, 1);
       
@@ -323,12 +340,7 @@ export function CommandControlSelection({
         )
       );
     } else {
-      let updatedSystems = installedSystems;
-
-      // Computer cores: only one type allowed
-      if (selectedSystem.id.startsWith('computer-core')) {
-        updatedSystems = installedSystems.filter((s) => !s.type.id.startsWith('computer-core'));
-      }
+      const updatedSystems = installedSystems;
 
       // Check if same type already exists (for stackable items)
         const existing = updatedSystems.find((s) => s.type.id === selectedSystem.id);
@@ -416,13 +428,13 @@ export function CommandControlSelection({
   const previewCost = useMemo(() => {
     if (!selectedSystem) return 0;
     if (selectedSystem.linkedSystemType === 'weapon') {
-      return selectedBattery ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons) : 0;
+      return selectedBattery ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems) : 0;
     }
     if (selectedSystem.linkedSystemType === 'sensor') {
       return selectedSensorId ? calculateSensorControlCost(selectedSystem, selectedSensorId, installedSensors) : 0;
     }
     return calculateCommandControlCost(selectedSystem, hull.hullPoints, previewQuantity);
-  }, [selectedSystem, selectedBattery, selectedSensorId, installedWeapons, installedSensors, hull.hullPoints, previewQuantity]);
+  }, [selectedSystem, selectedBattery, selectedSensorId, installedWeapons, installedLaunchSystems, installedSensors, hull.hullPoints, previewQuantity]);
 
   const getCategoryLabel = (category: CommandControlCategory): string => {
     switch (category) {
@@ -533,11 +545,9 @@ export function CommandControlSelection({
                       variant="outlined"
                     />
                   )}
-                  {(!isLinkedControl || isOrphaned) && (
-                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  )}
+                  <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
                   <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -571,8 +581,69 @@ export function CommandControlSelection({
         )}
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          {/* Systems with coverage-based HP (command deck, computer cores) */}
-          {!isLinkedControl && selectedSystem.coveragePerHullPoint && (
+          {/* Fire Control: weapon battery selection */}
+          {isFireControl && (
+            <FormControl size="small" sx={{ minWidth: 250 }}>
+              <InputLabel id="edit-battery-select-label">Weapon Battery</InputLabel>
+              <Select
+                labelId="edit-battery-select-label"
+                value={selectedBattery}
+                onChange={(e) => setSelectedBattery(e.target.value as WeaponBatteryKey)}
+                label="Weapon Battery"
+              >
+                {(() => {
+                  // Filter batteries by max size if the control has a limit
+                  const maxSize = selectedSystem.maximumLinkedSystemSize;
+                  const filteredBatteries = maxSize !== undefined
+                    ? availableWeaponBatteries.filter(b => b.totalHullPoints <= maxSize)
+                    : availableWeaponBatteries;
+                  
+                  if (filteredBatteries.length === 0) {
+                    return <MenuItem disabled>No eligible batteries{maxSize ? ` (max ${maxSize} HP)` : ''}</MenuItem>;
+                  }
+                  return filteredBatteries.map((battery) => {
+                    const mountLabel = battery.mountType.charAt(0).toUpperCase() + battery.mountType.slice(1);
+                    return (
+                      <MenuItem key={battery.key} value={battery.key}>
+                        {battery.weaponTypeName} {mountLabel} ({battery.totalHullPoints} HP)
+                      </MenuItem>
+                    );
+                  });
+                })()}
+              </Select>
+              {selectedSystem.maximumLinkedSystemSize && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Max weapon size: {selectedSystem.maximumLinkedSystemSize} HP
+                </Typography>
+              )}
+            </FormControl>
+          )}
+
+          {/* Sensor Control: sensor selection */}
+          {isSensorControl && (
+            <FormControl size="small" sx={{ minWidth: 250 }}>
+              <InputLabel id="edit-sensor-select-label">Sensor</InputLabel>
+              <Select
+                labelId="edit-sensor-select-label"
+                value={selectedSensorId}
+                onChange={(e) => setSelectedSensorId(e.target.value)}
+                label="Sensor"
+              >
+                {availableSensorsForControl.length === 0 ? (
+                  <MenuItem disabled>No unassigned sensors</MenuItem>
+                ) : (
+                  availableSensorsForControl.map((sensor) => (
+                    <MenuItem key={sensor.id} value={sensor.id}>
+                      {sensor.type.name} ({sensor.hullPoints} HP)
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Systems with coverage-based HP (command deck) - computer cores have fixed size */}
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.id.startsWith('computer-core') && (
             <TextField
               label="Quantity"
               type="number"
@@ -621,6 +692,7 @@ export function CommandControlSelection({
                 size="small"
                 startIcon={<SaveIcon />}
                 onClick={handleAddSystem}
+                disabled={isLinkedControl && (isFireControl ? selectedBattery === '' : selectedSensorId === '')}
               >
                 Save
               </Button>
@@ -716,8 +788,8 @@ export function CommandControlSelection({
             </FormControl>
           )}
 
-          {/* Systems with coverage-based HP (command deck, computer cores) */}
-          {!isLinkedControl && selectedSystem.coveragePerHullPoint && (
+          {/* Systems with coverage-based HP (command deck) - computer cores have fixed size */}
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.id.startsWith('computer-core') && (
             <TextField
               label="Quantity"
               type="number"

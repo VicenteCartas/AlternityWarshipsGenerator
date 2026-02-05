@@ -1041,6 +1041,7 @@ function App() {
             installedSystems={installedCommandControl}
             installedSensors={installedSensors}
             installedWeapons={installedWeapons}
+            installedLaunchSystems={installedLaunchSystems}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onSystemsChange={handleCommandControlChange}

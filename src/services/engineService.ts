@@ -35,15 +35,18 @@ export function calculateHullPercentage(hull: Hull, engineHullPoints: number): n
 
 /**
  * Get acceleration rating based on hull percentage
- * Interpolates linearly between breakpoints (5%, 10%, 15%, 20%, 30%, 40%, 50%)
- * Below 5% returns 0, at or above 50% returns the 50% value
+ * Interpolates linearly between breakpoints (0%, 5%, 10%, 15%, 20%, 30%, 40%, 50%)
+ * Below 5% interpolates between 0 and 5% value, at or above 50% returns the 50% value
  */
 export function getAccelerationForPercentage(
   ratings: AccelerationRatings,
   percentage: number
 ): number {
-  // Below 5% - no meaningful acceleration
-  if (percentage < 5) return 0;
+  // Below 5% - interpolate between 0 and 5% value
+  if (percentage < 5) {
+    const ratio = percentage / 5;
+    return ratio * ratings.at5Percent;
+  }
   
   // At or above 50% - cap at 50% value
   if (percentage >= 50) return ratings.at50Percent;
