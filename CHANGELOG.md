@@ -5,7 +5,8 @@
 ### Fixes
 
 - Fix the release number.
-- PowerPlants power generation is no longer rounded.
+- Bug: PowerPlants power generation is no longer rounded.
+- Bug: Repair systems power cost is now based on the system size, not on the ship size.
 
 ## [0.2.1] - 2026-02-04
 

@@ -69,8 +69,14 @@ export function calculateDefensePower(
   quantity: number
 ): number {
   if (type.powerPerHull) {
-    // Power is per hull point of the ship
-    return type.powerRequired * shipHullPoints;
+    // Power is per hull point of the SYSTEM, not the ship
+    // For percentage-based systems (like repair bots), use the system's HP
+    if (type.hullPercentage) {
+      const systemHullPoints = Math.ceil(((type.hullPercentageValue ?? 0) / 100) * shipHullPoints);
+      return type.powerRequired * systemHullPoints;
+    }
+    // For fixed HP systems, use the system's HP * quantity
+    return type.powerRequired * type.hullPoints * quantity;
   }
   return type.powerRequired * quantity;
 }
