@@ -15,6 +15,10 @@
 - Bug: ships can now have more than 1 computer core.
 - Bug: multiple of the same support system can now be installed.
 
+### Additions
+
+- Mac and Linux builds
+
 ## [0.2.1] - 2026-02-04
 
 ### Added

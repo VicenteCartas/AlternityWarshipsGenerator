@@ -465,7 +465,6 @@ export function CommandControlSelection({
             const hasQualityIssue = controlsWithQualityIssues.some((s) => s.id === system.id);
             const isFireControl = system.type.linkedSystemType === 'weapon';
             const isSensorControl = system.type.linkedSystemType === 'sensor';
-            const isLinkedControl = isFireControl || isSensorControl;
             const isEditing = editingSystemId === system.id;
             
             // Determine linked system info
