@@ -5,7 +5,7 @@ import type {
   CommandControlStats,
   WeaponBatteryKey,
 } from '../types/commandControl';
-import type { InstalledWeapon, MountType } from '../types/weapon';
+import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledLaunchSystem } from '../types/ordnance';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
@@ -74,16 +74,16 @@ export function generateCommandControlId(): string {
  * Create a weapon battery key from weapon type ID and mount type
  * Format: "weaponTypeId:mountType"
  */
-export function createWeaponBatteryKey(weaponTypeId: string, mountType: MountType): WeaponBatteryKey {
+export function createWeaponBatteryKey(weaponTypeId: string, mountType: string): WeaponBatteryKey {
   return `${weaponTypeId}:${mountType}`;
 }
 
 /**
  * Parse a weapon battery key back into components
  */
-export function parseWeaponBatteryKey(key: WeaponBatteryKey): { weaponTypeId: string; mountType: MountType } {
+export function parseWeaponBatteryKey(key: WeaponBatteryKey): { weaponTypeId: string; mountType: string } {
   const [weaponTypeId, mountType] = key.split(':');
-  return { weaponTypeId, mountType: mountType as MountType };
+  return { weaponTypeId, mountType };
 }
 
 /**
@@ -116,14 +116,14 @@ export function getWeaponBatteries(weapons: InstalledWeapon[], launchSystems?: I
   key: WeaponBatteryKey;
   weaponTypeId: string;
   weaponTypeName: string;
-  mountType: MountType | 'launcher';
+  mountType: string;
   totalHullPoints: number;
   weaponCount: number;
 }> {
   const batteryMap = new Map<WeaponBatteryKey, {
     weaponTypeId: string;
     weaponTypeName: string;
-    mountType: MountType | 'launcher';
+    mountType: string;
     totalHullPoints: number;
     weaponCount: number;
   }>();
@@ -151,7 +151,7 @@ export function getWeaponBatteries(weapons: InstalledWeapon[], launchSystems?: I
     const launchSystemDefs = getLaunchSystemsData();
     for (const ls of launchSystems) {
       const lsDef = launchSystemDefs.find(d => d.id === ls.launchSystemType);
-      const key = createWeaponBatteryKey(ls.launchSystemType, 'launcher' as MountType);
+      const key = createWeaponBatteryKey(ls.launchSystemType, 'launcher');
       const existing = batteryMap.get(key);
       if (existing) {
         existing.totalHullPoints += ls.hullPoints;
@@ -160,7 +160,7 @@ export function getWeaponBatteries(weapons: InstalledWeapon[], launchSystems?: I
         batteryMap.set(key, {
           weaponTypeId: ls.launchSystemType,
           weaponTypeName: lsDef?.name ?? ls.launchSystemType,
-          mountType: 'launcher' as MountType,
+          mountType: 'launcher',
           totalHullPoints: ls.hullPoints,
           weaponCount: ls.quantity,
         });

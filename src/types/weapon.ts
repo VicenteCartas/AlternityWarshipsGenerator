@@ -6,7 +6,7 @@ export type WeaponCategory = 'beam' | 'projectile' | 'torpedo' | 'special' | 'or
 
 // ============== Mount Types ==============
 
-export type MountType = 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank' | 'launcher';
+export type MountType = 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
 
 /**
  * Mount modifier configuration loaded from JSON
