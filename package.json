@@ -59,13 +59,15 @@
       "target": [
         "dmg"
       ],
-      "icon": "public/logo.png"
+      "icon": "public/logo1024.png",
+      "category": "public.app-category.games"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "public/logo.png"
+      "icon": "public/logo1024.png",
+      "category": "Game"
     },
     "nsis": {
       "oneClick": false,

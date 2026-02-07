@@ -14,7 +14,13 @@ jobs:
     
     strategy:
       matrix:
-        os: [windows-latest]
+        include:
+          - os: windows-latest
+            dist-cmd: npm run dist:win
+          - os: macos-latest
+            dist-cmd: npm run dist:mac
+          - os: ubuntu-latest
+            dist-cmd: npm run dist:linux
 
     steps:
       - name: Checkout code
@@ -30,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Build and package
-        run: npm run dist
+        run: ${{ matrix.dist-cmd }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,6 +49,7 @@ jobs:
             release/*.msi
             release/*.dmg
             release/*.AppImage
+            release/*.deb
             release/*.zip
 
   release:
