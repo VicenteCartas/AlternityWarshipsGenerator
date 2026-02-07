@@ -157,3 +157,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Disclaimer
 
 This is a fan-made tool. Alternity is a trademark of Wizards of the Coast. This project is not affiliated with or endorsed by Wizards of the Coast.
+This tool has only been tested at 4K resolution. It is very data dense, so it will probably not look good at smaller resolutions. I will try to address those issues but it will never work great on smaller screens.
+I have not tested Mac/Linux builds as I don't have accesss to a machine with those OS.
+Visual Studio Copilot + Claude were used to develop this tool.
