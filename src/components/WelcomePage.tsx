@@ -37,7 +37,7 @@ export function WelcomePage({ onNewWarship, onLoadWarship }: WelcomePageProps) {
       >
         <Box
           component="img"
-          src="/logo.png"
+          src="./logo.png"
           alt="Alternity Warship Generator"
           sx={{ width: 80, height: 80, mb: 2 }}
         />

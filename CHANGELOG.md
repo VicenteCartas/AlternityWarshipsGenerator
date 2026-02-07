@@ -1,6 +1,14 @@
 # Changelog
 
-## [0.2.2] - Unreleased
+## [0.2.3] - Unreleased
+
+### Todo
+
+- Ordnance launchers do not show associated fire control
+- Add an option to open the folder with the data files so user can edit them
+- Improve PDF generation by having each section on its own page and with more details for gameplay
+
+## [0.2.2] - 2/6/2026
 
 ### Fixes
 
@@ -14,6 +22,7 @@
 - Bug: computer cores could be set to invalid sizes.
 - Bug: ships can now have more than 1 computer core.
 - Bug: multiple of the same support system can now be installed.
+- Bug: logo was not referenced correctly.
 
 ### Additions
 

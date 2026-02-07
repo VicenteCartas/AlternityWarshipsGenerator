@@ -39,7 +39,7 @@ export function AboutDialog({ open, onClose }: AboutDialogProps) {
           {/* Logo */}
           <Box
             component="img"
-            src="/logo.png"
+            src="./logo.png"
             alt="Alternity Warship Generator Logo"
             sx={{ width: 96, height: 96 }}
           />
