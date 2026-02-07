@@ -104,7 +104,7 @@ The installers will be created in the `release/` folder.
 │   ├── types/          # TypeScript type definitions
 │   ├── App.tsx         # Main React component with stepper/wizard
 │   └── main.tsx        # React entry point
-├── public/             # Static assets (logo, etc.)
+└── public/             # Static assets (logo, etc.)
 ```
 
 ## Customizing Game Data
