@@ -212,7 +212,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
     cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
     cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-    cache.damageDiagram = damageDiagramData as DamageDiagramData;
+    cache.damageDiagram = damageDiagramData as unknown as DamageDiagramData;
     // Weapons data
     cache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
     cache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];

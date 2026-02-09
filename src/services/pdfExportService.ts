@@ -807,7 +807,7 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
         const accText = formatAccuracyModifier(design.totalAccuracy);
         const typeFpText = warhead ? `${warhead.damageType}/${warhead.firepower}` : '?';
         const damageText = warhead?.damage ?? '?';
-        const areaText = warhead?.area ? `${warhead.area.type} ${warhead.area.radius}` : '-';
+        const areaText = warhead?.area ? `${warhead.area.rangeOrdinary}/${warhead.area.rangeGood}/${warhead.area.rangeAmazing}` : '-';
         const costText = formatCost(design.totalCost);
 
         pdf.text(design.name.substring(0, 20), oCols[0], y);

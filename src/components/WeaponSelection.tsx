@@ -304,7 +304,7 @@ export function WeaponSelection({
           const newStandardSet = new Set([...keptStandard, arc]);
           // Only keep zero arcs whose corresponding standard arc remains
           const arcsToKeep = currentArcs.filter(a =>
-            a.startsWith('zero-') && newStandardSet.has(a.replace('zero-', '')),
+            a.startsWith('zero-') && newStandardSet.has(a.replace('zero-', '') as FiringArc),
           );
           arcsToKeep.push(...newStandardSet);
           setSelectedArcs(arcsToKeep);
