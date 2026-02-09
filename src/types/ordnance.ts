@@ -83,6 +83,8 @@ export interface PropulsionSystem {
   name: string;
   progressLevel: ProgressLevel;
   techTracks: TechTrack[];
+  /** Ordnance categories this propulsion can be used with */
+  applicableTo: OrdnanceCategory[];
   /** Size points this propulsion takes in the launcher */
   size: number;
   /** Maximum warhead size this propulsion can carry */

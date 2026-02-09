@@ -13,6 +13,7 @@ import type {
   OrdnanceCategory,
 } from '../types/ordnance';
 import type { ProgressLevel, TechTrack } from '../types/common';
+import { ORDNANCE_SIZE_CAPACITY } from '../types/ordnance';
 import {
   getLaunchSystemsData,
   getPropulsionSystemsData,
@@ -37,6 +38,20 @@ export function getWarheads(): Warhead[] {
 
 export function getGuidanceSystems(): GuidanceSystem[] {
   return getGuidanceSystemsData();
+}
+
+/**
+ * Find the propulsion system for a given ordnance category and size.
+ * Used for bombs and mines which have a fixed propulsion per category+size.
+ */
+export function findPropulsionByCategory(
+  category: OrdnanceCategory,
+  size: OrdnanceSize
+): PropulsionSystem | undefined {
+  const numericSize = ORDNANCE_SIZE_CAPACITY[size];
+  return getPropulsionSystems().find(
+    (p) => p.applicableTo.includes(category) && p.size === numericSize
+  );
 }
 
 // ============== Filtering ==============
@@ -85,15 +100,10 @@ export function filterPropulsionByConstraints(
       }
     }
 
-    // Filter by category (bombs use bomb casings, mines use mine casings, missiles use missiles/rockets)
-    if (category === 'bomb') {
-      return ps.id.startsWith('bomb-');
-    } else if (category === 'mine') {
-      return ps.id.startsWith('mine-');
-    } else {
-      // Missiles use rocket or missile propulsion
-      return ps.id.startsWith('rocket-') || ps.id.startsWith('missile-');
-    }
+    // Filter by applicable ordnance category
+    if (!ps.applicableTo.includes(category)) return false;
+
+    return true;
   });
 }
 
@@ -343,8 +353,7 @@ export function createBombDesign(
   warheadId: string
 ): BombDesign | null {
   // Find the matching bomb casing propulsion
-  const propulsionId = `bomb-${size}`;
-  const propulsion = getPropulsionSystems().find((p) => p.id === propulsionId);
+  const propulsion = findPropulsionByCategory('bomb', size);
   const warhead = getWarheads().find((w) => w.id === warheadId);
 
   if (!propulsion || !warhead) return null;
@@ -373,8 +382,7 @@ export function createMineDesign(
   warheadId: string
 ): MineDesign | null {
   // Find the matching mine casing propulsion
-  const propulsionId = `mine-${size}`;
-  const propulsion = getPropulsionSystems().find((p) => p.id === propulsionId);
+  const propulsion = findPropulsionByCategory('mine', size);
   const guidance = getGuidanceSystems().find((g) => g.id === guidanceId);
   const warhead = getWarheads().find((w) => w.id === warheadId);
 

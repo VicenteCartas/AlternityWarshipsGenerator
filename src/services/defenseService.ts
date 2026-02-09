@@ -5,25 +5,16 @@ import type {
   DefenseStats,
 } from '../types/defense';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
-
-// ============== Data Loading ==============
-
-let defenseSystemTypes: DefenseSystemType[] = [];
-
-export function loadDefenseSystemsData(data: {
-  defenseSystems: DefenseSystemType[];
-}): void {
-  defenseSystemTypes = data.defenseSystems;
-}
+import { getDefenseSystemsData } from './dataLoader';
 
 // ============== Getters ==============
 
 export function getAllDefenseSystemTypes(): DefenseSystemType[] {
-  return defenseSystemTypes;
+  return getDefenseSystemsData();
 }
 
 export function getDefenseSystemTypeById(id: string): DefenseSystemType | undefined {
-  return defenseSystemTypes.find((t) => t.id === id);
+  return getAllDefenseSystemTypes().find((t) => t.id === id);
 }
 
 // ============== Filtering ==============
@@ -52,10 +43,9 @@ export function calculateDefenseHullPoints(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (type.hullPercentage) {
+  if (type.hullPercentage > 0) {
     // Hull points are a percentage of ship hull
-    const percentageValue = type.hullPercentageValue ?? 0;
-    return Math.ceil((percentageValue / 100) * shipHullPoints);
+    return Math.ceil((type.hullPercentage / 100) * shipHullPoints);
   }
   return type.hullPoints * quantity;
 }
@@ -68,11 +58,11 @@ export function calculateDefensePower(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (type.powerPerHull) {
+  if (type.powerPer === 'systemHp') {
     // Power is per hull point of the SYSTEM, not the ship
     // For percentage-based systems (like repair bots), use the system's HP
-    if (type.hullPercentage) {
-      const systemHullPoints = Math.ceil(((type.hullPercentageValue ?? 0) / 100) * shipHullPoints);
+    if (type.hullPercentage > 0) {
+      const systemHullPoints = Math.ceil((type.hullPercentage / 100) * shipHullPoints);
       return type.powerRequired * systemHullPoints;
     }
     // For fixed HP systems, use the system's HP * quantity
@@ -89,9 +79,13 @@ export function calculateDefenseCost(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (type.costPerHull) {
-    // Cost is per hull point of the ship
-    return type.cost * shipHullPoints;
+  if (type.costPer === 'systemHp') {
+    // Cost is per hull point of the system itself (not the ship)
+    if (type.hullPercentage > 0) {
+      const systemHullPoints = Math.ceil((type.hullPercentage / 100) * shipHullPoints);
+      return type.cost * systemHullPoints;
+    }
+    return type.cost * type.hullPoints * quantity;
   }
   return type.cost * quantity;
 }
@@ -152,11 +146,7 @@ export function calculateDefenseStats(
         countermeasureCoverage += coverage;
         break;
       case 'repair': {
-        // Parse damage check bonus from effect string (e.g., "-2 step bonus to Damage Checks")
-        const match = type.effect.match(/-(\d+)\s*step/i);
-        if (match) {
-          damageCheckBonus += parseInt(match[1], 10);
-        }
+        damageCheckBonus += type.damageCheckBonus;
         break;
       }
       case 'shield-component':

@@ -28,66 +28,35 @@ import {
   getSpecialWeaponsData,
   getMountModifiersData,
   getGunConfigurationsData,
+  getConcealmentModifierData,
 } from './dataLoader';
-
-let beamWeapons: BeamWeaponType[] | null = null;
-let projectileWeapons: ProjectileWeaponType[] | null = null;
-let torpedoWeapons: TorpedoWeaponType[] | null = null;
-let specialWeapons: SpecialWeaponType[] | null = null;
-let mountModifiers: Record<MountType, MountModifier> | null = null;
-let gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null = null;
-
-/**
- * Weapons data type for initialization
- */
-interface WeaponsDataInput {
-  beamWeapons: BeamWeaponType[];
-  projectileWeapons?: ProjectileWeaponType[];
-  torpedoWeapons?: TorpedoWeaponType[];
-  specialWeapons?: SpecialWeaponType[];
-  mountModifiers?: Record<MountType, MountModifier>;
-  gunConfigurations?: Record<GunConfiguration, GunConfigModifier>;
-}
-
-/**
- * Initialize weapons data from JSON (called by dataLoader)
- */
-export function initializeWeaponsData(data: WeaponsDataInput): void {
-  beamWeapons = data.beamWeapons;
-  projectileWeapons = data.projectileWeapons || [];
-  torpedoWeapons = data.torpedoWeapons || [];
-  specialWeapons = data.specialWeapons || [];
-  mountModifiers = data.mountModifiers || null;
-  gunConfigurations = data.gunConfigurations || null;
-}
 
 /**
  * Get all beam weapon types
  */
 export function getAllBeamWeaponTypes(): BeamWeaponType[] {
-  // Use cached data if initialized, otherwise get from dataLoader
-  return beamWeapons || getBeamWeaponsData();
+  return getBeamWeaponsData();
 }
 
 /**
  * Get all projectile weapon types
  */
 export function getAllProjectileWeaponTypes(): ProjectileWeaponType[] {
-  return projectileWeapons || getProjectileWeaponsData();
+  return getProjectileWeaponsData();
 }
 
 /**
  * Get all torpedo weapon types
  */
 export function getAllTorpedoWeaponTypes(): TorpedoWeaponType[] {
-  return torpedoWeapons || getTorpedoWeaponsData();
+  return getTorpedoWeaponsData();
 }
 
 /**
  * Get all special weapon types
  */
 export function getAllSpecialWeaponTypes(): SpecialWeaponType[] {
-  return specialWeapons || getSpecialWeaponsData();
+  return getSpecialWeaponsData();
 }
 
 /**
@@ -163,8 +132,8 @@ export function getMountModifiers(mountType: MountType): MountModifier {
     sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
     bank: { costMultiplier: 1.25, hpMultiplier: 1 },
   };
-  // Try cache first, then dataLoader, then hardcoded defaults
-  const modifiers = mountModifiers || getMountModifiersData();
+  // Try dataLoader first, then hardcoded defaults
+  const modifiers = getMountModifiersData();
   return modifiers?.[mountType] || defaults[mountType];
 }
 
@@ -183,9 +152,18 @@ export function getGunConfigurationModifiers(config: GunConfiguration): GunConfi
     triple: { effectiveGunCount: 2, actualGunCount: 3 },
     quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
   };
-  // Try cache first, then dataLoader, then hardcoded defaults
-  const configs = gunConfigurations || getGunConfigurationsData();
+  // Try dataLoader first, then hardcoded defaults
+  const configs = getGunConfigurationsData();
   return configs?.[config] || defaults[config];
+}
+
+/**
+ * Get concealment modifier
+ * Concealed weapons take extra space and cost more
+ */
+export function getConcealmentModifier(): MountModifier {
+  const defaultMod: MountModifier = { costMultiplier: 1.5, hpMultiplier: 1.5 };
+  return getConcealmentModifierData() || defaultMod;
 }
 
 /**
@@ -196,9 +174,18 @@ export function generateWeaponId(): string {
 }
 
 /**
+ * Round a value to the nearest 0.5, with ties (x.25, x.75) rounding down.
+ * Examples: 1.25 → 1.0, 1.26 → 1.5, 2.5 → 2.5, 3.75 → 3.5
+ */
+function roundToHalf(value: number): number {
+  return Math.ceil(value * 2 - 0.5) / 2;
+}
+
+/**
  * Calculate hull points for a weapon installation
  * Formula: (baseHP × mountMultiplier) × effectiveGunCount × concealmentMultiplier
  * Per Warships rules: mount modifier applies per gun, then gun config determines effective count
+ * Result is rounded to nearest 0.5 (ties round down)
  */
 export function calculateWeaponHullPoints(
   weapon: WeaponType,
@@ -216,10 +203,10 @@ export function calculateWeaponHullPoints(
   let totalHp = hpPerGun * gunMod.effectiveGunCount;
   
   if (concealed) {
-    totalHp *= 1.5; // Concealment multiplier
+    totalHp *= getConcealmentModifier().hpMultiplier;
   }
   
-  return Math.ceil(totalHp);
+  return roundToHalf(totalHp);
 }
 
 /**
@@ -236,6 +223,7 @@ export function calculateWeaponPower(weapon: WeaponType, gunConfig: GunConfigura
  * Calculate cost for a weapon installation
  * Formula: (baseCost × mountMultiplier) × effectiveGunCount × concealmentMultiplier
  * Per Warships rules: mount modifier applies per gun, then gun config determines effective count
+ * Result is rounded to nearest 0.5 (ties round down)
  */
 export function calculateWeaponCost(
   weapon: WeaponType,
@@ -253,10 +241,10 @@ export function calculateWeaponCost(
   let totalCost = costPerGun * gunMod.effectiveGunCount;
   
   if (concealed) {
-    totalCost *= 1.5; // Concealment multiplier
+    totalCost *= getConcealmentModifier().costMultiplier;
   }
   
-  return Math.ceil(totalCost);
+  return roundToHalf(totalCost);
 }
 
 /**

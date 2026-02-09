@@ -1,4 +1,5 @@
 import type { Hull } from '../types/hull';
+import { FIREPOWER_ORDER } from '../types/common';
 import type {
   ZoneCode,
   ZoneCount,
@@ -11,36 +12,18 @@ import type {
   HitLocationChart,
   HitLocationColumn,
   AttackDirection,
+  DamageDiagramData,
 } from '../types/damageDiagram';
+import { getDamageDiagramDataGetter } from './dataLoader';
 
-// ============== Data Loading ==============
+// ============== Data Access ==============
 
-interface ZoneLimitData {
-  hullPoints: number;
-  zoneCount: number;
-  zoneLimit: number;
-}
-
-interface DamageDiagramData {
-  zoneConfigurations: {
-    'small-craft': {
-      '2-zone': { maxHullPoints: number; zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-      '4-zone': { maxHullPoints: number; zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-    };
-    light: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-    medium: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-    heavy: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-    'super-heavy': { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
-  };
-  zoneLimits: {
-    hulls: Record<string, ZoneLimitData>;
-  };
-}
-
-let damageDiagramData: DamageDiagramData | null = null;
-
-export function loadDamageDiagramData(data: DamageDiagramData): void {
-  damageDiagramData = data;
+function getDamageDiagramData(): DamageDiagramData {
+  const data = getDamageDiagramDataGetter();
+  if (!data) {
+    throw new Error('Damage diagram data not loaded');
+  }
+  return data;
 }
 
 // ============== Zone Configuration ==============
@@ -49,9 +32,7 @@ export function loadDamageDiagramData(data: DamageDiagramData): void {
  * Get the zone configuration for a given hull
  */
 export function getZoneConfigForHull(hull: Hull): ShipClassZoneConfig {
-  if (!damageDiagramData) {
-    throw new Error('Damage diagram data not loaded');
-  }
+  const data = getDamageDiagramData();
 
   const shipClass = hull.shipClass;
   const hullPoints = hull.hullPoints;
@@ -63,16 +44,16 @@ export function getZoneConfigForHull(hull: Hull): ShipClassZoneConfig {
   if (shipClass === 'small-craft') {
     // Small craft have variable zone count based on HP
     if (hullPoints <= 20) {
-      zones = damageDiagramData.zoneConfigurations['small-craft']['2-zone'].zones;
-      hitDie = damageDiagramData.zoneConfigurations['small-craft']['2-zone'].hitDie;
+      zones = data.zoneConfigurations['small-craft']['2-zone'].zones;
+      hitDie = data.zoneConfigurations['small-craft']['2-zone'].hitDie;
       zoneCount = 2;
     } else {
-      zones = damageDiagramData.zoneConfigurations['small-craft']['4-zone'].zones;
-      hitDie = damageDiagramData.zoneConfigurations['small-craft']['4-zone'].hitDie;
+      zones = data.zoneConfigurations['small-craft']['4-zone'].zones;
+      hitDie = data.zoneConfigurations['small-craft']['4-zone'].hitDie;
       zoneCount = 4;
     }
   } else {
-    const config = damageDiagramData.zoneConfigurations[shipClass];
+    const config = data.zoneConfigurations[shipClass];
     zones = config.zones;
     hitDie = config.hitDie;
     zoneCount = zones.length as ZoneCount;
@@ -90,11 +71,9 @@ export function getZoneConfigForHull(hull: Hull): ShipClassZoneConfig {
  * Get the zone limit (max HP per zone) for a given hull type
  */
 export function getZoneLimitForHull(hullTypeId: string): number {
-  if (!damageDiagramData) {
-    throw new Error('Damage diagram data not loaded');
-  }
+  const data = getDamageDiagramData();
 
-  const limitData = damageDiagramData.zoneLimits.hulls[hullTypeId];
+  const limitData = data.zoneLimits.hulls[hullTypeId];
   if (!limitData) {
     // Default fallback: estimate based on hull points / zone count
     console.warn(`No zone limit data for hull type: ${hullTypeId}`);
@@ -108,11 +87,9 @@ export function getZoneLimitForHull(hullTypeId: string): number {
  * Get the number of zones for a hull type
  */
 export function getZoneCountForHull(hullTypeId: string): ZoneCount {
-  if (!damageDiagramData) {
-    throw new Error('Damage diagram data not loaded');
-  }
+  const data = getDamageDiagramData();
 
-  const limitData = damageDiagramData.zoneLimits.hulls[hullTypeId];
+  const limitData = data.zoneLimits.hulls[hullTypeId];
   if (!limitData) {
     return 6; // Default to light ship zones
   }
@@ -244,20 +221,8 @@ export function getDamageCategoryOrder(category: SystemDamageCategory): number {
 
 // ============== Firepower Ordering ==============
 
-/**
- * Map firepower ratings to order values (lighter = lower = hit first)
- */
-const FIREPOWER_ORDER: Record<string, number> = {
-  'Gd': 1,  // Good (point defense)
-  'S': 2,   // Small
-  'L': 3,   // Light
-  'M': 4,   // Medium
-  'H': 5,   // Heavy
-  'SH': 6,  // Super-Heavy
-};
-
 export function getFirepowerOrder(firepower: string): number {
-  return FIREPOWER_ORDER[firepower] || 99;
+  return FIREPOWER_ORDER[firepower] ?? 99;
 }
 
 // ============== System Sorting ==============
@@ -388,27 +353,62 @@ export function calculateDamageDiagramStats(
 // ============== Hit Location Chart ==============
 
 /**
- * Create default hit location chart for a ship
+ * Find the JSON hit location table key for a given hitDie and zone count.
+ * Keys in JSON: "6-die", "8-die-4zone", "8-die-6zone", "12-die-8zone", etc.
+ */
+function getHitLocationTableKey(hitDie: number, zoneCount: number): string {
+  // Try specific key first (die + zone count)
+  const specificKey = `${hitDie}-die-${zoneCount}zone`;
+  // For 2-zone d6, JSON uses just "6-die"
+  const simpleKey = `${hitDie}-die`;
+  return zoneCount <= 2 ? simpleKey : specificKey;
+}
+
+/**
+ * Create default hit location chart for a ship, using JSON data when available.
  */
 export function createDefaultHitLocationChart(
   zones: ZoneCode[],
   hitDie: 6 | 8 | 12 | 20
 ): HitLocationChart {
   const directions: AttackDirection[] = ['forward', 'port', 'starboard', 'aft'];
-  const columns: HitLocationColumn[] = [];
 
-  // Simple distribution: divide die evenly among zones
-  const rollsPerZone = hitDie / zones.length;
-  
+  // Try to load from JSON data first
+  const data = getDamageDiagramData();
+  const tables = data.hitLocationTables;
+  if (tables) {
+    const key = getHitLocationTableKey(hitDie, zones.length);
+    const table = tables[key];
+    if (table) {
+      const columns: HitLocationColumn[] = directions.map((direction) => {
+        const jsonEntries = table[direction] || [];
+        const entries = jsonEntries.map((e) => ({
+          minRoll: e.roll[0],
+          maxRoll: e.roll.length > 1 ? e.roll[e.roll.length - 1] : e.roll[0],
+          zone: e.zone as ZoneCode,
+        }));
+        return { direction, entries };
+      });
+      return { hitDie, columns };
+    }
+  }
+
+  // Fallback: distribute die rolls evenly among zones (integer-only)
+  const columns: HitLocationColumn[] = [];
+  const zoneCount = zones.length;
+  const baseRolls = Math.floor(hitDie / zoneCount);
+  const extraRolls = hitDie % zoneCount;
+
   for (const direction of directions) {
-    // Reorder zones based on attack direction
     const orderedZones = reorderZonesForDirection(zones, direction);
-    
+
     let currentRoll = 1;
-    const entries = orderedZones.map((zone) => {
+    const entries = orderedZones.map((zone, idx) => {
+      // First 'extraRolls' zones get one extra roll value
+      const rollCount = baseRolls + (idx < extraRolls ? 1 : 0);
       const entry = {
         minRoll: currentRoll,
-        maxRoll: Math.min(currentRoll + rollsPerZone - 1, hitDie),
+        maxRoll: currentRoll + rollCount - 1,
         zone,
       };
       currentRoll = entry.maxRoll + 1;

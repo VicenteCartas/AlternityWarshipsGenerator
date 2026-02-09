@@ -9,7 +9,7 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 25000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "baseCost": 100000,
       "capacityPerHull": "1 HP of embarked craft",
       "hangarCapacity": 1,
@@ -26,7 +26,8 @@
       "cost": 50000,
       "capacityPerHull": "10 HP of embarked craft",
       "dockCapacity": 10,
-      "description": "The docking clamp is a hardpoint and airlock where another ship can secure itself to the hull. Maximum capacity is 10 HP per 2 HP installed. Embarked craft are outside the hull, not protected by armor or life support. Cannot enter atmosphere while craft are attached. Embarked ships may not exceed 10% of carrier's hull."
+      "description": "The docking clamp is a hardpoint and airlock where another ship can secure itself to the hull. Maximum capacity is 10 HP per 2 HP installed. Embarked craft are outside the hull, not protected by armor or life support. Cannot enter atmosphere while craft are attached. Embarked ships may not exceed 10% of carrier's hull.",
+      "costPer": "unit"
     },
     {
       "id": "magazine",
@@ -37,7 +38,7 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 50000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "capacityPerHull": "4 size points of ordnance",
       "ordnanceCapacity": 4,
       "description": "Carriers whose embarked craft rely on dropped ordnance or missiles require vast ordnance stores. Each hull point spent on magazines can store 4 size points of missiles, mines, or bombs."
@@ -52,7 +53,8 @@
       "powerRequired": 0,
       "cost": 10000,
       "cargoCapacity": 24,
-      "description": "One hull point provides enough space for 10 cubic meters of cargo, or one cargo unit. A compartment 2 meters tall, 2 meters wide, and 2.5 meters deep would be typical."
+      "description": "One hull point provides enough space for 10 cubic meters of cargo, or one cargo unit. A compartment 2 meters tall, 2 meters wide, and 2.5 meters deep would be typical.",
+      "costPer": "unit"
     },
     {
       "id": "cargo-bay",
@@ -64,7 +66,8 @@
       "powerRequired": 0,
       "cost": 20000,
       "cargoCapacity": 50,
-      "description": "Two hull points provide enough space for 50 cubic meters of cargo (25 per HP). More efficient than cargo space because bulkheads, hatches, monitoring, and climate control don't need to be duplicated. Includes exterior hatch (not airlock)."
+      "description": "Two hull points provide enough space for 50 cubic meters of cargo (25 per HP). More efficient than cargo space because bulkheads, hatches, monitoring, and climate control don't need to be duplicated. Includes exterior hatch (not airlock).",
+      "costPer": "unit"
     },
     {
       "id": "cargo-hold",
@@ -76,7 +79,8 @@
       "powerRequired": 0,
       "cost": 50000,
       "cargoCapacity": 100,
-      "description": "Three hull points provide space for 100 cubic meters of cargo. Most efficient cargo option. Includes a large cargo or vehicular airlock for exterior access."
+      "description": "Three hull points provide space for 100 cubic meters of cargo. Most efficient cargo option. Includes a large cargo or vehicular airlock for exterior access.",
+      "costPer": "unit"
     },
     {
       "id": "airlock",
@@ -87,7 +91,8 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 10000,
-      "description": "A small compartment with two heavy-duty hatches and pumps/controls to pressurize or depressurize. Ships automatically include one free airlock per command deck, crew quarters, bunkroom, docking clamp, hangar, cargo hold, or ordnance transfer system."
+      "description": "A small compartment with two heavy-duty hatches and pumps/controls to pressurize or depressurize. Ships automatically include one free airlock per command deck, crew quarters, bunkroom, docking clamp, hangar, cargo hold, or ordnance transfer system.",
+      "costPer": "unit"
     },
     {
       "id": "escape-pod",
@@ -100,7 +105,8 @@
       "cost": 50000,
       "capacityPerHull": "10 people",
       "evacCapacity": 10,
-      "description": "A stripped-down boarding pod carrying ten people with 100 man-days of air and supplies. Equipped with emergency distress beacon and automated landing program. Power cells allow up to 6 hours of flight."
+      "description": "A stripped-down boarding pod carrying ten people with 100 man-days of air and supplies. Equipped with emergency distress beacon and automated landing program. Power cells allow up to 6 hours of flight.",
+      "costPer": "unit"
     },
     {
       "id": "reentry-capsule",
@@ -113,7 +119,8 @@
       "cost": 5000,
       "capacityPerHull": "2 people",
       "evacCapacity": 2,
-      "description": "An emergency escape device with room for two people. After ejection, has enough air and survival supplies for ten days. Can de-orbit and make planetfall if launched within 10,000 km of a planet's surface."
+      "description": "An emergency escape device with room for two people. After ejection, has enough air and survival supplies for ten days. Can de-orbit and make planetfall if launched within 10,000 km of a planet's surface.",
+      "costPer": "unit"
     },
     {
       "id": "fuel-collector",
@@ -125,7 +132,8 @@
       "powerRequired": 0,
       "cost": 100000,
       "fuelCollectionCapacity": 1,
-      "description": "Allows a ship to process fuel from sources found in desolate star systems. Gas giants hold hydrogen reserves; water can be found on planets, moons, and comets. Each unit can process enough fuel to fill a 1 HP tank in one day."
+      "description": "Allows a ship to process fuel from sources found in desolate star systems. Gas giants hold hydrogen reserves; water can be found on planets, moons, and comets. Each unit can process enough fuel to fill a 1 HP tank in one day.",
+      "costPer": "unit"
     },
     {
       "id": "brig",
@@ -138,7 +146,8 @@
       "cost": 20000,
       "capacityPerHull": "4 prisoners",
       "prisonersCapacity": 4,
-      "description": "Accommodations for undesirable passengers. Each two hull points provides individual cells for four individuals, plus a security station, interrogation room, visiting area, and alarm system."
+      "description": "Accommodations for undesirable passengers. Each two hull points provides individual cells for four individuals, plus a security station, interrogation room, visiting area, and alarm system.",
+      "costPer": "unit"
     },
     {
       "id": "lab-section",
@@ -151,7 +160,8 @@
       "cost": 100000,
       "capacityPerHull": "4 scientists",
       "scientistCapacity": 4,
-      "description": "Small number of offices, laboratories, and conference rooms for scientific work. Four scientists can work comfortably, up to a dozen with crowding. Includes an Ordinary-quality mainframe with Physical Science, Life Science, and Technical Science databases."
+      "description": "Small number of offices, laboratories, and conference rooms for scientific work. Four scientists can work comfortably, up to a dozen with crowding. Includes an Ordinary-quality mainframe with Physical Science, Life Science, and Technical Science databases.",
+      "costPer": "unit"
     },
     {
       "id": "sick-bay",
@@ -165,7 +175,8 @@
       "capacityPerHull": "4 beds",
       "bedCapacity": 4,
       "effect": "-1/-2/-3 step bonus to Medical Science at PL 6/7/8",
-      "description": "Small shipboard hospital with care and treatment facilities for up to four in-patients. Includes operating theater, medical equipment and supplies, and vitals monitoring. Quality improves with Progress Level."
+      "description": "Small shipboard hospital with care and treatment facilities for up to four in-patients. Includes operating theater, medical equipment and supplies, and vitals monitoring. Quality improves with Progress Level.",
+      "costPer": "unit"
     },
     {
       "id": "workshop",
@@ -177,18 +188,21 @@
       "powerRequired": 1,
       "cost": 20000,
       "effect": "+3 step penalty to repair mortal damage",
-      "description": "Small but lavishly equipped machine shop for repair work, light manufacturing, and special fabrication jobs. Makes it possible to attempt repairs of mortal damage in space, but with a +3 step penalty."
+      "description": "Small but lavishly equipped machine shop for repair work, light manufacturing, and special fabrication jobs. Makes it possible to attempt repairs of mortal damage in space, but with a +3 step penalty.",
+      "costPer": "unit"
     },
     {
       "id": "accumulator",
       "name": "Accumulator",
       "progressLevel": 7,
-      "techTracks": ["S"],
+      "techTracks": [
+        "S"
+      ],
       "category": "utility",
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 40000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "powerPointsCapacity": 10,
       "description": "Stores extra power points. Each hull point can store up to 10 excess power points, which can be allocated like normal power points. Once spent, unavailable until recharged. Useful for quick weapon recharges or emergency maneuvers."
     },
@@ -202,7 +216,8 @@
       "powerRequired": 1,
       "cost": 30000,
       "cargoServiceCapacity": 6,
-      "description": "Automated cargo loading and handling machinery that provides service to cargo holds, bays, or spaces totaling 6 hull points or less. Allows rapid loading or unloading of cargo, handling heavy or awkward loads with ease."
+      "description": "Automated cargo loading and handling machinery that provides service to cargo holds, bays, or spaces totaling 6 hull points or less. Allows rapid loading or unloading of cargo, handling heavy or awkward loads with ease.",
+      "costPer": "unit"
     },
     {
       "id": "boarding-pod",
@@ -214,7 +229,8 @@
       "powerRequired": 0,
       "cost": 200000,
       "troopCapacity": 10,
-      "description": "Small assault module with gravity induction engine. Holds ten troops in normal gear or six in body tanks. Acceleration 0.5, MC 2, power for 10 game rounds. Has 5/5/2 stun/wound/mortal points, Good toughness, 1d4 armor. Uses mechanical grapples to fasten to enemy hull."
+      "description": "Small assault module with gravity induction engine. Holds ten troops in normal gear or six in body tanks. Acceleration 0.5, MC 2, power for 10 game rounds. Has 5/5/2 stun/wound/mortal points, Good toughness, 1d4 armor. Uses mechanical grapples to fasten to enemy hull.",
+      "costPer": "unit"
     },
     {
       "id": "evac-system",
@@ -227,7 +243,7 @@
       "baseHullPoints": 4,
       "powerRequired": 0,
       "cost": 50000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "baseCost": 50000,
       "capacityPerHull": "40 people (base) + 20/extra HP",
       "evacCapacity": 40,
@@ -244,7 +260,8 @@
       "powerRequired": 2,
       "cost": 200000,
       "effect": "Enables mortal damage repair in space",
-      "description": "Large automated workshop with manufacturing computer holding design specs for thousands of devices. Virtually any part of the ship can be duplicated. Enables repair of mortal damage without returning to a shipyard."
+      "description": "Large automated workshop with manufacturing computer holding design specs for thousands of devices. Virtually any part of the ship can be duplicated. Enables repair of mortal damage without returning to a shipyard.",
+      "costPer": "unit"
     },
     {
       "id": "ordnance-transfer-system",
@@ -256,7 +273,8 @@
       "powerRequired": 2,
       "cost": 150000,
       "effect": "Reloads external ordnance in d4×10 minutes instead of d4 hours",
-      "description": "Special airlock and ordnance transfer crane or tractor beam. Can reload external missile racks, bomb racks, or ordnance cells in d4×10 minutes instead of d4 hours. Ammo carriers are often fitted with this system."
+      "description": "Special airlock and ordnance transfer crane or tractor beam. Can reload external missile racks, bomb racks, or ordnance cells in d4×10 minutes instead of d4 hours. Ammo carriers are often fitted with this system.",
+      "costPer": "unit"
     },
     {
       "id": "security-suite",
@@ -267,7 +285,7 @@
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 200000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "coveragePerHullPoint": 40,
       "description": "Video, sound, and thermal monitoring of protected compartments by surveillance computers. Heavy-duty armored security hatches with key card, retinal scan, or positive control. Includes four weapon cupolas for ranged or heavy weapons."
     },
@@ -275,14 +293,18 @@
       "id": "stabilizer",
       "name": "Stabilizer",
       "progressLevel": 7,
-      "techTracks": ["G", "X"],
+      "techTracks": [
+        "G",
+        "X"
+      ],
       "category": "utility",
       "hullPoints": 0,
       "hullPercentage": 5,
       "maxQuantity": 1,
       "powerRequired": 1,
+      "powerPer": "systemHp",
       "cost": 200000,
-      "costPerHull": true,
+      "costPer": "systemHp",
       "effect": "+1 Maneuverability Class",
       "description": "Modification to the ship's engine system that increases maneuverability. Ship equipped with powered stabilizer increases its base Maneuverability Class by 1 point. Requires 5% of hull and 1 power per HP."
     },
@@ -290,25 +312,33 @@
       "id": "holofield-bay",
       "name": "Holofield Bay",
       "progressLevel": 8,
-      "techTracks": ["Q", "C"],
+      "techTracks": [
+        "Q",
+        "C"
+      ],
       "category": "facility",
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 100000,
       "effect": "-2 step bonus to Teach skill checks",
-      "description": "Uses virtual matter and holoprojection technology to create fully immersive virtual reality. Good for extremely realistic training (-2 step bonus to Teach skill checks) and entertainment."
+      "description": "Uses virtual matter and holoprojection technology to create fully immersive virtual reality. Good for extremely realistic training (-2 step bonus to Teach skill checks) and entertainment.",
+      "costPer": "unit"
     },
     {
       "id": "nanomanufacture-bay",
       "name": "Nanomanufacture Bay",
       "progressLevel": 8,
-      "techTracks": ["S","C"],
+      "techTracks": [
+        "S",
+        "C"
+      ],
       "category": "facility",
       "hullPoints": 4,
       "powerRequired": 4,
       "cost": 500000,
       "effect": "-1 step bonus to repair mortal damage",
-      "description": "Combines fabrication facility machines with a nanite tank - a large fluid-filled chamber where microscopic devices can construct virtually anything from crude raw materials. Ship's engineer gains -1 step bonus to repair checks for mortal damage."
+      "description": "Combines fabrication facility machines with a nanite tank - a large fluid-filled chamber where microscopic devices can construct virtually anything from crude raw materials. Ship's engineer gains -1 step bonus to repair checks for mortal damage.",
+      "costPer": "unit"
     }
   ]
 }

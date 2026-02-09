@@ -1,385 +1,344 @@
 {
-    "armorWeights":  [
-                         {
-                             "weight":  "light",
-                             "name":  "Light Armor",
-                             "hullPercentage":  2.5,
-                             "description":  "Light armor requires 2.5% of the ship\u0027s base hull points.",
-                             "minShipClass":  "small-craft"
-                         },
-                         {
-                             "weight":  "medium",
-                             "name":  "Medium Armor",
-                             "hullPercentage":  5,
-                             "description":  "Medium armor requires hull points equal to 5% of the ship\u0027s base hull point score.",
-                             "minShipClass":  "small-craft"
-                         },
-                         {
-                             "weight":  "heavy",
-                             "name":  "Heavy Armor",
-                             "hullPercentage":  10,
-                             "description":  "Heavy armor requires 10% of the ship\u0027s base hull points. Cannot be installed on small craft.",
-                             "minShipClass":  "light"
-                         },
-                         {
-                             "weight":  "super-heavy",
-                             "name":  "Super-Heavy Armor",
-                             "hullPercentage":  20,
-                             "description":  "Super-heavy armor requires 20% of the ship\u0027s base hull points. Cannot be installed on small craft or light ships.",
-                             "minShipClass":  "medium"
-                         }
-                     ],
-    "armors":  [
-                       {
-                           "id":  "polymeric-light",
-                           "name":  "Polymeric",
-                           "armorWeight":  "light",
-                           "hullPercentage":  2.5,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4-1",
-                           "protectionHI":  "d4-1",
-                           "protectionEn":  "d4-2",
-                           "costPerHullPoint":  50000,
-                           "description":  "Polymeric armor is made up of advanced polymers, like carbon fiber and high-grade fiberglass. It is relatively cheap and light, but doesn\u0027t offer tremendous protection."
-                       },
-                       {
-                           "id":  "reflective-light",
-                           "name":  "Reflective",
-                           "armorWeight":  "light",
-                           "hullPercentage":  2.5,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4-3",
-                           "protectionHI":  "d4-2",
-                           "protectionEn":  "d6-1",
-                           "costPerHullPoint":  50000,
-                           "description":  "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
-                       },
-                       {
-                           "id":  "cerametal-light",
-                           "name":  "Cerametal",
-                           "armorWeight":  "light",
-                           "hullPercentage":  2.5,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d6-1",
-                           "protectionHI":  "d6-1",
-                           "protectionEn":  "d6-1",
-                           "costPerHullPoint":  100000,
-                           "description":  "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
-                       },
-                       {
-                           "id":  "crystallis-light",
-                           "name":  "Crystallis",
-                           "armorWeight":  "light",
-                           "hullPercentage":  2.5,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "P",
-                                              "X"
-                                          ],
-                           "protectionLI":  "d6-1",
-                           "protectionHI":  "d6",
-                           "protectionEn":  "d6+2",
-                           "costPerHullPoint":  250000,
-                           "description":  "This sophisticated armor consists of a crystalline lattice that absorbs phenomenal amounts of energy. While it is not particularly effective against projectiles and other massive weapons, it is the finest energy protection available."
-                       },
-                       {
-                           "id":  "nanofluidic-light",
-                           "name":  "Nanofluidic",
-                           "armorWeight":  "light",
-                           "hullPercentage":  2.5,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "S",
-                                              "C"
-                                          ],
-                           "protectionLI":  "d8-1",
-                           "protectionHI":  "d8-1",
-                           "protectionEn":  "d8",
-                           "costPerHullPoint":  500000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
-                       },
-                       {
-                           "id":  "alloy-medium",
-                           "name":  "Alloy",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4+1",
-                           "protectionHI":  "d4+1",
-                           "protectionEn":  "d4",
-                           "costPerHullPoint":  150000,
-                           "description":  "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
-                       },
-                       {
-                           "id":  "polymeric-medium",
-                           "name":  "Polymeric",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4",
-                           "protectionHI":  "d4",
-                           "protectionEn":  "d4-1",
-                           "costPerHullPoint":  100000,
-                           "description":  "Polymeric armor is made up of advanced polymers, like carbon fiber and high-grade fiberglass. It is relatively cheap and light, but doesn\u0027t offer tremendous protection."
-                       },
-                       {
-                           "id":  "reflective-medium",
-                           "name":  "Reflective",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4-2",
-                           "protectionHI":  "d4-1",
-                           "protectionEn":  "d6",
-                           "costPerHullPoint":  100000,
-                           "description":  "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
-                       },
-                       {
-                           "id":  "cerametal-medium",
-                           "name":  "Cerametal",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d4+1",
-                           "protectionHI":  "d4+1",
-                           "protectionEn":  "d4+1",
-                           "costPerHullPoint":  200000,
-                           "description":  "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
-                       },
-                       {
-                           "id":  "neutronite-medium",
-                           "name":  "Neutronite",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d6+1",
-                           "protectionHI":  "d6+1",
-                           "protectionEn":  "d6+1",
-                           "costPerHullPoint":  500000,
-                           "description":  "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a \u0027weave\u0027 of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
-                       },
-                       {
-                           "id":  "reactive-medium",
-                           "name":  "Reactive",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  7,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4+2",
-                           "protectionHI":  "d6",
-                           "protectionEn":  "d4",
-                           "costPerHullPoint":  150000,
-                           "description":  "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
-                       },
-                       {
-                           "id":  "crystallis-medium",
-                           "name":  "Crystallis",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "P",
-                                              "X"
-                                          ],
-                           "protectionLI":  "d6",
-                           "protectionHI":  "d6+1",
-                           "protectionEn":  "2d4+1",
-                           "costPerHullPoint":  500000,
-                           "description":  "This sophisticated armor consists of a crystalline lattice that absorbs phenomenal amounts of energy. While it is not particularly effective against projectiles and other massive weapons, it is the finest energy protection available."
-                       },
-                       {
-                           "id":  "nanofluidic-medium",
-                           "name":  "Nanofluidic",
-                           "armorWeight":  "medium",
-                           "hullPercentage":  5,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "S",
-                                              "C"
-                                          ],
-                           "protectionLI":  "2d4",
-                           "protectionHI":  "2d4",
-                           "protectionEn":  "2d4",
-                           "costPerHullPoint":  1000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
-                       },
-                       {
-                           "id":  "alloy-heavy",
-                           "name":  "Alloy",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d6+1",
-                           "protectionHI":  "d6+1",
-                           "protectionEn":  "d6",
-                           "costPerHullPoint":  300000,
-                           "description":  "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
-                       },
-                       {
-                           "id":  "reflective-heavy",
-                           "name":  "Reflective",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d4",
-                           "protectionHI":  "d4",
-                           "protectionEn":  "d8+1",
-                           "costPerHullPoint":  200000,
-                           "description":  "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
-                       },
-                       {
-                           "id":  "cerametal-heavy",
-                           "name":  "Cerametal",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d8",
-                           "protectionHI":  "d8",
-                           "protectionEn":  "d8",
-                           "costPerHullPoint":  400000,
-                           "description":  "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
-                       },
-                       {
-                           "id":  "neutronite-heavy",
-                           "name":  "Neutronite",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d8+1",
-                           "protectionHI":  "d8+1",
-                           "protectionEn":  "d8+1",
-                           "costPerHullPoint":  1000000,
-                           "description":  "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a \u0027weave\u0027 of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
-                       },
-                       {
-                           "id":  "reactive-heavy",
-                           "name":  "Reactive",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  7,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "2d4+1",
-                           "protectionHI":  "d8",
-                           "protectionEn":  "d4+1",
-                           "costPerHullPoint":  300000,
-                           "description":  "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
-                       },
-                       {
-                           "id":  "nanofluidic-heavy",
-                           "name":  "Nanofluidic",
-                           "armorWeight":  "heavy",
-                           "hullPercentage":  10,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "S",
-                                              "C"
-                                          ],
-                           "protectionLI":  "2d4+1",
-                           "protectionHI":  "2d4+2",
-                           "protectionEn":  "2d4+1",
-                           "costPerHullPoint":  2000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
-                       },
-                       {
-                           "id":  "alloy-super-heavy",
-                           "name":  "Alloy",
-                           "armorWeight":  "super-heavy",
-                           "hullPercentage":  20,
-                           "progressLevel":  6,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "d6+3",
-                           "protectionHI":  "d6+3",
-                           "protectionEn":  "d6+2",
-                           "costPerHullPoint":  600000,
-                           "description":  "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
-                       },
-                       {
-                           "id":  "neutronite-super-heavy",
-                           "name":  "Neutronite",
-                           "armorWeight":  "super-heavy",
-                           "hullPercentage":  20,
-                           "progressLevel":  7,
-                           "techTracks":  [
-                                              "S"
-                                          ],
-                           "protectionLI":  "d8+3",
-                           "protectionHI":  "d8+3",
-                           "protectionEn":  "d8+3",
-                           "costPerHullPoint":  2000000,
-                           "description":  "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a \u0027weave\u0027 of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
-                       },
-                       {
-                           "id":  "reactive-super-heavy",
-                           "name":  "Reactive",
-                           "armorWeight":  "super-heavy",
-                           "hullPercentage":  20,
-                           "progressLevel":  7,
-                           "techTracks":  [
-
-                                          ],
-                           "protectionLI":  "2d4+3",
-                           "protectionHI":  "d8+2",
-                           "protectionEn":  "d4+3",
-                           "costPerHullPoint":  600000,
-                           "description":  "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
-                       },
-                       {
-                           "id":  "nanofluidic-super-heavy",
-                           "name":  "Nanofluidic",
-                           "armorWeight":  "super-heavy",
-                           "hullPercentage":  20,
-                           "progressLevel":  8,
-                           "techTracks":  [
-                                              "S",
-                                              "C"
-                                          ],
-                           "protectionLI":  "2d4+3",
-                           "protectionHI":  "2d4+4",
-                           "protectionEn":  "2d4+3",
-                           "costPerHullPoint":  4000000,
-                           "description":  "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is \u0027smart\u0027 armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
-                       }
-                   ]
+    "armorWeights": [
+        {
+            "weight": "light",
+            "name": "Light Armor",
+            "hullPercentage": 0,
+            "costHullPercentage": 2.5,
+            "description": "Light armor uses no hull points but costs as if it used 2.5% of the ship's base hull points.",
+            "minShipClass": "small-craft"
+        },
+        {
+            "weight": "medium",
+            "name": "Medium Armor",
+            "hullPercentage": 5,
+            "costHullPercentage": 5,
+            "description": "Medium armor requires hull points equal to 5% of the ship's base hull point score.",
+            "minShipClass": "small-craft"
+        },
+        {
+            "weight": "heavy",
+            "name": "Heavy Armor",
+            "hullPercentage": 10,
+            "costHullPercentage": 10,
+            "description": "Heavy armor requires 10% of the ship's base hull points. Cannot be installed on small craft.",
+            "minShipClass": "light"
+        },
+        {
+            "weight": "super-heavy",
+            "name": "Super-Heavy Armor",
+            "hullPercentage": 20,
+            "costHullPercentage": 20,
+            "description": "Super-heavy armor requires 20% of the ship's base hull points. Cannot be installed on small craft or light ships.",
+            "minShipClass": "medium"
+        }
+    ],
+    "armors": [
+        {
+            "id": "polymeric-light",
+            "name": "Polymeric",
+            "armorWeight": "light",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4-1",
+            "protectionHI": "d4-1",
+            "protectionEn": "d4-2",
+            "costPerHullPoint": 50000,
+            "description": "Polymeric armor is made up of advanced polymers, like carbon fiber and high-grade fiberglass. It is relatively cheap and light, but doesn't offer tremendous protection."
+        },
+        {
+            "id": "reflective-light",
+            "name": "Reflective",
+            "armorWeight": "light",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4-3",
+            "protectionHI": "d4-2",
+            "protectionEn": "d6-1",
+            "costPerHullPoint": 50000,
+            "description": "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
+        },
+        {
+            "id": "cerametal-light",
+            "name": "Cerametal",
+            "armorWeight": "light",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d6-1",
+            "protectionHI": "d6-1",
+            "protectionEn": "d6-1",
+            "costPerHullPoint": 100000,
+            "description": "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
+        },
+        {
+            "id": "crystallis-light",
+            "name": "Crystallis",
+            "armorWeight": "light",
+            "progressLevel": 8,
+            "techTracks": [
+                "P",
+                "X"
+            ],
+            "protectionLI": "d6-1",
+            "protectionHI": "d6",
+            "protectionEn": "d6+2",
+            "costPerHullPoint": 250000,
+            "description": "This sophisticated armor consists of a crystalline lattice that absorbs phenomenal amounts of energy. While it is not particularly effective against projectiles and other massive weapons, it is the finest energy protection available."
+        },
+        {
+            "id": "nanofluidic-light",
+            "name": "Nanofluidic",
+            "armorWeight": "light",
+            "progressLevel": 8,
+            "techTracks": [
+                "S",
+                "C"
+            ],
+            "protectionLI": "d8-1",
+            "protectionHI": "d8-1",
+            "protectionEn": "d8",
+            "costPerHullPoint": 500000,
+            "description": "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is 'smart' armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+        },
+        {
+            "id": "alloy-medium",
+            "name": "Alloy",
+            "armorWeight": "medium",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4+1",
+            "protectionHI": "d4+1",
+            "protectionEn": "d4",
+            "costPerHullPoint": 150000,
+            "description": "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
+        },
+        {
+            "id": "polymeric-medium",
+            "name": "Polymeric",
+            "armorWeight": "medium",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4",
+            "protectionHI": "d4",
+            "protectionEn": "d4-1",
+            "costPerHullPoint": 100000,
+            "description": "Polymeric armor is made up of advanced polymers, like carbon fiber and high-grade fiberglass. It is relatively cheap and light, but doesn't offer tremendous protection."
+        },
+        {
+            "id": "reflective-medium",
+            "name": "Reflective",
+            "armorWeight": "medium",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4-2",
+            "protectionHI": "d4-1",
+            "protectionEn": "d6",
+            "costPerHullPoint": 100000,
+            "description": "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
+        },
+        {
+            "id": "cerametal-medium",
+            "name": "Cerametal",
+            "armorWeight": "medium",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d4+1",
+            "protectionHI": "d4+1",
+            "protectionEn": "d4+1",
+            "costPerHullPoint": 200000,
+            "description": "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
+        },
+        {
+            "id": "neutronite-medium",
+            "name": "Neutronite",
+            "armorWeight": "medium",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d6+1",
+            "protectionHI": "d6+1",
+            "protectionEn": "d6+1",
+            "costPerHullPoint": 500000,
+            "description": "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a 'weave' of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
+        },
+        {
+            "id": "reactive-medium",
+            "name": "Reactive",
+            "armorWeight": "medium",
+            "progressLevel": 7,
+            "techTracks": [],
+            "protectionLI": "d4+2",
+            "protectionHI": "d6",
+            "protectionEn": "d4",
+            "costPerHullPoint": 150000,
+            "description": "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
+        },
+        {
+            "id": "crystallis-medium",
+            "name": "Crystallis",
+            "armorWeight": "medium",
+            "progressLevel": 8,
+            "techTracks": [
+                "P",
+                "X"
+            ],
+            "protectionLI": "d6",
+            "protectionHI": "d6+1",
+            "protectionEn": "2d4+1",
+            "costPerHullPoint": 500000,
+            "description": "This sophisticated armor consists of a crystalline lattice that absorbs phenomenal amounts of energy. While it is not particularly effective against projectiles and other massive weapons, it is the finest energy protection available."
+        },
+        {
+            "id": "nanofluidic-medium",
+            "name": "Nanofluidic",
+            "armorWeight": "medium",
+            "progressLevel": 8,
+            "techTracks": [
+                "S",
+                "C"
+            ],
+            "protectionLI": "2d4",
+            "protectionHI": "2d4",
+            "protectionEn": "2d4",
+            "costPerHullPoint": 1000000,
+            "description": "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is 'smart' armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+        },
+        {
+            "id": "alloy-heavy",
+            "name": "Alloy",
+            "armorWeight": "heavy",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d6+1",
+            "protectionHI": "d6+1",
+            "protectionEn": "d6",
+            "costPerHullPoint": 300000,
+            "description": "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
+        },
+        {
+            "id": "reflective-heavy",
+            "name": "Reflective",
+            "armorWeight": "heavy",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d4",
+            "protectionHI": "d4",
+            "protectionEn": "d8+1",
+            "costPerHullPoint": 200000,
+            "description": "Consisting of dense, highly polished plates of metal, reflective armor is effective against simple energy weapons. It is quickly defeated by more advanced weaponry."
+        },
+        {
+            "id": "cerametal-heavy",
+            "name": "Cerametal",
+            "armorWeight": "heavy",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d8",
+            "protectionHI": "d8",
+            "protectionEn": "d8",
+            "costPerHullPoint": 400000,
+            "description": "Combining the heat-resistant qualities of tough ceramics with the ductile strength of metal, cerametal armor offers a good compromise between protection and economy."
+        },
+        {
+            "id": "neutronite-heavy",
+            "name": "Neutronite",
+            "armorWeight": "heavy",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d8+1",
+            "protectionHI": "d8+1",
+            "protectionEn": "d8+1",
+            "costPerHullPoint": 1000000,
+            "description": "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a 'weave' of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
+        },
+        {
+            "id": "reactive-heavy",
+            "name": "Reactive",
+            "armorWeight": "heavy",
+            "progressLevel": 7,
+            "techTracks": [],
+            "protectionLI": "2d4+1",
+            "protectionHI": "d8",
+            "protectionEn": "d4+1",
+            "costPerHullPoint": 300000,
+            "description": "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
+        },
+        {
+            "id": "nanofluidic-heavy",
+            "name": "Nanofluidic",
+            "armorWeight": "heavy",
+            "progressLevel": 8,
+            "techTracks": [
+                "S",
+                "C"
+            ],
+            "protectionLI": "2d4+1",
+            "protectionHI": "2d4+2",
+            "protectionEn": "2d4+1",
+            "costPerHullPoint": 2000000,
+            "description": "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is 'smart' armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+        },
+        {
+            "id": "alloy-super-heavy",
+            "name": "Alloy",
+            "armorWeight": "super-heavy",
+            "progressLevel": 6,
+            "techTracks": [],
+            "protectionLI": "d6+3",
+            "protectionHI": "d6+3",
+            "protectionEn": "d6+2",
+            "costPerHullPoint": 600000,
+            "description": "Composed of carefully fitted belts or plates of very tough alloys such as vanadium steel, alloy armor is reasonably cheap and effective."
+        },
+        {
+            "id": "neutronite-super-heavy",
+            "name": "Neutronite",
+            "armorWeight": "super-heavy",
+            "progressLevel": 7,
+            "techTracks": [
+                "S"
+            ],
+            "protectionLI": "d8+3",
+            "protectionHI": "d8+3",
+            "protectionEn": "d8+3",
+            "costPerHullPoint": 2000000,
+            "description": "Advanced materials technologies lead to the creation of artificially dense materials that can withstand enormous forces. Neutronite is a tough steel alloy into which a 'weave' of free neutrons has been pressed. It is incredibly massive, weighing about five times more than a similar volume of lead."
+        },
+        {
+            "id": "reactive-super-heavy",
+            "name": "Reactive",
+            "armorWeight": "super-heavy",
+            "progressLevel": 7,
+            "techTracks": [],
+            "protectionLI": "2d4+3",
+            "protectionHI": "d8+2",
+            "protectionEn": "d4+3",
+            "costPerHullPoint": 600000,
+            "description": "A forerunner of the more advanced nanofluidic armor, reactive armor consists of layers of insulating gel or compressed gas between cerametal sheets. High-velocity impacts and energy beams may burn through the armor before it can dissipate the impact or heat of an intense blow."
+        },
+        {
+            "id": "nanofluidic-super-heavy",
+            "name": "Nanofluidic",
+            "armorWeight": "super-heavy",
+            "progressLevel": 8,
+            "techTracks": [
+                "S",
+                "C"
+            ],
+            "protectionLI": "2d4+3",
+            "protectionHI": "2d4+4",
+            "protectionEn": "2d4+3",
+            "costPerHullPoint": 4000000,
+            "description": "Consisting of a thick layer of gel-like fluid sandwiched in a neutronite structure, nanofluidic armor is 'smart' armorâ€”it concentrates at the point of impact to blunt physical blows, and circulates around heat sources to dissipate energy. It is the most effective armor available."
+        }
+    ]
 }

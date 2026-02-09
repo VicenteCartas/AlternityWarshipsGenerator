@@ -26,7 +26,7 @@ import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, cal
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
-import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign } from './ordnanceService';
+import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
 
 /**
  * State representing the current warship configuration
@@ -687,7 +687,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         capacityRequired: stats.capacityRequired,
       } as MissileDesign);
     } else if (savedDesign.category === 'bomb') {
-      const propulsion = allPropulsion.find(p => p.id === `bomb-${savedDesign.size}`);
+      const propulsion = findPropulsionByCategory('bomb', savedDesign.size);
       if (!propulsion) {
         warnings.push(`Bomb casing not found for size: ${savedDesign.size}`);
         continue;
@@ -704,7 +704,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         capacityRequired: stats.capacityRequired,
       } as BombDesign);
     } else if (savedDesign.category === 'mine') {
-      const propulsion = allPropulsion.find(p => p.id === `mine-${savedDesign.size}`);
+      const propulsion = findPropulsionByCategory('mine', savedDesign.size);
       const guidance = allGuidance.find(g => g.id === savedDesign.guidanceId);
       if (!propulsion) {
         warnings.push(`Mine casing not found for size: ${savedDesign.size}`);

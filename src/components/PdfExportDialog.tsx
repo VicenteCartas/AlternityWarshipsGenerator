@@ -13,39 +13,26 @@ import {
   Box,
 } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import type { PdfExportOptions } from '../services/pdfExportService';
 
-export interface PdfExportOptions {
-  includeDefenses: boolean;
-  includeDamageZones: boolean;
-  includeCombat: boolean;
-  includeFireDiagram: boolean;
-  includeNotes: boolean;
-  includeShipDescription: boolean;
-}
+export type { PdfExportOptions };
 
 const defaultOptions: PdfExportOptions = {
+  includeDamageDiagram: true,
   includeDefenses: true,
-  includeDamageZones: true,
-  includeCombat: true,
-  includeFireDiagram: true,
-  includeNotes: true,
-  includeShipDescription: true,
+  includeOffense: true,
 };
 
 interface PdfExportDialogProps {
   open: boolean;
   onClose: () => void;
   onExport: (options: PdfExportOptions) => void;
-  hasImage: boolean;
-  hasLore: boolean;
 }
 
 export function PdfExportDialog({
   open,
   onClose,
   onExport,
-  hasImage,
-  hasLore,
 }: PdfExportDialogProps) {
   const [options, setOptions] = useState<PdfExportOptions>(defaultOptions);
 
@@ -63,23 +50,17 @@ export function PdfExportDialog({
 
   const handleSelectAll = () => {
     setOptions({
+      includeDamageDiagram: true,
       includeDefenses: true,
-      includeDamageZones: true,
-      includeCombat: true,
-      includeFireDiagram: true,
-      includeNotes: true,
-      includeShipDescription: true,
+      includeOffense: true,
     });
   };
 
   const handleSelectNone = () => {
     setOptions({
+      includeDamageDiagram: false,
       includeDefenses: false,
-      includeDamageZones: false,
-      includeCombat: false,
-      includeFireDiagram: false,
-      includeNotes: false,
-      includeShipDescription: false,
+      includeOffense: false,
     });
   };
 
@@ -91,7 +72,8 @@ export function PdfExportDialog({
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Select which sections to include in the PDF export:
+          Select which sections to include in the PDF export.
+          Ship Information is always included.
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
@@ -107,19 +89,29 @@ export function PdfExportDialog({
 
         <FormGroup>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-            Ship Stats (always included)
+            Always Included
           </Typography>
           <FormControlLabel
             control={<Checkbox checked disabled />}
-            label="Hull & Basic Stats"
+            label="Ship Information (overview, systems summary, lore, notes, image)"
           />
-          
+
           <Divider sx={{ my: 1.5 }} />
-          
+
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-            Optional Sections
+            Optional Sections (each starts on a new page)
           </Typography>
-          
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={options.includeDamageDiagram}
+                onChange={handleChange('includeDamageDiagram')}
+              />
+            }
+            label="Damage Diagram (hit location table, zone layout with all systems)"
+          />
+
           <FormControlLabel
             control={
               <Checkbox
@@ -127,67 +119,17 @@ export function PdfExportDialog({
                 onChange={handleChange('includeDefenses')}
               />
             }
-            label="Defenses (Armor, Shields, ECM)"
+            label="Defenses (damage tracks, armor, active defenses)"
           />
-          
+
           <FormControlLabel
             control={
               <Checkbox
-                checked={options.includeDamageZones}
-                onChange={handleChange('includeDamageZones')}
+                checked={options.includeOffense}
+                onChange={handleChange('includeOffense')}
               />
             }
-            label="Damage Zones & Hit Location Chart"
-          />
-          
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={options.includeCombat}
-                onChange={handleChange('includeCombat')}
-              />
-            }
-            label="Combat (Sensors, Weapons, C4)"
-          />
-          
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={options.includeFireDiagram}
-                onChange={handleChange('includeFireDiagram')}
-              />
-            }
-            label="Fire Diagram"
-          />
-          
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={options.includeNotes}
-                onChange={handleChange('includeNotes')}
-              />
-            }
-            label="Notes Section (blank lines)"
-          />
-          
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={options.includeShipDescription}
-                onChange={handleChange('includeShipDescription')}
-                disabled={!hasImage && !hasLore}
-              />
-            }
-            label={
-              <Box>
-                Ship Description
-                {!hasImage && !hasLore && (
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    No image or lore added
-                  </Typography>
-                )}
-              </Box>
-            }
+            label="Weapons (fire arcs, sensors, weapons, ordnance)"
           />
         </FormGroup>
       </DialogContent>

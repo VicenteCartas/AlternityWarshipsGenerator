@@ -354,7 +354,7 @@ export function HangarMiscSelection({
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
-            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPerHull ? 'Hull Points' : 'Quantity')}
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Hull Points' : 'Quantity')}
             type="number"
             size="small"
             value={systemQuantity}
@@ -409,7 +409,7 @@ export function HangarMiscSelection({
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
-            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPerHull ? 'Hull Points' : 'Quantity')}
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Hull Points' : 'Quantity')}
             type="number"
             size="small"
             value={systemQuantity}
@@ -511,7 +511,7 @@ export function HangarMiscSelection({
                   <TableCell>{system.powerRequired}</TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
                     {formatCost(system.cost)}
-                    {system.costPerHull && '/HP'}
+                    {system.costPer === 'systemHp' && '/HP'}
                   </TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
                     {system.cargoCapacity 

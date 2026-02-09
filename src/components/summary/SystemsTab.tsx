@@ -21,6 +21,9 @@ import type { InstalledHangarMiscSystem } from '../../types/hangarMisc';
 import type { InstalledLaunchSystem } from '../../types/ordnance';
 import { formatCost } from '../../services/formatters';
 import { getLaunchSystemsData } from '../../services/dataLoader';
+import { calculateFuelTankCost } from '../../services/powerPlantService';
+import { calculateEngineFuelTankCost } from '../../services/engineService';
+import { calculateFTLFuelTankCost } from '../../services/ftlDriveService';
 
 interface SystemsTabStats {
   totalHP: number;
@@ -137,13 +140,12 @@ export function SystemsTab({
                   <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forPowerPlantType.name})</TableCell>
                   <TableCell align="right">{ft.hullPoints} HP</TableCell>
                   <TableCell align="right">—</TableCell>
-                  <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                  <TableCell align="right">{formatCost(calculateFuelTankCost(ft.forPowerPlantType, ft.hullPoints))}</TableCell>
                 </TableRow>
               ))}
-              <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.powerPlants.hp} HP</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>+{stats.powerPlants.power} PP</TableCell>
+              <TableRow>
+                <TableCell />
+                <TableCell />
                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.powerPlants.cost)}</TableCell>
               </TableRow>
             </TableBody>
@@ -172,12 +174,12 @@ export function SystemsTab({
                   <TableCell sx={{ pl: 4 }}>↳ Fuel Tank ({ft.forEngineType.name})</TableCell>
                   <TableCell align="right">{ft.hullPoints} HP</TableCell>
                   <TableCell align="right">—</TableCell>
-                  <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                  <TableCell align="right">{formatCost(calculateEngineFuelTankCost(ft.forEngineType, ft.hullPoints))}</TableCell>
                 </TableRow>
               ))}
-              <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.engines.hp} HP</TableCell>
+              <TableRow>
+                <TableCell />
+                <TableCell />
                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>-{stats.engines.power} PP</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.engines.cost)}</TableCell>
               </TableRow>
@@ -205,17 +207,15 @@ export function SystemsTab({
                   <TableCell sx={{ pl: 4 }}>↳ Fuel Tank</TableCell>
                   <TableCell align="right">{ft.hullPoints} HP</TableCell>
                   <TableCell align="right">—</TableCell>
-                  <TableCell align="right">{formatCost(ft.hullPoints * 1000)}</TableCell>
+                  <TableCell align="right">{formatCost(calculateFTLFuelTankCost(ft.forFTLDriveType, ft.hullPoints))}</TableCell>
                 </TableRow>
               ))}
-              {(installedFTLFuelTanks.length > 0) && (
-                <TableRow sx={{ backgroundColor: 'action.hover' }}>
+              <TableRow sx={{ backgroundColor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.ftl.hp} HP</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>-{stats.ftl.power} PP</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.ftl.cost)}</TableCell>
                 </TableRow>
-              )}
             </TableBody>
           </Table>
         </Paper>

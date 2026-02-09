@@ -72,21 +72,20 @@ export function calculateArmorHullPoints(hull: Hull, weight: ArmorWeight): numbe
 }
 
 /**
- * Calculate hull points required for a specific armor type
- * Uses the hullPercentage from the armor type directly
+ * Calculate the cost basis hull points for armor (may differ from actual HP consumed)
+ * For example, light armor uses 0 HP but costs as if it used 2.5% of hull
  */
-export function calculateArmorHullPointsForType(hull: Hull, armorType: ArmorType): number {
-  // Use base hull points (not including bonus) for percentage calculations
-  // Always round up per the rules
-  return Math.ceil(hull.hullPoints * (armorType.hullPercentage / 100));
+export function calculateArmorCostHullPoints(hull: Hull, weight: ArmorWeight): number {
+  const weightConfig = getArmorWeights().find((w) => w.weight === weight);
+  if (!weightConfig) return 0;
+  
+  return Math.max(1, Math.ceil(hull.hullPoints * (weightConfig.costHullPercentage / 100)));
 }
 
 /**
  * Calculate armor cost
  */
 export function calculateArmorCost(hull: Hull, weight: ArmorWeight, armorType: ArmorType): number {
-  const hullPoints = calculateArmorHullPoints(hull, weight);
-  // Minimum 1 hull point worth of armor for cost calculation
-  const costHullPoints = Math.max(1, hullPoints);
+  const costHullPoints = calculateArmorCostHullPoints(hull, weight);
   return costHullPoints * armorType.costPerHullPoint;
 }

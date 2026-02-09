@@ -23,6 +23,7 @@ import { headerCellSx } from '../constants/tableStyles';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import type { ProgressLevel, TechTrack } from '../types/common';
+import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type {
   OrdnanceCategory,
   OrdnanceDesign,
@@ -45,6 +46,7 @@ import {
   removeOrdnanceFromLoadout,
 } from '../services/ordnanceService';
 import { formatCost, formatAccuracyModifier, getAreaEffectTooltip, formatAcceleration } from '../services/formatters';
+import { createWeaponBatteryKey, batteryHasFireControl, getFireControlsForBattery } from '../services/commandControlService';
 import { TruncatedDescription, TechTrackCell } from './shared';
 import { LaunchSystemEditForm } from './LaunchSystemEditForm';
 import { OrdnanceDesignDialog } from './OrdnanceDesignDialog';
@@ -56,6 +58,7 @@ interface InstalledLaunchSystemsProps {
   onEdit: (ls: InstalledLaunchSystem) => void;
   onRemove: (id: string) => void;
   editingId: string | null;
+  installedCommandControl?: InstalledCommandControlSystem[];
   /** Additional props for inline editing */
   onLaunchSystemsChange?: (systems: InstalledLaunchSystem[]) => void;
   onOrdnanceDesignsChange?: (designs: OrdnanceDesign[]) => void;
@@ -70,6 +73,7 @@ export function InstalledLaunchSystems({
   onEdit,
   onRemove,
   editingId,
+  installedCommandControl = [],
   onLaunchSystemsChange,
   onOrdnanceDesignsChange,
   onEditComplete,
@@ -106,6 +110,9 @@ export function InstalledLaunchSystems({
           const lsType = getLaunchSystemType(ls.launchSystemType);
           const usedCap = getUsedCapacity(ls.loadout, ordnanceDesigns);
           const isEditing = editingId === ls.id;
+          const batteryKey = createWeaponBatteryKey(ls.launchSystemType, 'launcher');
+          const hasFireControl = batteryHasFireControl(batteryKey, installedCommandControl);
+          const fireControls = getFireControlsForBattery(batteryKey, installedCommandControl);
           return (
             <React.Fragment key={ls.id}>
               <Box
@@ -131,6 +138,19 @@ export function InstalledLaunchSystems({
                 <Chip label={`${ls.powerRequired} Power`} size="small" variant="outlined" />
                 <Chip label={`${usedCap}/${ls.totalCapacity} Cap`} size="small" variant="outlined" color={usedCap >= ls.totalCapacity ? 'success' : 'warning'} />
                 <Chip label={formatCost(ls.cost)} size="small" variant="outlined" />
+                {hasFireControl && (
+                  <Tooltip title={fireControls[0].type.name}>
+                    <Chip 
+                      label={fireControls[0].type.quality 
+                        ? `${fireControls[0].type.quality} Fire Control`
+                        : fireControls[0].type.name
+                      } 
+                      size="small" 
+                      color="success" 
+                      variant="outlined" 
+                    />
+                  </Tooltip>
+                )}
                 <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
                   <EditIcon fontSize="small" />
                 </IconButton>

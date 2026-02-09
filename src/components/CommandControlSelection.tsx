@@ -130,7 +130,7 @@ export function CommandControlSelection({
 
   // Separate computer cores from control computers
   const computerCores = useMemo(() => {
-    return systemsByCategory.computer.filter((s) => s.id.startsWith('computer-core'));
+    return systemsByCategory.computer.filter((s) => s.isCore);
   }, [systemsByCategory.computer]);
 
   // Get control computers that can be shown based on installed core quality
@@ -148,7 +148,7 @@ export function CommandControlSelection({
   // Get other computer systems (like Attack Computer that doesn't require core)
   const otherComputerSystems = useMemo(() => {
     return systemsByCategory.computer.filter(
-      (s) => !s.id.startsWith('computer-core') && !s.requiresCore
+      (s) => !s.isCore && !s.requiresCore
     );
   }, [systemsByCategory.computer]);
 
@@ -642,7 +642,7 @@ export function CommandControlSelection({
           )}
 
           {/* Systems with coverage-based HP (command deck) - computer cores have fixed size */}
-          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.id.startsWith('computer-core') && (
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.isCore && (
             <TextField
               label="Quantity"
               type="number"
@@ -788,7 +788,7 @@ export function CommandControlSelection({
           )}
 
           {/* Systems with coverage-based HP (command deck) - computer cores have fixed size */}
-          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.id.startsWith('computer-core') && (
+          {!isLinkedControl && selectedSystem.coveragePerHullPoint && !selectedSystem.isCore && (
             <TextField
               label="Quantity"
               type="number"
@@ -957,8 +957,8 @@ export function CommandControlSelection({
         </TableCell>
         <TableCell align="right">{system.powerRequired}</TableCell>
         <TableCell align="right">
-          {system.costPerHull 
-            ? formatCost(system.cost * hull.hullPoints)
+          {system.costPer === 'systemHp'
+            ? formatCost(system.cost * (system.coveragePerHullPoint ? calculateCoverageBasedHullPoints(hull.hullPoints, system) : system.hullPoints))
             : formatCost(system.cost)
           }
         </TableCell>

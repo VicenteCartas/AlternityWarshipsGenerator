@@ -96,7 +96,7 @@ export interface BaseWeaponType {
   techTracks: TechTrack[];
   /** Hull points required for a single standard mount */
   hullPoints: number;
-  /** Power required per hull point */
+  /** Power required per gun */
   powerRequired: number;
   /** Cost for a single standard mount */
   cost: number;
@@ -157,48 +157,6 @@ export interface SpecialWeaponType extends BaseWeaponType {
   /** Special effect description for weapons with non-standard behavior */
   specialEffect?: string;
 }
-
-// ============== Mount Modifiers ==============
-
-/**
- * Mount type modifiers for cost and hull points
- * - Standard: base values (1x cost, 1x HP)
- * - Fixed: 0.75x cost, 0.75x HP (25% less)
- * - Turret: 1.5x cost, 1.5x HP (50% more)
- * - Sponson: 1.25x cost, 1x HP (25% more cost, same HP)
- * - Bank: 1.25x cost, 1x HP (PL8+ beams only, 25% more cost, same HP)
- */
-export const MOUNT_MODIFIERS: Record<MountType, { costMultiplier: number; hpMultiplier: number; minPL?: ProgressLevel; beamOnly?: boolean }> = {
-  standard: { costMultiplier: 1, hpMultiplier: 1 },
-  fixed: { costMultiplier: 0.75, hpMultiplier: 0.75 },
-  turret: { costMultiplier: 1.5, hpMultiplier: 1.5 },
-  sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
-  bank: { costMultiplier: 1.25, hpMultiplier: 1, minPL: 8, beamOnly: true },
-};
-
-/**
- * Gun configuration modifiers for cost and hull points
- * Power consumption is NOT affected by gun configuration
- * - Single: base values (1x cost, 1x HP)
- * - Twin: 1.5x cost, 1.5x HP
- * - Triple: 1.75x cost, 1.75x HP
- * - Quadruple: 2x cost, 2x HP
- */
-export const GUN_CONFIGURATION_MODIFIERS: Record<GunConfiguration, { costMultiplier: number; hpMultiplier: number; gunCount: number }> = {
-  single: { costMultiplier: 1, hpMultiplier: 1, gunCount: 1 },
-  twin: { costMultiplier: 1.5, hpMultiplier: 1.5, gunCount: 2 },
-  triple: { costMultiplier: 1.75, hpMultiplier: 1.75, gunCount: 3 },
-  quadruple: { costMultiplier: 2, hpMultiplier: 2, gunCount: 4 },
-};
-
-/**
- * Concealment modifier
- * Concealed weapons take 1.5x space and cost 1.5x
- */
-export const CONCEALMENT_MODIFIER = {
-  costMultiplier: 1.5,
-  hpMultiplier: 1.5,
-};
 
 // ============== Weapon Type Union ==============
 

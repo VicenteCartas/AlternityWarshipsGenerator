@@ -56,6 +56,21 @@ export type DamageType = 'LI' | 'HI' | 'En';
 export type QualityLevel = 'Ordinary' | 'Good' | 'Amazing';
 
 /**
+ * Cost calculation mode for systems
+ * 'unit' = cost × quantity (flat per-unit cost)
+ * 'systemHp' = cost × system's own calculated HP
+ * 'linkedHp' = cost × linked system's HP (fire/sensor control)
+ */
+export type CostPer = 'unit' | 'systemHp' | 'linkedHp';
+
+/**
+ * Power calculation mode for systems
+ * 'unit' = power × quantity (flat per-unit power)
+ * 'systemHp' = power × system's own calculated HP
+ */
+export type PowerPer = 'unit' | 'systemHp';
+
+/**
  * Generic type for filter values that include an 'all' option
  * Used for category filters in selection components
  */

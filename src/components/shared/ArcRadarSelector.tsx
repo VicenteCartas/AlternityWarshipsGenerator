@@ -149,7 +149,9 @@ export function ArcRadarSelector({
           const selected = isSelected(arc);
           const endAngle = startAngle + 90;
           const path = createSectorPath(center, center, zeroInnerRadius, zeroOuterRadius, startAngle, endAngle);
-          const disabled = disableZeroArcs;
+          // A zero arc is disabled if all zero arcs are disabled OR if the corresponding standard arc is not selected
+          const correspondingStandard = arc.replace('zero-', '') as StandardArc;
+          const disabled = disableZeroArcs || !isSelected(correspondingStandard);
 
           // Determine fill color: selected takes priority, then disabled, then unselected
           const fillColor = selected 

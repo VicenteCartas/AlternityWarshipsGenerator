@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, QualityLevel, InstalledSystemBase, PowerConsumingStats } from './common';
+import type { ProgressLevel, TechTrack, QualityLevel, InstalledSystemBase, PowerConsumingStats, CostPer } from './common';
 
 // ============== Command and Control Categories ==============
 
@@ -25,8 +25,8 @@ export interface CommandControlSystemType {
   powerRequired: number;
   /** Base cost */
   cost: number;
-  /** If true and has coveragePerHullPoint: cost × system's calculated HP */
-  costPerHull?: boolean;
+  /** How cost scales: 'unit' = cost × quantity, 'systemHp' = cost × system's own HP */
+  costPer: CostPer;
   /** Type of system this control links to - cost will be × linked system's HP */
   linkedSystemType?: 'weapon' | 'sensor';
   /** Maximum quantity allowed (e.g., cockpit max 4 stations) */
@@ -43,6 +43,8 @@ export interface CommandControlSystemType {
   isDedicated?: boolean;
   /** Whether this system is required (cockpit/command deck) */
   isRequired?: boolean;
+  /** Whether this is a computer core (auto-sized, provides quality for control computers) */
+  isCore?: boolean;
   /** Maximum ship hull points this can be used on (cockpit only) */
   maxShipHullPoints?: number;
   /** Whether this control computer requires a core to be installed first */

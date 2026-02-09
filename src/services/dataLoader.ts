@@ -19,6 +19,8 @@ import type { HangarMiscSystemType } from '../types/hangarMisc';
 import type { LaunchSystem, PropulsionSystem, Warhead, GuidanceSystem } from '../types/ordnance';
 import type { BeamWeaponType, ProjectileWeaponType, TorpedoWeaponType, SpecialWeaponType, MountModifier, GunConfigModifier, MountType, GunConfiguration } from '../types/weapon';
 
+import type { DamageDiagramData } from '../types/damageDiagram';
+
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
 import armorDataFallback from '../data/armor.json';
@@ -59,7 +61,7 @@ interface DataCache {
   propulsionSystems: PropulsionSystem[] | null;
   warheads: Warhead[] | null;
   guidanceSystems: GuidanceSystem[] | null;
-  damageDiagram: unknown | null;
+  damageDiagram: DamageDiagramData | null;
   // Weapons data
   beamWeapons: BeamWeaponType[] | null;
   projectileWeapons: ProjectileWeaponType[] | null;
@@ -67,6 +69,7 @@ interface DataCache {
   specialWeapons: SpecialWeaponType[] | null;
   mountModifiers: Record<MountType, MountModifier> | null;
   gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null;
+  concealmentModifier: MountModifier | null;
 }
 
 const cache: DataCache = {
@@ -95,6 +98,7 @@ const cache: DataCache = {
   specialWeapons: null,
   mountModifiers: null,
   gunConfigurations: null,
+  concealmentModifier: null,
 };
 
 let dataLoaded = false;
@@ -167,15 +171,6 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     const failedFiles: FailedFile[] = [];
     const isElectron = !!window.electronAPI;
 
-    // Import services that need data
-    const { loadSupportSystemsData } = await import('./supportSystemService');
-    const { loadDefenseSystemsData } = await import('./defenseService');
-    const { loadCommandControlSystemsData } = await import('./commandControlService');
-    const { loadSensorsData } = await import('./sensorService');
-    const { initializeHangarMiscData } = await import('./hangarMiscService');
-    const { loadDamageDiagramData } = await import('./damageDiagramService');
-    const { initializeWeaponsData } = await import('./weaponService');
-
     // Load all data files in parallel
     const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback, failedFiles),
@@ -217,7 +212,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
     cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
     cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-    cache.damageDiagram = damageDiagramData;
+    cache.damageDiagram = damageDiagramData as DamageDiagramData;
     // Weapons data
     cache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
     cache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
@@ -225,16 +220,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     cache.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
     cache.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
     cache.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
-
-    // Load data into services
-    loadSupportSystemsData(cache.supportSystems);
-    loadDefenseSystemsData({ defenseSystems: cache.defenseSystems });
-    loadCommandControlSystemsData({ commandSystems: cache.commandControlSystems });
-    loadSensorsData({ sensors: cache.sensors, trackingTable: cache.trackingTable || undefined });
-    initializeHangarMiscData({ hangarMiscSystems: cache.hangarMiscSystems });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    loadDamageDiagramData(cache.damageDiagram as any);
-    initializeWeaponsData(weaponsData as Parameters<typeof initializeWeaponsData>[0]);
+    cache.concealmentModifier = (weaponsData as { concealmentModifier?: MountModifier }).concealmentModifier || null;
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -362,6 +348,7 @@ export async function reloadAllGameData(): Promise<void> {
   cache.specialWeapons = null;
   cache.mountModifiers = null;
   cache.gunConfigurations = null;
+  cache.concealmentModifier = null;
   await loadAllGameData();
 }
 
@@ -505,4 +492,103 @@ export function getGunConfigurationsData(): Record<GunConfiguration, GunConfigMo
     return (weaponsDataFallback as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
   }
   return cache.gunConfigurations;
+}
+
+/**
+ * Get concealment modifier (must call loadAllGameData first)
+ */
+export function getConcealmentModifierData(): MountModifier | null {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (weaponsDataFallback as { concealmentModifier?: MountModifier }).concealmentModifier || null;
+  }
+  return cache.concealmentModifier;
+}
+
+/**
+ * Get all life support types (must call loadAllGameData first)
+ */
+export function getLifeSupportData(): LifeSupportType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (supportSystemsDataFallback as { lifeSupport: LifeSupportType[] }).lifeSupport;
+  }
+  return cache.supportSystems?.lifeSupport || [];
+}
+
+/**
+ * Get all accommodation types (must call loadAllGameData first)
+ */
+export function getAccommodationsData(): AccommodationType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (supportSystemsDataFallback as { accommodations: AccommodationType[] }).accommodations;
+  }
+  return cache.supportSystems?.accommodations || [];
+}
+
+/**
+ * Get all store system types (must call loadAllGameData first)
+ */
+export function getStoreSystemsData(): StoreSystemType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (supportSystemsDataFallback as { storeSystems: StoreSystemType[] }).storeSystems;
+  }
+  return cache.supportSystems?.storeSystems || [];
+}
+
+/**
+ * Get all gravity system types (must call loadAllGameData first)
+ */
+export function getGravitySystemsData(): GravitySystemType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (supportSystemsDataFallback as { gravitySystems?: GravitySystemType[] }).gravitySystems || [];
+  }
+  return cache.supportSystems?.gravitySystems || [];
+}
+
+/**
+ * Get all defense system types (must call loadAllGameData first)
+ */
+export function getDefenseSystemsData(): DefenseSystemType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (defensesDataFallback as { defenseSystems: DefenseSystemType[] }).defenseSystems;
+  }
+  return cache.defenseSystems!;
+}
+
+/**
+ * Get all command control system types (must call loadAllGameData first)
+ */
+export function getCommandControlSystemsData(): CommandControlSystemType[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (commandControlDataFallback as { commandSystems: CommandControlSystemType[] }).commandSystems;
+  }
+  return cache.commandControlSystems!;
+}
+
+/**
+ * Get the tracking table (must call loadAllGameData first)
+ */
+export function getTrackingTableData(): TrackingTable | null {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (sensorsDataFallback as { trackingTable?: TrackingTable }).trackingTable || null;
+  }
+  return cache.trackingTable;
+}
+
+/**
+ * Get damage diagram data (must call loadAllGameData first)
+ */
+export function getDamageDiagramDataGetter(): DamageDiagramData | null {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return damageDiagramDataFallback as unknown as DamageDiagramData;
+  }
+  return cache.damageDiagram;
 }

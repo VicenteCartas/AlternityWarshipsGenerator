@@ -1,5 +1,44 @@
 import type { ShipClass } from './hull';
 
+// ============== Data File Structure ==============
+
+export interface ZoneLimitData {
+  hullPoints: number;
+  zoneCount: number;
+  zoneLimit: number;
+}
+
+/**
+ * A single entry in a JSON hit location table
+ * roll is [min] for single values or [min, max] for ranges
+ */
+export interface HitLocationTableEntry {
+  roll: number[];
+  zone: ZoneCode;
+}
+
+/**
+ * A hit location table from JSON: direction -> entries
+ */
+export type HitLocationTableData = Record<string, HitLocationTableEntry[]>;
+
+export interface DamageDiagramData {
+  zoneConfigurations: {
+    'small-craft': {
+      '2-zone': { maxHullPoints: number; zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+      '4-zone': { maxHullPoints: number; zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+    };
+    light: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+    medium: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+    heavy: { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+    'super-heavy': { zones: ZoneCode[]; hitDie: 6 | 8 | 12 | 20 };
+  };
+  zoneLimits: {
+    hulls: Record<string, ZoneLimitData>;
+  };
+  hitLocationTables?: Record<string, HitLocationTableData>;
+}
+
 // ============== Zone Definitions ==============
 
 /**

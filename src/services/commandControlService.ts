@@ -9,26 +9,16 @@ import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledLaunchSystem } from '../types/ordnance';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
-import { getLaunchSystemsData } from './dataLoader';
-
-// ============== Data Loading ==============
-
-let commandControlSystemTypes: CommandControlSystemType[] = [];
-
-export function loadCommandControlSystemsData(data: {
-  commandSystems: CommandControlSystemType[];
-}): void {
-  commandControlSystemTypes = data.commandSystems;
-}
+import { getLaunchSystemsData, getCommandControlSystemsData } from './dataLoader';
 
 // ============== Getters ==============
 
 export function getAllCommandControlSystemTypes(): CommandControlSystemType[] {
-  return commandControlSystemTypes;
+  return getCommandControlSystemsData();
 }
 
 export function getCommandControlSystemTypeById(id: string): CommandControlSystemType | undefined {
-  return commandControlSystemTypes.find((t) => t.id === id);
+  return getAllCommandControlSystemTypes().find((t) => t.id === id);
 }
 
 // ============== Filtering ==============
@@ -228,7 +218,7 @@ export function calculateCoverageBasedHullPoints(
  * Falls back to 200 if no computer core type is found.
  */
 function getComputerCoreCoverage(): number {
-  const computerCore = commandControlSystemTypes.find(t => t.id.startsWith('computer-core'));
+  const computerCore = getAllCommandControlSystemTypes().find(t => t.isCore);
   return computerCore?.coveragePerHullPoint ?? 200;
 }
 
@@ -266,11 +256,6 @@ export function calculateCommandControlPower(
   type: CommandControlSystemType,
   quantity: number
 ): number {
-  // Systems with coverage (e.g., computer cores) need power per installed hull point
-  if (type.coveragePerHullPoint) {
-    // Power scales with quantity (which represents installed HP)
-    return type.powerRequired * quantity;
-  }
   return type.powerRequired * quantity;
 }
 
@@ -283,9 +268,9 @@ export function calculateCommandControlCost(
   shipHullPoints: number,
   quantity: number
 ): number {
-  // Systems with coverage-based sizing AND costPerHull: cost per system's calculated HP
+  // Systems with coverage-based sizing AND costPer systemHp: cost per system's calculated HP
   // (e.g., command deck, computer cores)
-  if (type.coveragePerHullPoint && type.costPerHull) {
+  if (type.coveragePerHullPoint && type.costPer === 'systemHp') {
     const hpPerSystem = calculateCoverageBasedHullPoints(shipHullPoints, type);
     return type.cost * hpPerSystem * quantity;
   }
@@ -369,7 +354,7 @@ export function calculateCommandControlStats(
     }
 
     // Track computer cores
-    if (type.quality && (type.id.startsWith('computer-core'))) {
+    if (type.quality && type.isCore) {
       computerCoreQuality = type.quality;
       installedComputerCoreHullPoints = system.quantity; // quantity represents HP for computer cores
     }
@@ -417,7 +402,7 @@ export function hasCommandSystemInstalled(
 export function hasComputerCoreInstalled(
   installedSystems: InstalledCommandControlSystem[]
 ): boolean {
-  return installedSystems.some((s) => s.type.id.startsWith('computer-core'));
+  return installedSystems.some((s) => s.type.isCore);
 }
 
 /**
@@ -427,7 +412,7 @@ export function hasComputerCoreInstalled(
 export function getInstalledComputerCoreQuality(
   installedSystems: InstalledCommandControlSystem[]
 ): 'Ordinary' | 'Good' | 'Amazing' | null {
-  const cores = installedSystems.filter((s) => s.type.id.startsWith('computer-core'));
+  const cores = installedSystems.filter((s) => s.type.isCore);
   if (cores.length === 0) return null;
   
   // Return the best quality (Amazing > Good > Ordinary)

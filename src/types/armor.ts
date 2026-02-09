@@ -21,9 +21,6 @@ export interface ArmorType {
   /** Armor weight category */
   armorWeight: ArmorWeight;
   
-  /** Hull points required as percentage of ship hull (derived from armorWeight) */
-  hullPercentage: number;
-  
   /** Progress Level required */
   progressLevel: ProgressLevel;
   
@@ -56,8 +53,11 @@ export interface ArmorWeightConfig {
   /** Display name */
   name: string;
   
-  /** Hull points required as percentage of base hull (0 for light) */
+  /** Hull points consumed as percentage of base hull (0 for light) */
   hullPercentage: number;
+  
+  /** Hull points used as cost basis, as percentage of base hull */
+  costHullPercentage: number;
   
   /** Description */
   description: string;

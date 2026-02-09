@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats } from './common';
+import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats, CostPer, PowerPer } from './common';
 
 // ============== Categories ==============
 
@@ -19,18 +19,18 @@ export interface HangarMiscSystemType {
   category: HangarMiscCategory;
   /** Hull points per unit (or base HP for scalable systems) */
   hullPoints: number;
-  /** Power required per unit (or per HP for percentage-based) */
+  /** Power required per unit (or per HP if powerPer is 'systemHp') */
   powerRequired: number;
-  /** Cost per unit (or per HP if costPerHull is true) */
+  /** How power scales: 'unit' = power × quantity, 'systemHp' = power × system's own HP */
+  powerPer?: PowerPer;
+  /** Cost per unit (or per system HP if costPer is 'systemHp') */
   cost: number;
-  /** Whether cost scales with size/quantity */
-  costPerHull?: boolean;
-  /** Base cost added once per installation (used with costPerHull) */
+  /** How cost scales: 'unit' = cost × quantity, 'systemHp' = cost × system's own HP */
+  costPer: CostPer;
+  /** Base cost added once per installation (used with costPer 'systemHp') */
   baseCost?: number;
   /** For scalable systems: what the HP provides (e.g., "10 HP of embarked craft") */
   capacityPerHull?: string;
-  /** For scalable HP-based systems: capacity per HP (e.g., hangar: 1 HP craft per 1 HP) */
-  capacityMultiplier?: number;
   /** For fixed systems: cargo capacity in cubic meters per unit */
   cargoCapacity?: number;
   /** For fixed systems: evacuation capacity per unit (e.g., escape pods) */

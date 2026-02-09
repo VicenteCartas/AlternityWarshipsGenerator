@@ -148,7 +148,7 @@ export function DefenseSelection({
       const existing = installedDefenses.find((d) => d.type.id === selectedDefense.id);
       if (existing) {
         // For coverage-based or percentage-based systems, don't stack - just ignore re-add
-        if (selectedDefense.coverage > 0 || selectedDefense.hullPercentage) {
+        if (selectedDefense.coverage > 0 || selectedDefense.hullPercentage > 0) {
           // Already installed at full coverage, nothing to do
           setSelectedDefense(null);
           setDefenseQuantity('1');
@@ -352,7 +352,7 @@ export function DefenseSelection({
                 />
               )}
               {/* Edit button - not shown for percentage-based or fixed coverage systems */}
-              {!defense.type.hullPercentage && !defense.type.fixedCoverage && (
+              {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
                 <IconButton
                   size="small"
                   onClick={() => handleEditDefense(defense)}
@@ -399,7 +399,7 @@ export function DefenseSelection({
     };
 
     // Determine if quantity input should be shown
-    const showQuantityInput = !selectedDefense.hullPercentage && !selectedDefense.fixedCoverage;
+    const showQuantityInput = !(selectedDefense.hullPercentage > 0) && !selectedDefense.fixedCoverage;
 
     return (
       <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
@@ -504,9 +504,9 @@ export function DefenseSelection({
               .sort((a, b) => a.progressLevel - b.progressLevel)
               .map((defense) => {
                 const isSelected = selectedDefense?.id === defense.id;
-                const hpDisplay = defense.hullPercentage ? `${defense.hullPercentageValue}%` : defense.hullPoints;
-                const powerDisplay = defense.powerPerHull ? `${defense.powerRequired}/HP` : defense.powerRequired;
-                const costDisplay = defense.costPerHull ? `${formatCost(defense.cost)}/HP` : formatCost(defense.cost);
+                const hpDisplay = defense.hullPercentage > 0 ? `${defense.hullPercentage}%` : defense.hullPoints;
+                const powerDisplay = defense.powerPer === 'systemHp' ? `${defense.powerRequired}/HP` : defense.powerRequired;
+                const costDisplay = defense.costPer === 'systemHp' ? `${formatCost(defense.cost)}/HP` : formatCost(defense.cost);
                 const coverageDisplay = defense.coverage > 0 ? `${defense.coverage} HP` : '-';
 
                 // Check if this is a shield component and indent if parent is installed

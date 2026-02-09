@@ -365,7 +365,7 @@ function buildUnassignedSystemsList(
   for (const hm of installedHangarMisc) {
     const id = `hm-${hm.id}`;
     if (!assignedSystemIds.has(id)) {
-      const category = hm.type.id.includes('hangar') || hm.type.id.includes('cargo') 
+      const category = hm.type.category === 'hangar' || hm.type.category === 'cargo'
         ? 'hangar' 
         : 'miscellaneous';
       systems.push({

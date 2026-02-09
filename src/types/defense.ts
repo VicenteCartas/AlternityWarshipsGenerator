@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats } from './common';
+import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats, CostPer, PowerPer } from './common';
 
 // ============== Defense System Types ==============
 
@@ -14,24 +14,24 @@ export interface DefenseSystemType {
   progressLevel: ProgressLevel;
   techTracks: TechTrack[];
   category: DefenseCategory;
-  /** Hull points per unit (fixed size systems) - only used when hullPercentage is false */
+  /** Hull points per unit (fixed size systems) - only used when hullPercentage is 0 */
   hullPoints: number;
-  /** If true, hull points are calculated as percentage of ship hull using hullPercentageValue */
-  hullPercentage: boolean;
-  /** Percentage of ship hull points required (only used when hullPercentage is true) */
-  hullPercentageValue?: number;
-  /** Power required per unit */
+  /** Percentage of ship hull points required (0 = not percentage-based, >0 = percentage value) */
+  hullPercentage: number;
+  /** Power required per unit (or per system HP if powerPer is 'systemHp') */
   powerRequired: number;
-  /** If true, power is calculated as per hull point of coverage */
-  powerPerHull: boolean;
-  /** Cost per unit */
+  /** How power scales: 'unit' = power × quantity, 'systemHp' = power × system's own HP */
+  powerPer: PowerPer;
+  /** Cost per unit (or per system HP if costPer is 'systemHp') */
   cost: number;
-  /** If true, cost is calculated as per hull point of coverage */
-  costPerHull: boolean;
+  /** How cost scales: 'unit' = cost × quantity, 'systemHp' = cost × system's own HP */
+  costPer: CostPer;
   /** Hull points covered by one unit of this system (0 if not applicable) */
   coverage: number;
   /** Effect description for display */
   effect: string;
+  /** Bonus (in steps) applied to damage checks; 0 if not applicable */
+  damageCheckBonus: number;
   /** Detailed description */
   description: string;
   /** Shield points provided (for capacitors/compilers) */

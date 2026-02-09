@@ -7,31 +7,19 @@ import type {
   TrackingTable,
 } from '../types/sensor';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { getSensorsData, getTrackingTableData } from './dataLoader';
 
 // Re-export ComputerQuality for backwards compatibility
 export type { ComputerQuality } from '../types/sensor';
 
-// ============== Data Loading ==============
-
-let sensorTypes: SensorType[] = [];
-let trackingTable: TrackingTable | null = null;
-
-export function loadSensorsData(data: {
-  sensors: SensorType[];
-  trackingTable?: TrackingTable;
-}): void {
-  sensorTypes = data.sensors;
-  trackingTable = data.trackingTable || null;
-}
-
 // ============== Getters ==============
 
 export function getAllSensorTypes(): SensorType[] {
-  return sensorTypes;
+  return getSensorsData();
 }
 
 export function getSensorTypeById(id: string): SensorType | undefined {
-  return sensorTypes.find((t) => t.id === id);
+  return getAllSensorTypes().find((t) => t.id === id);
 }
 
 // ============== Filtering ==============
@@ -120,7 +108,7 @@ export function calculateTrackingCapability(
     '9': { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
   };
 
-  const table = trackingTable || defaults;
+  const table = getTrackingTableData() || defaults;
   const baseTracking = table[designPL.toString()]?.[computerQuality] ?? defaults[designPL.toString()][computerQuality];
   
   // Unlimited tracking stays unlimited regardless of quantity

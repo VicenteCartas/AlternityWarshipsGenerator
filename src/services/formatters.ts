@@ -116,7 +116,7 @@ export function formatAcceleration(acceleration: number, usesPL6Scale: boolean):
 export function formatCommandControlCost(system: {
   cost: number;
   maxQuantity?: number;
-  costPerHull?: boolean;
+  costPer: string;
   coveragePerHullPoint?: number;
   linkedSystemType?: 'weapon' | 'sensor';
 }): string {
@@ -127,8 +127,8 @@ export function formatCommandControlCost(system: {
     return `${baseCost}/station`;
   }
   
-  // Coverage-based systems with costPerHull - cost per HP of the system itself
-  if (system.coveragePerHullPoint && system.costPerHull) {
+  // Coverage-based systems with costPer systemHp - cost per HP of the system itself
+  if (system.coveragePerHullPoint && system.costPer === 'systemHp') {
     return `${baseCost}/HP`;
   }
   

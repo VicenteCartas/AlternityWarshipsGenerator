@@ -3,21 +3,11 @@ import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscStats }
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 import { getHangarMiscSystemsData } from './dataLoader';
 
-let hangarMiscSystemTypes: HangarMiscSystemType[] | null = null;
-
-/**
- * Initialize hangar/misc data from JSON (called by dataLoader)
- */
-export function initializeHangarMiscData(data: { hangarMiscSystems: HangarMiscSystemType[] }): void {
-  hangarMiscSystemTypes = data.hangarMiscSystems;
-}
-
 /**
  * Get all hangar/misc system types
  */
 export function getAllHangarMiscSystemTypes(): HangarMiscSystemType[] {
-  // Use cached data if initialized, otherwise get from dataLoader
-  return hangarMiscSystemTypes || getHangarMiscSystemsData();
+  return getHangarMiscSystemsData();
 }
 
 /**
@@ -62,9 +52,8 @@ export function calculateHangarMiscPower(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (type.hullPercentage) {
-    // Power per HP for percentage-based systems
-    const hullPts = Math.ceil((shipHullPoints * type.hullPercentage) / 100) * quantity;
+  if (type.powerPer === 'systemHp') {
+    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
     return type.powerRequired * hullPts;
   }
   return type.powerRequired * quantity;
@@ -78,7 +67,7 @@ export function calculateHangarMiscCost(
   shipHullPoints: number,
   quantity: number
 ): number {
-  if (type.costPerHull) {
+  if (type.costPer === 'systemHp') {
     // Base cost + cost per hull point
     const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
     const base = type.baseCost || 0;
@@ -153,11 +142,6 @@ export function calculateHangarMiscCapacity(
     const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
     return hullPts * type.coveragePerHullPoint;
   }
-  // HP-based capacity (hangars, docking clamps, magazines)
-  if (type.capacityMultiplier) {
-    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
-    return hullPts * type.capacityMultiplier;
-  }
   return 0;
 }
 
@@ -230,14 +214,14 @@ export function calculateHangarMiscStats(installedSystems: InstalledHangarMiscSy
     totalPowerRequired += system.powerRequired;
     totalCost += system.cost;
 
-    // Accumulate capacities based on system type
-    if (system.type.id === 'hangar') {
+    // Accumulate capacities based on system type capabilities
+    if (system.type.hangarCapacity) {
       totalHangarCapacity += system.capacity || 0;
-    } else if (system.type.id === 'docking-clamp') {
+    } else if (system.type.dockCapacity) {
       totalDockingCapacity += system.capacity || 0;
-    } else if (system.type.id === 'magazine') {
+    } else if (system.type.ordnanceCapacity) {
       totalMagazineCapacity += system.capacity || 0;
-    } else if (system.type.category === 'cargo' && system.type.id !== 'autocargo') {
+    } else if (system.type.cargoCapacity) {
       totalCargoCapacity += system.capacity || 0;
     } else if (system.type.category === 'emergency') {
       totalEvacCapacity += system.capacity || 0;

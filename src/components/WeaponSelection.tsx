@@ -266,6 +266,14 @@ export function WeaponSelection({
       // Remove arc (unless it's the last one)
       if (currentArcs.length > 1 || isZero) {
         currentArcs.splice(arcIndex, 1);
+        // When removing a standard arc, also remove its corresponding zero arc
+        if (!isZero) {
+          const correspondingZero = `zero-${arc}` as FiringArc;
+          const zeroIndex = currentArcs.indexOf(correspondingZero);
+          if (zeroIndex >= 0) {
+            currentArcs.splice(zeroIndex, 1);
+          }
+        }
       }
     } else {
       // Add arc - check limits and replace if at max
@@ -291,10 +299,14 @@ export function WeaponSelection({
         } else {
           // Replace: remove all standard arcs beyond limit, add new one
           // For fixed (1 arc) or standard/sponson/bank (1 arc), replace the existing
-          const arcsToKeep = currentArcs.filter(a => a.startsWith('zero-'));
           // Keep only (limit - 1) standard arcs, then add the new one
           const keptStandard = standardArcs.slice(0, freeArcCount.standardArcs - 1);
-          arcsToKeep.push(...keptStandard, arc);
+          const newStandardSet = new Set([...keptStandard, arc]);
+          // Only keep zero arcs whose corresponding standard arc remains
+          const arcsToKeep = currentArcs.filter(a =>
+            a.startsWith('zero-') && newStandardSet.has(a.replace('zero-', '')),
+          );
+          arcsToKeep.push(...newStandardSet);
           setSelectedArcs(arcsToKeep);
           return;
         }
@@ -964,6 +976,7 @@ export function WeaponSelection({
           <InstalledLaunchSystems
             launchSystems={launchSystems}
             ordnanceDesigns={ordnanceDesigns}
+            installedCommandControl={installedCommandControl}
             onEdit={(ls) => {
               setEditingLaunchSystemId(ls.id);
               // Don't switch tabs - edit form renders inline

@@ -1,12 +1,27 @@
 # Changelog
 
-## [0.2.3] - Unreleased
+## [0.2.4] - Unreleased
 
 ### Todo
 
-- Ordnance launchers do not show associated fire control
 - Add an option to open the folder with the data files so user can edit them
-- Improve PDF generation by having each section on its own page and with more details for gameplay
+- House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
+
+## [0.2.3] - Unreleased
+
+### Fixes
+
+- Bugs: addressed multiple issues with data representation of hp, power and cost.
+- Bug: addressed hardcoded values for guns configurations.
+- Bug: light armor was using 2.5% HP for size instead of 0% HP (cost stays at 2.5%).
+- Bug: weapons now round to the nearest 0.5HP for their size, rounded down.
+- Bug: ordnance launchers now show their associated fire control.
+- Bug: PDF damage tables were rendering their dice rolls incorrectly.
+- Bug: PDF damage zones were not showing all their elements.
+
+### Improvements
+
+- Multiple changes on PDF printing. Ship is now divided in 4 sections: information, damage diagrams, defenses, and weapons. Each on its own page/pages. Damage zones are now visually organized like a real ship.
 
 ## [0.2.2] - 2/6/2026
 

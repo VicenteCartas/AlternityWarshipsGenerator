@@ -11,58 +11,45 @@ import type {
   SupportSystemsStats,
 } from '../types/supportSystem';
 import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
-
-// ============== Data Loading ==============
-
-let lifeSupportTypes: LifeSupportType[] = [];
-let accommodationTypes: AccommodationType[] = [];
-let storeSystemTypes: StoreSystemType[] = [];
-let gravitySystemTypes: GravitySystemType[] = [];
-
-export function loadSupportSystemsData(data: {
-  lifeSupport: LifeSupportType[];
-  accommodations: AccommodationType[];
-  storeSystems: StoreSystemType[];
-  gravitySystems?: GravitySystemType[];
-}): void {
-  lifeSupportTypes = data.lifeSupport;
-  accommodationTypes = data.accommodations;
-  storeSystemTypes = data.storeSystems;
-  gravitySystemTypes = data.gravitySystems || [];
-}
+import {
+  getLifeSupportData,
+  getAccommodationsData,
+  getStoreSystemsData,
+  getGravitySystemsData,
+} from './dataLoader';
 
 // ============== Getters ==============
 
 export function getAllLifeSupportTypes(): LifeSupportType[] {
-  return lifeSupportTypes;
+  return getLifeSupportData();
 }
 
 export function getAllAccommodationTypes(): AccommodationType[] {
-  return accommodationTypes;
+  return getAccommodationsData();
 }
 
 export function getAllStoreSystemTypes(): StoreSystemType[] {
-  return storeSystemTypes;
+  return getStoreSystemsData();
 }
 
 export function getAllGravitySystemTypes(): GravitySystemType[] {
-  return gravitySystemTypes;
+  return getGravitySystemsData();
 }
 
 export function getLifeSupportTypeById(id: string): LifeSupportType | undefined {
-  return lifeSupportTypes.find((t) => t.id === id);
+  return getAllLifeSupportTypes().find((t) => t.id === id);
 }
 
 export function getAccommodationTypeById(id: string): AccommodationType | undefined {
-  return accommodationTypes.find((t) => t.id === id);
+  return getAllAccommodationTypes().find((t) => t.id === id);
 }
 
 export function getStoreSystemTypeById(id: string): StoreSystemType | undefined {
-  return storeSystemTypes.find((t) => t.id === id);
+  return getAllStoreSystemTypes().find((t) => t.id === id);
 }
 
 export function getGravitySystemTypeById(id: string): GravitySystemType | undefined {
-  return gravitySystemTypes.find((t) => t.id === id);
+  return getAllGravitySystemTypes().find((t) => t.id === id);
 }
 
 // ============== Filtering ==============

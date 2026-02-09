@@ -12,6 +12,7 @@
     "triple": { "effectiveGunCount": 2, "actualGunCount": 3 },
     "quadruple": { "effectiveGunCount": 2.5, "actualGunCount": 4 }
   },
+  "concealmentModifier": { "costMultiplier": 1.5, "hpMultiplier": 1.5 },
   "beamWeapons": [
     {
       "id": "laser",
