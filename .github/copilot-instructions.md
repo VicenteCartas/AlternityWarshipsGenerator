@@ -195,7 +195,7 @@ npm run build:electron  # Build for production
 npm run dist:win        # Create Windows installer
 ```
 
-## Current State (v0.2.2)
+## Current State (v0.2.3)
 
 ### Implemented
 - [x] Complete ship construction wizard (all 13 steps)

@@ -421,7 +421,7 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   checkNewPage(25);
   pdf.setFontSize(9);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('NOTES', margin, y);
+  pdf.text('GAME NOTES', margin, y);
   y += 4;
 
   pdf.setDrawColor(180, 180, 180);
