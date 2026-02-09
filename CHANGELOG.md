@@ -7,7 +7,7 @@
 - Add an option to open the folder with the data files so user can edit them
 - House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
 
-## [0.2.3] - Unreleased
+## [0.2.3] - 2/8/2026
 
 ### Fixes
 
