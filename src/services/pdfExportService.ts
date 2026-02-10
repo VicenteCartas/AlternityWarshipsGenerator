@@ -320,6 +320,14 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   addLabel('Toughness', hull.toughness.toString(), margin);
   addLabel('Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), margin + col3W + 10);
   addLabel('Crew', hull.crew.toString(), margin + 2 * col3W + 10);
+  const personnelExtras: string[] = [];
+  if (supportStats.troopCapacity > 0) personnelExtras.push(`Troops: ${supportStats.troopCapacity}`);
+  if (supportStats.passengerCapacity > 0) personnelExtras.push(`Passengers: ${supportStats.passengerCapacity}`);
+  if (supportStats.suspendedCapacity > 0) personnelExtras.push(`Stasis: ${supportStats.suspendedCapacity}`);
+  if (personnelExtras.length > 0) {
+    y += 5;
+    addLabel('Personnel', personnelExtras.join(', '), margin + 2 * col3W + 10);
+  }
   y += 5;
   addLabel('Acceleration', stats.totalAcceleration.toString(), margin);
   if (data.selectedArmorWeight && data.selectedArmorType) {

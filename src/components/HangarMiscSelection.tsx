@@ -44,7 +44,7 @@ interface HangarMiscSelectionProps {
   installedSystems: InstalledHangarMiscSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
-  totalPassengersAndSuspended: number;  // Passengers + suspended from accommodations (crew comes from hull)
+  totalPassengersAndSuspended: number;  // Passengers + suspended + troops from accommodations (crew comes from hull)
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
 }
 

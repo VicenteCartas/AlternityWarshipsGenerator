@@ -1,11 +1,22 @@
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import { getFTLDrivesData } from './dataLoader';
-import { generateId } from './utilities';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
 /**
  * Get all FTL drive types
  */
+// ============== Filtering ==============
+
+export function filterByDesignConstraints(
+  items: FTLDriveType[],
+  designProgressLevel: ProgressLevel,
+  designTechTracks: TechTrack[]
+): FTLDriveType[] {
+  return filterByConstraints(items, designProgressLevel, designTechTracks);
+}
+
 export function getAllFTLDriveTypes(): FTLDriveType[] {
   return getFTLDrivesData();
 }

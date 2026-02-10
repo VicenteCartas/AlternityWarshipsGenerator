@@ -129,6 +129,7 @@ export function calculateSupportSystemsStats(
   let accommodationsCost = 0;
   let crewCapacity = 0;
   let passengerCapacity = 0;
+  let troopCapacity = 0;
   let suspendedCapacity = 0;
   let freeAirlocks = 0;
   let baseStoreDays = 0;
@@ -147,7 +148,12 @@ export function calculateSupportSystemsStats(
         break;
       case 'passenger':
         passengerCapacity += capacity;
-        // Only crew and passengers count for stores (not suspended/cryo)
+        // Only crew, passengers, and troops count for stores (not suspended/cryo)
+        baseStoreDays += capacity * acc.type.storesDaysPerPerson;
+        break;
+      case 'troop':
+        troopCapacity += capacity;
+        // Troops are military and count for stores like crew
         baseStoreDays += capacity * acc.type.storesDaysPerPerson;
         break;
       case 'suspended':
@@ -246,8 +252,9 @@ export function calculateSupportSystemsStats(
     
     crewCapacity,
     passengerCapacity,
+    troopCapacity,
     suspendedCapacity,
-    totalCapacity: crewCapacity + passengerCapacity + suspendedCapacity,
+    totalCapacity: crewCapacity + passengerCapacity + troopCapacity + suspendedCapacity,
     freeAirlocks,
     
     peopleFed,

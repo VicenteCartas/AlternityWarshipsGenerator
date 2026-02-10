@@ -23,6 +23,7 @@ import {
   getArmorTypesByWeight,
   calculateArmorHullPoints,
   calculateArmorCost,
+  filterByDesignConstraints,
 } from '../services/armorService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { headerCellSx } from '../constants/tableStyles';
@@ -57,20 +58,7 @@ export function ArmorSelection({
   // Get all armor types that pass design constraints (before weight filter)
   const allFilteredByConstraints = useMemo(() => {
     const byWeight = getArmorTypesByWeight(hull.shipClass, 'all');
-    return byWeight.filter((armor) => {
-      if (armor.progressLevel > designProgressLevel) {
-        return false;
-      }
-      if (designTechTracks.length > 0 && armor.techTracks.length > 0) {
-        const hasAllowedTech = armor.techTracks.every((track) => 
-          designTechTracks.includes(track)
-        );
-        if (!hasAllowedTech) {
-          return false;
-        }
-      }
-      return true;
-    });
+    return filterByDesignConstraints(byWeight, designProgressLevel, designTechTracks);
   }, [hull.shipClass, designProgressLevel, designTechTracks]);
 
   // Count armors by weight
@@ -85,23 +73,7 @@ export function ArmorSelection({
   // Get armor types filtered by weight, then apply design constraints
   const filteredTypes = useMemo(() => {
     const byWeight = getArmorTypesByWeight(hull.shipClass, weightFilter);
-    return byWeight.filter((armor) => {
-      // Filter by progress level
-      if (armor.progressLevel > designProgressLevel) {
-        return false;
-      }
-      // Filter by tech tracks (if any are selected)
-      if (designTechTracks.length > 0 && armor.techTracks.length > 0) {
-        // Armor must have at least one tech track that's in the allowed list
-        const hasAllowedTech = armor.techTracks.every((track) => 
-          designTechTracks.includes(track)
-        );
-        if (!hasAllowedTech) {
-          return false;
-        }
-      }
-      return true;
-    }).sort((a, b) => a.progressLevel - b.progressLevel);
+    return filterByDesignConstraints(byWeight, designProgressLevel, designTechTracks);
   }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks]);
 
   const handleWeightFilterChange = (

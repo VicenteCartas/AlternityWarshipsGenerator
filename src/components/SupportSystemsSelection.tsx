@@ -525,7 +525,7 @@ export function SupportSystemsSelection({
                   <Chip
                     label={`${installed.type.capacity * installed.quantity} ${installed.type.category}`}
                     size="small"
-                    color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
+                    color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'troop' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
                     variant="outlined"
                   />
                   {installed.type.includesAirlock && (
@@ -708,7 +708,7 @@ export function SupportSystemsSelection({
                   <Chip
                     label={type.category}
                     size="small"
-                    color={type.category === 'crew' ? 'error' : type.category === 'passenger' ? 'primary' : 'secondary'}
+                    color={type.category === 'crew' ? 'error' : type.category === 'troop' ? 'error' : type.category === 'passenger' ? 'primary' : 'secondary'}
                     variant="outlined"
                   />
                 </TableCell>
@@ -1224,6 +1224,13 @@ export function SupportSystemsSelection({
               variant="outlined"
             />
           )}
+          {stats.troopCapacity > 0 && (
+            <Chip
+              label={`Troops: ${stats.troopCapacity}`}
+              color="error"
+              variant="outlined"
+            />
+          )}
           {stats.suspendedCapacity > 0 && (
             <Chip
               label={`Suspended: ${stats.suspendedCapacity}`}
@@ -1235,7 +1242,7 @@ export function SupportSystemsSelection({
             // Calculate stores per person (only crew and passengers count, not cryo)
             // feedsReduction: "feeds" systems (e.g., hydroponics) where X people count as 1
             // recyclingReduction: "reduces-consumption" systems (e.g., recyclers) reduce consumption to Y%
-            const activePersons = stats.crewCapacity + stats.passengerCapacity;
+            const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
             // Cap recycling to not exceed remaining people after feeds
             const remainingAfterFeeds = Math.max(0, activePersons - stats.feedsReduction);
             const cappedRecyclingReduction = Math.min(stats.recyclingReduction, remainingAfterFeeds);

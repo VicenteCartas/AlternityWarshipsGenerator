@@ -31,6 +31,7 @@ import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../ty
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getEngineTypesForShipClass,
+  filterByDesignConstraints,
   calculateEnginePowerRequired,
   calculateEngineCost,
   calculateEngineFuelTankCost,
@@ -82,24 +83,7 @@ export function EngineSelection({
 
   // Get engines filtered by ship class, then apply design constraints
   const availableEngines = useMemo(() => {
-    const byShipClass = getEngineTypesForShipClass();
-    return byShipClass.filter((engine) => {
-      // Filter by progress level
-      if (engine.progressLevel > designProgressLevel) {
-        return false;
-      }
-      // Filter by tech tracks (if any are selected)
-      if (designTechTracks.length > 0 && engine.techTracks.length > 0) {
-        // Engine must have all its tech tracks in the allowed list
-        const hasAllowedTech = engine.techTracks.every((track) => 
-          designTechTracks.includes(track)
-        );
-        if (!hasAllowedTech) {
-          return false;
-        }
-      }
-      return true;
-    }).sort((a, b) => a.progressLevel - b.progressLevel);
+    return filterByDesignConstraints(getEngineTypesForShipClass(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
   // Get unique engine types that require fuel (from installed engines)

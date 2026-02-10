@@ -37,20 +37,6 @@
   ],
   "accommodations": [
     {
-      "id": "crew-bunkroom",
-      "name": "Crew/Troop Bunkroom",
-      "progressLevel": 6,
-      "techTracks": [],
-      "hullPoints": 3,
-      "powerRequired": 0,
-      "cost": 40000,
-      "capacity": 20,
-      "category": "crew",
-      "includesAirlock": true,
-      "storesDaysPerPerson": 100,
-      "description": "Basic berthing for 20 crewmen with bunks, includes one airlock."
-    },
-    {
       "id": "cabin",
       "name": "Cabin",
       "progressLevel": 6,
@@ -63,6 +49,20 @@
       "includesAirlock": false,
       "storesDaysPerPerson": 100,
       "description": "Small private cabin for 2 crewmen."
+    },
+    {
+      "id": "crew-bunkroom",
+      "name": "Crew Bunkroom",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 0,
+      "cost": 40000,
+      "capacity": 20,
+      "category": "crew",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Basic berthing for 20 crewmen with bunks, includes one airlock."
     },
     {
       "id": "crew-quarters",
@@ -79,8 +79,22 @@
       "description": "Shared quarters for 6 crewmen with common facilities, includes one airlock."
     },
     {
+      "id": "staterooms-2nd-class",
+      "name": "Staterooms (2nd class)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 4,
+      "category": "crew",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Staterooms for 4 crewmen with common facilities, includes one airlock."
+    },
+    {
       "id": "staterooms",
-      "name": "Staterooms",
+      "name": "Staterooms (1st class)",
       "progressLevel": 6,
       "techTracks": [],
       "hullPoints": 2,
@@ -91,6 +105,62 @@
       "includesAirlock": true,
       "storesDaysPerPerson": 100,
       "description": "Staterooms for 2 crewmen with common facilities, includes one airlock."
+    },
+    {
+      "id": "troop-bunkroom",
+      "name": "Troop Bunkroom",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 3,
+      "powerRequired": 0,
+      "cost": 40000,
+      "capacity": 20,
+      "category": "troop",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Basic berthing for 20 troops with bunks, includes one airlock."
+    },
+    {
+      "id": "troop-quarters",
+      "name": "Troop Quarters",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 20000,
+      "capacity": 6,
+      "category": "troop",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Shared quarters for 6 troops with common facilities, includes one airlock."
+    },
+    {
+      "id": "troop-staterooms-2nd-class",
+      "name": "Troop Staterooms (2nd class)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 4,
+      "category": "troop",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Staterooms for 4 troops with common facilities, includes one airlock."
+    },
+    {
+      "id": "troop-staterooms-1st-class",
+      "name": "Troop Staterooms (1st class)",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 50000,
+      "capacity": 2,
+      "category": "troop",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Staterooms for 2 troops with common facilities, includes one airlock."
     },
     {
       "id": "seating-deck",

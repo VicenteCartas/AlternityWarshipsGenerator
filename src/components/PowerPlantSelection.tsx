@@ -28,6 +28,7 @@ import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getPowerPlantTypesForShipClass,
+  filterByDesignConstraints,
   calculatePowerGenerated,
   calculatePowerPlantCost,
   calculateFuelTankCost,
@@ -76,24 +77,7 @@ export function PowerPlantSelection({
 
   // Get power plants filtered by ship class, then apply design constraints
   const availablePowerPlants = useMemo(() => {
-    const byShipClass = getPowerPlantTypesForShipClass();
-    return byShipClass.filter((plant) => {
-      // Filter by progress level
-      if (plant.progressLevel > designProgressLevel) {
-        return false;
-      }
-      // Filter by tech tracks (if any are selected)
-      if (designTechTracks.length > 0 && plant.techTracks.length > 0) {
-        // Plant must have all its tech tracks in the allowed list
-        const hasAllowedTech = plant.techTracks.every((track) => 
-          designTechTracks.includes(track)
-        );
-        if (!hasAllowedTech) {
-          return false;
-        }
-      }
-      return true;
-    }).sort((a, b) => a.progressLevel - b.progressLevel);
+    return filterByDesignConstraints(getPowerPlantTypesForShipClass(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
   // Get installed power plants that require fuel (for the fuel tank dropdown)

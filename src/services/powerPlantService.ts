@@ -1,7 +1,8 @@
 import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull } from '../types/hull';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
-import { generateId } from './utilities';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
 /**
  * Get all power plant types
@@ -21,6 +22,16 @@ export function getFuelTankType(): FuelTankType {
  * Get power plant types available for a specific ship class
  * Note: Currently all power plants are available for all ship classes
  */
+// ============== Filtering ==============
+
+export function filterByDesignConstraints(
+  items: PowerPlantType[],
+  designProgressLevel: ProgressLevel,
+  designTechTracks: TechTrack[]
+): PowerPlantType[] {
+  return filterByConstraints(items, designProgressLevel, designTechTracks);
+}
+
 export function getPowerPlantTypesForShipClass(): PowerPlantType[] {
   return getAllPowerPlantTypes();
 }

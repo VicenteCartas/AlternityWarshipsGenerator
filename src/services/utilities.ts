@@ -50,10 +50,10 @@ export function filterByDesignConstraints<T extends DesignConstrainedItem>(
     // Filter by Tech Tracks:
     // - If designTechTracks is empty, show all components (no tech filtering)
     // - If item has no tech requirement, always show it
-    // - If item has tech requirements, only show if ALL required techs are available
+    // - If item has tech requirements, show if ANY required tech is available
     if (designTechTracks.length > 0 && item.techTracks.length > 0) {
-      const hasAllTechs = item.techTracks.every((tech) => designTechTracks.includes(tech));
-      if (!hasAllTechs) return false;
+      const hasAnyTech = item.techTracks.some((tech) => designTechTracks.includes(tech));
+      if (!hasAnyTech) return false;
     }
     
     return true;

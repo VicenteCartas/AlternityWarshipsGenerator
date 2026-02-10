@@ -378,10 +378,11 @@ export function SummarySelection({
         warnings.push(`Life support coverage at ${percentage}% (${supportStats.totalCoverage}/${hull.hullPoints} HP)`);
       }
 
-      // WARNING: Crew without 100% escape systems
-      if (hull.crew > 0 && hangarMiscStats.totalEvacCapacity < hull.crew) {
-        const percentage = Math.round((hangarMiscStats.totalEvacCapacity / hull.crew) * 100);
-        warnings.push(`Evacuation capacity at ${percentage}% (${hangarMiscStats.totalEvacCapacity}/${hull.crew} crew)`);
+      // WARNING: Crew and troops without 100% escape systems
+      const evacNeeded = hull.crew + supportStats.troopCapacity;
+      if (evacNeeded > 0 && hangarMiscStats.totalEvacCapacity < evacNeeded) {
+        const percentage = Math.round((hangarMiscStats.totalEvacCapacity / evacNeeded) * 100);
+        warnings.push(`Evacuation capacity at ${percentage}% (${hangarMiscStats.totalEvacCapacity}/${evacNeeded} people)`);
       }
 
       // WARNING: Launchers without ordnance

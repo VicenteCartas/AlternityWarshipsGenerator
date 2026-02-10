@@ -150,6 +150,16 @@ function createMenu() {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'View Data Files',
+          click: () => {
+            const dataPath = isDev
+              ? path.join(__dirname, '../src/data')
+              : path.join(process.resourcesPath, 'data');
+            shell.openPath(dataPath);
+          },
+        },
+        { type: 'separator' as const },
         { role: 'reload' as const },
         { role: 'forceReload' as const },
         { role: 'toggleDevTools' as const },

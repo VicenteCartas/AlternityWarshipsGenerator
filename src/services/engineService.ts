@@ -1,7 +1,8 @@
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
 import type { Hull } from '../types/hull';
+import type { ProgressLevel, TechTrack } from '../types/common';
 import { getEnginesData, getFuelTankData } from './dataLoader';
-import { generateId } from './utilities';
+import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
 
 /**
  * Get all engine types
@@ -14,6 +15,16 @@ export function getAllEngineTypes(): EngineType[] {
  * Get engine types available for a specific ship class
  * Note: Currently all engines are available for all ship classes
  */
+// ============== Filtering ==============
+
+export function filterByDesignConstraints(
+  items: EngineType[],
+  designProgressLevel: ProgressLevel,
+  designTechTracks: TechTrack[]
+): EngineType[] {
+  return filterByConstraints(items, designProgressLevel, designTechTracks);
+}
+
 export function getEngineTypesForShipClass(): EngineType[] {
   return getAllEngineTypes();
 }

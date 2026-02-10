@@ -22,7 +22,7 @@ export interface InstalledLifeSupport extends InstalledQuantityItem<LifeSupportT
 
 // ============== Accommodation Types ==============
 
-export type AccommodationCategory = 'crew' | 'passenger' | 'suspended';
+export type AccommodationCategory = 'crew' | 'passenger' | 'troop' | 'suspended';
 
 export interface AccommodationType {
   id: string;
@@ -132,6 +132,7 @@ export interface SupportSystemsStats extends BaseSystemStats {
   // Accommodations
   crewCapacity: number;
   passengerCapacity: number;
+  troopCapacity: number;
   suspendedCapacity: number;
   totalCapacity: number;
   freeAirlocks: number;

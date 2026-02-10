@@ -4,8 +4,23 @@
 
 ### Todo
 
-- Add an option to open the folder with the data files so user can edit them
+- Rather than just showing the broad system type and the size/power/cost overall, it may be better to show the individual systems under each category. Add a PDF option to enable/disable this.
+- Fix upgraded weapons they should be B/A instead.
+- Visual PDF bugs reported in 455 Corvette.
+- Add a duplicate system button for installed systems.
+- Clean all Add/Edit dialogs, and the Installed systems representation.
 - House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
+
+### Fixes
+
+- Bug: when a system contains multiple tech tracks now it only gets filtered out if none of the tracks are selected on the tech track filter.
+
+### Improvements
+
+- The View menu now contains "View Data Files" which opens the file explorer in the folder with the .json data files.
+- Crew and troops are now two different categories. Added new accommodations to support carrying troops separated from crew.
+- Added a new stateroom for crew/troops that can support 4 people to duplicate the second class passenger suites.
+- PDF now prints how many troops, passengers or stasis a ship carries.
 
 ## [0.2.3] - 2/8/2026
 

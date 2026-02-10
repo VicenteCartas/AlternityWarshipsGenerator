@@ -30,6 +30,7 @@ import type { InstalledPowerPlant } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getAllFTLDriveTypes,
+  filterByDesignConstraints,
   calculateFTLHullPercentage,
   getFTLRatingForPercentage,
   calculateFTLPowerRequired,
@@ -86,23 +87,7 @@ export function FTLDriveSelection({
 
   // Get all FTL drives, then filter by design constraints
   const availableDrives = useMemo(() => {
-    const allDrives = getAllFTLDriveTypes();
-    return allDrives.filter((drive) => {
-      // Filter by progress level
-      if (drive.progressLevel > designProgressLevel) {
-        return false;
-      }
-      // Filter by tech tracks (if any are selected)
-      if (designTechTracks.length > 0 && drive.techTracks.length > 0) {
-        const hasAllowedTech = drive.techTracks.every((track) =>
-          designTechTracks.includes(track)
-        );
-        if (!hasAllowedTech) {
-          return false;
-        }
-      }
-      return true;
-    }).sort((a, b) => a.progressLevel - b.progressLevel);
+    return filterByDesignConstraints(getAllFTLDriveTypes(), designProgressLevel, designTechTracks);
   }, [designProgressLevel, designTechTracks]);
 
   const totalStats = useMemo(

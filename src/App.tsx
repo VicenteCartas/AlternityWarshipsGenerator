@@ -797,7 +797,7 @@ function App() {
     
     // Check escape systems
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    if (hangarMiscStats.totalEvacCapacity < selectedHull.crew) return 'warning'; // Evacuation
+    if (hangarMiscStats.totalEvacCapacity < selectedHull.crew + supportStats.troopCapacity) return 'warning'; // Evacuation
     
     // Check launchers without ordnance
     const launchersWithoutOrdnance = installedLaunchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length;
@@ -1063,7 +1063,7 @@ function App() {
               installedSystems={installedHangarMisc}
               designProgressLevel={designProgressLevel}
               designTechTracks={designTechTracks}
-              totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity}
+              totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity + supportStats.troopCapacity}
               onSystemsChange={handleHangarMiscChange}
             />
           );
