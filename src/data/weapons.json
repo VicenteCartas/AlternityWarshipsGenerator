@@ -35,8 +35,8 @@
       ]
     },
     {
-      "id": "laser-burst",
-      "name": "Laser (Burst)",
+      "id": "laser-mod",
+      "name": "Laser (Mod)",
       "progressLevel": 6,
       "techTracks": [],
       "hullPoints": 2,
@@ -51,27 +51,7 @@
       "damage": "d4s/d4w/d4+2w",
       "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
       "fireModes": [
-        "F", "B"
-      ]
-    },
-    {
-      "id": "laser-auto",
-      "name": "Laser (Auto)",
-      "progressLevel": 6,
-      "techTracks": [],
-      "hullPoints": 2,
-      "powerRequired": 3,
-      "cost": 200000,
-      "accuracyModifier": -2,
-      "rangeShort": 1,
-      "rangeMedium": 2,
-      "rangeLong": 3,
-      "damageType": "En",
-      "firepower": "S",
-      "damage": "d4s/d4w/d4+2w",
-      "description": "The simplest beam weapon, the laser is used generally for small craft or point-defense batteries. It directs a focused beam of white-hot light to the target.",
-      "fireModes": [
-        "F", "A"
+        "B", "A"
       ]
     },
     {
@@ -95,8 +75,8 @@
       ]
     },
     {
-      "id": "ir-laser-burst",
-      "name": "IR Laser (Burst)",
+      "id": "ir-laser-mod",
+      "name": "IR Laser (Mod)",
       "progressLevel": 6,
       "techTracks": [],
       "hullPoints": 3,
@@ -111,27 +91,7 @@
       "damage": "d4+1s/d4+1w/d6+1w",
       "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
       "fireModes": [
-        "F", "B"
-      ]
-    },
-    {
-      "id": "ir-laser-auto",
-      "name": "IR Laser (Auto)",
-      "progressLevel": 6,
-      "techTracks": [],
-      "hullPoints": 3,
-      "powerRequired": 3,
-      "cost": 450000,
-      "accuracyModifier": -2,
-      "rangeShort": 1,
-      "rangeMedium": 2,
-      "rangeLong": 3,
-      "damageType": "En",
-      "firepower": "S",
-      "damage": "d4+1s/d4+1w/d6+1w",
-      "description": "Somewhat more powerful than the visible laser, the IR (infrared) laser focuses light in the infrared spectrum.",
-      "fireModes": [
-        "F", "A"
+        "B", "A"
       ]
     },
     {
@@ -155,8 +115,8 @@
       ]
     },
     {
-      "id": "x-ray-laser-burst",
-      "name": "X-Ray Laser (Burst)",
+      "id": "x-ray-laser-mod",
+      "name": "X-Ray Laser (Mod)",
       "progressLevel": 6,
       "techTracks": [],
       "hullPoints": 3,
@@ -171,27 +131,7 @@
       "damage": "d6+1s/d4+2w/d4m",
       "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
       "fireModes": [
-        "F", "B"
-      ]
-    },
-    {
-      "id": "x-ray-laser-auto",
-      "name": "X-Ray Laser (Auto)",
-      "progressLevel": 6,
-      "techTracks": [],
-      "hullPoints": 3,
-      "powerRequired": 4,
-      "cost": 750000,
-      "accuracyModifier": -2,
-      "rangeShort": 1,
-      "rangeMedium": 3,
-      "rangeLong": 3,
-      "damageType": "En",
-      "firepower": "S",
-      "damage": "d6+1s/d4+2w/d4m",
-      "description": "This device lases very high-energy x-rays. It is the most powerful of the light lasers.",
-      "fireModes": [
-        "F", "A"
+        "B", "A"
       ]
     },
     {
@@ -354,8 +294,8 @@
       ]
     },
     {
-      "id": "plasma-cannon-burst",
-      "name": "Plasma Cannon (Burst)",
+      "id": "plasma-cannon-mod",
+      "name": "Plasma Cannon (Mod)",
       "progressLevel": 7,
       "techTracks": [
         "F"
@@ -371,31 +311,7 @@
       "firepower": "S",
       "damage": "d6+2w/d8+2w/d6+1m",
       "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
-      "fireModes": [
-        "F", "B"
-      ]
-    },
-    {
-      "id": "plasma-cannon-auto",
-      "name": "Plasma Cannon (Auto)",
-      "progressLevel": 7,
-      "techTracks": [
-        "F"
-      ],
-      "hullPoints": 4,
-      "powerRequired": 5,
-      "cost": 600000,
-      "accuracyModifier": -2,
-      "rangeShort": 1,
-      "rangeMedium": 2,
-      "rangeLong": 4,
-      "damageType": "En",
-      "firepower": "S",
-      "damage": "d6+2w/d8+2w/d6+1m",
-      "description": "The plasma cannon uses a powerful charge to convert a mix of chemicals into a white-hot plasma and then accelerates the mass toward the target with a simple rail gun. The result is a bolt of incandescent plasma that can explosively vaporize mundane materials.",
-      "fireModes": [
-        "F", "A"
-      ]
+      "fireModes": ["B", "A"]
     },
     {
       "id": "particle-beam",
@@ -625,8 +541,8 @@
       ]
     },
     {
-      "id": "maser-burst",
-      "name": "Maser (Burst)",
+      "id": "maser-mod",
+      "name": "Maser (Mod)",
       "progressLevel": 8,
       "techTracks": [],
       "hullPoints": 5,
@@ -641,27 +557,7 @@
       "damage": "d6+2w/d4+1m/d6+2m",
       "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
       "fireModes": [
-        "F", "B"
-      ]
-    },
-    {
-      "id": "maser-auto",
-      "name": "Maser (Auto)",
-      "progressLevel": 8,
-      "techTracks": [],
-      "hullPoints": 5,
-      "powerRequired": 6,
-      "cost": 700000,
-      "accuracyModifier": -3,
-      "rangeShort": 1,
-      "rangeMedium": 3,
-      "rangeLong": 5,
-      "damageType": "En",
-      "firepower": "S",
-      "damage": "d6+2w/d4+1m/d6+2m",
-      "description": "The maser (microwave amplification by stimulated emission of radiation) fires concentrated microwave energy.",
-      "fireModes": [
-        "F", "A"
+        "B", "A"
       ]
     },
     {
@@ -708,8 +604,8 @@
       ]
     },
     {
-      "id": "pulse-maser-burst",
-      "name": "Pulse Maser (Burst)",
+      "id": "pulse-maser-mod",
+      "name": "Pulse Maser (Mod)",
       "progressLevel": 8,
       "techTracks": [],
       "hullPoints": 8,
@@ -724,30 +620,7 @@
       "damage": "d8+4w/d8+2m/d12+2m",
       "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
       "fireModes": [
-        "F",
-        "G",
-        "B"
-      ]
-    },
-    {
-      "id": "pulse-maser-auto",
-      "name": "Pulse Maser (Auto)",
-      "progressLevel": 8,
-      "techTracks": [],
-      "hullPoints": 8,
-      "powerRequired": 8,
-      "cost": 6000000,
-      "accuracyModifier": -1,
-      "rangeShort": 2,
-      "rangeMedium": 5,
-      "rangeLong": 10,
-      "damageType": "En",
-      "firepower": "L",
-      "damage": "d8+4w/d8+2m/d12+2m",
-      "description": "The pulse maser is a larger version of the maser, firing in high-energy pulses. ",
-      "fireModes": [
-        "F",
-        "G",
+        "B",
         "A"
       ]
     },

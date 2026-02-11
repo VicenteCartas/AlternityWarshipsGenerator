@@ -93,7 +93,7 @@
       "description": "Staterooms for 4 crewmen with common facilities, includes one airlock."
     },
     {
-      "id": "staterooms",
+      "id": "staterooms-1st-class",
       "name": "Staterooms (1st class)",
       "progressLevel": 6,
       "techTracks": [],

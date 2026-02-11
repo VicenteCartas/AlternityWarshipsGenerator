@@ -5,22 +5,23 @@
 ### Todo
 
 - Rather than just showing the broad system type and the size/power/cost overall, it may be better to show the individual systems under each category. Add a PDF option to enable/disable this.
-- Fix upgraded weapons they should be B/A instead.
 - Visual PDF bugs reported in 455 Corvette.
-- Clean all Add/Edit dialogs, and the Installed systems representation.
-- Add a duplicate system button for installed systems.
 - House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
 
 ### Fixes
 
 - Bug: when a system contains multiple tech tracks now it only gets filtered out if none of the tracks are selected on the tech track filter.
+- Bug: mod weapons were assigned the wrong fire modes, and were duplicated. So now instead of Laser (Auto) or Laser (Burst), it is Laser (Mod) with B/A fire modes.
 
 ### Improvements
 
-- The View menu now contains "View Data Files" which opens the file explorer in the folder with the .json data files.
-- Crew and troops are now two different categories. Added new accommodations to support carrying troops separated from crew.
-- Added a new stateroom for crew/troops that can support 4 people to duplicate the second class passenger suites.
-- PDF now prints how many troops, passengers or stasis a ship carries.
+- [Data] The View menu now contains "View Data Files" which opens the file explorer in the folder with the .json data files.
+- [Data] Crew and troops are now two different categories. Added new accommodations to support carrying troops separated from crew.
+- [Data] Added a new stateroom for crew/troops that can support 4 people to duplicate the second class passenger suites.
+- [UI] Reviewed all Add/Edit dialogs.
+- [UI] Reviewed and updated all Installed systems representation.
+- [UI] Add a duplicate system button for installed systems.
+- [Export] PDF now prints how many troops, passengers or stasis a ship carries.
 
 ## [0.2.3] - 2/8/2026
 
@@ -36,7 +37,7 @@
 
 ### Improvements
 
-- Multiple changes on PDF printing. Ship is now divided in 4 sections: information, damage diagrams, defenses, and weapons. Each on its own page/pages. Damage zones are now visually organized like a real ship.
+- [Export] Multiple changes on PDF printing. Ship is now divided in 4 sections: information, damage diagrams, defenses, and weapons. Each on its own page/pages. Damage zones are now visually organized like a real ship.
 
 ## [0.2.2] - 2/6/2026
 
