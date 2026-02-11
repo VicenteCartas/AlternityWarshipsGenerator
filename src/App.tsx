@@ -1092,6 +1092,7 @@ function App() {
             installedGravitySystems={installedGravitySystems}
             installedWeapons={installedWeapons}
             installedLaunchSystems={installedLaunchSystems}
+            ordnanceDesigns={ordnanceDesigns}
             installedDefenses={installedDefenses}
             installedCommandControl={installedCommandControl}
             installedSensors={installedSensors}

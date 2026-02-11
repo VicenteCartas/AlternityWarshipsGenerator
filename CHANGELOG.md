@@ -6,21 +6,24 @@
 
 - Rather than just showing the broad system type and the size/power/cost overall, it may be better to show the individual systems under each category. Add a PDF option to enable/disable this.
 - Visual PDF bugs reported in 455 Corvette.
+- Mods support.
+- Add stations.
 - House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
 
 ### Fixes
 
 - Bug: when a system contains multiple tech tracks now it only gets filtered out if none of the tracks are selected on the tech track filter.
-- Bug: mod weapons were assigned the wrong fire modes, and were duplicated. So now instead of Laser (Auto) or Laser (Burst), it is Laser (Mod) with B/A fire modes.
+- Bug: auto/burst weapons were assigned the wrong fire modes and were duplicated. So now instead of Laser (Auto) or Laser (Burst), it is Laser (Mod) with B/A fire modes.
+- Bug: multiple UI bugs with Add/Edit dialogs not having the correct styling.
 
 ### Improvements
 
 - [Data] The View menu now contains "View Data Files" which opens the file explorer in the folder with the .json data files.
 - [Data] Crew and troops are now two different categories. Added new accommodations to support carrying troops separated from crew.
 - [Data] Added a new stateroom for crew/troops that can support 4 people to duplicate the second class passenger suites.
-- [UI] Reviewed all Add/Edit dialogs.
-- [UI] Reviewed and updated all Installed systems representation.
-- [UI] Add a duplicate system button for installed systems.
+- [UI] Reviewed all Add/Edit forms.
+- [UI] Reviewed and updated all Installed systems lists.
+- [UI] Add a duplicate system button for Installed systems.
 - [Export] PDF now prints how many troops, passengers or stasis a ship carries.
 
 ## [0.2.3] - 2/8/2026

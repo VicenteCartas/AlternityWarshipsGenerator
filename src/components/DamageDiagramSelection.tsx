@@ -30,7 +30,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { InstalledLaunchSystem } from '../types/ordnance';
+import type { InstalledLaunchSystem, OrdnanceDesign } from '../types/ordnance';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import type {
   DamageZone,
@@ -63,6 +63,7 @@ interface DamageDiagramSelectionProps {
   installedGravitySystems: InstalledGravitySystem[];
   installedWeapons: InstalledWeapon[];
   installedLaunchSystems: InstalledLaunchSystem[];
+  ordnanceDesigns: OrdnanceDesign[];
   installedDefenses: InstalledDefenseSystem[];
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
@@ -138,6 +139,7 @@ function buildUnassignedSystemsList(
   installedGravitySystems: InstalledGravitySystem[],
   installedWeapons: InstalledWeapon[],
   installedLaunchSystems: InstalledLaunchSystem[],
+  ordnanceDesigns: OrdnanceDesign[],
   installedDefenses: InstalledDefenseSystem[],
   installedCommandControl: InstalledCommandControlSystem[],
   installedSensors: InstalledSensor[],
@@ -308,9 +310,14 @@ function buildUnassignedSystemsList(
     const id = `launch-${ls.id}`;
     if (!assignedSystemIds.has(id)) {
       const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
+      const ordnanceNames = (ls.loadout || []).map(lo => {
+        const design = ordnanceDesigns.find(d => d.id === lo.designId);
+        return design ? design.name : '';
+      }).filter(Boolean);
+      const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
       systems.push({
         id,
-        name: `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}`,
+        name: `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`,
         hullPoints: ls.hullPoints,
         category: 'weapon',
         firepowerOrder: 99, // Launch systems are treated as heavy weapons
@@ -397,6 +404,7 @@ export function DamageDiagramSelection({
   installedGravitySystems,
   installedWeapons,
   installedLaunchSystems,
+  ordnanceDesigns,
   installedDefenses,
   installedCommandControl,
   installedSensors,
@@ -446,6 +454,7 @@ export function DamageDiagramSelection({
       installedGravitySystems,
       installedWeapons,
       installedLaunchSystems,
+      ordnanceDesigns,
       installedDefenses,
       installedCommandControl,
       installedSensors,
@@ -465,6 +474,7 @@ export function DamageDiagramSelection({
     installedGravitySystems,
     installedWeapons,
     installedLaunchSystems,
+    ordnanceDesigns,
     installedDefenses,
     installedCommandControl,
     installedSensors,
@@ -486,6 +496,7 @@ export function DamageDiagramSelection({
       installedGravitySystems,
       installedWeapons,
       installedLaunchSystems,
+      ordnanceDesigns,
       installedDefenses,
       installedCommandControl,
       installedSensors,
@@ -505,6 +516,7 @@ export function DamageDiagramSelection({
     installedGravitySystems,
     installedWeapons,
     installedLaunchSystems,
+    ordnanceDesigns,
     installedDefenses,
     installedCommandControl,
     installedSensors,

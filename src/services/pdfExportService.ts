@@ -1044,6 +1044,20 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
         pdf.text(fcText, wCols[6], y);
         pdf.text(ls.quantity.toString(), wCols[7], y);
         y += 4;
+
+        // List loaded ordnance under the launcher
+        for (const loadedItem of ls.loadout || []) {
+          const design = (data.ordnanceDesigns || []).find(d => d.id === loadedItem.designId);
+          if (design) {
+            checkNewPage(6);
+            pdf.setFontSize(5.5);
+            pdf.setFont('helvetica', 'italic');
+            pdf.text(`  \u2514 ${design.name} \xD7${loadedItem.quantity}`, wCols[0], y);
+            pdf.setFontSize(6.5);
+            pdf.setFont('helvetica', 'normal');
+            y += 3.5;
+          }
+        }
       }
     }
 
