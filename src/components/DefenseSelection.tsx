@@ -20,6 +20,7 @@ import {
   Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -112,8 +113,9 @@ export function DefenseSelection({
   // Handlers
   const handleSelectDefense = (type: DefenseSystemType) => {
     setSelectedDefense(type);
-    // Default to full coverage for screen types
-    if (type.coverage > 0) {
+    // Default to full coverage for fixed-coverage screen types (quantity = raw unit count)
+    // For coverageMultiples, quantity means "number of sets" so default to 1
+    if (type.fixedCoverage && type.coverage > 0) {
       const fullCoverage = calculateUnitsForFullCoverage(type, hull.hullPoints);
       setDefenseQuantity(fullCoverage.toString());
     } else {
@@ -147,9 +149,8 @@ export function DefenseSelection({
       // Check if same type already exists
       const existing = installedDefenses.find((d) => d.type.id === selectedDefense.id);
       if (existing) {
-        // For coverage-based or percentage-based systems, don't stack - just ignore re-add
-        if (selectedDefense.coverage > 0 || selectedDefense.hullPercentage > 0) {
-          // Already installed at full coverage, nothing to do
+        // For percentage-based systems, don't stack - just ignore re-add
+        if (selectedDefense.hullPercentage > 0) {
           setSelectedDefense(null);
           setDefenseQuantity('1');
           setEditingDefenseId(null);
@@ -197,6 +198,17 @@ export function DefenseSelection({
     setSelectedDefense(installed.type);
     setDefenseQuantity(installed.quantity.toString());
     setEditingDefenseId(installed.id);
+  };
+
+  const handleDuplicateDefense = (defense: InstalledDefenseSystem) => {
+    const newDefense: InstalledDefenseSystem = {
+      ...defense,
+      id: generateDefenseId(),
+    };
+    const index = installedDefenses.findIndex((d) => d.id === defense.id);
+    const updated = [...installedDefenses];
+    updated.splice(index + 1, 0, newDefense);
+    onDefensesChange(updated);
   };
 
   const handleRemoveDefense = (id: string) => {
@@ -291,7 +303,7 @@ export function DefenseSelection({
             >
               <Typography variant="body2" sx={{ flex: 1 }}>
                 {defense.type.name}
-                {defense.quantity > 1 && ` (×${defense.quantity})`}
+                {defense.quantity > 1 && !defense.type.fixedCoverage && ` (×${defense.quantity})`}
               </Typography>
               <Chip
                 label={`${defense.hullPoints} HP`}
@@ -304,17 +316,17 @@ export function DefenseSelection({
                 variant="outlined"
               />
               <Chip
-                label={formatCost(defense.cost)}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
                 label={defense.type.shieldPoints 
                   ? `${defense.type.shieldPoints * defense.quantity} shield points`
                   : defense.type.effect
                 }
                 size="small"
                 color="primary"
+                variant="outlined"
+              />
+              <Chip
+                label={formatCost(defense.cost)}
+                size="small"
                 variant="outlined"
               />
               {/* Multiple screens warning */}
@@ -361,6 +373,15 @@ export function DefenseSelection({
                   <EditIcon fontSize="small" />
                 </IconButton>
               )}
+              {/* Duplicate button - not shown for percentage-based or fixed coverage systems */}
+              {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleDuplicateDefense(defense)}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              )}
               <IconButton
                 size="small"
                 onClick={() => handleRemoveDefense(defense.id)}
@@ -382,77 +403,23 @@ export function DefenseSelection({
     const defenseCategory = selectedDefense.category === 'shield-component' ? 'screen' : selectedDefense.category;
     if (defenseCategory !== category) return null;
 
-    const minCoverage = selectedDefense.coverage > 0 
+    const unitsForFullCoverage = selectedDefense.coverage > 0 
       ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) 
-      : 1;
+      : 0;
 
-    // For coverageMultiples, quantity must be in increments of minCoverage
+    // Simple quantity change handler
     const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (selectedDefense.coverageMultiples) {
-        const value = parseInt(e.target.value, 10) || minCoverage;
-        // Round to nearest multiple of minCoverage
-        const rounded = Math.max(minCoverage, Math.round(value / minCoverage) * minCoverage);
-        setDefenseQuantity(rounded.toString());
-      } else {
-        setDefenseQuantity(e.target.value);
-      }
+      setDefenseQuantity(e.target.value);
     };
 
     // Determine if quantity input should be shown
     const showQuantityInput = !(selectedDefense.hullPercentage > 0) && !selectedDefense.fixedCoverage;
 
     return (
-      <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-          {/* Quantity/Size input - not shown for percentage-based or fixed coverage */}
-          {showQuantityInput && (
-            <TextField
-              type="number"
-              size="small"
-              value={defenseQuantity}
-              onChange={handleQuantityChange}
-              inputProps={{ 
-                min: minCoverage, 
-                max: 99,
-                step: selectedDefense.coverageMultiples ? minCoverage : 1,
-                style: { textAlign: 'center', width: 40 } 
-              }}
-              sx={{ width: 90 }}
-              label={selectedDefense.allowVariableSize ? "Size" : "Quantity"}
-              helperText={selectedDefense.coverageMultiples ? `Cov: ×${minCoverage}` : undefined}
-            />
-          )}
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-            {selectedDefense.name}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {previewHullPts} HP | {previewPower} Power | {formatCost(previewCost)}
-            {selectedDefense.fixedCoverage && ` | Qty: ${minCoverage} (full coverage)`}
-          </Typography>
-
-          {/* Actions - moved to same row */}
-          <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                setSelectedDefense(null);
-                setDefenseQuantity('1');
-                setEditingDefenseId(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={editingDefenseId ? <SaveIcon /> : <AddIcon />}
-              onClick={handleAddDefense}
-            >
-              {editingDefenseId ? 'Save' : 'Add'}
-            </Button>
-          </Box>
-        </Box>
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          {editingDefenseId ? 'Edit' : 'Add'} {selectedDefense.name}
+        </Typography>
 
         {/* Warnings */}
         {screenConflict && (
@@ -470,7 +437,58 @@ export function DefenseSelection({
             Cannot be used at the same time as: {incompatibleCountermeasures.join(', ')}
           </Alert>
         )}
-      </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+          {/* Quantity/Size input - not shown for percentage-based or fixed coverage */}
+          {showQuantityInput && (
+            <TextField
+              type="number"
+              size="small"
+              value={defenseQuantity}
+              onChange={handleQuantityChange}
+              inputProps={{ 
+                min: 1, 
+                max: 99,
+                style: { textAlign: 'center', width: 40 } 
+              }}
+              sx={{ width: 90 }}
+              label={selectedDefense.allowVariableSize ? "Size" : "Quantity"}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} | Power: {previewPower}
+              {selectedDefense.fixedCoverage && ` | Qty: ${calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints)}`}
+              {' | '}
+              {selectedDefense.shieldPoints 
+                ? `${selectedDefense.shieldPoints * (selectedDefense.fixedCoverage ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) : previewQuantity)} shield points`
+                : selectedDefense.effect}
+              {` | Cost: ${formatCost(previewCost)}`}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedDefense(null);
+                  setDefenseQuantity('1');
+                  setEditingDefenseId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={editingDefenseId ? <SaveIcon /> : <AddIcon />}
+                onClick={handleAddDefense}
+              >
+                {editingDefenseId ? 'Save' : 'Add'}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
     );
   };
 

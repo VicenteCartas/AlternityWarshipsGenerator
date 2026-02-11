@@ -21,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -166,22 +167,12 @@ export function HangarMiscSelection({
     onSystemsChange(installedSystems.filter((s) => s.id !== id));
   };
 
-  // Calculate preview values
-  const previewQuantity = parseInt(systemQuantity, 10) || 1;
-  const previewHullPts = selectedSystem ? calculateHangarMiscHullPoints(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-
-  const getCategoryLabel = (category: HangarMiscCategory): string => {
-    switch (category) {
-      case 'hangar': return 'Hangars';
-      case 'cargo': return 'Cargo';
-      case 'emergency': return 'Emergency';
-      case 'facility': return 'Facilities';
-      case 'utility': return 'Utility';
-      default: return category;
-    }
+  const handleDuplicateSystem = (system: InstalledHangarMiscSystem) => {
+    const duplicate = createInstalledHangarMiscSystem(system.type, hull.hullPoints, system.quantity);
+    const index = installedSystems.findIndex((s) => s.id === system.id);
+    const updated = [...installedSystems];
+    updated.splice(index + 1, 0, duplicate);
+    onSystemsChange(updated);
   };
 
   // Format capacity display
@@ -191,6 +182,11 @@ export function HangarMiscSelection({
     // For evacuation systems, just show "X people"
     if (system.evacCapacity) {
       return `${capacity} people`;
+    }
+    
+    // For cargo systems, show "Cargo: X m³"
+    if (system.cargoCapacity) {
+      return `Cargo: ${capacity} m³`;
     }
     
     // For brig, show "X prisoners"
@@ -253,17 +249,29 @@ export function HangarMiscSelection({
     return `${capacity}`;
   };
 
-  // Determine helper text for quantity - only show for special effects, not "X hp each"
-  const getQuantityHelperText = (system: HangarMiscSystemType): string | undefined => {
-    if (system.hullPercentage) {
-      const hpPer = Math.ceil((hull.hullPoints * system.hullPercentage) / 100);
-      return `${hpPer} HP per unit (${system.hullPercentage}% of hull)`;
+  // Calculate preview values
+  const previewQuantity = parseInt(systemQuantity, 10) || 1;
+  const previewHullPts = selectedSystem ? calculateHangarMiscHullPoints(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  const totalPeople = hull.crew + totalPassengersAndSuspended;
+  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity)
+    ? ` | ${formatCapacity(selectedSystem, previewCapacity)}${selectedSystem.evacCapacity && totalPeople > 0 ? ` (${Math.round((previewCapacity / totalPeople) * 100)}%)` : ''}`
+    : '';
+  const previewServiceStr = selectedSystem?.cargoServiceCapacity
+    ? ` | Services ${selectedSystem.cargoServiceCapacity * previewQuantity} HP cargo`
+    : '';
+
+  const getCategoryLabel = (category: HangarMiscCategory): string => {
+    switch (category) {
+      case 'hangar': return 'Hangars';
+      case 'cargo': return 'Cargo';
+      case 'emergency': return 'Emergency';
+      case 'facility': return 'Facilities';
+      case 'utility': return 'Utility';
+      default: return category;
     }
-    if (system.capacityPerHull) {
-      return `${system.hullPoints} HP = ${system.capacityPerHull}`;
-    }
-    // Don't show "X HP each" - it's redundant
-    return undefined;
   };
 
   // Render installed systems for a category
@@ -294,14 +302,13 @@ export function HangarMiscSelection({
                 >
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     {system.type.name}
-                    {system.quantity > 1 && ` (×${system.quantity})`}
+                    {system.quantity > 1 && system.type.costPer !== 'systemHp' && ` (×${system.quantity})`}
                   </Typography>
                   <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                  <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
-                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity) && (
+                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.ordnanceCapacity) && (
                     <Chip 
-                      label={formatCapacity(system.type, system.capacity)} 
+                      label={`${formatCapacity(system.type, system.capacity)}${system.type.evacCapacity && totalPeople > 0 ? ` (${Math.round((system.capacity / totalPeople) * 100)}%)` : ''}`} 
                       size="small" 
                       color="primary" 
                       variant="outlined" 
@@ -326,10 +333,16 @@ export function HangarMiscSelection({
                   {system.type.effect && !system.type.cargoServiceCapacity && (
                     <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
                   )}
-                  {/* Hide edit button for toggle systems (single-quantity percentage-based) */}
+                  <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                  {/* Hide edit/duplicate buttons for toggle systems (single-quantity percentage-based) */}
                   {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
                     <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
                       <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
+                    <IconButton size="small" onClick={() => handleDuplicateSystem(system)}>
+                      <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   )}
                   <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
@@ -354,23 +367,17 @@ export function HangarMiscSelection({
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
-            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Hull Points' : 'Quantity')}
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Size (HP)' : 'Quantity')}
             type="number"
             size="small"
             value={systemQuantity}
             onChange={(e) => setSystemQuantity(e.target.value)}
             inputProps={{ min: selectedSystem.minQuantity || 1 }}
-            helperText={getQuantityHelperText(selectedSystem)}
             sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
-              HP: {previewHullPts} |
-              Power: {previewPower} |
-              Cost: {formatCost(previewCost)}
-              {previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity) && (
-                <> | {formatCapacity(selectedSystem, previewCapacity)}</>
-              )}
+              HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -407,25 +414,22 @@ export function HangarMiscSelection({
 
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+          Add {selectedSystem.name}
+        </Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
-            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Hull Points' : 'Quantity')}
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Size (HP)' : 'Quantity')}
             type="number"
             size="small"
             value={systemQuantity}
             onChange={(e) => setSystemQuantity(e.target.value)}
             inputProps={{ min: selectedSystem.minQuantity || 1 }}
-            helperText={getQuantityHelperText(selectedSystem)}
             sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
-              HP: {previewHullPts} |
-              Power: {previewPower} |
-              Cost: {formatCost(previewCost)}
-              {previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity) && (
-                <> | {formatCapacity(selectedSystem, previewCapacity)}</>
-              )}
+              HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -564,8 +568,8 @@ export function HangarMiscSelection({
           )}
           {stats.totalEvacCapacity > 0 && (
             <Chip 
-              label={`Evac: ${stats.totalEvacCapacity}/${hull.crew + totalPassengersAndSuspended} people`} 
-              color={stats.totalEvacCapacity >= hull.crew + totalPassengersAndSuspended ? 'success' : 'warning'} 
+              label={`Evac: ${stats.totalEvacCapacity}/${totalPeople} people${totalPeople > 0 ? ` (${Math.round((stats.totalEvacCapacity / totalPeople) * 100)}%)` : ''}`} 
+              color={stats.totalEvacCapacity >= totalPeople ? 'success' : 'warning'} 
               variant="outlined" 
             />
           )}

@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import { headerCellSx } from '../constants/tableStyles';
@@ -38,6 +39,7 @@ import {
   getPropulsionSystems,
   getGuidanceSystems,
   filterLaunchSystemsByConstraints,
+  generateLaunchSystemId,
   calculateLaunchSystemStats,
   createInstalledLaunchSystem,
   getUsedCapacity,
@@ -98,6 +100,19 @@ export function InstalledLaunchSystems({
   // Check if we can do inline editing (all required props provided)
   const canInlineEdit = onLaunchSystemsChange && onOrdnanceDesignsChange && onEditComplete;
 
+  const handleDuplicateLaunchSystem = (ls: InstalledLaunchSystem) => {
+    if (!onLaunchSystemsChange) return;
+    const duplicate: InstalledLaunchSystem = {
+      ...ls,
+      id: generateLaunchSystemId(),
+      loadout: ls.loadout.map(item => ({ ...item })),
+    };
+    const index = launchSystems.findIndex((s) => s.id === ls.id);
+    const updated = [...launchSystems];
+    updated.splice(index + 1, 0, duplicate);
+    onLaunchSystemsChange(updated);
+  };
+
   if (launchSystems.length === 0) return null;
 
   return (
@@ -154,6 +169,13 @@ export function InstalledLaunchSystems({
                 <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
                   <EditIcon fontSize="small" />
                 </IconButton>
+                {onLaunchSystemsChange && (
+                  <Tooltip title="Duplicate">
+                    <IconButton size="small" onClick={() => handleDuplicateLaunchSystem(ls)}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <IconButton size="small" onClick={() => onRemove(ls.id)} color="error">
                   <DeleteIcon fontSize="small" />
                 </IconButton>

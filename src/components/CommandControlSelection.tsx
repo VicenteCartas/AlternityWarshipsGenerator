@@ -24,6 +24,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -133,24 +134,15 @@ export function CommandControlSelection({
     return systemsByCategory.computer.filter((s) => s.isCore);
   }, [systemsByCategory.computer]);
 
-  // Get control computers that can be shown based on installed core quality
-  const availableControlComputers = useMemo(() => {
-    // Control computers require a core to be installed
-    const controls = systemsByCategory.computer.filter((s) => s.requiresCore);
-    if (!hasCore || !coreQuality) return []; // No core installed, no controls available
-    // Filter by quality - only show controls where maxQuality <= coreQuality
-    return controls.filter((s) => {
-      if (!s.maxQuality) return true;
-      return QUALITY_ORDER[s.maxQuality] <= QUALITY_ORDER[coreQuality];
-    });
-  }, [systemsByCategory.computer, hasCore, coreQuality]);
-
   // Get other computer systems (like Attack Computer that doesn't require core)
+  // Hide weapon-linked systems if no weapons are installed
   const otherComputerSystems = useMemo(() => {
-    return systemsByCategory.computer.filter(
-      (s) => !s.isCore && !s.requiresCore
-    );
-  }, [systemsByCategory.computer]);
+    return systemsByCategory.computer.filter((s) => {
+      if (s.isCore || s.requiresCore) return false;
+      if (s.linkedSystemType === 'weapon' && installedWeapons.length === 0 && installedLaunchSystems.length === 0) return false;
+      return true;
+    });
+  }, [systemsByCategory.computer, installedWeapons, installedLaunchSystems]);
 
   // Check installed control computers for quality issues
   const controlsWithQualityIssues = useMemo(() => {
@@ -196,6 +188,27 @@ export function CommandControlSelection({
       return !sensorHasSensorControl(sensor.id, installedSystems);
     });
   }, [installedSensors, installedSystems, editingSystemId]);
+
+  // Get control computers that can be shown based on installed core quality
+  // Also filters out fire/sensor controls when no targets are available
+  const availableControlComputers = useMemo(() => {
+    // Control computers require a core to be installed
+    const controls = systemsByCategory.computer.filter((s) => s.requiresCore);
+    if (!hasCore || !coreQuality) return []; // No core installed, no controls available
+    // Filter by quality - only show controls where maxQuality <= coreQuality
+    return controls.filter((s) => {
+      if (!s.maxQuality) return true;
+      if (s.maxQuantity) {
+        const installed = installedSystems.find((i) => i.type.id === s.id);
+        if (installed && installed.quantity >= s.maxQuantity) return false;
+      }
+      // Hide fire controls if no weapon batteries available to assign
+      if (s.linkedSystemType === 'weapon' && availableWeaponBatteries.length === 0) return false;
+      // Hide sensor controls if no sensors available to assign
+      if (s.linkedSystemType === 'sensor' && availableSensorsForControl.length === 0) return false;
+      return QUALITY_ORDER[s.maxQuality] <= QUALITY_ORDER[coreQuality];
+    });
+  }, [systemsByCategory.computer, hasCore, coreQuality, installedSystems, availableWeaponBatteries, availableSensorsForControl]);
 
   // Get orphaned Fire Controls (battery no longer exists)
   const orphanedFireControls = useMemo(() => {
@@ -345,7 +358,16 @@ export function CommandControlSelection({
       // Check if same type already exists (for stackable items)
         const existing = updatedSystems.find((s) => s.type.id === selectedSystem.id);
         if (existing && !selectedSystem.isRequired && !selectedSystem.coveragePerHullPoint) {
-          const newQuantity = existing.quantity + quantity;
+          // Enforce maxQuantity if defined
+          if (selectedSystem.maxQuantity && existing.quantity >= selectedSystem.maxQuantity) {
+            setSelectedSystem(null);
+            setSystemQuantity('1');
+            setEditingSystemId(null);
+            return;
+          }
+          const newQuantity = selectedSystem.maxQuantity
+            ? Math.min(existing.quantity + quantity, selectedSystem.maxQuantity)
+            : existing.quantity + quantity;
           const newHullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, newQuantity);
           const newPower = calculateCommandControlPower(selectedSystem, newQuantity);
           const newCost = calculateCommandControlCost(selectedSystem, hull.hullPoints, newQuantity);
@@ -404,6 +426,17 @@ export function CommandControlSelection({
 
   const handleRemoveSystem = (id: string) => {
     onSystemsChange(installedSystems.filter((s) => s.id !== id));
+  };
+
+  const handleDuplicateSystem = (system: InstalledCommandControlSystem) => {
+    const newSystem: InstalledCommandControlSystem = {
+      ...system,
+      id: generateCommandControlId(),
+    };
+    const index = installedSystems.findIndex((s) => s.id === system.id);
+    const updated = [...installedSystems];
+    updated.splice(index + 1, 0, newSystem);
+    onSystemsChange(updated);
   };
 
   // Compute warnings for selected system
@@ -510,7 +543,7 @@ export function CommandControlSelection({
                 >
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     {system.type.name}
-                    {system.quantity > 1 && ` (×${system.quantity})`}
+                    {system.quantity > 1 && !system.type.coveragePerHullPoint && ` (×${system.quantity})`}
                   </Typography>
                   <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
@@ -544,9 +577,18 @@ export function CommandControlSelection({
                       variant="outlined"
                     />
                   )}
-                  <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
+                  {!system.type.isCore && system.type.maxQuantity !== 1 && (
+                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {!system.type.isCore && system.type.id !== 'cockpit' && !system.type.linkedSystemType && (
+                    <Tooltip title="Duplicate">
+                      <IconButton size="small" onClick={() => handleDuplicateSystem(system)}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -571,6 +613,9 @@ export function CommandControlSelection({
 
     return (
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Edit {selectedSystem.name}
+        </Typography>
         {controlQualityWarning && (
           <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
             {coreQuality 
@@ -653,8 +698,8 @@ export function CommandControlSelection({
               sx={{ width: 100 }}
             />
           )}
-          {/* Standard systems: simple quantity */}
-          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && (
+          {/* Standard systems: simple quantity (hide for maxQuantity 1) */}
+          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && selectedSystem.maxQuantity !== 1 && (
             <TextField
               label="Quantity"
               type="number"
@@ -717,6 +762,9 @@ export function CommandControlSelection({
 
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Add {selectedSystem.name}
+        </Typography>
         {controlQualityWarning && (
           <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
             {coreQuality 
@@ -800,8 +848,8 @@ export function CommandControlSelection({
               sx={{ width: 150 }}
             />
           )}
-          {/* Standard systems: simple quantity */}
-          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && (
+          {/* Standard systems: simple quantity (hide for maxQuantity 1) */}
+          {!isLinkedControl && !selectedSystem.coveragePerHullPoint && selectedSystem.maxQuantity !== 1 && (
             <TextField
               label="Quantity"
               type="number"

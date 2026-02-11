@@ -7,8 +7,8 @@
 - Rather than just showing the broad system type and the size/power/cost overall, it may be better to show the individual systems under each category. Add a PDF option to enable/disable this.
 - Fix upgraded weapons they should be B/A instead.
 - Visual PDF bugs reported in 455 Corvette.
-- Add a duplicate system button for installed systems.
 - Clean all Add/Edit dialogs, and the Installed systems representation.
+- Add a duplicate system button for installed systems.
 - House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
 
 ### Fixes

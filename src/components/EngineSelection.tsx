@@ -20,6 +20,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -173,6 +174,18 @@ export function EngineSelection({
     setEditingid(installation.id);
   };
 
+  const handleDuplicateEngine = (installation: InstalledEngine) => {
+    const duplicate: InstalledEngine = {
+      id: generateEngineInstallationId(),
+      type: installation.type,
+      hullPoints: installation.hullPoints,
+    };
+    const index = installedEngines.findIndex(e => e.id === installation.id);
+    const updated = [...installedEngines];
+    updated.splice(index + 1, 0, duplicate);
+    onEnginesChange(updated);
+  };
+
   const handleClearAll = () => {
     onEnginesChange([]);
     onFuelTanksChange([]);
@@ -249,6 +262,18 @@ export function EngineSelection({
     onFuelTanksChange(
       installedFuelTanks.filter(ft => ft.id !== id)
     );
+  };
+
+  const handleDuplicateFuelTank = (fuelTank: InstalledEngineFuelTank) => {
+    const duplicate: InstalledEngineFuelTank = {
+      id: generateEngineFuelTankId(),
+      forEngineType: fuelTank.forEngineType,
+      hullPoints: fuelTank.hullPoints,
+    };
+    const index = installedFuelTanks.findIndex(ft => ft.id === fuelTank.id);
+    const updated = [...installedFuelTanks];
+    updated.splice(index + 1, 0, duplicate);
+    onFuelTanksChange(updated);
   };
 
   // ============== Validation ==============
@@ -504,6 +529,12 @@ export function EngineSelection({
                     </IconButton>
                     <IconButton
                       size="small"
+                      onClick={() => handleDuplicateEngine(installation)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="error"
                       onClick={() => handleRemoveEngine(installation.id)}
                     >
@@ -515,7 +546,7 @@ export function EngineSelection({
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
-                          label="Hull Points"
+                          label="Size (HP)"
                           type="number"
                           size="small"
                           value={hullPointsInput}
@@ -527,9 +558,9 @@ export function EngineSelection({
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {previewStats && (
                             <Typography variant="caption" color="text.secondary">
-                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
-                              Power: {previewStats.powerRequired} | Cost: {formatCost(previewStats.engineCost)}
+                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
                               {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
+                              {' | Cost: '}{formatCost(previewStats.engineCost)}
                             </Typography>
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -627,6 +658,12 @@ export function EngineSelection({
                     </IconButton>
                     <IconButton
                       size="small"
+                      onClick={() => handleDuplicateFuelTank(fuelTank)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="error"
                       onClick={() => handleRemoveFuelTank(fuelTank.id)}
                     >
@@ -638,19 +675,18 @@ export function EngineSelection({
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
-                          label="Hull Points"
+                          label="Size (HP)"
                           type="number"
                           size="small"
                           value={fuelTankHullPointsInput}
                           onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
                           inputProps={{ min: 1 }}
-                          helperText={`Efficiency: ${addingFuelTankForType.fuelEfficiency} thrust-days/HP`}
                           sx={{ width: 140 }}
                         />
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {fuelTankPreviewStats && (
                             <Typography variant="caption" color="text.secondary">
-                              Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} thrust-days
+                              Efficiency: {addingFuelTankForType.fuelEfficiency} thrust-days/HP | Endurance: {fuelTankPreviewStats.endurance} thrust-days | Cost: {formatCost(fuelTankPreviewStats.cost)}
                             </Typography>
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -700,19 +736,18 @@ export function EngineSelection({
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
-              label="Hull Points"
+              label="Size (HP)"
               type="number"
               size="small"
               value={fuelTankHullPointsInput}
               onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
               inputProps={{ min: 1 }}
-              helperText={`Efficiency: ${addingFuelTankForType.fuelEfficiency} thrust-days/HP`}
               sx={{ width: 140 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {fuelTankPreviewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} thrust-days
+                  Efficiency: {addingFuelTankForType.fuelEfficiency} thrust-days/HP | Endurance: {fuelTankPreviewStats.endurance} thrust-days | Cost: {formatCost(fuelTankPreviewStats.cost)}
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -779,21 +814,21 @@ export function EngineSelection({
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
-              label="Hull Points"
+              label="Size (HP)"
               type="number"
               size="small"
               value={hullPointsInput}
               onChange={(e) => setHullPointsInput(e.target.value)}
               inputProps={{ min: selectedType.minSize }}
-              helperText={<>Min: {selectedType.minSize}<br />Power: {selectedType.powerPerHullPoint}/HP</>}
+              helperText={`Min: ${selectedType.minSize}`}
               sx={{ width: 140 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | 
-                  Power: {previewStats.powerRequired} | Cost: {formatCost(previewStats.engineCost)}
+                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
                   {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
+                  {' | Cost: '}{formatCost(previewStats.engineCost)}
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>

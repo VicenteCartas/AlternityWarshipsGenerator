@@ -47,7 +47,11 @@ export function calculateDefenseHullPoints(
     // Hull points are a percentage of ship hull
     return Math.ceil((type.hullPercentage / 100) * shipHullPoints);
   }
-  return type.hullPoints * quantity;
+  // For coverageMultiples, each quantity = one full coverage set
+  const effectiveUnits = type.coverageMultiples
+    ? quantity * calculateUnitsForFullCoverage(type, shipHullPoints)
+    : quantity;
+  return type.hullPoints * effectiveUnits;
 }
 
 /**
@@ -58,6 +62,10 @@ export function calculateDefensePower(
   shipHullPoints: number,
   quantity: number
 ): number {
+  // For coverageMultiples, each quantity = one full coverage set
+  const effectiveUnits = type.coverageMultiples
+    ? quantity * calculateUnitsForFullCoverage(type, shipHullPoints)
+    : quantity;
   if (type.powerPer === 'systemHp') {
     // Power is per hull point of the SYSTEM, not the ship
     // For percentage-based systems (like repair bots), use the system's HP
@@ -66,9 +74,9 @@ export function calculateDefensePower(
       return type.powerRequired * systemHullPoints;
     }
     // For fixed HP systems, use the system's HP * quantity
-    return type.powerRequired * type.hullPoints * quantity;
+    return type.powerRequired * type.hullPoints * effectiveUnits;
   }
-  return type.powerRequired * quantity;
+  return type.powerRequired * effectiveUnits;
 }
 
 /**
@@ -79,15 +87,19 @@ export function calculateDefenseCost(
   shipHullPoints: number,
   quantity: number
 ): number {
+  // For coverageMultiples, each quantity = one full coverage set
+  const effectiveUnits = type.coverageMultiples
+    ? quantity * calculateUnitsForFullCoverage(type, shipHullPoints)
+    : quantity;
   if (type.costPer === 'systemHp') {
     // Cost is per hull point of the system itself (not the ship)
     if (type.hullPercentage > 0) {
       const systemHullPoints = Math.ceil((type.hullPercentage / 100) * shipHullPoints);
       return type.cost * systemHullPoints;
     }
-    return type.cost * type.hullPoints * quantity;
+    return type.cost * type.hullPoints * effectiveUnits;
   }
-  return type.cost * quantity;
+  return type.cost * effectiveUnits;
 }
 
 /**

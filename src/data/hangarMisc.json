@@ -38,8 +38,7 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 50000,
-      "costPer": "systemHp",
-      "capacityPerHull": "4 size points of ordnance",
+      "costPer": "unit",
       "ordnanceCapacity": 4,
       "description": "Carriers whose embarked craft rely on dropped ordnance or missiles require vast ordnance stores. Each hull point spent on magazines can store 4 size points of missiles, mines, or bombs."
     },
@@ -202,7 +201,7 @@
       "hullPoints": 1,
       "powerRequired": 0,
       "cost": 40000,
-      "costPer": "systemHp",
+      "costPer": "unit",
       "powerPointsCapacity": 10,
       "description": "Stores extra power points. Each hull point can store up to 10 excess power points, which can be allocated like normal power points. Once spent, unavailable until recharged. Useful for quick weapon recharges or emergency maneuvers."
     },
@@ -238,16 +237,11 @@
       "progressLevel": 7,
       "techTracks": [],
       "category": "emergency",
-      "hullPoints": 1,
-      "minQuantity": 4,
-      "baseHullPoints": 4,
+      "hullPoints": 4,
       "powerRequired": 0,
-      "cost": 50000,
-      "costPer": "systemHp",
-      "baseCost": 50000,
-      "capacityPerHull": "40 people (base) + 20/extra HP",
+      "cost": 250000,
+      "costPer": "unit",
       "evacCapacity": 40,
-      "evacCapacityPerHP": 20,
       "description": "System of four escape pods designed for large ships. Each pod holds 10 people with 100 man-days of supplies and 6 hours of flight at acceleration 1. Can be expanded: each additional HP provides two more pods at $50K each."
     },
     {
@@ -285,7 +279,7 @@
       "hullPoints": 1,
       "powerRequired": 1,
       "cost": 200000,
-      "costPer": "systemHp",
+      "costPer": "unit",
       "coveragePerHullPoint": 40,
       "description": "Video, sound, and thermal monitoring of protected compartments by surveillance computers. Heavy-duty armored security hatches with key card, retinal scan, or positive control. Includes four weapon cupolas for ranged or heavy weapons."
     },

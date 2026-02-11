@@ -22,6 +22,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { headerCellSx } from '../constants/tableStyles';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
@@ -32,7 +33,7 @@ import {
   calculateSensorStats,
   createInstalledSensor,
   updateInstalledSensor,
-  calculateUnitsForFullCoverage,
+  calculateTrackingCapability,
 } from '../services/sensorService';
 import { formatCost, formatSensorRange } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
@@ -136,12 +137,21 @@ export function SensorSelection({
     onSensorsChange(installedSensors.filter((s) => s.id !== id));
   };
 
+  const handleDuplicateSensor = (sensor: InstalledSensor) => {
+    const duplicate = createInstalledSensor(sensor.type, sensor.quantity, designProgressLevel);
+    const index = installedSensors.findIndex((s) => s.id === sensor.id);
+    const updated = [...installedSensors];
+    updated.splice(index + 1, 0, duplicate);
+    onSensorsChange(updated);
+  };
+
   // Calculate preview values
   const previewQuantity = parseInt(sensorQuantity, 10) || 1;
   const previewHullPts = selectedSensor ? selectedSensor.hullPoints * previewQuantity : 0;
   const previewPower = selectedSensor ? selectedSensor.powerRequired * previewQuantity : 0;
   const previewCost = selectedSensor ? selectedSensor.cost * previewQuantity : 0;
   const previewArcs = selectedSensor ? Math.min(selectedSensor.arcsCovered * previewQuantity, 4) : 0;
+  const previewTracking = selectedSensor ? calculateTrackingCapability(designProgressLevel, 'none', previewQuantity) : 0;
 
   // Helper to format tracking capability
   const formatTracking = (tracking: number): string => {
@@ -201,9 +211,9 @@ export function SensorSelection({
                   </Typography>
                   <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
-                  <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
                   <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
                   <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
+                  <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
                   {hasSensorControl && (
                     <Tooltip title={sensorControlName}>
                       <Chip 
@@ -216,6 +226,9 @@ export function SensorSelection({
                   )}
                   <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
                     <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleDuplicateSensor(sensor)}>
+                    <ContentCopyIcon fontSize="small" />
                   </IconButton>
                   <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
                     <DeleteIcon fontSize="small" />
@@ -235,8 +248,6 @@ export function SensorSelection({
   const renderInlineEditForm = () => {
     if (!selectedSensor || !editingSensorId) return null;
 
-    const maxQuantity = calculateUnitsForFullCoverage(selectedSensor);
-
     return (
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -247,15 +258,15 @@ export function SensorSelection({
             value={sensorQuantity}
             onChange={(e) => setSensorQuantity(e.target.value)}
             inputProps={{ min: 1 }}
-            helperText={`${maxQuantity} for full arc coverage`}
             sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} |
               Power: {previewPower} |
-              Cost: {formatCost(previewCost)} |
-              Arcs: {previewArcs}/4
+              Arcs: {previewArcs}/4 |
+              Track: {formatTracking(previewTracking)} |
+              Cost: {formatCost(previewCost)}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -288,8 +299,6 @@ export function SensorSelection({
   const renderAddForm = () => {
     if (!selectedSensor || editingSensorId) return null;
 
-    const maxQuantity = calculateUnitsForFullCoverage(selectedSensor);
-
     return (
       <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: '10px' }}>
@@ -304,15 +313,15 @@ export function SensorSelection({
             value={sensorQuantity}
             onChange={(e) => setSensorQuantity(e.target.value)}
             inputProps={{ min: 1 }}
-            helperText={`${maxQuantity} for full arc coverage`}
             sx={{ width: 150 }}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} |
               Power: {previewPower} |
-              Cost: {formatCost(previewCost)} |
-              Arcs: {previewArcs}/4
+              Arcs: {previewArcs}/4 |
+              Track: {formatTracking(previewTracking)} |
+              Cost: {formatCost(previewCost)}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button

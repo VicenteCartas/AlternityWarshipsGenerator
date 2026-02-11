@@ -18,6 +18,7 @@ import {
   Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -176,6 +177,19 @@ export function PowerPlantSelection({
     seteditingInstallationId(installation.id);
   };
 
+  const handleDuplicatePowerPlant = (installation: InstalledPowerPlant) => {
+    const duplicate: InstalledPowerPlant = {
+      id: generateInstallationId(),
+      type: installation.type,
+      hullPoints: installation.hullPoints,
+    };
+    // Insert after the original
+    const index = installedPowerPlants.findIndex(p => p.id === installation.id);
+    const updated = [...installedPowerPlants];
+    updated.splice(index + 1, 0, duplicate);
+    onPowerPlantsChange(updated);
+  };
+
   const handleClearAll = () => {
     onPowerPlantsChange([]);
     onFuelTanksChange([]);
@@ -252,6 +266,19 @@ export function PowerPlantSelection({
     onFuelTanksChange(
       installedFuelTanks.filter(ft => ft.id !== id)
     );
+  };
+
+  const handleDuplicateFuelTank = (fuelTank: InstalledFuelTank) => {
+    const duplicate: InstalledFuelTank = {
+      id: generateFuelTankId(),
+      forPowerPlantType: fuelTank.forPowerPlantType,
+      hullPoints: fuelTank.hullPoints,
+    };
+    // Insert after the original
+    const index = installedFuelTanks.findIndex(ft => ft.id === fuelTank.id);
+    const updated = [...installedFuelTanks];
+    updated.splice(index + 1, 0, duplicate);
+    onFuelTanksChange(updated);
   };
 
   // ============== Validation ==============
@@ -388,8 +415,11 @@ export function PowerPlantSelection({
               const power = calculatePowerGenerated(installation.type, installation.hullPoints);
               const cost = calculatePowerPlantCost(installation.type, installation.hullPoints);
               const fuelTankHP = getTotalFuelTankHPForPlantType(installedFuelTanks, installation.type.id);
+              const totalPlantTypeHP = installedPowerPlants
+                .filter(p => p.type.id === installation.type.id)
+                .reduce((sum, p) => sum + p.hullPoints, 0);
               const endurance = installation.type.requiresFuel && fuelTankHP > 0
-                ? calculateFuelTankEndurance(installation.type, fuelTankHP, installation.hullPoints)
+                ? calculateFuelTankEndurance(installation.type, fuelTankHP, totalPlantTypeHP)
                 : null;
               const isEditing = editingInstallationId === installation.id;
               
@@ -445,6 +475,12 @@ export function PowerPlantSelection({
                     </IconButton>
                     <IconButton
                       size="small"
+                      onClick={() => handleDuplicatePowerPlant(installation)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="error"
                       onClick={() => handleRemovePowerPlant(installation.id)}
                     >
@@ -456,7 +492,7 @@ export function PowerPlantSelection({
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
-                          label="Hull Points"
+                          label="Size (HP)"
                           type="number"
                           size="small"
                           value={hullPointsInput}
@@ -568,6 +604,12 @@ export function PowerPlantSelection({
                     </IconButton>
                     <IconButton
                       size="small"
+                      onClick={() => handleDuplicateFuelTank(fuelTank)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="error"
                       onClick={() => handleRemoveFuelTank(fuelTank.id)}
                     >
@@ -579,19 +621,18 @@ export function PowerPlantSelection({
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
-                          label="Hull Points"
+                          label="Size (HP)"
                           type="number"
                           size="small"
                           value={fuelTankHullPointsInput}
                           onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
                           inputProps={{ min: 1 }}
-                          helperText={`Efficiency: ${addingFuelTankForType.fuelEfficiency} days/HP`}
                           sx={{ width: 140 }}
                         />
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {fuelTankPreviewStats && (
                             <Typography variant="caption" color="text.secondary">
-                              Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} days
+                              Efficiency: {addingFuelTankForType.fuelEfficiency} days/HP | Endurance: {fuelTankPreviewStats.endurance} days | Cost: {formatCost(fuelTankPreviewStats.cost)}
                             </Typography>
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -641,19 +682,18 @@ export function PowerPlantSelection({
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
-              label="Hull Points"
+              label="Size (HP)"
               type="number"
               size="small"
               value={fuelTankHullPointsInput}
               onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
               inputProps={{ min: 1 }}
-              helperText={`Efficiency: ${addingFuelTankForType.fuelEfficiency} days/HP`}
               sx={{ width: 140 }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {fuelTankPreviewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  Cost: {formatCost(fuelTankPreviewStats.cost)} | Endurance: {fuelTankPreviewStats.endurance} days
+                  Efficiency: {addingFuelTankForType.fuelEfficiency} days/HP | Endurance: {fuelTankPreviewStats.endurance} days | Cost: {formatCost(fuelTankPreviewStats.cost)}
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -720,7 +760,7 @@ export function PowerPlantSelection({
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <TextField
-              label="Hull Points"
+              label="Size (HP)"
               type="number"
               size="small"
               value={hullPointsInput}

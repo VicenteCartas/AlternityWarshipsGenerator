@@ -22,6 +22,7 @@ import {
   Divider,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
@@ -63,6 +64,7 @@ import {
   getFreeArcCount,
   formatArcs,
   validateArcs,
+  generateWeaponId,
 } from '../services/weaponService';
 import { formatCost, formatAccuracyModifier, getAreaEffectTooltip } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
@@ -240,6 +242,17 @@ export function WeaponSelection({
     onWeaponsChange(installedWeapons.filter((w) => w.id !== id));
   };
 
+  const handleDuplicateWeapon = (weapon: InstalledWeapon) => {
+    const newWeapon: InstalledWeapon = {
+      ...weapon,
+      id: generateWeaponId(),
+    };
+    const index = installedWeapons.findIndex((w) => w.id === weapon.id);
+    const updated = [...installedWeapons];
+    updated.splice(index + 1, 0, newWeapon);
+    onWeaponsChange(updated);
+  };
+
   const handleCancelEdit = () => {
     const weaponIdToScrollTo = editingWeaponId;
     setSelectedWeapon(null);
@@ -413,6 +426,11 @@ export function WeaponSelection({
                   <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
                     <EditIcon fontSize="small" />
                   </IconButton>
+                  <Tooltip title="Duplicate">
+                    <IconButton size="small" onClick={() => handleDuplicateWeapon(weapon)}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
