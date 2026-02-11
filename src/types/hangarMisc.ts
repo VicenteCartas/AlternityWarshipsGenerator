@@ -67,6 +67,10 @@ export interface HangarMiscSystemType {
   maxQuantity?: number;
   /** Base HP for scalable evac systems (used in capacity calculation) */
   baseHullPoints?: number;
+  /** Whether this system can be expanded with extra HP */
+  expandable?: boolean;
+  /** Cost per additional HP when expanded */
+  expansionCostPerHp?: number;
   /** Effect or bonus provided */
   effect?: string;
   /** Detailed description */
@@ -80,6 +84,8 @@ export interface InstalledHangarMiscSystem extends InstalledSystemBase<HangarMis
   capacity?: number;
   /** Calculated service capacity (for autocargo, etc.) */
   serviceCapacity?: number;
+  /** Extra HP allocated for expansion (if expandable) */
+  extraHp?: number;
 }
 
 // ============== Stats ==============

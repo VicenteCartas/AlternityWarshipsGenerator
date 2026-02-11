@@ -159,6 +159,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: hm.id,
       typeId: hm.type.id,
       quantity: hm.quantity,
+      extraHp: hm.extraHp,
     })),
     weapons: (state.weapons || []).map((w): SavedWeapon => ({
       id: w.id,
@@ -550,10 +551,11 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   for (const savedHM of (saveFile.hangarMisc || [])) {
     const hmType = allHangarMiscTypes.find(t => t.id === savedHM.typeId);
     if (hmType) {
-      const hullPts = calculateHangarMiscHullPoints(hmType, shipHullPoints, savedHM.quantity);
-      const power = calculateHangarMiscPower(hmType, shipHullPoints, savedHM.quantity);
-      const cost = calculateHangarMiscCost(hmType, shipHullPoints, savedHM.quantity);
-      const capacity = calculateHangarMiscCapacity(hmType, shipHullPoints, savedHM.quantity);
+      const extraHp = savedHM.extraHp || 0;
+      const hullPts = calculateHangarMiscHullPoints(hmType, shipHullPoints, savedHM.quantity, extraHp);
+      const power = calculateHangarMiscPower(hmType, shipHullPoints, savedHM.quantity, extraHp);
+      const cost = calculateHangarMiscCost(hmType, shipHullPoints, savedHM.quantity, extraHp);
+      const capacity = calculateHangarMiscCapacity(hmType, shipHullPoints, savedHM.quantity, extraHp);
       hangarMisc.push({
         id: savedHM.id || generateHangarMiscId(),
         type: hmType,
@@ -562,6 +564,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         powerRequired: power,
         cost,
         capacity: capacity > 0 ? capacity : undefined,
+        extraHp: extraHp > 0 ? extraHp : undefined,
       });
     } else {
       warnings.push(`Hangar/misc system type not found: ${savedHM.typeId}`);

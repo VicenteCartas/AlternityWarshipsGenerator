@@ -428,10 +428,13 @@ export function OrdnanceSelection({
     const remainingCap = totalCap - usedCap;
 
     return (
-      <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+          {isEditing ? 'Edit' : 'Add'} {selectedLaunchSystem.name}
+        </Typography>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-          {/* Column 1: Quantity + Name + Stats */}
+          {/* Column 1: Quantity + Stats */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
             <TextField
               type="number"
@@ -442,9 +445,6 @@ export function OrdnanceSelection({
               sx={{ width: 70 }}
               label="Quantity"
             />
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {selectedLaunchSystem.name}
-            </Typography>
             {selectedLaunchSystem.expandable && (
               <TextField
                 type="number"
@@ -456,26 +456,26 @@ export function OrdnanceSelection({
                 label="Extra HP"
               />
             )}
-            {previewStats && (
-              <Typography variant="caption" color="text.secondary">
-                {previewStats.hullPoints} HP | {previewStats.powerRequired} Power | {previewStats.totalCapacity} Cap | ROF {selectedLaunchSystem.rateOfFire} | {formatCost(previewStats.cost)}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Column 2: Actions */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" size="small" onClick={handleCancelEdit}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
-              onClick={handleAddOrUpdateLaunchSystem}
-            >
-              {isEditing ? 'Update' : 'Add'}
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {previewStats && (
+                <Typography variant="caption" color="text.secondary">
+                  HP: {previewStats.hullPoints} | Power: {previewStats.powerRequired} | Capacity: {previewStats.totalCapacity} | ROF: {selectedLaunchSystem.rateOfFire} | Cost: {formatCost(previewStats.cost)}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
+                  onClick={handleAddOrUpdateLaunchSystem}
+                >
+                  {isEditing ? 'Update' : 'Add'}
+                </Button>
+              </Box>
+            </Box>
           </Box>
         </Box>
 
@@ -595,7 +595,7 @@ export function OrdnanceSelection({
             </Stack>
           </>
         )}
-      </Box>
+      </Paper>
     );
   };
 

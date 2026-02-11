@@ -458,7 +458,7 @@ export function WeaponSelection({
     ].filter(Boolean).join(' ');
 
     return (
-      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
         {/* Header with quantity spinner, name, and stats */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
           <TextField
@@ -595,7 +595,7 @@ export function WeaponSelection({
             </Box>
           </Box>
         </Box>
-      </Box>
+      </Paper>
     );
   };
 

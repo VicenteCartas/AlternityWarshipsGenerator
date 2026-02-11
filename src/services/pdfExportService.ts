@@ -17,12 +17,12 @@ import type { ProgressLevel } from '../types/common';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
 import { calculateArmorHullPoints, calculateArmorCost } from './armorService';
-import { calculateTotalPowerPlantStats } from './powerPlantService';
-import { calculateTotalEngineStats } from './engineService';
-import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './ftlDriveService';
+import { calculateTotalPowerPlantStats, calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
+import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
+import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
 import { calculateSupportSystemsStats } from './supportSystemService';
 import { calculateWeaponStats } from './weaponService';
-import { calculateOrdnanceStats, getWarheads, getPropulsionSystems } from './ordnanceService';
+import { calculateOrdnanceStats, getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
 import { calculateDefenseStats } from './defenseService';
 import { calculateCommandControlStats } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
@@ -64,12 +64,14 @@ export interface PdfExportOptions {
   includeDamageDiagram: boolean;
   includeDefenses: boolean;
   includeOffense: boolean;
+  includeDetailedSystems: boolean;
 }
 
 export const defaultExportOptions: PdfExportOptions = {
   includeDamageDiagram: true,
   includeDefenses: true,
   includeOffense: true,
+  includeDetailedSystems: false,
 };
 
 // ============ CONSTANTS ============
@@ -224,6 +226,11 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   let y = margin;
 
   const stats = computeShipStats(data);
+  const supportStats = calculateSupportSystemsStats(
+    data.installedLifeSupport, data.installedAccommodations,
+    data.installedStoreSystems, data.installedGravitySystems,
+    data.designProgressLevel, [],
+  );
 
   // =============================================
   // HELPER FUNCTIONS
@@ -399,6 +406,280 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   pdf.text(`${balancePrefix}${stats.powerBalance}`, colPower, y);
   pdf.text(formatCost(stats.totalCost), colCost, y);
   y += 6;
+
+  // --- Detailed Component List (optional) ---
+  if (options.includeDetailedSystems) {
+    checkNewPage(20);
+    addSectionTitle('Detailed Component List');
+    y += 3;
+
+    const indent = margin + 4;
+    const detailColHP = margin + 80;
+    const detailColPower = margin + 105;
+    const detailColCost = margin + 135;
+
+    const addDetailHeader = (title: string) => {
+      checkNewPage(14);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(title, margin, y);
+      y += 4;
+    };
+
+    const addDetailRow = (name: string, hp: string, power: string, cost: string) => {
+      checkNewPage(6);
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(name, indent, y);
+      pdf.text(hp, detailColHP, y);
+      pdf.text(power, detailColPower, y);
+      pdf.text(cost, detailColCost, y);
+      y += 3.5;
+    };
+
+    const addDetailColumnHeaders = () => {
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Component', indent, y);
+      pdf.text('HP', detailColHP, y);
+      pdf.text('Power', detailColPower, y);
+      pdf.text('Cost', detailColCost, y);
+      y += 1;
+      pdf.setDrawColor(160);
+      pdf.setLineWidth(0.15);
+      pdf.line(indent, y, margin + contentWidth, y);
+      y += 2.5;
+    };
+
+    // --- Armor ---
+    if (data.selectedArmorWeight && data.selectedArmorType) {
+      addDetailHeader('Armor');
+      addDetailColumnHeaders();
+      const armorHP = calculateArmorHullPoints(hull, data.selectedArmorWeight);
+      const armorCostVal = calculateArmorCost(hull, data.selectedArmorWeight, data.selectedArmorType);
+      addDetailRow(
+        `${capitalize(data.selectedArmorWeight)} ${data.selectedArmorType.name}`,
+        armorHP.toString(), '-', formatCost(armorCostVal)
+      );
+      y += 2;
+    }
+
+    // --- Power Plants ---
+    if (data.installedPowerPlants.length > 0 || data.installedFuelTanks.length > 0) {
+      addDetailHeader('Power Plants');
+      addDetailColumnHeaders();
+      for (const pp of data.installedPowerPlants) {
+        const ppCost = calculatePowerPlantCost(pp.type, pp.hullPoints);
+        const ppPower = calculatePowerGenerated(pp.type, pp.hullPoints);
+        addDetailRow(
+          `${pp.type.name} (${pp.hullPoints} HP)`,
+          pp.hullPoints.toString(), `+${ppPower}`, formatCost(ppCost)
+        );
+      }
+      for (const tank of data.installedFuelTanks) {
+        const tankCost = calculateFuelTankCost(tank.forPowerPlantType, tank.hullPoints);
+        addDetailRow(
+          `Fuel Tank for ${tank.forPowerPlantType.name} (${tank.hullPoints} HP)`,
+          tank.hullPoints.toString(), '-', formatCost(tankCost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Engines ---
+    if (data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0) {
+      addDetailHeader('Engines');
+      addDetailColumnHeaders();
+      for (const eng of data.installedEngines) {
+        const engPower = calculateEnginePowerRequired(eng.type, eng.hullPoints);
+        const engCost = calculateEngineCost(eng.type, eng.hullPoints);
+        addDetailRow(
+          `${eng.type.name} (${eng.hullPoints} HP)`,
+          eng.hullPoints.toString(), engPower.toString(), formatCost(engCost)
+        );
+      }
+      for (const tank of data.installedEngineFuelTanks) {
+        const tankCost = calculateEngineFuelTankCost(tank.forEngineType, tank.hullPoints);
+        addDetailRow(
+          `Fuel Tank for ${tank.forEngineType.name} (${tank.hullPoints} HP)`,
+          tank.hullPoints.toString(), '-', formatCost(tankCost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- FTL Drive ---
+    if (data.installedFTLDrive) {
+      addDetailHeader('FTL Drive');
+      addDetailColumnHeaders();
+      const ftlPower = calculateFTLPowerRequired(data.installedFTLDrive.type, data.installedFTLDrive.hullPoints);
+      const ftlCostVal = calculateFTLCost(data.installedFTLDrive.type, data.installedFTLDrive.hullPoints);
+      addDetailRow(
+        `${data.installedFTLDrive.type.name} (${data.installedFTLDrive.hullPoints} HP)`,
+        data.installedFTLDrive.hullPoints.toString(), ftlPower.toString(), formatCost(ftlCostVal)
+      );
+      for (const tank of data.installedFTLFuelTanks) {
+        const tankCost = calculateFTLFuelTankCost(tank.forFTLDriveType, tank.hullPoints);
+        addDetailRow(
+          `FTL Fuel Tank (${tank.hullPoints} HP)`,
+          tank.hullPoints.toString(), '-', formatCost(tankCost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Support Systems ---
+    const hasSupport = data.installedLifeSupport.length > 0 || data.installedAccommodations.length > 0
+      || data.installedStoreSystems.length > 0 || data.installedGravitySystems.length > 0;
+    if (hasSupport) {
+      addDetailHeader('Support Systems');
+      addDetailColumnHeaders();
+      for (const ls of data.installedLifeSupport) {
+        const qty = ls.quantity > 1 ? ` ×${ls.quantity}` : '';
+        addDetailRow(
+          `${ls.type.name}${qty}`,
+          (ls.type.hullPoints * ls.quantity).toString(),
+          ls.type.powerRequired * ls.quantity > 0 ? (ls.type.powerRequired * ls.quantity).toString() : '-',
+          formatCost(ls.type.cost * ls.quantity)
+        );
+      }
+      for (const acc of data.installedAccommodations) {
+        const qty = acc.quantity > 1 ? ` ×${acc.quantity}` : '';
+        addDetailRow(
+          `${acc.type.name}${qty}`,
+          (acc.type.hullPoints * acc.quantity).toString(),
+          acc.type.powerRequired * acc.quantity > 0 ? (acc.type.powerRequired * acc.quantity).toString() : '-',
+          formatCost(acc.type.cost * acc.quantity)
+        );
+      }
+      for (const store of data.installedStoreSystems) {
+        const qty = store.quantity > 1 ? ` ×${store.quantity}` : '';
+        addDetailRow(
+          `${store.type.name}${qty}`,
+          (store.type.hullPoints * store.quantity).toString(),
+          store.type.powerRequired * store.quantity > 0 ? (store.type.powerRequired * store.quantity).toString() : '-',
+          formatCost(store.type.cost * store.quantity)
+        );
+      }
+      for (const grav of data.installedGravitySystems) {
+        addDetailRow(
+          grav.type.name,
+          grav.hullPoints.toString(),
+          grav.type.powerRequired > 0 ? grav.type.powerRequired.toString() : '-',
+          formatCost(grav.cost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Weapons ---
+    if (data.installedWeapons.length > 0) {
+      addDetailHeader('Weapons');
+      addDetailColumnHeaders();
+      for (const w of data.installedWeapons) {
+        const qty = w.quantity > 1 ? ` ×${w.quantity}` : '';
+        const mount = w.mountType !== 'standard' ? ` (${capitalize(w.mountType)})` : '';
+        const config = w.gunConfiguration !== 'single' ? ` ${capitalize(w.gunConfiguration)}` : '';
+        addDetailRow(
+          `${w.weaponType.name}${config}${mount}${qty}`,
+          w.hullPoints.toString(), w.powerRequired.toString(), formatCost(w.cost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Launch Systems / Ordnance ---
+    if (data.installedLaunchSystems.length > 0) {
+      addDetailHeader('Launch Systems');
+      addDetailColumnHeaders();
+      const launchSystemDefs = getLaunchSystems();
+      for (const ls of data.installedLaunchSystems) {
+        const lsDef = launchSystemDefs.find(d => d.id === ls.launchSystemType);
+        const name = lsDef ? lsDef.name : ls.launchSystemType;
+        const qty = ls.quantity > 1 ? ` ×${ls.quantity}` : '';
+        addDetailRow(
+          `${name}${qty}`,
+          ls.hullPoints.toString(), ls.powerRequired.toString(), formatCost(ls.cost)
+        );
+        // List loaded ordnance
+        for (const loadedItem of ls.loadout || []) {
+          const design = data.ordnanceDesigns.find(d => d.id === loadedItem.designId);
+          if (design) {
+            checkNewPage(6);
+            pdf.setFontSize(6.5);
+            pdf.setFont('helvetica', 'italic');
+            pdf.text(`  └ ${design.name} ×${loadedItem.quantity}`, indent, y);
+            y += 3;
+          }
+        }
+      }
+      y += 2;
+    }
+
+    // --- Defenses ---
+    if (data.installedDefenses.length > 0) {
+      addDetailHeader('Defenses');
+      addDetailColumnHeaders();
+      for (const def of data.installedDefenses) {
+        const qty = def.quantity > 1 ? ` ×${def.quantity}` : '';
+        addDetailRow(
+          `${def.type.name}${qty}`,
+          def.hullPoints.toString(),
+          def.powerRequired > 0 ? def.powerRequired.toString() : '-',
+          formatCost(def.cost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Command & Control ---
+    if (data.installedCommandControl.length > 0) {
+      addDetailHeader('Command & Control');
+      addDetailColumnHeaders();
+      for (const cc of data.installedCommandControl) {
+        const qty = cc.quantity > 1 ? ` ×${cc.quantity}` : '';
+        addDetailRow(
+          `${cc.type.name}${qty}`,
+          cc.hullPoints.toString(),
+          cc.powerRequired > 0 ? cc.powerRequired.toString() : '-',
+          formatCost(cc.cost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Sensors ---
+    if (data.installedSensors.length > 0) {
+      addDetailHeader('Sensors');
+      addDetailColumnHeaders();
+      for (const s of data.installedSensors) {
+        const qty = s.quantity > 1 ? ` ×${s.quantity}` : '';
+        addDetailRow(
+          `${s.type.name}${qty}`,
+          s.hullPoints.toString(),
+          s.powerRequired > 0 ? s.powerRequired.toString() : '-',
+          formatCost(s.cost)
+        );
+      }
+      y += 2;
+    }
+
+    // --- Hangar & Misc ---
+    if (data.installedHangarMisc.length > 0) {
+      addDetailHeader('Hangar & Miscellaneous');
+      addDetailColumnHeaders();
+      for (const hm of data.installedHangarMisc) {
+        const qty = hm.quantity > 1 ? ` ×${hm.quantity}` : '';
+        addDetailRow(
+          `${hm.type.name}${qty}`,
+          hm.hullPoints.toString(),
+          hm.powerRequired > 0 ? hm.powerRequired.toString() : '-',
+          formatCost(hm.cost)
+        );
+      }
+      y += 2;
+    }
+  }
 
   // --- Ship Description / Lore ---
   const { shipDescription } = data;

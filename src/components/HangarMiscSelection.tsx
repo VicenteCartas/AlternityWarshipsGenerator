@@ -60,6 +60,7 @@ export function HangarMiscSelection({
   const [activeTab, setActiveTab] = useState<HangarMiscCategory>('hangar');
   const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
   const [systemQuantity, setSystemQuantity] = useState<string>('1');
+  const [systemExtraHp, setSystemExtraHp] = useState<number>(0);
   const [editingSystemId, setEditingSystemId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,7 @@ export function HangarMiscSelection({
 
     setSelectedSystem(type);
     setSystemQuantity(String(type.minQuantity || 1));
+    setSystemExtraHp(0);
     setEditingSystemId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -136,30 +138,33 @@ export function HangarMiscSelection({
   const handleAddSystem = () => {
     if (!selectedSystem) return;
     const quantity = parseInt(systemQuantity, 10) || 1;
+    const extraHp = selectedSystem.expandable ? systemExtraHp : 0;
 
     if (editingSystemId) {
       onSystemsChange(
         installedSystems.map((s) =>
           s.id === editingSystemId
-            ? updateInstalledHangarMiscSystem(s, hull.hullPoints, quantity)
+            ? updateInstalledHangarMiscSystem(s, hull.hullPoints, quantity, extraHp)
             : s
         )
       );
     } else {
       onSystemsChange([
         ...installedSystems,
-        createInstalledHangarMiscSystem(selectedSystem, hull.hullPoints, quantity),
+        createInstalledHangarMiscSystem(selectedSystem, hull.hullPoints, quantity, extraHp),
       ]);
     }
 
     setSelectedSystem(null);
     setSystemQuantity('1');
+    setSystemExtraHp(0);
     setEditingSystemId(null);
   };
 
   const handleEditSystem = (installed: InstalledHangarMiscSystem) => {
     setSelectedSystem(installed.type);
     setSystemQuantity(installed.quantity.toString());
+    setSystemExtraHp(installed.extraHp || 0);
     setEditingSystemId(installed.id);
   };
 
@@ -168,7 +173,7 @@ export function HangarMiscSelection({
   };
 
   const handleDuplicateSystem = (system: InstalledHangarMiscSystem) => {
-    const duplicate = createInstalledHangarMiscSystem(system.type, hull.hullPoints, system.quantity);
+    const duplicate = createInstalledHangarMiscSystem(system.type, hull.hullPoints, system.quantity, system.extraHp || 0);
     const index = installedSystems.findIndex((s) => s.id === system.id);
     const updated = [...installedSystems];
     updated.splice(index + 1, 0, duplicate);
@@ -251,12 +256,13 @@ export function HangarMiscSelection({
 
   // Calculate preview values
   const previewQuantity = parseInt(systemQuantity, 10) || 1;
-  const previewHullPts = selectedSystem ? calculateHangarMiscHullPoints(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity) : 0;
-  const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity) : 0;
+  const previewExtraHp = selectedSystem?.expandable ? systemExtraHp : 0;
+  const previewHullPts = selectedSystem ? calculateHangarMiscHullPoints(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
   const totalPeople = hull.crew + totalPassengersAndSuspended;
-  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity)
+  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity || selectedSystem.evacCapacity)
     ? ` | ${formatCapacity(selectedSystem, previewCapacity)}${selectedSystem.evacCapacity && totalPeople > 0 ? ` (${Math.round((previewCapacity / totalPeople) * 100)}%)` : ''}`
     : '';
   const previewServiceStr = selectedSystem?.cargoServiceCapacity
@@ -306,7 +312,7 @@ export function HangarMiscSelection({
                   </Typography>
                   <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.ordnanceCapacity) && (
+                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.ordnanceCapacity || system.type.evacCapacity) && (
                     <Chip 
                       label={`${formatCapacity(system.type, system.capacity)}${system.type.evacCapacity && totalPeople > 0 ? ` (${Math.round((system.capacity / totalPeople) * 100)}%)` : ''}`} 
                       size="small" 
@@ -375,6 +381,17 @@ export function HangarMiscSelection({
             inputProps={{ min: selectedSystem.minQuantity || 1 }}
             sx={{ width: 150 }}
           />
+          {selectedSystem.expandable && (
+            <TextField
+              label="Extra HP"
+              type="number"
+              size="small"
+              value={systemExtraHp}
+              onChange={(e) => setSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+              sx={{ width: 100 }}
+            />
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
@@ -386,6 +403,7 @@ export function HangarMiscSelection({
                 onClick={() => {
                   setSelectedSystem(null);
                   setSystemQuantity('1');
+                  setSystemExtraHp(0);
                   setEditingSystemId(null);
                 }}
               >
@@ -427,6 +445,17 @@ export function HangarMiscSelection({
             inputProps={{ min: selectedSystem.minQuantity || 1 }}
             sx={{ width: 150 }}
           />
+          {selectedSystem.expandable && (
+            <TextField
+              label="Extra HP"
+              type="number"
+              size="small"
+              value={systemExtraHp}
+              onChange={(e) => setSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+              sx={{ width: 100 }}
+            />
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
@@ -438,6 +467,7 @@ export function HangarMiscSelection({
                 onClick={() => {
                   setSelectedSystem(null);
                   setSystemQuantity('1');
+                  setSystemExtraHp(0);
                   setEditingSystemId(null);
                 }}
               >

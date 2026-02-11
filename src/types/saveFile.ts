@@ -175,6 +175,8 @@ export interface SavedHangarMiscSystem {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Extra HP for expandable systems */
+  extraHp?: number;
 }
 
 /**

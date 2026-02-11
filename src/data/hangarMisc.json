@@ -242,6 +242,9 @@
       "cost": 250000,
       "costPer": "unit",
       "evacCapacity": 40,
+      "expandable": true,
+      "evacCapacityPerHP": 20,
+      "expansionCostPerHp": 50000,
       "description": "System of four escape pods designed for large ships. Each pod holds 10 people with 100 man-days of supplies and 6 hours of flight at acceleration 1. Can be expanded: each additional HP provides two more pods at $50K each."
     },
     {

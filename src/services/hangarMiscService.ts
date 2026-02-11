@@ -34,14 +34,15 @@ export function generateHangarMiscId(): string {
 export function calculateHangarMiscHullPoints(
   type: HangarMiscSystemType,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): number {
   if (type.hullPercentage) {
     // Percentage-based systems (like stabilizer)
     return Math.ceil((shipHullPoints * type.hullPercentage) / 100) * quantity;
   }
-  // Fixed or scalable systems
-  return type.hullPoints * quantity;
+  // Fixed or scalable systems + extra HP for expandable
+  return type.hullPoints * quantity + extraHp;
 }
 
 /**
@@ -50,10 +51,11 @@ export function calculateHangarMiscHullPoints(
 export function calculateHangarMiscPower(
   type: HangarMiscSystemType,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): number {
   if (type.powerPer === 'systemHp') {
-    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
+    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity, extraHp);
     return type.powerRequired * hullPts;
   }
   return type.powerRequired * quantity;
@@ -65,15 +67,19 @@ export function calculateHangarMiscPower(
 export function calculateHangarMiscCost(
   type: HangarMiscSystemType,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): number {
   if (type.costPer === 'systemHp') {
     // Base cost + cost per hull point
-    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
+    const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity, extraHp);
     const base = type.baseCost || 0;
     return base + (type.cost * hullPts);
   }
-  return type.cost * quantity;
+  // Base cost × quantity + expansion cost for extra HP
+  const baseCost = type.cost * quantity;
+  const expansionCost = type.expandable && type.expansionCostPerHp ? extraHp * type.expansionCostPerHp : 0;
+  return baseCost + expansionCost;
 }
 
 /**
@@ -82,21 +88,18 @@ export function calculateHangarMiscCost(
 export function calculateHangarMiscCapacity(
   type: HangarMiscSystemType,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): number {
   // Fixed cargo capacity per unit (additive)
   if (type.cargoCapacity) {
     return type.cargoCapacity * quantity;
   }
-  // Evacuation capacity - can be fixed per unit or scalable with extra HP
+  // Evacuation capacity - can be fixed per unit or expandable with extra HP
   if (type.evacCapacity) {
-    if (type.evacCapacityPerHP) {
-      // Scalable evac system: base capacity + extra capacity per HP beyond base
-      // quantity = HP installed, baseHullPoints = minimum HP (4)
-      // Base 4 HP = 40 people, each extra HP = 20 more people
-      const baseHP = type.baseHullPoints || type.hullPoints;
-      const extraHP = Math.max(0, quantity - baseHP);
-      return type.evacCapacity + (extraHP * type.evacCapacityPerHP);
+    if (type.expandable && type.evacCapacityPerHP) {
+      // Expandable evac system: base capacity × quantity + extra capacity per extra HP
+      return (type.evacCapacity * quantity) + (extraHp * type.evacCapacityPerHP);
     }
     // Fixed evacuation capacity per unit (escape pods, reentry capsules)
     return type.evacCapacity * quantity;
@@ -151,12 +154,13 @@ export function calculateHangarMiscCapacity(
 export function createInstalledHangarMiscSystem(
   type: HangarMiscSystemType,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): InstalledHangarMiscSystem {
-  const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
-  const power = calculateHangarMiscPower(type, shipHullPoints, quantity);
-  const cost = calculateHangarMiscCost(type, shipHullPoints, quantity);
-  const capacity = calculateHangarMiscCapacity(type, shipHullPoints, quantity);
+  const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity, extraHp);
+  const power = calculateHangarMiscPower(type, shipHullPoints, quantity, extraHp);
+  const cost = calculateHangarMiscCost(type, shipHullPoints, quantity, extraHp);
+  const capacity = calculateHangarMiscCapacity(type, shipHullPoints, quantity, extraHp);
   const serviceCapacity = type.cargoServiceCapacity ? type.cargoServiceCapacity * quantity : undefined;
   
   return {
@@ -168,6 +172,7 @@ export function createInstalledHangarMiscSystem(
     cost,
     capacity: capacity || undefined,
     serviceCapacity,
+    extraHp: extraHp > 0 ? extraHp : undefined,
   };
 }
 
@@ -177,12 +182,13 @@ export function createInstalledHangarMiscSystem(
 export function updateInstalledHangarMiscSystem(
   installed: InstalledHangarMiscSystem,
   shipHullPoints: number,
-  quantity: number
+  quantity: number,
+  extraHp: number = 0
 ): InstalledHangarMiscSystem {
-  const hullPts = calculateHangarMiscHullPoints(installed.type, shipHullPoints, quantity);
-  const power = calculateHangarMiscPower(installed.type, shipHullPoints, quantity);
-  const cost = calculateHangarMiscCost(installed.type, shipHullPoints, quantity);
-  const capacity = calculateHangarMiscCapacity(installed.type, shipHullPoints, quantity);
+  const hullPts = calculateHangarMiscHullPoints(installed.type, shipHullPoints, quantity, extraHp);
+  const power = calculateHangarMiscPower(installed.type, shipHullPoints, quantity, extraHp);
+  const cost = calculateHangarMiscCost(installed.type, shipHullPoints, quantity, extraHp);
+  const capacity = calculateHangarMiscCapacity(installed.type, shipHullPoints, quantity, extraHp);
   const serviceCapacity = installed.type.cargoServiceCapacity ? installed.type.cargoServiceCapacity * quantity : undefined;
   
   return {
@@ -193,6 +199,7 @@ export function updateInstalledHangarMiscSystem(
     cost,
     capacity: capacity || undefined,
     serviceCapacity,
+    extraHp: extraHp > 0 ? extraHp : undefined,
   };
 }
 

@@ -21,6 +21,7 @@ const defaultOptions: PdfExportOptions = {
   includeDamageDiagram: true,
   includeDefenses: true,
   includeOffense: true,
+  includeDetailedSystems: false,
 };
 
 interface PdfExportDialogProps {
@@ -53,6 +54,7 @@ export function PdfExportDialog({
       includeDamageDiagram: true,
       includeDefenses: true,
       includeOffense: true,
+      includeDetailedSystems: true,
     });
   };
 
@@ -61,6 +63,7 @@ export function PdfExportDialog({
       includeDamageDiagram: false,
       includeDefenses: false,
       includeOffense: false,
+      includeDetailedSystems: false,
     });
   };
 
@@ -94,6 +97,17 @@ export function PdfExportDialog({
           <FormControlLabel
             control={<Checkbox checked disabled />}
             label="Ship Information (overview, systems summary, lore, notes, image)"
+          />
+          <FormControlLabel
+            sx={{ ml: 3 }}
+            control={
+              <Checkbox
+                checked={options.includeDetailedSystems}
+                onChange={handleChange('includeDetailedSystems')}
+                size="small"
+              />
+            }
+            label="Include detailed component list"
           />
 
           <Divider sx={{ my: 1.5 }} />
