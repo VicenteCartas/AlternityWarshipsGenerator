@@ -558,6 +558,8 @@ export function HangarMiscSelection({
                       ? `${system.powerPointsCapacity} PP stored`
                       : system.troopCapacity
                       ? `${system.troopCapacity} troops`
+                      : system.ordnanceCapacity
+                      ? `${system.ordnanceCapacity} ordnance pts`
                       : system.capacityPerHull || '-'}
                   </TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
