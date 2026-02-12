@@ -294,7 +294,7 @@ function buildUnassignedSystemsList(
     if (!assignedSystemIds.has(id)) {
       systems.push({
         id,
-        name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}, ${wpn.quantity}x)`,
+        name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}) x${wpn.quantity}`,
         hullPoints: wpn.hullPoints * wpn.quantity,
         category: 'weapon',
         firepowerOrder: getFirepowerOrder(wpn.weaponType.firepower),

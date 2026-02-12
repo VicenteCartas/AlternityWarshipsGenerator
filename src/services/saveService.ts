@@ -247,6 +247,97 @@ export function jsonToSaveFile(json: string): WarshipSaveFile | null {
 }
 
 /**
+ * ID migration mappings for upgrading old save files.
+ * Maps old IDs to their new replacements.
+ */
+const WEAPON_ID_MIGRATIONS: Record<string, string> = {
+  'laser-burst': 'laser-mod',
+  'laser-auto': 'laser-mod',
+  'ir-laser-burst': 'ir-laser-mod',
+  'ir-laser-auto': 'ir-laser-mod',
+  'x-ray-laser-burst': 'x-ray-laser-mod',
+  'x-ray-laser-auto': 'x-ray-laser-mod',
+  'plasma-cannon-burst': 'plasma-cannon-mod',
+  'plasma-cannon-auto': 'plasma-cannon-mod',
+  'maser-burst': 'maser-mod',
+  'maser-auto': 'maser-mod',
+  'pulse-maser-burst': 'pulse-maser-mod',
+  'pulse-maser-auto': 'pulse-maser-mod',
+};
+
+const ACCOMMODATION_ID_MIGRATIONS: Record<string, string> = {
+  'staterooms': 'staterooms-1st-class',
+};
+
+/**
+ * Migrate a save file from an older version to the current format.
+ * Applies all necessary ID and structure changes.
+ */
+function migrateSaveFile(saveFile: WarshipSaveFile): string[] {
+  const migrations: string[] = [];
+
+  // Migrate weapon typeIds
+  for (const weapon of (saveFile.weapons || [])) {
+    const newId = WEAPON_ID_MIGRATIONS[weapon.typeId];
+    if (newId) {
+      migrations.push(`Migrated weapon "${weapon.typeId}" → "${newId}"`);
+      weapon.typeId = newId;
+    }
+  }
+
+  // Migrate linkedWeaponBatteryKey in command & control (format: "weaponTypeId:mountType")
+  for (const cc of (saveFile.commandControl || [])) {
+    if (cc.linkedWeaponBatteryKey) {
+      const [weaponId, ...rest] = cc.linkedWeaponBatteryKey.split(':');
+      const newWeaponId = WEAPON_ID_MIGRATIONS[weaponId];
+      if (newWeaponId) {
+        const oldKey = cc.linkedWeaponBatteryKey;
+        cc.linkedWeaponBatteryKey = [newWeaponId, ...rest].join(':');
+        migrations.push(`Migrated fire control link "${oldKey}" → "${cc.linkedWeaponBatteryKey}"`);
+      }
+    }
+  }
+
+  // Migrate accommodation typeIds
+  for (const acc of (saveFile.accommodations || [])) {
+    const newId = ACCOMMODATION_ID_MIGRATIONS[acc.typeId];
+    if (newId) {
+      migrations.push(`Migrated accommodation "${acc.typeId}" → "${newId}"`);
+      acc.typeId = newId;
+    }
+  }
+
+  // Migrate countermeasure quantities: old saves stored raw unit counts,
+  // new format stores number of full coverage sets.
+  // e.g. old save: 16 jammers (coverage 100 each, 1600 HP hull) = 1 full set → new quantity: 1
+  if (saveFile.hull?.id && (saveFile.defenses || []).length > 0) {
+    const allHulls = getAllHulls();
+    const hull = allHulls.find(h => h.id === saveFile.hull!.id);
+    if (hull) {
+      const allDefenseTypes = getAllDefenseSystemTypes();
+      for (const def of saveFile.defenses) {
+        const defType = allDefenseTypes.find(t => t.id === def.typeId);
+        if (defType && defType.coverageMultiples && defType.coverage > 0) {
+          const unitsPerSet = Math.ceil(hull.hullPoints / defType.coverage);
+          if (unitsPerSet > 1 && def.quantity >= unitsPerSet) {
+            const oldQuantity = def.quantity;
+            def.quantity = Math.max(1, Math.round(def.quantity / unitsPerSet));
+            migrations.push(`Migrated countermeasure "${defType.name}" quantity ${oldQuantity} → ${def.quantity} (${unitsPerSet} units per full coverage set)`);
+          }
+        }
+      }
+    }
+  }
+
+  // Update the version to current
+  if (saveFile.version !== SAVE_FILE_VERSION) {
+    saveFile.version = SAVE_FILE_VERSION;
+  }
+
+  return migrations;
+}
+
+/**
  * Deserialize a save file back to warship state
  */
 export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
@@ -259,16 +350,22 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     return { success: false, errors };
   }
   
-  const [major, minor] = saveFile.version.split('.').map(Number);
-  const [currentMajor, currentMinor] = SAVE_FILE_VERSION.split('.').map(Number);
+  const [major] = saveFile.version.split('.').map(Number);
+  const [currentMajor] = SAVE_FILE_VERSION.split('.').map(Number);
   if (major !== currentMajor) {
     errors.push(`Incompatible save file version: ${saveFile.version} (current: ${SAVE_FILE_VERSION})`);
     return { success: false, errors };
   }
   
-  // Warn if minor version differs
-  if (minor !== currentMinor) {
-    warnings.push(`Save file was created with a different version (${saveFile.version}, current: ${SAVE_FILE_VERSION}). Some features may behave differently.`);
+  // Apply migrations for older save files
+  if (saveFile.version !== SAVE_FILE_VERSION) {
+    const migrationMessages = migrateSaveFile(saveFile);
+    if (migrationMessages.length > 0) {
+      warnings.push(`Save file migrated from version ${saveFile.version} to ${SAVE_FILE_VERSION}:`);
+      warnings.push(...migrationMessages);
+    } else {
+      warnings.push(`Save file upgraded from version ${saveFile.version} to ${SAVE_FILE_VERSION}.`);
+    }
   }
   
   // Load hull
