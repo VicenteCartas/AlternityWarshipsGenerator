@@ -195,7 +195,7 @@ npm run build:electron  # Build for production
 npm run dist:win        # Create Windows installer
 ```
 
-## Current State (v0.2.3)
+## Current State (v0.2.4)
 
 ### Implemented
 - [x] Complete ship construction wizard (all 13 steps)
@@ -213,12 +213,12 @@ npm run dist:win        # Create Windows installer
 - [x] Validation with errors/warnings in Summary
 - [x] About dialog with version info
 - [x] Externally editable data files
+- [X] macOS/Linux builds
+- [X] Print-optimized PDF layouts
 
 ### Future Enhancements
-- [ ] macOS/Linux builds
 - [ ] Import/Export ship designs in other formats
 - [ ] Fleet management (multiple ships)
-- [ ] Print-optimized PDF layouts
 
 ## Reference Material
 
