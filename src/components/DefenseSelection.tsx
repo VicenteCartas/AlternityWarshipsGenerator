@@ -403,10 +403,6 @@ export function DefenseSelection({
     const defenseCategory = selectedDefense.category === 'shield-component' ? 'screen' : selectedDefense.category;
     if (defenseCategory !== category) return null;
 
-    const unitsForFullCoverage = selectedDefense.coverage > 0 
-      ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) 
-      : 0;
-
     // Simple quantity change handler
     const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setDefenseQuantity(e.target.value);
