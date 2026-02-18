@@ -90,7 +90,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" sx={{ mb: 1 }}>
         Step 1: Select Hull
       </Typography>
 

@@ -1,25 +1,24 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import {
   Box,
   Typography,
   Paper,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
   Button,
   IconButton,
   Tooltip,
   Alert,
-  Divider,
+  LinearProgress,
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckIcon from '@mui/icons-material/Check';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { Hull } from '../types/hull';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -50,7 +49,6 @@ import {
 
 interface DamageDiagramSelectionProps {
   hull: Hull;
-  // All installed systems that need to be assigned to zones
   installedPowerPlants: InstalledPowerPlant[];
   installedFuelTanks: InstalledFuelTank[];
   installedEngines: InstalledEngine[];
@@ -68,7 +66,6 @@ interface DamageDiagramSelectionProps {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
-  // Damage diagram state
   zones: DamageZone[];
   onZonesChange: (zones: DamageZone[]) => void;
 }
@@ -100,7 +97,41 @@ const CATEGORY_FILTERS: { key: SystemDamageCategory | 'all'; label: string }[] =
   { key: 'accommodation', label: 'Quarters' },
   { key: 'hangar', label: 'Hangars' },
   { key: 'miscellaneous', label: 'Misc' },
+  { key: 'communication', label: 'Comms' },
 ];
+
+// Color mapping for system categories
+const CATEGORY_COLORS: Record<SystemDamageCategory, string> = {
+  weapon: '#ef5350',
+  defense: '#42a5f5',
+  sensor: '#ab47bc',
+  communication: '#7e57c2',
+  fuel: '#8d6e63',
+  hangar: '#78909c',
+  accommodation: '#26a69a',
+  miscellaneous: '#bdbdbd',
+  support: '#66bb6a',
+  engine: '#ff7043',
+  powerPlant: '#ffa726',
+  ftlDrive: '#29b6f6',
+  command: '#ffee58',
+};
+
+const CATEGORY_TEXT_COLORS: Record<SystemDamageCategory, string> = {
+  weapon: '#fff',
+  defense: '#fff',
+  sensor: '#fff',
+  communication: '#fff',
+  fuel: '#fff',
+  hangar: '#fff',
+  accommodation: '#fff',
+  miscellaneous: '#333',
+  support: '#fff',
+  engine: '#fff',
+  powerPlant: '#fff',
+  ftlDrive: '#fff',
+  command: '#333',
+};
 
 // Format arcs in short mode (e.g., "FPSA" for forward-port-starboard-aft)
 function formatArcsShort(arcs: string[] | undefined): string {
@@ -115,7 +146,6 @@ function formatArcsShort(arcs: string[] | undefined): string {
     'zero-starboard': 'zS',
     'zero-aft': 'zA',
   };
-  // Sort arcs in a consistent order: F, P, S, A, then zero arcs
   const order = ['forward', 'port', 'starboard', 'aft', 'zero-forward', 'zero-port', 'zero-starboard', 'zero-aft'];
   const sorted = [...arcs].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   return sorted.map(arc => arcMap[arc] || arc[0].toUpperCase()).join('');
@@ -123,8 +153,6 @@ function formatArcsShort(arcs: string[] | undefined): string {
 
 /**
  * Build a list of individual systems that can be assigned to zones.
- * Each installation creates separate systems based on its unique ID.
- * This allows multiple power plants of the same type/size to be assigned to different zones.
  */
 function buildUnassignedSystemsList(
   installedPowerPlants: InstalledPowerPlant[],
@@ -148,163 +176,83 @@ function buildUnassignedSystemsList(
 ): UnassignedSystem[] {
   const systems: UnassignedSystem[] = [];
 
-  // Power Plants - each installation is a separate system
   for (const pp of installedPowerPlants) {
     const id = `pp-${pp.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${pp.type.name} (${pp.hullPoints} HP)`,
-        hullPoints: pp.hullPoints,
-        category: 'powerPlant',
-        originalType: 'powerPlant',
-      });
+      systems.push({ id, name: `${pp.type.name} (${pp.hullPoints} HP)`, hullPoints: pp.hullPoints, category: 'powerPlant', originalType: 'powerPlant' });
     }
   }
 
-  // Power Plant Fuel Tanks - each installation is a separate system
   for (const ft of installedFuelTanks) {
     const id = `ppfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${ft.forPowerPlantType.name} Fuel (${ft.hullPoints} HP)`,
-        hullPoints: ft.hullPoints,
-        category: 'fuel',
-        originalType: 'powerPlantFuel',
-      });
+      systems.push({ id, name: `${ft.forPowerPlantType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'powerPlantFuel' });
     }
   }
 
-  // Engines - each installation is a separate system
   for (const eng of installedEngines) {
     const id = `eng-${eng.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${eng.type.name} Engine (${eng.hullPoints} HP)`,
-        hullPoints: eng.hullPoints,
-        category: 'engine',
-        originalType: 'engine',
-      });
+      systems.push({ id, name: `${eng.type.name} Engine (${eng.hullPoints} HP)`, hullPoints: eng.hullPoints, category: 'engine', originalType: 'engine' });
     }
   }
 
-  // Engine Fuel Tanks - each installation is a separate system
   for (const ft of installedEngineFuelTanks) {
     const id = `engfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${ft.forEngineType.name} Fuel (${ft.hullPoints} HP)`,
-        hullPoints: ft.hullPoints,
-        category: 'fuel',
-        originalType: 'engineFuel',
-      });
+      systems.push({ id, name: `${ft.forEngineType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'engineFuel' });
     }
   }
 
-  // FTL Drive - single installation
   if (installedFTLDrive) {
     const id = `ftl-${installedFTLDrive.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${installedFTLDrive.type.name} (${installedFTLDrive.hullPoints} HP)`,
-        hullPoints: installedFTLDrive.hullPoints,
-        category: 'ftlDrive',
-        originalType: 'ftlDrive',
-      });
+      systems.push({ id, name: `${installedFTLDrive.type.name} (${installedFTLDrive.hullPoints} HP)`, hullPoints: installedFTLDrive.hullPoints, category: 'ftlDrive', originalType: 'ftlDrive' });
     }
   }
 
-  // FTL Fuel Tanks - each installation is a separate system
   for (const ft of installedFTLFuelTanks) {
     const id = `ftlfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${ft.forFTLDriveType.name} Fuel (${ft.hullPoints} HP)`,
-        hullPoints: ft.hullPoints,
-        category: 'fuel',
-        originalType: 'ftlFuel',
-      });
+      systems.push({ id, name: `${ft.forFTLDriveType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'ftlFuel' });
     }
   }
 
-  // Life Support - each installation is a separate system (with its quantity)
   for (const ls of installedLifeSupport) {
     const id = `ls-${ls.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${ls.type.name} x${ls.quantity}`,
-        hullPoints: ls.type.hullPoints * ls.quantity,
-        category: 'support',
-        originalType: 'lifeSupport',
-      });
+      systems.push({ id, name: `${ls.type.name} x${ls.quantity}`, hullPoints: ls.type.hullPoints * ls.quantity, category: 'support', originalType: 'lifeSupport' });
     }
   }
 
-  // Accommodations - each installation is a separate system
   for (const acc of installedAccommodations) {
     const id = `acc-${acc.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${acc.type.name} x${acc.quantity}`,
-        hullPoints: acc.type.hullPoints * acc.quantity,
-        category: 'accommodation',
-        originalType: 'accommodation',
-      });
+      systems.push({ id, name: `${acc.type.name} x${acc.quantity}`, hullPoints: acc.type.hullPoints * acc.quantity, category: 'accommodation', originalType: 'accommodation' });
     }
   }
 
-  // Store Systems - each installation is a separate system
   for (const ss of installedStoreSystems) {
     const id = `store-${ss.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${ss.type.name} x${ss.quantity}`,
-        hullPoints: ss.type.hullPoints * ss.quantity,
-        category: 'accommodation',
-        originalType: 'storeSystem',
-      });
+      systems.push({ id, name: `${ss.type.name} x${ss.quantity}`, hullPoints: ss.type.hullPoints * ss.quantity, category: 'accommodation', originalType: 'storeSystem' });
     }
   }
 
-  // Gravity Systems - each installation is a separate system
   for (const gs of installedGravitySystems) {
     const id = `grav-${gs.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: gs.type.name,
-        hullPoints: gs.hullPoints,
-        category: 'support',
-        originalType: 'gravitySystem',
-      });
+      systems.push({ id, name: gs.type.name, hullPoints: gs.hullPoints, category: 'support', originalType: 'gravitySystem' });
     }
   }
 
-  // Weapons - each installation (battery) is a separate system
   for (const wpn of installedWeapons) {
     const id = `wpn-${wpn.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}) x${wpn.quantity}`,
-        hullPoints: wpn.hullPoints * wpn.quantity,
-        category: 'weapon',
-        firepowerOrder: getFirepowerOrder(wpn.weaponType.firepower),
-        arcs: wpn.arcs,
-        originalType: 'weapon',
-      });
+      systems.push({ id, name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}) x${wpn.quantity}`, hullPoints: wpn.hullPoints * wpn.quantity, category: 'weapon', firepowerOrder: getFirepowerOrder(wpn.weaponType.firepower), arcs: wpn.arcs, originalType: 'weapon' });
     }
   }
 
-  // Launch Systems - each installation is a separate system
   const allLaunchSystems = getLaunchSystemsData();
   for (const ls of installedLaunchSystems) {
     const id = `launch-${ls.id}`;
@@ -315,73 +263,36 @@ function buildUnassignedSystemsList(
         return design ? design.name : '';
       }).filter(Boolean);
       const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
-      systems.push({
-        id,
-        name: `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`,
-        hullPoints: ls.hullPoints,
-        category: 'weapon',
-        firepowerOrder: 99, // Launch systems are treated as heavy weapons
-        originalType: 'launchSystem',
-      });
+      systems.push({ id, name: `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`, hullPoints: ls.hullPoints, category: 'weapon', firepowerOrder: 99, originalType: 'launchSystem' });
     }
   }
 
-  // Defenses - each installation is a separate system
   for (const def of installedDefenses) {
     const id = `def-${def.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${def.type.name} x${def.quantity}`,
-        hullPoints: def.hullPoints,
-        category: 'defense',
-        originalType: 'defense',
-      });
+      systems.push({ id, name: `${def.type.name} x${def.quantity}`, hullPoints: def.hullPoints, category: 'defense', originalType: 'defense' });
     }
   }
 
-  // Command & Control - each installation is a separate system
   for (const cc of installedCommandControl) {
     const id = `cc-${cc.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${cc.type.name} x${cc.quantity}`,
-        hullPoints: cc.hullPoints,
-        category: 'command',
-        originalType: 'commandControl',
-      });
+      systems.push({ id, name: `${cc.type.name} x${cc.quantity}`, hullPoints: cc.hullPoints, category: 'command', originalType: 'commandControl' });
     }
   }
 
-  // Sensors - each installation is a separate system
   for (const sen of installedSensors) {
     const id = `sen-${sen.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({
-        id,
-        name: `${sen.type.name} x${sen.quantity}`,
-        hullPoints: sen.hullPoints,
-        category: 'sensor',
-        originalType: 'sensor',
-      });
+      systems.push({ id, name: `${sen.type.name} x${sen.quantity}`, hullPoints: sen.hullPoints, category: 'sensor', originalType: 'sensor' });
     }
   }
 
-  // Hangar & Misc - each installation is a separate system
   for (const hm of installedHangarMisc) {
     const id = `hm-${hm.id}`;
     if (!assignedSystemIds.has(id)) {
-      const category = hm.type.category === 'hangar' || hm.type.category === 'cargo'
-        ? 'hangar' 
-        : 'miscellaneous';
-      systems.push({
-        id,
-        name: `${hm.type.name} x${hm.quantity}`,
-        hullPoints: hm.hullPoints,
-        category,
-        originalType: 'hangarMisc',
-      });
+      const category = hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar' : 'miscellaneous';
+      systems.push({ id, name: `${hm.type.name} x${hm.quantity}`, hullPoints: hm.hullPoints, category, originalType: 'hangarMisc' });
     }
   }
 
@@ -415,10 +326,18 @@ export function DamageDiagramSelection({
 
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<SystemDamageCategory | 'all'>('all');
-
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  // Collapsible unassigned panel
+  const [unassignedExpanded, setUnassignedExpanded] = useState(true);
+  // Drag state
+  const [draggedSystemId, setDraggedSystemId] = useState<string | null>(null);
+  const [dragOverZone, setDragOverZone] = useState<ZoneCode | null>(null);
+  // For drag between zones
+  const [draggedZoneSystem, setDraggedZoneSystem] = useState<{ zoneCode: ZoneCode; refId: string } | null>(null);
+  // Track which zone each system ref came from for drag source
+  const dragSourceRef = useRef<{ fromZone: ZoneCode; refId: string; systemRef: ZoneSystemReference } | null>(null);
 
   // Initialize zones if empty
   const effectiveZones = useMemo(() => {
@@ -439,171 +358,86 @@ export function DamageDiagramSelection({
     return ids;
   }, [effectiveZones]);
 
-  // Build list of ALL systems (for counting totals per category)
+  // Build list of ALL systems
   const allSystems = useMemo(() => {
     return buildUnassignedSystemsList(
-      installedPowerPlants,
-      installedFuelTanks,
-      installedEngines,
-      installedEngineFuelTanks,
-      installedFTLDrive,
-      installedFTLFuelTanks,
-      installedLifeSupport,
-      installedAccommodations,
-      installedStoreSystems,
-      installedGravitySystems,
-      installedWeapons,
-      installedLaunchSystems,
-      ordnanceDesigns,
-      installedDefenses,
-      installedCommandControl,
-      installedSensors,
-      installedHangarMisc,
-      new Set() // Empty set = nothing assigned, so we get ALL systems
+      installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
+      installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
+      installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
+      ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+      new Set()
     );
   }, [
-    installedPowerPlants,
-    installedFuelTanks,
-    installedEngines,
-    installedEngineFuelTanks,
-    installedFTLDrive,
-    installedFTLFuelTanks,
-    installedLifeSupport,
-    installedAccommodations,
-    installedStoreSystems,
-    installedGravitySystems,
-    installedWeapons,
-    installedLaunchSystems,
-    ordnanceDesigns,
-    installedDefenses,
-    installedCommandControl,
-    installedSensors,
-    installedHangarMisc,
+    installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
+    installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
+    installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
+    ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
   ]);
 
   // Build list of unassigned systems
   const unassignedSystems = useMemo(() => {
     return buildUnassignedSystemsList(
-      installedPowerPlants,
-      installedFuelTanks,
-      installedEngines,
-      installedEngineFuelTanks,
-      installedFTLDrive,
-      installedFTLFuelTanks,
-      installedLifeSupport,
-      installedAccommodations,
-      installedStoreSystems,
-      installedGravitySystems,
-      installedWeapons,
-      installedLaunchSystems,
-      ordnanceDesigns,
-      installedDefenses,
-      installedCommandControl,
-      installedSensors,
-      installedHangarMisc,
+      installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
+      installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
+      installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
+      ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
       assignedSystemIds
     );
   }, [
-    installedPowerPlants,
-    installedFuelTanks,
-    installedEngines,
-    installedEngineFuelTanks,
-    installedFTLDrive,
-    installedFTLFuelTanks,
-    installedLifeSupport,
-    installedAccommodations,
-    installedStoreSystems,
-    installedGravitySystems,
-    installedWeapons,
-    installedLaunchSystems,
-    ordnanceDesigns,
-    installedDefenses,
-    installedCommandControl,
-    installedSensors,
-    installedHangarMisc,
+    installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
+    installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
+    installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
+    ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
     assignedSystemIds,
   ]);
 
-  // Calculate category counts (assigned / total)
+  // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<string, { assigned: number; total: number }> = {};
-    
-    // Count totals per category
     for (const sys of allSystems) {
-      if (!counts[sys.category]) {
-        counts[sys.category] = { assigned: 0, total: 0 };
-      }
+      if (!counts[sys.category]) counts[sys.category] = { assigned: 0, total: 0 };
       counts[sys.category].total++;
     }
-    
-    // Count assigned (total - unassigned)
     for (const cat of Object.keys(counts)) {
       const unassignedInCat = unassignedSystems.filter(s => s.category === cat).length;
       counts[cat].assigned = counts[cat].total - unassignedInCat;
     }
-    
     return counts;
   }, [allSystems, unassignedSystems]);
 
-  // Filter unassigned systems by selected category
+  // Filter unassigned systems
   const filteredUnassignedSystems = useMemo(() => {
-    if (categoryFilter === 'all') {
-      return unassignedSystems;
-    }
+    if (categoryFilter === 'all') return unassignedSystems;
     return unassignedSystems.filter(s => s.category === categoryFilter);
   }, [unassignedSystems, categoryFilter]);
 
   // Total systems count
   const totalSystemsCount = useMemo(() => {
     return (
-      installedPowerPlants.length +
-      installedFuelTanks.length +
-      installedEngines.length +
-      installedEngineFuelTanks.length +
-      (installedFTLDrive ? 1 : 0) +
-      installedFTLFuelTanks.length +
-      installedLifeSupport.length +
-      installedAccommodations.length +
-      installedStoreSystems.length +
-      installedGravitySystems.length +
-      installedWeapons.length +
-      installedLaunchSystems.length +
-      installedDefenses.length +
-      installedCommandControl.length +
-      installedSensors.length +
+      installedPowerPlants.length + installedFuelTanks.length + installedEngines.length +
+      installedEngineFuelTanks.length + (installedFTLDrive ? 1 : 0) + installedFTLFuelTanks.length +
+      installedLifeSupport.length + installedAccommodations.length + installedStoreSystems.length +
+      installedGravitySystems.length + installedWeapons.length + installedLaunchSystems.length +
+      installedDefenses.length + installedCommandControl.length + installedSensors.length +
       installedHangarMisc.length
     );
   }, [
-    installedPowerPlants,
-    installedFuelTanks,
-    installedEngines,
-    installedEngineFuelTanks,
-    installedFTLDrive,
-    installedFTLFuelTanks,
-    installedLifeSupport,
-    installedAccommodations,
-    installedStoreSystems,
-    installedGravitySystems,
-    installedWeapons,
-    installedLaunchSystems,
-    installedDefenses,
-    installedCommandControl,
-    installedSensors,
-    installedHangarMisc,
+    installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
+    installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
+    installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
   ]);
 
-  // Calculate stats
+  // Stats
   const stats = useMemo(() => {
     return calculateDamageDiagramStats(effectiveZones, totalSystemsCount);
   }, [effectiveZones, totalSystemsCount]);
 
   // ============== Actions ==============
 
-  // Handle row click for selection
   const handleRowClick = useCallback(
     (systemId: string, event: React.MouseEvent) => {
       if (event.shiftKey && lastSelectedId) {
-        // Shift+click: select range
         const currentIndex = filteredUnassignedSystems.findIndex(s => s.id === systemId);
         const lastIndex = filteredUnassignedSystems.findIndex(s => s.id === lastSelectedId);
         if (currentIndex !== -1 && lastIndex !== -1) {
@@ -617,14 +451,10 @@ export function DamageDiagramSelection({
           });
         }
       } else {
-        // Regular click: toggle selection
         setSelectedIds(prev => {
           const newSet = new Set(prev);
-          if (newSet.has(systemId)) {
-            newSet.delete(systemId);
-          } else {
-            newSet.add(systemId);
-          }
+          if (newSet.has(systemId)) newSet.delete(systemId);
+          else newSet.add(systemId);
           return newSet;
         });
         setLastSelectedId(systemId);
@@ -633,50 +463,32 @@ export function DamageDiagramSelection({
     [filteredUnassignedSystems, lastSelectedId]
   );
 
-  // Clear selection
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
     setLastSelectedId(null);
   }, []);
 
-  // Assign multiple systems to a zone
   const handleAssignMultiple = useCallback(
     (systemIds: string[], zoneCode: ZoneCode) => {
       let newZones = [...effectiveZones];
-      
       for (const systemId of systemIds) {
         const system = unassignedSystems.find((s) => s.id === systemId);
         if (!system) continue;
-
-        // Check arc compatibility for weapons
         if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
-          if (!canWeaponBeInZone(system.arcs, zoneCode)) {
-            continue; // Skip weapons that can't go to this zone
-          }
+          if (!canWeaponBeInZone(system.arcs, zoneCode)) continue;
         }
-
         const newRef: ZoneSystemReference = {
-          id: generateZoneSystemRefId(),
-          systemType: system.category,
-          name: system.name,
-          hullPoints: system.hullPoints,
-          installedSystemId: systemId,
-          firepowerOrder: system.firepowerOrder,
+          id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
+          hullPoints: system.hullPoints, installedSystemId: systemId, firepowerOrder: system.firepowerOrder,
         };
-
         newZones = newZones.map((zone) => {
           if (zone.code === zoneCode) {
             const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
-            return {
-              ...zone,
-              systems: newSystems,
-              totalHullPoints: zone.totalHullPoints + system.hullPoints,
-            };
+            return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + system.hullPoints };
           }
           return zone;
         });
       }
-
       onZonesChange(newZones);
       setSelectedIds(new Set());
       setLastSelectedId(null);
@@ -686,36 +498,23 @@ export function DamageDiagramSelection({
 
   const handleAssignSystem = useCallback(
     (systemId: string, zoneCode: ZoneCode) => {
-      // If there are selected items and this system is one of them, assign all selected
       if (selectedIds.size > 0 && selectedIds.has(systemId)) {
         handleAssignMultiple(Array.from(selectedIds), zoneCode);
         return;
       }
-
       const system = unassignedSystems.find((s) => s.id === systemId);
       if (!system) return;
-
       const newRef: ZoneSystemReference = {
-        id: generateZoneSystemRefId(),
-        systemType: system.category,
-        name: system.name,
-        hullPoints: system.hullPoints,
-        installedSystemId: systemId,
-        firepowerOrder: system.firepowerOrder,
+        id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
+        hullPoints: system.hullPoints, installedSystemId: systemId, firepowerOrder: system.firepowerOrder,
       };
-
       const newZones = effectiveZones.map((zone) => {
         if (zone.code === zoneCode) {
           const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
-          return {
-            ...zone,
-            systems: newSystems,
-            totalHullPoints: zone.totalHullPoints + system.hullPoints,
-          };
+          return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + system.hullPoints };
         }
         return zone;
       });
-
       onZonesChange(newZones);
     },
     [unassignedSystems, effectiveZones, onZonesChange, selectedIds, handleAssignMultiple]
@@ -727,11 +526,7 @@ export function DamageDiagramSelection({
         if (zone.code === zoneCode) {
           const systemToRemove = zone.systems.find((s) => s.id === refId);
           const hpToRemove = systemToRemove?.hullPoints ?? 0;
-          return {
-            ...zone,
-            systems: zone.systems.filter((s) => s.id !== refId),
-            totalHullPoints: zone.totalHullPoints - hpToRemove,
-          };
+          return { ...zone, systems: zone.systems.filter((s) => s.id !== refId), totalHullPoints: zone.totalHullPoints - hpToRemove };
         }
         return zone;
       });
@@ -743,13 +538,7 @@ export function DamageDiagramSelection({
   const handleClearZone = useCallback(
     (zoneCode: ZoneCode) => {
       const newZones = effectiveZones.map((zone) => {
-        if (zone.code === zoneCode) {
-          return {
-            ...zone,
-            systems: [],
-            totalHullPoints: 0,
-          };
-        }
+        if (zone.code === zoneCode) return { ...zone, systems: [], totalHullPoints: 0 };
         return zone;
       });
       onZonesChange(newZones);
@@ -758,446 +547,477 @@ export function DamageDiagramSelection({
   );
 
   const handleClearAllZones = useCallback(() => {
-    const newZones = effectiveZones.map((zone) => ({
-      ...zone,
-      systems: [],
-      totalHullPoints: 0,
-    }));
+    const newZones = effectiveZones.map((zone) => ({ ...zone, systems: [], totalHullPoints: 0 }));
     onZonesChange(newZones);
   }, [effectiveZones, onZonesChange]);
 
-  const handleMoveSystemUp = useCallback(
-    (zoneCode: ZoneCode, refId: string) => {
-      const newZones = effectiveZones.map((zone) => {
-        if (zone.code === zoneCode) {
-          const idx = zone.systems.findIndex((s) => s.id === refId);
-          if (idx > 0) {
-            const newSystems = [...zone.systems];
-            [newSystems[idx - 1], newSystems[idx]] = [newSystems[idx], newSystems[idx - 1]];
-            return { ...zone, systems: newSystems };
-          }
-        }
-        return zone;
-      });
-      onZonesChange(newZones);
-    },
-    [effectiveZones, onZonesChange]
-  );
-
-  const handleMoveSystemDown = useCallback(
-    (zoneCode: ZoneCode, refId: string) => {
-      const newZones = effectiveZones.map((zone) => {
-        if (zone.code === zoneCode) {
-          const idx = zone.systems.findIndex((s) => s.id === refId);
-          if (idx >= 0 && idx < zone.systems.length - 1) {
-            const newSystems = [...zone.systems];
-            [newSystems[idx], newSystems[idx + 1]] = [newSystems[idx + 1], newSystems[idx]];
-            return { ...zone, systems: newSystems };
-          }
-        }
-        return zone;
-      });
-      onZonesChange(newZones);
-    },
-    [effectiveZones, onZonesChange]
-  );
-
   const handleAutoAssign = useCallback(() => {
-    // Auto-assign all unassigned systems evenly across zones
     let newZones = [...effectiveZones];
     const remainingSystems = [...unassignedSystems];
-
-    // Sort systems by category (surface to core)
-    remainingSystems.sort((a, b) => {
-      const orderA = ['weapon', 'defense', 'sensor', 'communication', 'fuel', 'hangar', 'accommodation', 'miscellaneous', 'support', 'engine', 'powerPlant', 'ftlDrive', 'command'].indexOf(a.category);
-      const orderB = ['weapon', 'defense', 'sensor', 'communication', 'fuel', 'hangar', 'accommodation', 'miscellaneous', 'support', 'engine', 'powerPlant', 'ftlDrive', 'command'].indexOf(b.category);
-      return orderA - orderB;
-    });
+    const categoryOrder = ['weapon', 'defense', 'sensor', 'communication', 'fuel', 'hangar', 'accommodation', 'miscellaneous', 'support', 'engine', 'powerPlant', 'ftlDrive', 'command'];
+    remainingSystems.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
 
     for (const system of remainingSystems) {
-      // Find candidate zones
-      let candidateZones = newZones.filter((zone) => {
-        // Must have enough space (not exceed HP limit)
-        const spaceAvailable = zone.maxHullPoints - zone.totalHullPoints;
-        if (spaceAvailable < system.hullPoints) {
-          return false;
-        }
-        return true;
-      });
-
-      // For weapons, filter by arc compatibility
+      let candidateZones = newZones.filter((zone) => zone.maxHullPoints - zone.totalHullPoints >= system.hullPoints);
       if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
-        const arcCompatibleZones = candidateZones.filter((zone) =>
-          canWeaponBeInZone(system.arcs!, zone.code)
-        );
-        // Only use arc-compatible zones if there are any; otherwise fall back to all candidates
-        if (arcCompatibleZones.length > 0) {
-          candidateZones = arcCompatibleZones;
-        }
+        const arcCompatible = candidateZones.filter((zone) => canWeaponBeInZone(system.arcs!, zone.code));
+        if (arcCompatible.length > 0) candidateZones = arcCompatible;
       }
+      if (candidateZones.length === 0) continue;
 
-      // Skip if no valid zone found
-      if (candidateZones.length === 0) {
-        continue;
-      }
-
-      // Find zone with most room among candidates
+      // Pick zone with most remaining space for balanced distribution
       let bestZone = candidateZones[0];
       let bestSpace = bestZone.maxHullPoints - bestZone.totalHullPoints;
-
       for (const zone of candidateZones) {
         const space = zone.maxHullPoints - zone.totalHullPoints;
-        if (space > bestSpace) {
-          bestSpace = space;
-          bestZone = zone;
-        }
+        if (space > bestSpace) { bestSpace = space; bestZone = zone; }
       }
 
-      // Add system to best zone
       const newRef: ZoneSystemReference = {
-        id: generateZoneSystemRefId(),
-        systemType: system.category,
-        name: system.name,
-        hullPoints: system.hullPoints,
-        installedSystemId: system.id,
-        firepowerOrder: system.firepowerOrder,
+        id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
+        hullPoints: system.hullPoints, installedSystemId: system.id, firepowerOrder: system.firepowerOrder,
       };
-
       newZones = newZones.map((zone) => {
         if (zone.code === bestZone.code) {
           const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
-          return {
-            ...zone,
-            systems: newSystems,
-            totalHullPoints: zone.totalHullPoints + system.hullPoints,
-          };
+          return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + system.hullPoints };
         }
         return zone;
       });
     }
-
     onZonesChange(newZones);
   }, [unassignedSystems, effectiveZones, onZonesChange]);
 
   const handleAutoAssignCategory = useCallback((category: SystemDamageCategory) => {
-    // Auto-assign only systems of the specified category
     let newZones = [...effectiveZones];
     const systemsToAssign = unassignedSystems.filter(s => s.category === category);
 
     for (const system of systemsToAssign) {
-      // Find candidate zones
-      let candidateZones = newZones.filter((zone) => {
-        const spaceAvailable = zone.maxHullPoints - zone.totalHullPoints;
-        if (spaceAvailable < system.hullPoints) {
-          return false;
-        }
-        return true;
-      });
-
-      // For weapons, filter by arc compatibility
+      let candidateZones = newZones.filter((zone) => zone.maxHullPoints - zone.totalHullPoints >= system.hullPoints);
       if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
-        const arcCompatibleZones = candidateZones.filter((zone) =>
-          canWeaponBeInZone(system.arcs!, zone.code)
-        );
-        if (arcCompatibleZones.length > 0) {
-          candidateZones = arcCompatibleZones;
-        }
+        const arcCompatible = candidateZones.filter((zone) => canWeaponBeInZone(system.arcs!, zone.code));
+        if (arcCompatible.length > 0) candidateZones = arcCompatible;
       }
+      if (candidateZones.length === 0) continue;
 
-      if (candidateZones.length === 0) {
-        continue;
-      }
-
-      // Find zone with most room
       let bestZone = candidateZones[0];
       let bestSpace = bestZone.maxHullPoints - bestZone.totalHullPoints;
-
       for (const zone of candidateZones) {
         const space = zone.maxHullPoints - zone.totalHullPoints;
-        if (space > bestSpace) {
-          bestSpace = space;
-          bestZone = zone;
-        }
+        if (space > bestSpace) { bestSpace = space; bestZone = zone; }
       }
 
       const newRef: ZoneSystemReference = {
-        id: generateZoneSystemRefId(),
-        systemType: system.category,
-        name: system.name,
-        hullPoints: system.hullPoints,
-        installedSystemId: system.id,
-        firepowerOrder: system.firepowerOrder,
+        id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
+        hullPoints: system.hullPoints, installedSystemId: system.id, firepowerOrder: system.firepowerOrder,
       };
-
       newZones = newZones.map((zone) => {
         if (zone.code === bestZone.code) {
           const newSystems = sortSystemsByDamagePriority([...zone.systems, newRef]);
-          return {
-            ...zone,
-            systems: newSystems,
-            totalHullPoints: zone.totalHullPoints + system.hullPoints,
-          };
+          return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + system.hullPoints };
         }
         return zone;
       });
     }
-
     onZonesChange(newZones);
   }, [unassignedSystems, effectiveZones, onZonesChange]);
 
+  // ============== Drag & Drop from unassigned pool ==============
+
+  const handleDragStartUnassigned = useCallback((e: React.DragEvent, systemId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', systemId);
+    e.dataTransfer.setData('application/x-source', 'unassigned');
+    setDraggedSystemId(systemId);
+    setDraggedZoneSystem(null);
+    dragSourceRef.current = null;
+  }, []);
+
+  const handleDragStartZoneSystem = useCallback((e: React.DragEvent, zoneCode: ZoneCode, sys: ZoneSystemReference) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', sys.installedSystemId);
+    e.dataTransfer.setData('application/x-source', 'zone');
+    e.dataTransfer.setData('application/x-zone', zoneCode);
+    e.dataTransfer.setData('application/x-refid', sys.id);
+    setDraggedZoneSystem({ zoneCode, refId: sys.id });
+    setDraggedSystemId(null);
+    dragSourceRef.current = { fromZone: zoneCode, refId: sys.id, systemRef: sys };
+  }, []);
+
+  const handleDragOverZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverZone(zoneCode);
+  }, []);
+
+  const handleDragLeaveZone = useCallback(() => {
+    setDragOverZone(null);
+  }, []);
+
+  const handleDropOnZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
+    e.preventDefault();
+    setDragOverZone(null);
+    const source = e.dataTransfer.getData('application/x-source');
+
+    if (source === 'zone') {
+      // Move between zones
+      const fromZone = e.dataTransfer.getData('application/x-zone') as ZoneCode;
+      const refId = e.dataTransfer.getData('application/x-refid');
+      if (fromZone === zoneCode) return; // Same zone, no-op
+
+      const sourceZone = effectiveZones.find(z => z.code === fromZone);
+      const systemRef = sourceZone?.systems.find(s => s.id === refId);
+      if (!systemRef) return;
+
+      const newZones = effectiveZones.map((zone) => {
+        if (zone.code === fromZone) {
+          return { ...zone, systems: zone.systems.filter(s => s.id !== refId), totalHullPoints: zone.totalHullPoints - systemRef.hullPoints };
+        }
+        if (zone.code === zoneCode) {
+          const newSystems = sortSystemsByDamagePriority([...zone.systems, { ...systemRef, id: generateZoneSystemRefId() }]);
+          return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + systemRef.hullPoints };
+        }
+        return zone;
+      });
+      onZonesChange(newZones);
+    } else {
+      // From unassigned pool
+      const systemId = e.dataTransfer.getData('text/plain');
+      if (selectedIds.size > 0 && selectedIds.has(systemId)) {
+        handleAssignMultiple(Array.from(selectedIds), zoneCode);
+      } else {
+        handleAssignSystem(systemId, zoneCode);
+      }
+    }
+
+    setDraggedSystemId(null);
+    setDraggedZoneSystem(null);
+    dragSourceRef.current = null;
+  }, [effectiveZones, onZonesChange, selectedIds, handleAssignMultiple, handleAssignSystem]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedSystemId(null);
+    setDraggedZoneSystem(null);
+    setDragOverZone(null);
+    dragSourceRef.current = null;
+  }, []);
+
+  // Assign selected/filtered systems to a zone when clicking the zone header
+  const handleZoneHeaderClick = useCallback((zoneCode: ZoneCode) => {
+    if (selectedIds.size > 0) {
+      handleAssignMultiple(Array.from(selectedIds), zoneCode);
+    }
+  }, [selectedIds, handleAssignMultiple]);
+
   // ============== Render ==============
 
+  const allAssigned = unassignedSystems.length === 0;
+
   return (
-    <Box>
-      {/* Header with stats */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Damage Diagram
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 500 }}>
+      {/* Header */}
+      <Box sx={{ flexShrink: 0, mb: 1 }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Step 12: Damage Zones (Required)
         </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Organize your ship's systems into hit zones. When the ship takes damage, the location
-          hit is determined by die roll, and systems within that zone are damaged from surface to core.
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Assign systems to hit zones. Drag systems from the pool below into zone columns, or use Auto-Assign.
+          {selectedIds.size > 0 && ` Click a zone header to assign ${selectedIds.size} selected system(s).`}
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, alignItems: 'center' }}>
+        {/* Category filter chips */}
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
           {CATEGORY_FILTERS.map((filter) => {
-            const count = filter.key === 'all' 
+            const count = filter.key === 'all'
               ? { assigned: allSystems.length - unassignedSystems.length, total: allSystems.length }
               : categoryCounts[filter.key];
-            
-            // Skip categories with no systems
-            if (filter.key !== 'all' && (!count || count.total === 0)) {
-              return null;
-            }
-            
+            if (filter.key !== 'all' && (!count || count.total === 0)) return null;
+
             const isActive = categoryFilter === filter.key;
             const isComplete = count && count.assigned === count.total;
             const hasUnassigned = count && count.assigned < count.total;
-            
-            // For "All" chip, show warning icon when incomplete
-            const chipColor = isComplete ? 'success' : (filter.key === 'all' ? 'warning' : (isActive ? 'primary' : 'default'));
-            const chipIcon = filter.key === 'all' && !isComplete ? <WarningIcon /> : undefined;
-            
+
+            // Use category color for category chips, grey for "All"
+            const catColor = filter.key !== 'all' ? CATEGORY_COLORS[filter.key as SystemDamageCategory] : undefined;
+            const catTextColor = filter.key !== 'all' ? CATEGORY_TEXT_COLORS[filter.key as SystemDamageCategory] : undefined;
+            const chipIcon = isComplete
+              ? <CheckIcon sx={{ fontSize: 14, color: catTextColor ?? 'inherit' }} />
+              : (filter.key === 'all' && !isComplete ? <WarningIcon /> : undefined);
+
             return (
-              <Tooltip 
-                key={filter.key}
-                title={hasUnassigned && filter.key !== 'all' ? `Click to filter, click wand to auto-assign` : ''}
-              >
+              <Tooltip key={filter.key} title={hasUnassigned && filter.key !== 'all' ? 'Click to filter, click wand to auto-assign' : ''}>
                 <Chip
                   label={count ? `${filter.label} ${count.assigned}/${count.total}` : filter.label}
                   size="small"
-                  variant={isActive ? "filled" : "outlined"}
-                  color={chipColor}
+                  variant={isActive ? 'filled' : 'outlined'}
+                  color={!catColor ? (isComplete ? 'success' : (filter.key === 'all' ? 'warning' : 'default')) : undefined}
                   icon={chipIcon}
                   onClick={() => setCategoryFilter(filter.key)}
                   onDelete={hasUnassigned && filter.key !== 'all' ? () => handleAutoAssignCategory(filter.key as SystemDamageCategory) : undefined}
-                  deleteIcon={hasUnassigned && filter.key !== 'all' ? <AutoFixHighIcon fontSize="small" /> : undefined}
-                  sx={{ cursor: 'pointer' }}
+                  deleteIcon={hasUnassigned && filter.key !== 'all' ? <AutoFixHighIcon fontSize="small" sx={catColor ? { color: `${catTextColor} !important` } : undefined} /> : undefined}
+                  sx={catColor ? {
+                    cursor: 'pointer',
+                    bgcolor: isActive ? catColor : 'transparent',
+                    color: isActive ? catTextColor : catColor,
+                    borderColor: catColor,
+                    '&:hover': { bgcolor: catColor, color: catTextColor, opacity: 0.9 },
+                    '& .MuiChip-icon': { color: isActive ? catTextColor : catColor },
+                  } : { cursor: 'pointer' }}
                 />
               </Tooltip>
             );
           })}
+          {unassignedSystems.length > 0 && (
+            <Tooltip title="Auto-assign all systems evenly across zones">
+              <Button size="small" startIcon={<AutoFixHighIcon />} onClick={handleAutoAssign}>
+                Auto-Assign All
+              </Button>
+            </Tooltip>
+          )}
           {stats.totalSystemsAssigned > 0 && (
-            <Button
-              size="small"
-              color="error"
-              startIcon={<ClearAllIcon />}
-              onClick={handleClearAllZones}
-            >
+            <Button size="small" color="error" startIcon={<ClearAllIcon />} onClick={handleClearAllZones}>
               Unassign All
             </Button>
           )}
         </Box>
       </Box>
 
-      {/* Main content: side by side layout */}
-      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 280px)', minHeight: 400 }}>
-        {/* Unassigned Systems Panel */}
-        <Paper sx={{ width: 500, p: 2, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexShrink: 0 }}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              Unassigned Systems ({unassignedSystems.length})
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {selectedIds.size > 0 && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleClearSelection}
+      {/* Zone columns grid (main area) */}
+      <Box sx={{ flex: 1, overflow: 'auto', mb: 1, minHeight: 0 }}>
+        <Box sx={{ display: 'flex', gap: 1, minWidth: 'max-content', height: '100%', alignItems: 'stretch' }}>
+          {effectiveZones.map((zone) => {
+            const fillPercent = zone.maxHullPoints > 0 ? Math.min(100, (zone.totalHullPoints / zone.maxHullPoints) * 100) : 0;
+            const isOver = zone.totalHullPoints > zone.maxHullPoints;
+            const isEmpty = zone.systems.length === 0;
+            const isDragTarget = dragOverZone === zone.code;
+            const isClickableForAssign = selectedIds.size > 0;
+
+            return (
+              <Paper
+                key={zone.code}
+                variant="outlined"
+                onDragOver={(e) => handleDragOverZone(e, zone.code)}
+                onDragLeave={handleDragLeaveZone}
+                onDrop={(e) => handleDropOnZone(e, zone.code)}
+                sx={{
+                  width: Math.max(160, Math.floor(900 / effectiveZones.length)),
+                  minWidth: 140,
+                  flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  transition: 'box-shadow 0.15s, border-color 0.15s',
+                  borderColor: isDragTarget ? 'primary.main' : isOver ? 'error.main' : 'divider',
+                  borderWidth: isDragTarget ? 2 : 1,
+                  boxShadow: isDragTarget ? 4 : 0,
+                  bgcolor: isDragTarget ? 'action.hover' : 'background.paper',
+                }}
+              >
+                {/* Zone header */}
+                <Box
+                  onClick={() => handleZoneHeaderClick(zone.code)}
+                  sx={{
+                    p: 1,
+                    flexShrink: 0,
+                    cursor: isClickableForAssign ? 'pointer' : 'default',
+                    bgcolor: isOver ? 'error.dark' : isEmpty ? 'warning.dark' : 'grey.800',
+                    color: '#fff',
+                    '&:hover': isClickableForAssign ? { bgcolor: 'primary.dark' } : {},
+                  }}
                 >
-                  Clear
-                </Button>
-              )}
-              {unassignedSystems.length > 0 && (
-                <Tooltip title="Auto-assign all systems evenly across zones">
-                  <Button
-                    size="small"
-                    startIcon={<AutoFixHighIcon />}
-                    onClick={handleAutoAssign}
-                  >
-                    Auto-Assign
-                  </Button>
-                </Tooltip>
-              )}
-            </Box>
-          </Box>
-
-          {unassignedSystems.length === 0 ? (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              All systems have been assigned to zones.
-            </Alert>
-          ) : filteredUnassignedSystems.length === 0 ? (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              All {CATEGORY_FILTERS.find(f => f.key === categoryFilter)?.label.toLowerCase()} assigned.
-            </Alert>
-          ) : (
-            <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {filteredUnassignedSystems.map((system) => {
-                const isSelected = selectedIds.has(system.id);
-                return (
-                  <Box
-                    key={system.id}
-                    onClick={(e) => handleRowClick(system.id, e)}
-                    sx={{
-                      py: 0.75,
-                      px: 1,
-                      borderBottom: 1,
-                      borderColor: 'divider',
-                      bgcolor: isSelected ? 'action.selected' : 'transparent',
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: isSelected ? 'action.selected' : 'action.hover' },
-                    }}
-                  >
-                    <Box 
-                      sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
-                    >
-                      <Typography variant="body2">
-                        {system.name} <Typography component="span" variant="body2" color="text.secondary">- {system.hullPoints} HP{system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}</Typography>
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {effectiveZones.map((zone) => {
-                        const wouldExceed = zone.totalHullPoints + system.hullPoints > zone.maxHullPoints;
-                        const isArcCompatible = system.category !== 'weapon' || !system.arcs || system.arcs.length === 0 ||
-                          canWeaponBeInZone(system.arcs, zone.code);
-                        return (
-                          <Tooltip
-                            key={zone.code}
-                            title={`${ZONE_NAMES[zone.code]} (${zone.totalHullPoints}/${zone.maxHullPoints} HP)${wouldExceed ? ' - Would exceed limit!' : ''}${!isArcCompatible ? ' - Arc mismatch' : ''}${isSelected && selectedIds.size > 1 ? ` - Assign ${selectedIds.size} selected` : ''}`}
-                          >
-                            <Button
-                              size="small"
-                              variant={isArcCompatible ? "outlined" : "text"}
-                              color={wouldExceed ? "error" : isArcCompatible ? "primary" : "inherit"}
-                              onClick={(e) => { e.stopPropagation(); handleAssignSystem(system.id, zone.code); }}
-                              sx={{
-                                minWidth: 36,
-                                px: 1,
-                                py: 0.25,
-                                fontSize: '0.75rem',
-                                opacity: !isArcCompatible ? 0.5 : 1,
-                              }}
-                            >
-                              {zone.code}{isSelected && selectedIds.size > 1 ? ` (${selectedIds.size})` : ''}
-                            </Button>
-                          </Tooltip>
-                        );
-                      })}
-                    </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: 'inherit' }}>
+                      {zone.code}
+                    </Typography>
+                    {zone.systems.length > 0 && (
+                      <Tooltip title="Clear zone">
+                        <IconButton size="small" sx={{ color: 'inherit', p: 0.25 }} onClick={(e) => { e.stopPropagation(); handleClearZone(zone.code); }}>
+                          <ClearAllIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Box>
-                );
-              })}
-            </Box>
-          )}
-        </Paper>
+                  <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
+                    {ZONE_NAMES[zone.code]}
+                  </Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={fillPercent}
+                      color={isOver ? 'error' : fillPercent >= 90 ? 'warning' : 'primary'}
+                      sx={{ height: 4, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.2)' }}
+                    />
+                    <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
+                      {zone.totalHullPoints}/{zone.maxHullPoints} HP
+                    </Typography>
+                  </Box>
+                </Box>
 
-        {/* Zones Panel - Vertical List */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'auto' }}>
-          {effectiveZones.map((zone) => (
-            <Paper
-              key={zone.code}
-              sx={{
-                p: 2,
-                bgcolor: zone.totalHullPoints > zone.maxHullPoints
-                  ? 'error.light'
-                  : zone.systems.length === 0
-                    ? 'rgba(237, 108, 2, 0.50)'  // Subtle orange for empty zones
-                    : 'background.paper',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  {zone.code} - {ZONE_NAMES[zone.code]}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Chip
-                    label={`${zone.totalHullPoints} / ${zone.maxHullPoints} HP`}
-                    size="small"
-                    color={zone.totalHullPoints > zone.maxHullPoints ? 'error' : 'default'}
-                    variant="outlined"
-                  />
-                  {zone.systems.length > 0 && (
-                    <Tooltip title="Clear this zone">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleClearZone(zone.code)}
+                {/* Zone systems */}
+                <Box sx={{ flex: 1, overflow: 'auto', p: 0.5 }}>
+                  {zone.systems.length === 0 ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ p: 1, textAlign: 'center', display: 'block' }}>
+                      Drop systems here
+                    </Typography>
+                  ) : (
+                    zone.systems.map((sys) => (
+                      <Box
+                        key={sys.id}
+                        draggable
+                        onDragStart={(e) => handleDragStartZoneSystem(e, zone.code, sys)}
+                        onDragEnd={handleDragEnd}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.25,
+                          mb: 0.25,
+                          p: 0.5,
+                          borderRadius: 0.5,
+                          bgcolor: CATEGORY_COLORS[sys.systemType],
+                          color: CATEGORY_TEXT_COLORS[sys.systemType],
+                          cursor: 'grab',
+                          opacity: draggedZoneSystem?.refId === sys.id ? 0.4 : 1,
+                          '&:hover': { filter: 'brightness(1.1)' },
+                          '&:active': { cursor: 'grabbing' },
+                        }}
                       >
-                        <ClearAllIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                        <DragIndicatorIcon sx={{ fontSize: 12, opacity: 0.6, flexShrink: 0 }} />
+                        <Tooltip title={`${sys.name} — ${sys.hullPoints} HP (${sys.systemType})`}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.68rem',
+                              lineHeight: 1.3,
+                              color: 'inherit',
+                            }}
+                          >
+                            {sys.name}
+                          </Typography>
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ flexShrink: 0, fontSize: '0.65rem', opacity: 0.8, color: 'inherit' }}>
+                          {sys.hullPoints}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveFromZone(zone.code, sys.id); }}
+                          sx={{ p: 0.125, color: 'inherit', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                        >
+                          <CloseIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                      </Box>
+                    ))
                   )}
                 </Box>
-              </Box>
-              <Divider sx={{ mb: 1 }} />
-
-              {zone.systems.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                  No systems assigned to this zone.
-                </Typography>
-              ) : (
-                <Table size="small">
-                  <TableBody>
-                    {zone.systems.map((sys, idx) => (
-                      <TableRow key={sys.id}>
-                        <TableCell sx={{ py: 0.5, border: 0, width: '100%' }}>
-                          <Typography variant="body2">{sys.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {sys.hullPoints} HP • {sys.systemType}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 0.5, border: 0, whiteSpace: 'nowrap' }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveSystemUp(zone.code, sys.id)}
-                            disabled={idx === 0}
-                          >
-                            <ArrowUpwardIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveSystemDown(zone.code, sys.id)}
-                            disabled={idx === zone.systems.length - 1}
-                          >
-                            <ArrowDownwardIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveFromZone(zone.code, sys.id)}
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Paper>
-          ))}
+              </Paper>
+            );
+          })}
         </Box>
       </Box>
+
+      {/* Unassigned systems pool (bottom panel) */}
+      <Paper
+        variant="outlined"
+        sx={{
+          flexShrink: 0,
+          maxHeight: unassignedExpanded ? 280 : 40,
+          transition: 'max-height 0.2s',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Pool header */}
+        <Box
+          onClick={() => setUnassignedExpanded(!unassignedExpanded)}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.5,
+            py: 0.5,
+            cursor: 'pointer',
+            bgcolor: allAssigned ? 'success.dark' : 'grey.800',
+            color: '#fff',
+            flexShrink: 0,
+          }}
+        >
+          {allAssigned ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : <WarningIcon sx={{ fontSize: 16 }} />}
+          <Typography variant="subtitle2" sx={{ flex: 1, color: 'inherit' }}>
+            {allAssigned
+              ? 'All systems assigned'
+              : `Unassigned Systems (${unassignedSystems.length} remaining)`
+            }
+          </Typography>
+          {selectedIds.size > 0 && (
+            <Chip label={`${selectedIds.size} selected`} size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem' }} />
+          )}
+          {selectedIds.size > 0 && (
+            <Button size="small" variant="outlined" sx={{ color: 'inherit', borderColor: 'rgba(255,255,255,0.5)', py: 0, minHeight: 22, fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleClearSelection(); }}>
+              Clear
+            </Button>
+          )}
+          {!allAssigned && unassignedExpanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : !allAssigned ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : null}
+        </Box>
+
+        {/* Pool content */}
+        {unassignedExpanded && !allAssigned && (
+          <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+            {filteredUnassignedSystems.length === 0 ? (
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                All {CATEGORY_FILTERS.find(f => f.key === categoryFilter)?.label.toLowerCase()} assigned.
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {filteredUnassignedSystems.map((system) => {
+                  const isSelected = selectedIds.has(system.id);
+                  const isDragging = draggedSystemId === system.id;
+                  return (
+                    <Tooltip
+                      key={system.id}
+                      title={`${system.name} — ${system.hullPoints} HP${system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}`}
+                    >
+                      <Chip
+                        draggable
+                        onDragStart={(e) => handleDragStartUnassigned(e, system.id)}
+                        onDragEnd={handleDragEnd}
+                        onClick={(e) => handleRowClick(system.id, e)}
+                        icon={<DragIndicatorIcon sx={{ fontSize: 14 }} />}
+                        label={
+                          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Box component="span" sx={{
+                              display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                              bgcolor: CATEGORY_COLORS[system.category], flexShrink: 0,
+                            }} />
+                            <Typography component="span" variant="caption" sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {system.name}
+                            </Typography>
+                            <Typography component="span" variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                              {system.hullPoints}HP
+                            </Typography>
+                          </Box>
+                        }
+                        size="small"
+                        variant={isSelected ? 'filled' : 'outlined'}
+                        color={isSelected ? 'primary' : 'default'}
+                        sx={{
+                          cursor: 'grab',
+                          opacity: isDragging ? 0.4 : 1,
+                          '&:active': { cursor: 'grabbing' },
+                          maxWidth: 280,
+                        }}
+                      />
+                    </Tooltip>
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 }

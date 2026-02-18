@@ -344,7 +344,7 @@ export function PowerPlantSelection({
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" sx={{ mb: 1 }}>
           Step 3: Power Plant (Required)
         </Typography>
         {(installedPowerPlants.length > 0 || installedFuelTanks.length > 0) && (

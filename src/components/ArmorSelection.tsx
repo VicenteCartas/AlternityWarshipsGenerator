@@ -93,7 +93,7 @@ export function ArmorSelection({
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" sx={{ mb: 1 }}>
           Step 2: Select Armor (Optional)
         </Typography>
         {(selectedWeight || selectedType) && (

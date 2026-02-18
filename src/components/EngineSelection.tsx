@@ -345,7 +345,7 @@ export function EngineSelection({
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" sx={{ mb: 1 }}>
           Step 4: Engines (Required)
         </Typography>
         {installedEngines.length > 0 && (
