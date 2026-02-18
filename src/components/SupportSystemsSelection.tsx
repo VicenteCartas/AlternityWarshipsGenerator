@@ -1129,7 +1129,7 @@ export function SupportSystemsSelection({
             <Box>
               <Chip label="No Artificial Gravity" color="warning" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
-                Artificial gravity requires Progress Level 7+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
+                Artificial gravity requires Progress Level 6+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Without artificial gravity, the ship can simulate gravity through constant acceleration (thrust gravity)

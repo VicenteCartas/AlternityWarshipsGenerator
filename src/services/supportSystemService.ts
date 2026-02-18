@@ -222,11 +222,11 @@ export function calculateSupportSystemsStats(
   // Gravity system check
   const hasGravitySystemInstalled = gravitySystems.length > 0;
   
-  // Artificial gravity: available at PL7+ with G-tech, or PL8+ with X-tech, or via spin system
+  // Artificial gravity: available at PL6+ with G-tech, or PL8+ with X-tech, or via spin system
   const hasGravityTech = designTechTracks.length === 0 || designTechTracks.includes('G');
   const hasEnergyTech = designTechTracks.length === 0 || designTechTracks.includes('X');
   const hasArtificialGravity = 
-    (designProgressLevel >= 7 && hasGravityTech) ||
+    (designProgressLevel >= 6 && hasGravityTech) ||
     (designProgressLevel >= 8 && hasEnergyTech);
 
   return {

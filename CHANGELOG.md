@@ -1,14 +1,30 @@
 # Changelog
 
-## [0.2.5] - Unreleased
+## [0.2.6] - Unreleased
+
+### House rules
+
+- Allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
+- Support multiple layers of armors of different categories
+- Add a Thrust gravity option which doesn't consume HP.
+
+### Ideas
+
+- Bug on assigning and sorting zones.
+- Add % ranges for power plants and engines.
+- Maybe rename the fuel tanks to Fuel Tank (what they are powering).
+- Improve the power/fuel chips to be less confusing.
 
 ### Future ideas
 
-- Rather than just showing the broad system type and the size/power/cost overall, it may be better to show the individual systems under each category. Add a PDF option to enable/disable this.
-- Visual PDF bugs reported in 455 Corvette.
 - Mods support.
 - Add stations.
-- House rules: allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
+
+## [0.2.5] - TODO
+
+### Fixes
+
+- Bug: artificial gravity with G technology now requires PL6 instead of PL7.
 
 ## [0.2.4] - 02/11/2025
 
