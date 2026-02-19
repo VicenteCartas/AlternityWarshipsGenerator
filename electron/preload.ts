@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onShowAbout: (callback: () => void) => {
     ipcRenderer.on('menu-show-about', callback);
   },
+  onManageMods: (callback: () => void) => {
+    ipcRenderer.on('menu-manage-mods', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },
@@ -62,6 +65,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // App mode management
   setBuilderMode: (isBuilder: boolean) =>
     ipcRenderer.invoke('set-builder-mode', isBuilder),
+  
+  // Mod system operations
+  listMods: () =>
+    ipcRenderer.invoke('list-mods'),
+  readModFile: (folderName: string, fileName: string) =>
+    ipcRenderer.invoke('read-mod-file', folderName, fileName),
+  saveModFile: (folderName: string, fileName: string, content: string) =>
+    ipcRenderer.invoke('save-mod-file', folderName, fileName, content),
+  createMod: (folderName: string, manifest: string) =>
+    ipcRenderer.invoke('create-mod', folderName, manifest),
+  deleteMod: (folderName: string) =>
+    ipcRenderer.invoke('delete-mod', folderName),
+  readModSettings: () =>
+    ipcRenderer.invoke('read-mod-settings'),
+  updateModSettings: (settingsJson: string) =>
+    ipcRenderer.invoke('update-mod-settings', settingsJson),
+  exportMod: (folderName: string) =>
+    ipcRenderer.invoke('export-mod', folderName),
+  importMod: () =>
+    ipcRenderer.invoke('import-mod'),
+  getModsPath: () =>
+    ipcRenderer.invoke('get-mods-path'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

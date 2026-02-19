@@ -47,6 +47,7 @@ import { HangarMiscSelection } from './components/HangarMiscSelection';
 import { DamageDiagramSelection } from './components/DamageDiagramSelection';
 import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
+import { ModManager } from './components/ModManager';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -76,7 +77,7 @@ import { calculateCommandControlStats } from './services/commandControlService';
 import { calculateSensorStats } from './services/sensorService';
 import { calculateHangarMiscStats } from './services/hangarMiscService';
 import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
-import { loadAllGameData, type DataLoadResult } from './services/dataLoader';
+import { loadAllGameData, reloadAllGameData, type DataLoadResult } from './services/dataLoader';
 import { 
   serializeWarship, 
   saveFileToJson, 
@@ -86,7 +87,7 @@ import {
   type WarshipState 
 } from './services/saveService';
 
-type AppMode = 'welcome' | 'builder' | 'loading';
+type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
 
 const steps = [
   { label: 'Hull', required: true },
@@ -252,6 +253,22 @@ function App() {
     setDesignTechTracks([]);
     setMode('builder');
   }, []);
+
+  // Track the mode to return to when leaving the mod manager
+  const [preModeForMods, setPreModeForMods] = useState<AppMode>('welcome');
+
+  const handleManageMods = useCallback(() => {
+    setPreModeForMods(mode === 'mods' ? 'welcome' : mode);
+    setMode('mods');
+  }, [mode]);
+
+  const handleModsChanged = useCallback(async () => {
+    await reloadAllGameData();
+  }, []);
+
+  const handleModsBack = useCallback(() => {
+    setMode(preModeForMods);
+  }, [preModeForMods]);
 
   // Helper function to load a warship from a file path
   const loadFromFile = useCallback(async (filePath: string): Promise<boolean> => {
@@ -495,6 +512,9 @@ function App() {
       window.electronAPI.onShowAbout(() => {
         setAboutDialogOpen(true);
       });
+      window.electronAPI.onManageMods(() => {
+        handleManageMods();
+      });
 
       return () => {
         window.electronAPI?.removeAllListeners('menu-new-warship');
@@ -503,9 +523,10 @@ function App() {
         window.electronAPI?.removeAllListeners('menu-save-warship-as');
         window.electronAPI?.removeAllListeners('menu-open-recent');
         window.electronAPI?.removeAllListeners('menu-show-about');
+        window.electronAPI?.removeAllListeners('menu-manage-mods');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleManageMods]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
@@ -1170,6 +1191,17 @@ function App() {
       <WelcomePage
         onNewWarship={handleNewWarship}
         onLoadWarship={handleLoadWarship}
+        onManageMods={handleManageMods}
+      />
+    );
+  }
+
+  // Show mod manager
+  if (mode === 'mods') {
+    return (
+      <ModManager
+        onBack={handleModsBack}
+        onModsChanged={handleModsChanged}
       />
     );
   }

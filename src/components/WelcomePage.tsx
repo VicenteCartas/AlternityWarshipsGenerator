@@ -7,13 +7,15 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import ExtensionIcon from '@mui/icons-material/Extension';
 
 interface WelcomePageProps {
   onNewWarship: () => void;
   onLoadWarship: () => void;
+  onManageMods: () => void;
 }
 
-export function WelcomePage({ onNewWarship, onLoadWarship }: WelcomePageProps) {
+export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods }: WelcomePageProps) {
   return (
     <Box
       sx={{
@@ -72,6 +74,17 @@ export function WelcomePage({ onNewWarship, onLoadWarship }: WelcomePageProps) {
             sx={{ py: 1.5 }}
           >
             Load Warship
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<ExtensionIcon />}
+            onClick={onManageMods}
+            fullWidth
+            sx={{ py: 1.5 }}
+          >
+            Manage Mods
           </Button>
         </Stack>
       </Paper>

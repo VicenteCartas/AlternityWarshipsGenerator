@@ -1,5 +1,7 @@
 // Type declarations for Electron API exposed via preload
 
+import type { Mod, ModSettings } from './mod';
+
 export interface SaveDialogResult {
   canceled: boolean;
   filePath?: string;
@@ -24,6 +26,24 @@ export interface DataFileResult {
   path?: string;
 }
 
+export interface ListModsResult {
+  success: boolean;
+  error?: string;
+  mods: Mod[];
+}
+
+export interface ModSettingsResult {
+  success: boolean;
+  error?: string;
+  settings?: ModSettings;
+}
+
+export interface ImportModResult {
+  success: boolean;
+  error?: string;
+  folderName?: string;
+}
+
 export interface ElectronAPI {
   // Menu event listeners
   onNewWarship: (callback: () => void) => void;
@@ -32,6 +52,7 @@ export interface ElectronAPI {
   onSaveWarshipAs: (callback: () => void) => void;
   onOpenRecent: (callback: (filePath: string) => void) => void;
   onShowAbout: (callback: () => void) => void;
+  onManageMods: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   
   // File operations
@@ -56,6 +77,18 @@ export interface ElectronAPI {
   
   // App mode management
   setBuilderMode: (isBuilder: boolean) => Promise<FileOperationResult>;
+  
+  // Mod system operations
+  listMods: () => Promise<ListModsResult>;
+  readModFile: (folderName: string, fileName: string) => Promise<FileOperationResult>;
+  saveModFile: (folderName: string, fileName: string, content: string) => Promise<FileOperationResult>;
+  createMod: (folderName: string, manifest: string) => Promise<FileOperationResult>;
+  deleteMod: (folderName: string) => Promise<FileOperationResult>;
+  readModSettings: () => Promise<ModSettingsResult>;
+  updateModSettings: (settingsJson: string) => Promise<FileOperationResult>;
+  exportMod: (folderName: string) => Promise<FileOperationResult>;
+  importMod: () => Promise<ImportModResult>;
+  getModsPath: () => Promise<string>;
 }
 
 declare global {

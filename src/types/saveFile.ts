@@ -1,5 +1,6 @@
 import type { ProgressLevel, TechTrack } from './common';
 import type { ZoneCode, AttackDirection } from './damageDiagram';
+import type { SavedModReference } from './mod';
 
 /**
  * Save file format for Alternity Warships
@@ -408,7 +409,10 @@ export interface WarshipSaveFile {
   
   /** Installed systems (future) */
   systems: unknown[];
+  
+  /** Mods that were active when this ship was saved */
+  activeMods?: SavedModReference[];
 }
 
 /** Current save file version */
-export const SAVE_FILE_VERSION = '1.1';
+export const SAVE_FILE_VERSION = '1.2';

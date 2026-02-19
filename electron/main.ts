@@ -159,6 +159,12 @@ function createMenu() {
             shell.openPath(dataPath);
           },
         },
+        {
+          label: 'Manage Mods',
+          click: () => {
+            mainWindow?.webContents.send('menu-manage-mods');
+          },
+        },
         { type: 'separator' as const },
         { role: 'reload' as const },
         { role: 'forceReload' as const },
@@ -395,4 +401,315 @@ ipcMain.handle('set-builder-mode', async (_event, isBuilder: boolean) => {
   isInBuilderMode = isBuilder;
   createMenu(); // Recreate menu with updated enabled state
   return { success: true };
+});
+
+// ============== Mod System IPC Handlers ==============
+
+const MOD_DATA_FILES = [
+  'hulls.json', 'armor.json', 'powerPlants.json', 'fuelTank.json',
+  'engines.json', 'ftlDrives.json', 'supportSystems.json', 'weapons.json',
+  'ordnance.json', 'defenses.json', 'sensors.json', 'commandControl.json',
+  'hangarMisc.json', 'damageDiagram.json',
+];
+
+function getModsDir(): string {
+  return path.join(app.getPath('userData'), 'mods');
+}
+
+function getModSettingsPath(): string {
+  return path.join(app.getPath('userData'), 'mod-settings.json');
+}
+
+function ensureModsDir(): void {
+  const modsDir = getModsDir();
+  if (!fs.existsSync(modsDir)) {
+    fs.mkdirSync(modsDir, { recursive: true });
+  }
+}
+
+interface ModSettingsEntry {
+  folderName: string;
+  enabled: boolean;
+  priority: number;
+}
+
+interface ModSettings {
+  mods: ModSettingsEntry[];
+}
+
+function readModSettings(): ModSettings {
+  try {
+    const settingsPath = getModSettingsPath();
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as ModSettings;
+    }
+  } catch (error) {
+    console.error('Failed to read mod settings:', error);
+  }
+  return { mods: [] };
+}
+
+function writeModSettings(settings: ModSettings): void {
+  try {
+    fs.writeFileSync(getModSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Failed to write mod settings:', error);
+  }
+}
+
+// List all installed mods by scanning the mods directory
+ipcMain.handle('list-mods', async () => {
+  try {
+    ensureModsDir();
+    const modsDir = getModsDir();
+    const settings = readModSettings();
+    const entries = fs.readdirSync(modsDir, { withFileTypes: true });
+    const mods = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = path.join(modsDir, entry.name, 'mod.json');
+      if (!fs.existsSync(manifestPath)) continue;
+
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        const settingsEntry = settings.mods.find(m => m.folderName === entry.name);
+        // Scan which data files the mod provides
+        const files = MOD_DATA_FILES.filter(f =>
+          fs.existsSync(path.join(modsDir, entry.name, f))
+        );
+
+        mods.push({
+          manifest,
+          folderName: entry.name,
+          enabled: settingsEntry?.enabled ?? false,
+          priority: settingsEntry?.priority ?? 0,
+          files,
+        });
+      } catch (err) {
+        console.warn(`Failed to read mod manifest for ${entry.name}:`, err);
+      }
+    }
+
+    return { success: true, mods };
+  } catch (error) {
+    return { success: false, error: (error as Error).message, mods: [] };
+  }
+});
+
+// Read a specific data file from a mod
+ipcMain.handle('read-mod-file', async (_event, folderName: string, fileName: string) => {
+  try {
+    const filePath = path.join(getModsDir(), folderName, fileName);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Save a data file to a mod folder
+ipcMain.handle('save-mod-file', async (_event, folderName: string, fileName: string, content: string) => {
+  try {
+    const modDir = path.join(getModsDir(), folderName);
+    if (!fs.existsSync(modDir)) {
+      return { success: false, error: `Mod folder not found: ${folderName}` };
+    }
+    fs.writeFileSync(path.join(modDir, fileName), content, 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Create a new mod with manifest
+ipcMain.handle('create-mod', async (_event, folderName: string, manifest: string) => {
+  try {
+    ensureModsDir();
+    const modDir = path.join(getModsDir(), folderName);
+    if (fs.existsSync(modDir)) {
+      return { success: false, error: `Mod folder already exists: ${folderName}` };
+    }
+    fs.mkdirSync(modDir, { recursive: true });
+    fs.writeFileSync(path.join(modDir, 'mod.json'), manifest, 'utf-8');
+
+    // Add to settings as disabled by default
+    const settings = readModSettings();
+    const maxPriority = settings.mods.reduce((max, m) => Math.max(max, m.priority), 0);
+    settings.mods.push({ folderName, enabled: false, priority: maxPriority + 1 });
+    writeModSettings(settings);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Delete a mod folder and remove from settings
+ipcMain.handle('delete-mod', async (_event, folderName: string) => {
+  try {
+    const modDir = path.join(getModsDir(), folderName);
+    if (fs.existsSync(modDir)) {
+      fs.rmSync(modDir, { recursive: true, force: true });
+    }
+    // Remove from settings
+    const settings = readModSettings();
+    settings.mods = settings.mods.filter(m => m.folderName !== folderName);
+    writeModSettings(settings);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Read mod settings
+ipcMain.handle('read-mod-settings', async () => {
+  try {
+    return { success: true, settings: readModSettings() };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Update mod settings (enable/disable, priority)
+ipcMain.handle('update-mod-settings', async (_event, settingsJson: string) => {
+  try {
+    const settings = JSON.parse(settingsJson) as ModSettings;
+    writeModSettings(settings);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Export a mod to .altmod.json format
+ipcMain.handle('export-mod', async (_event, folderName: string) => {
+  try {
+    if (!mainWindow) return { success: false, error: 'No main window' };
+
+    const modDir = path.join(getModsDir(), folderName);
+    const manifestPath = path.join(modDir, 'mod.json');
+    if (!fs.existsSync(manifestPath)) {
+      return { success: false, error: 'Mod manifest not found' };
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    const files: Record<string, unknown> = {};
+
+    for (const dataFile of MOD_DATA_FILES) {
+      const filePath = path.join(modDir, dataFile);
+      if (fs.existsSync(filePath)) {
+        files[dataFile] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      }
+    }
+
+    const altmod = {
+      formatVersion: '1.0',
+      manifest,
+      files,
+    };
+
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Mod',
+      defaultPath: `${folderName}.altmod.json`,
+      filters: [
+        { name: 'Alternity Mod Files', extensions: ['altmod.json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, error: 'Export canceled' };
+    }
+
+    fs.writeFileSync(result.filePath, JSON.stringify(altmod, null, 2), 'utf-8');
+    return { success: true, filePath: result.filePath };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Import a mod from .altmod.json format
+ipcMain.handle('import-mod', async () => {
+  try {
+    if (!mainWindow) return { success: false, error: 'No main window' };
+
+    const openResult = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Mod',
+      filters: [
+        { name: 'Alternity Mod Files', extensions: ['altmod.json'] },
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    });
+
+    if (openResult.canceled || openResult.filePaths.length === 0) {
+      return { success: false, error: 'Import canceled' };
+    }
+
+    const content = fs.readFileSync(openResult.filePaths[0], 'utf-8');
+    const altmod = JSON.parse(content);
+
+    // Validate format
+    if (!altmod.formatVersion || !altmod.manifest || !altmod.files) {
+      return { success: false, error: 'Invalid .altmod.json format' };
+    }
+    if (!altmod.manifest.name || !altmod.manifest.mode) {
+      return { success: false, error: 'Invalid mod manifest: missing name or mode' };
+    }
+
+    // Derive folder name from mod name
+    let folderName = altmod.manifest.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    ensureModsDir();
+    const modsDir = getModsDir();
+    let targetDir = path.join(modsDir, folderName);
+
+    // Handle name conflicts by appending a suffix
+    let suffix = 1;
+    while (fs.existsSync(targetDir)) {
+      folderName = `${altmod.manifest.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${suffix}`;
+      targetDir = path.join(modsDir, folderName);
+      suffix++;
+    }
+
+    // Extract mod files
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(targetDir, 'mod.json'),
+      JSON.stringify(altmod.manifest, null, 2),
+      'utf-8'
+    );
+
+    for (const [fileName, fileData] of Object.entries(altmod.files)) {
+      if (MOD_DATA_FILES.includes(fileName)) {
+        fs.writeFileSync(
+          path.join(targetDir, fileName),
+          JSON.stringify(fileData, null, 2),
+          'utf-8'
+        );
+      }
+    }
+
+    // Add to settings as disabled
+    const settings = readModSettings();
+    const maxPriority = settings.mods.reduce((max, m) => Math.max(max, m.priority), 0);
+    settings.mods.push({ folderName, enabled: false, priority: maxPriority + 1 });
+    writeModSettings(settings);
+
+    return { success: true, folderName };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Get the mods directory path
+ipcMain.handle('get-mods-path', async () => {
+  ensureModsDir();
+  return getModsDir();
 });

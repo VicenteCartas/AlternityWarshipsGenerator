@@ -27,6 +27,7 @@ import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calcula
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
+import { getActiveMods } from './dataLoader';
 
 /**
  * State representing the current warship configuration
@@ -225,6 +226,11 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       })),
     } as SavedHitLocationChart : null,
     systems: [],
+    activeMods: getActiveMods().map(m => ({
+      name: m.manifest.name,
+      version: m.manifest.version,
+      mode: m.manifest.mode,
+    })),
   };
 }
 
@@ -365,6 +371,20 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       warnings.push(...migrationMessages);
     } else {
       warnings.push(`Save file upgraded from version ${saveFile.version} to ${SAVE_FILE_VERSION}.`);
+    }
+  }
+  
+  // Check active mods against saved mods
+  const savedMods = saveFile.activeMods || [];
+  if (savedMods.length > 0) {
+    const currentMods = getActiveMods();
+    for (const savedMod of savedMods) {
+      const currentMod = currentMods.find(m => m.manifest.name === savedMod.name);
+      if (!currentMod) {
+        warnings.push(`Mod "${savedMod.name}" (v${savedMod.version}) was active when this ship was saved but is not currently enabled. Some items may be missing.`);
+      } else if (currentMod.manifest.version !== savedMod.version) {
+        warnings.push(`Mod "${savedMod.name}" version differs: saved with v${savedMod.version}, currently v${currentMod.manifest.version}.`);
+      }
     }
   }
   

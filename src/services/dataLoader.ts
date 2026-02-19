@@ -4,6 +4,10 @@
  * Handles runtime loading of game data files, allowing users to edit
  * the JSON data files externally. Uses Electron IPC to read files from
  * the data directory, with fallback to bundled data for web/dev mode.
+ * 
+ * Supports mod system: after loading base data, enabled mods are merged
+ * in priority order. "add" mods merge items by ID (last-write-wins),
+ * "replace" mods replace entire files.
  */
 
 import type { Hull } from '../types/hull';
@@ -20,6 +24,8 @@ import type { LaunchSystem, PropulsionSystem, Warhead, GuidanceSystem } from '..
 import type { BeamWeaponType, ProjectileWeaponType, TorpedoWeaponType, SpecialWeaponType, MountModifier, GunConfigModifier, MountType, GunConfiguration } from '../types/weapon';
 
 import type { DamageDiagramData } from '../types/damageDiagram';
+import type { Mod, ModDataFileName } from '../types/mod';
+import { getEnabledMods, getModFileData } from './modService';
 
 // Bundled data as fallback (imported at build time)
 import hullsDataFallback from '../data/hulls.json';
@@ -104,6 +110,9 @@ const cache: DataCache = {
 let dataLoaded = false;
 let loadPromise: Promise<DataLoadResult> | null = null;
 
+// Track which mods are currently active (for save file references)
+let activeMods: Mod[] = [];
+
 // Track files that failed to load from external source
 interface FailedFile {
   fileName: string;
@@ -150,6 +159,144 @@ async function loadDataFile<T>(
   }
 }
 
+// ============== Mod Merge Utilities ==============
+
+interface ItemWithId {
+  id: string;
+  _source?: string;
+}
+
+/**
+ * Merge two arrays of items by ID. Mod items override base items with the
+ * same ID; new IDs are appended. Each item is tagged with _source.
+ */
+function mergeArraysById<T extends ItemWithId>(
+  base: T[],
+  mod: T[],
+  sourceName: string
+): T[] {
+  const map = new Map<string, T>();
+  for (const item of base) {
+    map.set(item.id, item);
+  }
+  for (const item of mod) {
+    map.set(item.id, { ...item, _source: sourceName });
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * Tag all items in an array with a _source field.
+ */
+function tagArraySource<T extends ItemWithId>(items: T[], source: string): T[] {
+  return items.map(item => (item._source ? item : { ...item, _source: source }));
+}
+
+/**
+ * Deep merge two plain objects. Mod values override base values at each key.
+ * Arrays are replaced, not concatenated (object-level merge only).
+ */
+function deepMergeObjects<T extends Record<string, unknown>>(base: T, mod: Partial<T>): T {
+  const result = { ...base };
+  for (const key of Object.keys(mod) as (keyof T)[]) {
+    const modVal = mod[key];
+    const baseVal = result[key];
+    if (
+      modVal !== null && typeof modVal === 'object' && !Array.isArray(modVal) &&
+      baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal)
+    ) {
+      result[key] = deepMergeObjects(
+        baseVal as Record<string, unknown>,
+        modVal as Record<string, unknown>
+      ) as T[keyof T];
+    } else {
+      result[key] = modVal as T[keyof T];
+    }
+  }
+  return result;
+}
+
+/**
+ * Apply a single mod's data for a specific file to the current file data.
+ * For "replace" mode, the mod data fully replaces the base.
+ * For "add" mode, arrays are merged by ID; objects are deep-merged.
+ */
+function applyModToFileData(
+  baseData: Record<string, unknown>,
+  modData: Record<string, unknown>,
+  mode: 'add' | 'replace',
+  modName: string
+): Record<string, unknown> {
+  if (mode === 'replace') {
+    // Tag arrays in the replacement data
+    const result = { ...modData };
+    for (const key of Object.keys(result)) {
+      const val = result[key];
+      if (Array.isArray(val)) {
+        result[key] = tagArraySource(val as ItemWithId[], modName);
+      }
+    }
+    return result;
+  }
+
+  // "add" mode: merge each top-level key
+  const result = { ...baseData };
+  for (const key of Object.keys(modData)) {
+    const baseVal = result[key];
+    const modVal = modData[key];
+
+    if (Array.isArray(baseVal) && Array.isArray(modVal)) {
+      result[key] = mergeArraysById(baseVal as ItemWithId[], modVal as ItemWithId[], modName);
+    } else if (
+      baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal) &&
+      modVal !== null && typeof modVal === 'object' && !Array.isArray(modVal)
+    ) {
+      result[key] = deepMergeObjects(
+        baseVal as Record<string, unknown>,
+        modVal as Record<string, unknown>
+      );
+    } else {
+      // Scalar or new key — mod wins
+      result[key] = modVal;
+    }
+  }
+  return result;
+}
+
+/**
+ * Load all enabled mod data for a specific file and merge it onto the base data.
+ */
+async function applyModsToFile(
+  fileName: ModDataFileName,
+  baseData: Record<string, unknown>,
+  enabledMods: Mod[]
+): Promise<Record<string, unknown>> {
+  // Tag base data arrays with "base" source
+  let data = { ...baseData };
+  for (const key of Object.keys(data)) {
+    const val = data[key];
+    if (Array.isArray(val)) {
+      data[key] = tagArraySource(val as ItemWithId[], 'base');
+    }
+  }
+
+  for (const mod of enabledMods) {
+    if (!mod.files.includes(fileName)) continue;
+
+    const modFileData = await getModFileData(mod.folderName, fileName);
+    if (!modFileData || typeof modFileData !== 'object') {
+      console.warn(`[DataLoader] Skipping invalid mod data: ${mod.folderName}/${fileName}`);
+      continue;
+    }
+
+    const fileMode = mod.manifest.fileModes?.[fileName] ?? mod.manifest.mode;
+    console.log(`[DataLoader] Applying mod "${mod.manifest.name}" (${fileMode}) to ${fileName}`);
+    data = applyModToFileData(data, modFileData as Record<string, unknown>, fileMode, mod.manifest.name);
+  }
+
+  return data;
+}
+
 /**
  * Load all game data files
  * Call this once at app startup
@@ -171,7 +318,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     const failedFiles: FailedFile[] = [];
     const isElectron = !!window.electronAPI;
 
-    // Load all data files in parallel
+    // Load all base data files in parallel
     const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
       loadDataFile('hulls.json', hullsDataFallback, failedFiles),
       loadDataFile('armor.json', armorDataFallback, failedFiles),
@@ -189,38 +336,73 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
       loadDataFile('weapons.json', weaponsDataFallback, failedFiles),
     ]);
 
-    // Store in cache
-    cache.hulls = (hullsData as { hulls: Hull[] }).hulls;
-    cache.armors = (armorData as { armors: ArmorType[] }).armors;
-    cache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
-    cache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
-    cache.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
-    cache.engines = (enginesData as { engines: EngineType[] }).engines;
-    cache.ftlDrives = (ftlDrivesData as { ftlDrives: FTLDriveType[] }).ftlDrives;
-    cache.supportSystems = supportSystemsData as {
+    // Apply mods: load enabled mods sorted by priority, merge into base data
+    let enabledMods: Mod[] = [];
+    try {
+      enabledMods = await getEnabledMods();
+      if (enabledMods.length > 0) {
+        console.log(`[DataLoader] Applying ${enabledMods.length} enabled mod(s)...`);
+      }
+    } catch (error) {
+      console.warn('[DataLoader] Failed to load mods, using base data only:', error);
+    }
+    activeMods = enabledMods;
+
+    // Apply mods to each file that has enabled mods providing it
+    const [
+      mergedHulls, mergedArmor, mergedPowerPlants, mergedFuelTank,
+      mergedEngines, mergedFtlDrives, mergedSupportSystems,
+      mergedDefenses, mergedCommandControl, mergedSensors,
+      mergedHangarMisc, mergedOrdnance, mergedDamageDiagram, mergedWeapons,
+    ] = await Promise.all([
+      applyModsToFile('hulls.json', hullsData as Record<string, unknown>, enabledMods),
+      applyModsToFile('armor.json', armorData as Record<string, unknown>, enabledMods),
+      applyModsToFile('powerPlants.json', powerPlantsData as Record<string, unknown>, enabledMods),
+      applyModsToFile('fuelTank.json', fuelTankData as Record<string, unknown>, enabledMods),
+      applyModsToFile('engines.json', enginesData as Record<string, unknown>, enabledMods),
+      applyModsToFile('ftlDrives.json', ftlDrivesData as Record<string, unknown>, enabledMods),
+      applyModsToFile('supportSystems.json', supportSystemsData as Record<string, unknown>, enabledMods),
+      applyModsToFile('defenses.json', defensesData as Record<string, unknown>, enabledMods),
+      applyModsToFile('commandControl.json', commandControlData as Record<string, unknown>, enabledMods),
+      applyModsToFile('sensors.json', sensorsData as Record<string, unknown>, enabledMods),
+      applyModsToFile('hangarMisc.json', hangarMiscData as Record<string, unknown>, enabledMods),
+      applyModsToFile('ordnance.json', ordnanceData as Record<string, unknown>, enabledMods),
+      applyModsToFile('damageDiagram.json', damageDiagramData as Record<string, unknown>, enabledMods),
+      applyModsToFile('weapons.json', weaponsData as Record<string, unknown>, enabledMods),
+    ]);
+
+    // Store merged data in cache
+    cache.hulls = (mergedHulls as { hulls: Hull[] }).hulls;
+    cache.armors = (mergedArmor as { armors: ArmorType[] }).armors;
+    cache.armorWeights = (mergedArmor as { armorWeights: ArmorWeightConfig[] }).armorWeights;
+    cache.powerPlants = (mergedPowerPlants as { powerPlants: PowerPlantType[] }).powerPlants;
+    cache.fuelTank = (mergedFuelTank as { fuelTank: FuelTankType }).fuelTank;
+    cache.engines = (mergedEngines as { engines: EngineType[] }).engines;
+    cache.ftlDrives = (mergedFtlDrives as { ftlDrives: FTLDriveType[] }).ftlDrives;
+    cache.supportSystems = mergedSupportSystems as {
       lifeSupport: LifeSupportType[];
       accommodations: AccommodationType[];
       storeSystems: StoreSystemType[];
       gravitySystems: GravitySystemType[];
     };
-    cache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
-    cache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
-    cache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
-    cache.trackingTable = (sensorsData as { trackingTable?: TrackingTable }).trackingTable || null;
-    cache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
-    cache.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
-    cache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
-    cache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
-    cache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-    cache.damageDiagram = damageDiagramData as unknown as DamageDiagramData;
+    cache.defenseSystems = (mergedDefenses as { defenseSystems: DefenseSystemType[] }).defenseSystems;
+    cache.commandControlSystems = (mergedCommandControl as { commandSystems: CommandControlSystemType[] }).commandSystems;
+    cache.sensors = (mergedSensors as { sensors: SensorType[] }).sensors;
+    cache.trackingTable = (mergedSensors as { trackingTable?: TrackingTable }).trackingTable || null;
+    cache.hangarMiscSystems = (mergedHangarMisc as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
+    cache.launchSystems = (mergedOrdnance as { launchSystems: LaunchSystem[] }).launchSystems;
+    cache.propulsionSystems = (mergedOrdnance as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
+    cache.warheads = (mergedOrdnance as { warheads: Warhead[] }).warheads;
+    cache.guidanceSystems = (mergedOrdnance as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
+    cache.damageDiagram = mergedDamageDiagram as unknown as DamageDiagramData;
     // Weapons data
-    cache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
-    cache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
-    cache.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
-    cache.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
-    cache.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
-    cache.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
-    cache.concealmentModifier = (weaponsData as { concealmentModifier?: MountModifier }).concealmentModifier || null;
+    cache.beamWeapons = (mergedWeapons as { beamWeapons: BeamWeaponType[] }).beamWeapons;
+    cache.projectileWeapons = (mergedWeapons as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
+    cache.torpedoWeapons = (mergedWeapons as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
+    cache.specialWeapons = (mergedWeapons as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
+    cache.mountModifiers = (mergedWeapons as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+    cache.gunConfigurations = (mergedWeapons as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
+    cache.concealmentModifier = (mergedWeapons as { concealmentModifier?: MountModifier }).concealmentModifier || null;
 
     dataLoaded = true;
     console.log('[DataLoader] Game data loaded successfully');
@@ -320,11 +502,12 @@ export function getFTLDrivesData(): FTLDriveType[] {
 }
 
 /**
- * Reload all game data (e.g., after user edits data files)
+ * Reload all game data (e.g., after user edits data files or changes mods)
  */
-export async function reloadAllGameData(): Promise<void> {
+export async function reloadAllGameData(): Promise<DataLoadResult> {
   dataLoaded = false;
   loadPromise = null;
+  activeMods = [];
   cache.hulls = null;
   cache.armors = null;
   cache.armorWeights = null;
@@ -336,6 +519,7 @@ export async function reloadAllGameData(): Promise<void> {
   cache.defenseSystems = null;
   cache.commandControlSystems = null;
   cache.sensors = null;
+  cache.trackingTable = null;
   cache.hangarMiscSystems = null;
   cache.launchSystems = null;
   cache.propulsionSystems = null;
@@ -349,7 +533,15 @@ export async function reloadAllGameData(): Promise<void> {
   cache.mountModifiers = null;
   cache.gunConfigurations = null;
   cache.concealmentModifier = null;
-  await loadAllGameData();
+  return loadAllGameData();
+}
+
+/**
+ * Get the currently active (enabled) mods that were applied during data loading.
+ * Used by save service to record which mods were active when saving.
+ */
+export function getActiveMods(): Mod[] {
+  return activeMods;
 }
 
 /**
