@@ -72,6 +72,9 @@ const COL_POWER_PER: ColumnDef = {
     { value: 'systemHp', label: 'System HP' },
   ],
 };
+const COL_EXPANDABLE: ColumnDef = { key: 'expandable', label: 'Expand.', type: 'boolean', width: 60 };
+const COL_EXP_VALUE_PER_HP: ColumnDef = { key: 'expansionValuePerHp', label: 'Exp. Val/HP', type: 'number', min: 0, width: 90 };
+const COL_EXP_COST_PER_HP: ColumnDef = { key: 'expansionCostPerHp', label: 'Exp. Cost/HP', type: 'number', min: 0, width: 90 };
 
 const SHIP_CLASS_OPTIONS = [
   { value: 'small-craft', label: 'Small Craft' },
@@ -227,6 +230,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       COL_ID, COL_NAME, COL_PL, COL_TECH, COL_HP, COL_POWER, COL_COST,
       { key: 'coveragePerHullPoint', label: 'Coverage/HP', type: 'number', min: 0, width: 90 },
       { key: 'recyclingCapacity', label: 'Recycle Cap.', type: 'number', min: 0, width: 90 },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
     defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 50000, coveragePerHullPoint: 100, recyclingCapacity: 0, description: '' },
@@ -244,6 +248,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'category', label: 'Category', type: 'select', width: 90, options: [{ value: 'crew', label: 'Crew' }, { value: 'passenger', label: 'Passenger' }, { value: 'troop', label: 'Troop' }, { value: 'suspended', label: 'Suspended' }] },
       { key: 'includesAirlock', label: 'Airlock', type: 'boolean', width: 60 },
       { key: 'storesDaysPerPerson', label: 'Stores Days', type: 'number', min: 0, width: 90 },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
     defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 10000, capacity: 1, category: 'crew', includesAirlock: false, storesDaysPerPerson: 0, description: '' },
@@ -260,6 +265,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'effect', label: 'Effect', type: 'select', width: 120, options: [{ value: 'feeds', label: 'Feeds' }, { value: 'reduces-consumption', label: 'Reduces Consumption' }, { value: 'adds-stores', label: 'Adds Stores' }] },
       { key: 'effectValue', label: 'Effect Value', type: 'number', min: 0, width: 90 },
       { key: 'affectedPeople', label: 'Affected', type: 'number', min: 0, width: 70 },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
     defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 10000, effect: 'feeds', effectValue: 1, affectedPeople: 0, description: '' },
@@ -460,15 +466,15 @@ export const EDITOR_SECTIONS: EditorSection[] = [
     columns: [
       COL_ID, COL_NAME, COL_PL, COL_TECH, COL_HP, COL_POWER, COL_COST,
       { key: 'capacity', label: 'Capacity', type: 'number', min: 0, width: 70 },
-      { key: 'expandable', label: 'Expand.', type: 'boolean', width: 60 },
-      { key: 'expansionCapacityPerHp', label: 'Exp. Cap/HP', type: 'number', min: 0, width: 90 },
-      { key: 'expansionCostPerHp', label: 'Exp. Cost/HP', type: 'number', min: 0, width: 90 },
+      COL_EXPANDABLE,
+      COL_EXP_VALUE_PER_HP,
+      COL_EXP_COST_PER_HP,
       { key: 'rateOfFire', label: 'RoF', type: 'number', min: 0, width: 60 },
       { key: 'spaceReload', label: 'Space Rld', type: 'boolean', width: 70 },
       { key: 'ordnanceTypes', label: 'Ord. Types', type: 'json', width: 120 },
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, capacity: 1, expandable: false, expansionCapacityPerHp: 0, expansionCostPerHp: 0, rateOfFire: 1, spaceReload: false, ordnanceTypes: ['missile'], description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, capacity: 1, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, rateOfFire: 1, spaceReload: false, ordnanceTypes: ['missile'], description: '' },
   },
 
   // ---- Ordnance: Propulsion ----
@@ -540,3 +546,38 @@ export function getEditorSection(sectionId: string): EditorSection | undefined {
 export function getSectionsForFile(fileName: ModDataFileName): EditorSection[] {
   return EDITOR_SECTIONS.filter(s => s.fileName === fileName);
 }
+
+// ============== House Rules ==============
+
+/**
+ * A house rule is a top-level boolean/scalar flag in a data file
+ * that can be toggled via the mod editor.
+ */
+export interface HouseRule {
+  /** Unique identifier */
+  id: string;
+  /** Display label */
+  label: string;
+  /** Description shown to users */
+  description: string;
+  /** Which data file contains this flag */
+  fileName: ModDataFileName;
+  /** Top-level key in the JSON file */
+  jsonKey: string;
+  /** Default value (when not set) */
+  defaultValue: boolean;
+}
+
+/**
+ * All available house rules that mods can toggle.
+ */
+export const HOUSE_RULES: HouseRule[] = [
+  {
+    id: 'allowMultipleLayers',
+    label: 'Allow Multiple Armor Layers',
+    description: 'Ships can install one armor type per weight category (light, medium, heavy, super-heavy) simultaneously. Protection dice are listed separately per layer.',
+    fileName: 'armor.json',
+    jsonKey: 'allowMultipleLayers',
+    defaultValue: false,
+  },
+];

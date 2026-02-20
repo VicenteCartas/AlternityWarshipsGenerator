@@ -13,12 +13,15 @@ import {
   Stack,
   ToggleButtonGroup,
   ToggleButton,
+  Switch,
+  FormControlLabel,
+  Paper,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import type { Mod, ModDataFileName } from '../types/mod';
 import { getModFileData, saveModFileData } from '../services/modService';
-import { EDITOR_SECTIONS, type EditorSection } from '../services/modEditorSchemas';
+import { EDITOR_SECTIONS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
 import { validateRows } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
 import { getHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData } from '../services/dataLoader';
@@ -74,6 +77,12 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   const [fileModes, setFileModes] = useState<Record<string, 'add' | 'replace'>>({});
   const [manifestDirty, setManifestDirty] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
+  // House rules: ruleId → boolean value
+  const [houseRules, setHouseRules] = useState<Record<string, boolean>>({});
+
+  // Total tab count: 1 (House Rules) + EDITOR_SECTIONS.length
+  const HOUSE_RULES_TAB = 0;
+  const sectionTabOffset = 1;
 
   // Load mod data for all sections
   useEffect(() => {
@@ -89,19 +98,38 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         fileToSections.set(section.fileName, list);
       }
 
-      for (const [fileName, sections] of fileToSections) {
+      // Also track which files we need for house rules
+      const fileToHouseRules = new Map<ModDataFileName, HouseRule[]>();
+      for (const rule of HOUSE_RULES) {
+        const list = fileToHouseRules.get(rule.fileName) || [];
+        list.push(rule);
+        fileToHouseRules.set(rule.fileName, list);
+      }
+
+      // Collect all unique files we need to load
+      const allFiles = new Set<ModDataFileName>([
+        ...fileToSections.keys(),
+        ...fileToHouseRules.keys(),
+      ]);
+
+      // Cache loaded file data to avoid re-loading
+      const loadedFiles = new Map<ModDataFileName, Record<string, unknown> | null>();
+
+      for (const fileName of allFiles) {
         if (!mod.files.includes(fileName)) {
-          // File doesn't exist in mod yet — empty data
-          for (const section of sections) {
-            data[section.id] = [];
-          }
+          loadedFiles.set(fileName, null);
           continue;
         }
-
         const fileData = await getModFileData(mod.folderName, fileName);
-        if (fileData && typeof fileData === 'object') {
+        loadedFiles.set(fileName, fileData && typeof fileData === 'object' ? fileData as Record<string, unknown> : null);
+      }
+
+      // Populate section data from loaded files
+      for (const [fileName, sections] of fileToSections) {
+        const fileData = loadedFiles.get(fileName);
+        if (fileData) {
           for (const section of sections) {
-            const arr = (fileData as Record<string, unknown>)[section.rootKey];
+            const arr = fileData[section.rootKey];
             data[section.id] = Array.isArray(arr) ? arr as Record<string, unknown>[] : [];
           }
         } else {
@@ -111,7 +139,19 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         }
       }
 
+      // Load house rule values from mod files
+      const loadedHouseRules: Record<string, boolean> = {};
+      for (const rule of HOUSE_RULES) {
+        const fileData = loadedFiles.get(rule.fileName);
+        if (fileData && rule.jsonKey in fileData) {
+          loadedHouseRules[rule.id] = !!fileData[rule.jsonKey];
+        } else {
+          loadedHouseRules[rule.id] = rule.defaultValue;
+        }
+      }
+
       setSectionData(data);
+      setHouseRules(loadedHouseRules);
       setDirtyFiles(new Set());
       // Initialize per-file modes from manifest
       setFileModes(mod.manifest.fileModes
@@ -128,6 +168,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     if (!section) return;
     setSectionData(prev => ({ ...prev, [sectionId]: rows }));
     setDirtyFiles(prev => new Set(prev).add(section.fileName));
+  }, []);
+
+  const handleHouseRuleChange = useCallback((rule: HouseRule, value: boolean) => {
+    setHouseRules(prev => ({ ...prev, [rule.id]: value }));
+    setDirtyFiles(prev => new Set(prev).add(rule.fileName));
   }, []);
 
   const handleFileModeChange = useCallback((fileName: ModDataFileName, newMode: 'add' | 'replace') => {
@@ -150,7 +195,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           setSnackbar({ open: true, message: `Validation errors in "${section.label}": ${errors[0].message}`, severity: 'error' });
           // Switch to the tab with errors
           const tabIndex = EDITOR_SECTIONS.findIndex(s => s.id === section.id);
-          if (tabIndex >= 0) setActiveTab(tabIndex);
+          if (tabIndex >= 0) setActiveTab(tabIndex + sectionTabOffset);
           return;
         }
       }
@@ -169,9 +214,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     let saveErrors = 0;
     for (const fileName of dirtyFiles) {
       const sections = fileToSections.get(fileName) || [];
-      // Check if any section in this file has data
+      // Check if any section in this file has data or house rules are set
       const hasData = sections.some(s => (sectionData[s.id] || []).length > 0);
-      if (!hasData) continue;
+      const fileHouseRules = HOUSE_RULES.filter(r => r.fileName === fileName);
+      const hasNonDefaultRules = fileHouseRules.some(r => houseRules[r.id] !== r.defaultValue);
+      if (!hasData && !hasNonDefaultRules) continue;
 
       // Build the file object with all root keys
       const fileObj: Record<string, unknown> = {};
@@ -183,6 +230,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           return rest;
         });
         fileObj[section.rootKey] = cleanRows;
+      }
+
+      // Add house rule values for this file
+      for (const rule of fileHouseRules) {
+        fileObj[rule.jsonKey] = houseRules[rule.id] ?? rule.defaultValue;
       }
 
       const success = await saveModFileData(mod.folderName, fileName, fileObj);
@@ -206,9 +258,10 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       setSnackbar({ open: true, message: 'Mod saved successfully', severity: 'success' });
       await onModsChanged();
     }
-  }, [sectionData, dirtyFiles, mod.folderName, mod.manifest, fileModes, manifestDirty, onModsChanged]);
+  }, [sectionData, houseRules, dirtyFiles, mod.folderName, mod.manifest, fileModes, manifestDirty, onModsChanged]);
 
-  const activeSection = EDITOR_SECTIONS[activeTab];
+  const isHouseRulesTab = activeTab === HOUSE_RULES_TAB;
+  const activeSection = isHouseRulesTab ? null : EDITOR_SECTIONS[activeTab - sectionTabOffset];
   const hasUnsavedChanges = dirtyFiles.size > 0 || manifestDirty;
 
   if (loading) {
@@ -271,6 +324,18 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
             '& .MuiTab-root': { textTransform: 'none', alignItems: 'flex-start', minHeight: 36, py: 0.5, fontSize: '0.85rem' },
           }}
         >
+          <Tab
+            key="house-rules"
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
+                <span>House Rules</span>
+                {HOUSE_RULES.some(r => houseRules[r.id] !== r.defaultValue) && (
+                  <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== r.defaultValue).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
+                )}
+              </Box>
+            }
+            value={HOUSE_RULES_TAB}
+          />
           {EDITOR_SECTIONS.map((section, idx) => {
             const rowCount = (sectionData[section.id] || []).length;
             const isDirty = dirtyFiles.has(section.fileName);
@@ -284,14 +349,38 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                     {isDirty && <Typography color="warning.main" sx={{ fontSize: '0.7rem' }}>●</Typography>}
                   </Box>
                 }
-                value={idx}
+                value={idx + sectionTabOffset}
               />
             );
           })}
         </Tabs>
 
-        {/* Grid content */}
+        {/* Content */}
         <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
+          {isHouseRulesTab && (
+            <>
+              <Typography variant="h6" sx={{ mb: 1 }}>House Rules</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Toggle unofficial or variant rules. These override base game settings when this mod is enabled.
+              </Typography>
+              {HOUSE_RULES.map((rule) => (
+                <Paper key={rule.id} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={houseRules[rule.id] ?? rule.defaultValue}
+                        onChange={(_e, checked) => handleHouseRuleChange(rule, checked)}
+                      />
+                    }
+                    label={<Typography fontWeight="medium">{rule.label}</Typography>}
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 7 }}>
+                    {rule.description}
+                  </Typography>
+                </Paper>
+              ))}
+            </>
+          )}
           {activeSection && (
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
