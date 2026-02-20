@@ -388,16 +388,21 @@ export function PowerPlantSelection({
               <Chip
                 key={plantType.id}
                 icon={<BatteryChargingFullIcon />}
-                label={`${plantType.name}: ${totalFuelHP > 0 ? `${endurance} days` : 'No fuel'}`}
+                label={`${plantType.name}: ${totalFuelHP > 0 ? `${endurance} days total` : 'No fuel'}`}
                 color={totalFuelHP > 0 ? 'success' : 'error'}
                 variant="outlined"
               />
             );
           })}
+          <Tooltip title="Each 5% of base hull points is a common reference for power plant sizing">
+            <Chip
+              label={`5% Hull = ${Math.floor(hull.hullPoints * 0.05)} HP`}
+              color="default"
+              variant="outlined"
+            />
+          </Tooltip>
         </Box>
       </Paper>
-
-      {/* Summary of installed power plants */}
       {installedPowerPlants.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
@@ -455,10 +460,10 @@ export function PowerPlantSelection({
                       variant="outlined"
                     />
                     {installation.type.requiresFuel && (
-                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} days)` : 'No fuel tank installed'}>
+                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} days total)` : 'No fuel tank installed'}>
                         <Chip
                           icon={<BatteryChargingFullIcon />}
-                          label={fuelTankHP > 0 ? `${endurance} days` : 'Need fuel'}
+                          label={fuelTankHP > 0 ? `${endurance} days total` : 'Need fuel'}
                           size="small"
                           color={fuelTankHP > 0 ? 'success' : 'error'}
                           variant="outlined"
@@ -585,7 +590,8 @@ export function PowerPlantSelection({
                       variant="outlined"
                     />
                     <Chip
-                      label={`${endurance} days`}
+                      icon={<BatteryChargingFullIcon />}
+                      label={`+${endurance} days`}
                       size="small"
                       color="success"
                       variant="outlined"
@@ -921,13 +927,13 @@ export function PowerPlantSelection({
           Power Plant Notes
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          â€¢ A good guideline for a power plant is 10 to 15% of the hull, or a power output equal to about half the ship's hull
+          • A good guideline for a power plant is 10 to 15% of the hull, or a power output equal to about half the ship's hull
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          â€¢ Power plants that require fuel also require one or more fuel tanks (5 to 10% of the hull is recommended)
+          • Power plants that require fuel also require one or more fuel tanks (5 to 10% of the hull is recommended)
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          â€¢ Each fuel tank is associated with a specific power plant type and uses that plant's fuel cost and efficiency
+          • Each fuel tank is associated with a specific power plant type and uses that plant's fuel cost and efficiency
         </Typography>
       </Paper>
     </Box>

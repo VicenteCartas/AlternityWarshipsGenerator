@@ -435,12 +435,19 @@ export function EngineSelection({
               <Chip
                 key={engineType.id}
                 icon={<BatteryChargingFullIcon />}
-                label={`${engineType.name}: ${totalFuelHP > 0 ? `${endurance} thrust-days` : 'No fuel'}`}
+                label={`${engineType.name}: ${totalFuelHP > 0 ? `${endurance} thrust-days total` : 'No fuel'}`}
                 color={totalFuelHP > 0 ? 'success' : noFuelColor}
                 variant="outlined"
               />
             );
           })}
+          <Tooltip title="Each 5% of base hull points is the standard engine sizing bracket for acceleration ratings">
+            <Chip
+              label={`5% Hull = ${Math.floor(hull.hullPoints * 0.05)} HP`}
+              color="default"
+              variant="outlined"
+            />
+          </Tooltip>
         </Box>
       </Paper>
 
@@ -509,10 +516,10 @@ export function EngineSelection({
                       variant="outlined"
                     />
                     {needsFuel && (
-                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
+                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days total)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
                         <Chip
                           icon={<BatteryChargingFullIcon />}
-                          label={fuelTankHP > 0 ? `${endurance} thrust-days` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
+                          label={fuelTankHP > 0 ? `${endurance} thrust-days total` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
                           size="small"
                           color={fuelTankHP > 0 ? 'success' : (installation.type.fuelOptional ? 'default' : 'error')}
                           variant="outlined"
@@ -614,8 +621,7 @@ export function EngineSelection({
               const engineHP = installedEngines
                 .filter(e => e.type.id === fuelTank.forEngineType.id)
                 .reduce((sum, e) => sum + e.hullPoints, 0);
-              const totalFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, fuelTank.forEngineType.id);
-              const endurance = calculateEngineFuelTankEndurance(fuelTank.forEngineType, totalFuelHP, engineHP);
+              const endurance = calculateEngineFuelTankEndurance(fuelTank.forEngineType, fuelTank.hullPoints, engineHP);
               const isEditing = editingFuelTankId === fuelTank.id;
               
               return (
@@ -639,7 +645,8 @@ export function EngineSelection({
                       variant="outlined"
                     />
                     <Chip
-                      label={`${endurance} thrust-days`}
+                      icon={<BatteryChargingFullIcon />}
+                      label={`+${endurance} thrust-days`}
                       size="small"
                       color="success"
                       variant="outlined"
@@ -1006,15 +1013,15 @@ export function EngineSelection({
           Engine Notes
         </Typography>
         <Typography variant="caption" color="text.secondary" component="div">
-          â€¢ Acceleration is based on the percentage of hull points allocated to engines (using base hull, not bonus)
+          • Acceleration is based on the percentage of hull points allocated to engines (using base hull, not bonus)
           <br />
-          â€¢ Multiple engines can be installed - their accelerations add together
+          • Multiple engines can be installed - their accelerations add together
           <br />
-          â€¢ PL6 scale engines use a slower acceleration scale suitable for early tech levels
+          • PL6 scale engines use a slower acceleration scale suitable for early tech levels
           <br />
-          â€¢ Engines require power from your power plants to operate
+          • Engines require power from your power plants to operate
           <br />
-          â€¢ Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
+          • Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
         </Typography>
       </Paper>
     </Box>

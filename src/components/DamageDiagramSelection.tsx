@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -186,7 +186,7 @@ function buildUnassignedSystemsList(
   for (const ft of installedFuelTanks) {
     const id = `ppfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${ft.forPowerPlantType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'powerPlantFuel' });
+      systems.push({ id, name: `Fuel Tank (${ft.forPowerPlantType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'powerPlantFuel' });
     }
   }
 
@@ -200,7 +200,7 @@ function buildUnassignedSystemsList(
   for (const ft of installedEngineFuelTanks) {
     const id = `engfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${ft.forEngineType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'engineFuel' });
+      systems.push({ id, name: `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'engineFuel' });
     }
   }
 
@@ -214,7 +214,7 @@ function buildUnassignedSystemsList(
   for (const ft of installedFTLFuelTanks) {
     const id = `ftlfuel-${ft.id}`;
     if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${ft.forFTLDriveType.name} Fuel (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'ftlFuel' });
+      systems.push({ id, name: `Fuel Tank (${ft.forFTLDriveType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'ftlFuel' });
     }
   }
 
@@ -373,6 +373,29 @@ export function DamageDiagramSelection({
     installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
     ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
   ]);
+
+  // Keep zone system names in sync with canonical names (handles renames across versions)
+  const canonicalNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const sys of allSystems) map.set(sys.id, sys.name);
+    return map;
+  }, [allSystems]);
+
+  useEffect(() => {
+    let changed = false;
+    const updated = effectiveZones.map(zone => {
+      const systems = zone.systems.map(sys => {
+        const canonical = canonicalNames.get(sys.installedSystemId);
+        if (canonical && canonical !== sys.name) {
+          changed = true;
+          return { ...sys, name: canonical };
+        }
+        return sys;
+      });
+      return changed ? { ...zone, systems } : zone;
+    });
+    if (changed) onZonesChange(updated);
+  }, [canonicalNames, effectiveZones, onZonesChange]);
 
   // Build list of unassigned systems
   const unassignedSystems = useMemo(() => {

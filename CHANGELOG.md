@@ -11,9 +11,6 @@
 ### Ideas
 
 - Bug on assigning and sorting zones.
-- Add % ranges for power plants and engines.
-- Maybe rename the fuel tanks to Fuel Tank (what they are powering).
-- Improve the power/fuel chips to be less confusing.
 
 ### Future ideas
 
@@ -22,15 +19,26 @@
 
 ## [0.2.5] - TODO
 
+### Important
+
+- Save file version is now 1.2. Older saves should migrate automatically.
+
+### Improvements
+
+- Power Plants and Engine section will show how many HP is 5% of the hull.
+- Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" so it's easier to distinguish them.
+- Fuel tank and power plant/engine chips will explain better what the fuel number represents.
+
 ### Fixes
 
 - Bug: artificial gravity with G technology now requires PL6 instead of PL7.
+- Bug: some characters were not encoded correctly.
 
 ## [0.2.4] - 02/11/2025
 
-### Changes
+### Important
 
-- Save version updated to 1.1. Older saves should migrate automatically.
+- Save file version is now 1.1. Older saves should migrate automatically.
 
 ### Fixes
 
