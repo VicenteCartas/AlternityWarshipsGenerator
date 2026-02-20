@@ -84,6 +84,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
   // House rules: ruleId → boolean value
   const [houseRules, setHouseRules] = useState<Record<string, boolean>>({});
+  const [houseRulesDirty, setHouseRulesDirty] = useState(false);
 
   // Total tab count: 1 (House Rules) + EDITOR_SECTIONS.length
   const HOUSE_RULES_TAB = 0;
@@ -177,7 +178,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
   const handleHouseRuleChange = useCallback((rule: HouseRule, value: boolean) => {
     setHouseRules(prev => ({ ...prev, [rule.id]: value }));
-    setDirtyFiles(prev => new Set(prev).add(rule.fileName));
+    setHouseRulesDirty(true);
   }, []);
 
   const handleFileModeChange = useCallback((fileName: ModDataFileName, newMode: 'add' | 'replace') => {
@@ -217,7 +218,16 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     }
 
     let saveErrors = 0;
-    for (const fileName of dirtyFiles) {
+
+    // Collect all files that need saving: dirty section files + house rule files
+    const filesToSave = new Set(dirtyFiles);
+    if (houseRulesDirty) {
+      for (const rule of HOUSE_RULES) {
+        filesToSave.add(rule.fileName);
+      }
+    }
+
+    for (const fileName of filesToSave) {
       const sections = fileToSections.get(fileName) || [];
       // Check if any section in this file has data or house rules are set
       const hasData = sections.some(s => (sectionData[s.id] || []).length > 0);
@@ -261,15 +271,16 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       setSnackbar({ open: true, message: `Failed to save ${saveErrors} file(s)`, severity: 'error' });
     } else {
       setDirtyFiles(new Set());
+      setHouseRulesDirty(false);
       setManifestDirty(false);
       setSnackbar({ open: true, message: 'Mod saved successfully', severity: 'success' });
       await onModsChanged();
     }
-  }, [sectionData, houseRules, dirtyFiles, mod.folderName, mod.manifest, modName, modAuthor, version, description, fileModes, manifestDirty, onModsChanged]);
+  }, [sectionData, houseRules, dirtyFiles, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, fileModes, manifestDirty, onModsChanged]);
 
   const isHouseRulesTab = activeTab === HOUSE_RULES_TAB;
   const activeSection = isHouseRulesTab ? null : EDITOR_SECTIONS[activeTab - sectionTabOffset];
-  const hasUnsavedChanges = dirtyFiles.size > 0 || manifestDirty;
+  const hasUnsavedChanges = dirtyFiles.size > 0 || manifestDirty || houseRulesDirty;
 
   if (loading) {
     return (
