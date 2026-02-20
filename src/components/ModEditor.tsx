@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Chip,
   Stack,
+  TextField,
   ToggleButtonGroup,
   ToggleButton,
   Switch,
@@ -75,6 +76,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   const [dirtyFiles, setDirtyFiles] = useState<Set<ModDataFileName>>(new Set());
   // Per-file mode: "add" or "replace" (initialized from manifest)
   const [fileModes, setFileModes] = useState<Record<string, 'add' | 'replace'>>({});
+  const [version, setVersion] = useState(mod.manifest.version);
   const [manifestDirty, setManifestDirty] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
   // House rules: ruleId → boolean value
@@ -245,7 +247,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
     // Save updated manifest if fileModes changed
     if (manifestDirty) {
-      const updatedManifest = { ...mod.manifest, fileModes };
+      const updatedManifest = { ...mod.manifest, fileModes, version };
       const success = await saveModFileData(mod.folderName, 'mod.json', updatedManifest);
       if (!success) saveErrors++;
     }
@@ -260,7 +262,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       setSnackbar({ open: true, message: 'Mod saved successfully', severity: 'success' });
       await onModsChanged();
     }
-  }, [sectionData, houseRules, dirtyFiles, mod.folderName, mod.manifest, fileModes, manifestDirty, onModsChanged]);
+  }, [sectionData, houseRules, dirtyFiles, mod.folderName, mod.manifest, fileModes, version, manifestDirty, onModsChanged]);
 
   const isHouseRulesTab = activeTab === HOUSE_RULES_TAB;
   const activeSection = isHouseRulesTab ? null : EDITOR_SECTIONS[activeTab - sectionTabOffset];
@@ -282,11 +284,21 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h5" component="h1">
-            {mod.manifest.name}
-          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="h5" component="h1">
+              {mod.manifest.name}
+            </Typography>
+            <TextField
+              label="Version"
+              value={version}
+              onChange={e => { setVersion(e.target.value); setManifestDirty(true); }}
+              size="small"
+              sx={{ width: 120 }}
+              slotProps={{ htmlInput: { style: { fontSize: '0.875rem' } } }}
+            />
+          </Stack>
           <Typography variant="caption" color="text.secondary">
-            {mod.manifest.author && `by ${mod.manifest.author} · `}v{mod.manifest.version}
+            {mod.manifest.author && `by ${mod.manifest.author}`}
             {mod.manifest.description && ` · ${mod.manifest.description}`}
           </Typography>
         </Box>
