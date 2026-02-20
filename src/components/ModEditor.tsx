@@ -220,11 +220,13 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       const hasNonDefaultRules = fileHouseRules.some(r => houseRules[r.id] !== r.defaultValue);
       if (!hasData && !hasNonDefaultRules) continue;
 
-      // Build the file object with all root keys
+      // Build the file object — only include sections that have data
       const fileObj: Record<string, unknown> = {};
       for (const section of sections) {
+        const rows = sectionData[section.id] || [];
+        if (rows.length === 0) continue;
         // Strip _source from items before saving
-        const cleanRows = (sectionData[section.id] || []).map(row => {
+        const cleanRows = rows.map(row => {
           const { _source, ...rest } = row;
           void _source;
           return rest;
