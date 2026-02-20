@@ -291,7 +291,7 @@ async function applyModsToFile(
       continue;
     }
 
-    const fileMode = mod.manifest.fileModes?.[fileName] ?? mod.manifest.mode;
+    const fileMode = mod.manifest.fileModes?.[fileName] ?? 'add';
     console.log(`[DataLoader] Applying mod "${mod.manifest.name}" (${fileMode}) to ${fileName}`);
     data = applyModToFileData(data, modFileData as Record<string, unknown>, fileMode, mod.manifest.name);
   }

@@ -12,7 +12,6 @@ import {
   TableRow,
   Switch,
   IconButton,
-  Chip,
   Tooltip,
   Stack,
   Dialog,
@@ -20,8 +19,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  ToggleButtonGroup,
-  ToggleButton,
   CircularProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -63,7 +60,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const [newModName, setNewModName] = useState('');
   const [newModAuthor, setNewModAuthor] = useState('');
   const [newModDescription, setNewModDescription] = useState('');
-  const [newModMode, setNewModMode] = useState<'add' | 'replace'>('add');
 
   const loadMods = useCallback(async () => {
     setLoading(true);
@@ -127,7 +123,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
       author: newModAuthor.trim(),
       version: '1.0.0',
       description: newModDescription.trim(),
-      mode: newModMode,
     };
     const success = await createMod(manifest);
     if (success) {
@@ -135,11 +130,10 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
       setNewModName('');
       setNewModAuthor('');
       setNewModDescription('');
-      setNewModMode('add');
       await loadMods();
     }
     setSaving(false);
-  }, [newModName, newModAuthor, newModDescription, newModMode, loadMods]);
+  }, [newModName, newModAuthor, newModDescription, loadMods]);
 
   const handleDeleteMod = useCallback(async (mod: Mod) => {
     setSaving(true);
@@ -241,8 +235,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
 
       {/* Description */}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Mods customize the game data used by the ship builder. &quot;Add&quot; mods merge new items with base data (and can override existing items by ID).
-        &quot;Replace&quot; mods completely replace base data for the files they provide. Higher priority mods are applied last and win conflicts.
+        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Higher priority mods are applied last and win conflicts.
       </Typography>
 
       {/* Mods Table */}
@@ -264,7 +257,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                 <TableCell>Name</TableCell>
                 <TableCell>Author</TableCell>
                 <TableCell sx={{ width: 80 }}>Version</TableCell>
-                <TableCell sx={{ width: 80 }}>Mode</TableCell>
                 <TableCell>Data Files</TableCell>
                 <TableCell sx={{ width: 80 }} align="center">Enabled</TableCell>
                 <TableCell sx={{ width: 150 }} align="right">Actions</TableCell>
@@ -306,17 +298,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">{mod.manifest.version}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const fm = mod.manifest.fileModes || {};
-                      const modes = mod.files.map(f => fm[f] ?? mod.manifest.mode);
-                      const allAdd = modes.every(m => m === 'add');
-                      const allReplace = modes.every(m => m === 'replace');
-                      if (allAdd) return <Chip label="Add" size="small" color="primary" variant="outlined" />;
-                      if (allReplace) return <Chip label="Replace" size="small" color="warning" variant="outlined" />;
-                      return <Chip label="Mixed" size="small" color="info" variant="outlined" />;
-                    })()}
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">
@@ -391,24 +372,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
               multiline
               rows={2}
             />
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Merge Mode
-              </Typography>
-              <ToggleButtonGroup
-                value={newModMode}
-                exclusive
-                onChange={(_e, val) => { if (val) setNewModMode(val); }}
-                size="small"
-              >
-                <ToggleButton value="add">
-                  Add — Merge with base data
-                </ToggleButton>
-                <ToggleButton value="replace">
-                  Replace — Override base data
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

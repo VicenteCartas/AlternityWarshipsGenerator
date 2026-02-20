@@ -14,9 +14,7 @@ export interface ModManifest {
   author: string;
   version: string;
   description: string;
-  /** Default mode for files not listed in fileModes. "add" = merge; "replace" = replace */
-  mode: 'add' | 'replace';
-  /** Per-file mode overrides. Files not listed here use the default mode. */
+  /** Per-file merge mode. "add" = merge with base; "replace" = override base. Defaults to "add" if not specified. */
   fileModes?: Partial<Record<string, 'add' | 'replace'>>;
 }
 
@@ -96,5 +94,4 @@ export interface AltmodFile {
 export interface SavedModReference {
   name: string;
   version: string;
-  mode: 'add' | 'replace';
 }

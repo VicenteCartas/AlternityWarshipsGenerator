@@ -182,8 +182,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
   /** Resolve the effective mode for a file: per-file override → manifest default */
   const getFileMode = useCallback((fileName: ModDataFileName): 'add' | 'replace' => {
-    return fileModes[fileName] ?? mod.manifest.mode;
-  }, [fileModes, mod.manifest.mode]);
+    return fileModes[fileName] ?? 'add';
+  }, [fileModes]);
 
   const handleSave = useCallback(async () => {
     // Validate all dirty sections
@@ -284,13 +284,6 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h5" component="h1">
             {mod.manifest.name}
-            <Chip
-              label={mod.manifest.mode === 'add' ? 'Add' : 'Replace'}
-              size="small"
-              color={mod.manifest.mode === 'add' ? 'primary' : 'warning'}
-              variant="outlined"
-              sx={{ ml: 1, verticalAlign: 'middle' }}
-            />
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {mod.manifest.author && `by ${mod.manifest.author} · `}v{mod.manifest.version}

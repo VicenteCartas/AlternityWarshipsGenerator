@@ -232,7 +232,6 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     activeMods: getActiveMods().map(m => ({
       name: m.manifest.name,
       version: m.manifest.version,
-      mode: m.manifest.mode,
     })),
   };
 }
