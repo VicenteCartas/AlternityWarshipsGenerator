@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { Hull } from '../types/hull';
-import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
@@ -16,7 +16,7 @@ import type { ShipDescription } from '../types/summary';
 import type { ProgressLevel } from '../types/common';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
-import { calculateArmorHullPoints, calculateArmorCost } from './armorService';
+import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from './armorService';
 import { calculateTotalPowerPlantStats, calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
 import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
@@ -35,8 +35,7 @@ export interface ShipData {
   warshipName: string;
   hull: Hull;
   shipDescription: ShipDescription;
-  selectedArmorWeight: ArmorWeight | null;
-  selectedArmorType: ArmorType | null;
+  armorLayers: ShipArmor[];
   installedPowerPlants: InstalledPowerPlant[];
   installedFuelTanks: InstalledFuelTank[];
   installedEngines: InstalledEngine[];
@@ -125,10 +124,8 @@ function computeShipStats(data: ShipData): ShipStats {
   const { hull } = data;
   const totalHP = hull.hullPoints + hull.bonusHullPoints;
 
-  const armorHP = data.selectedArmorWeight ? calculateArmorHullPoints(hull, data.selectedArmorWeight) : 0;
-  const armorCost = data.selectedArmorWeight && data.selectedArmorType
-    ? calculateArmorCost(hull, data.selectedArmorWeight, data.selectedArmorType)
-    : 0;
+  const armorHP = calculateMultiLayerArmorHP(hull, data.armorLayers);
+  const armorCost = calculateMultiLayerArmorCost(hull, data.armorLayers);
 
   const ppStats = calculateTotalPowerPlantStats(data.installedPowerPlants, data.installedFuelTanks);
   const engStats = calculateTotalEngineStats(data.installedEngines, data.installedEngineFuelTanks, hull);
@@ -336,8 +333,9 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
 
   // Row 3: Toughness, Armor, Target Modifier
   addLabel('Toughness', hull.toughness.toString(), margin);
-  if (data.selectedArmorWeight && data.selectedArmorType) {
-    addLabel('Armor', `${capitalize(data.selectedArmorWeight)} ${data.selectedArmorType.name}`, margin + col3W + 10);
+  if (data.armorLayers.length > 0) {
+    const armorLabel = data.armorLayers.map(l => `${capitalize(l.weight)} ${l.type.name}`).join(' + ');
+    addLabel('Armor', armorLabel, margin + col3W + 10);
   } else {
     addLabel('Armor', 'None', margin + col3W + 10);
   }
@@ -432,14 +430,14 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
 
   // Armor
   addStatsRow('Armor', stats.armor.hp > 0 ? stats.armor.hp.toString() : '-', '-', stats.armor.cost);
-  if (options.includeDetailedSystems && data.selectedArmorWeight && data.selectedArmorType) {
+  if (options.includeDetailedSystems && data.armorLayers.length > 0) {
     addDetailColumnHeaders();
-    const armorHP = calculateArmorHullPoints(hull, data.selectedArmorWeight);
-    const armorCostVal = calculateArmorCost(hull, data.selectedArmorWeight, data.selectedArmorType);
-    addDetailRow(
-      `${capitalize(data.selectedArmorWeight)} ${data.selectedArmorType.name}`,
-      armorHP.toString(), '-', formatCost(armorCostVal)
-    );
+    for (const layer of data.armorLayers) {
+      addDetailRow(
+        `${capitalize(layer.weight)} ${layer.type.name}`,
+        layer.hullPointsUsed.toString(), '-', formatCost(layer.cost)
+      );
+    }
     y += 1;
   }
 
@@ -828,16 +826,18 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
     y += 5;
 
     // Armor
-    if (data.selectedArmorWeight && data.selectedArmorType) {
-      addLabel('Armor', `${capitalize(data.selectedArmorWeight)} ${data.selectedArmorType.name}`, margin);
-      y += 4;
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(
-        `Protection – LI: ${data.selectedArmorType.protectionLI}  |  HI: ${data.selectedArmorType.protectionHI}  |  En: ${data.selectedArmorType.protectionEn}`,
-        margin, y,
-      );
-      y += 5;
+    if (data.armorLayers.length > 0) {
+      for (const layer of data.armorLayers) {
+        addLabel('Armor', `${capitalize(layer.weight)} ${layer.type.name}`, margin);
+        y += 4;
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(
+          `Protection – LI: ${layer.type.protectionLI}  |  HI: ${layer.type.protectionHI}  |  En: ${layer.type.protectionEn}`,
+          margin, y,
+        );
+        y += 5;
+      }
     } else {
       addLabel('Armor', 'None', margin);
       y += 5;

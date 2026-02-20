@@ -7,7 +7,7 @@ import {
   Divider,
 } from '@mui/material';
 import type { Hull } from '../../types/hull';
-import type { ArmorType, ArmorWeight } from '../../types/armor';
+import type { ShipArmor } from '../../types/armor';
 import type { DamageZone } from '../../types/damageDiagram';
 import { getZoneLimitForHull } from '../../services/damageDiagramService';
 
@@ -15,11 +15,10 @@ interface DamageZonesOverviewProps {
   zones: DamageZone[];
   hull: Hull;
   warshipName: string;
-  selectedArmorWeight: ArmorWeight | null;
-  selectedArmorType: ArmorType | null;
+  armorLayers: ShipArmor[];
 }
 
-export function DamageZonesOverview({ zones, hull, warshipName, selectedArmorWeight, selectedArmorType }: DamageZonesOverviewProps) {
+export function DamageZonesOverview({ zones, hull, warshipName, armorLayers }: DamageZonesOverviewProps) {
   const zoneLimit = getZoneLimitForHull(hull.id);
 
   return (
@@ -32,15 +31,15 @@ export function DamageZonesOverview({ zones, hull, warshipName, selectedArmorWei
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <Chip label={`Toughness: ${hull.toughness}`} size="small" variant="outlined" />
           <Chip label={`Damage Track: S:${hull.damageTrack.stun} W:${hull.damageTrack.wound} M:${hull.damageTrack.mortal} C:${hull.damageTrack.critical}`} size="small" variant="outlined" />
-          {selectedArmorWeight && selectedArmorType && (
-            <>
-              <Chip label={`Armor: ${selectedArmorWeight.charAt(0).toUpperCase() + selectedArmorWeight.slice(1)} ${selectedArmorType.name}`} size="small" variant="outlined" color="primary" />
-              <Chip label={`LI: ${selectedArmorType.protectionLI}`} size="small" variant="outlined" />
-              <Chip label={`HI: ${selectedArmorType.protectionHI}`} size="small" variant="outlined" />
-              <Chip label={`En: ${selectedArmorType.protectionEn}`} size="small" variant="outlined" />
-            </>
-          )}
-          {!selectedArmorWeight && (
+          {armorLayers.map((layer) => (
+            <Box key={layer.weight} sx={{ display: 'contents' }}>
+              <Chip label={`Armor: ${layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1)} ${layer.type.name}`} size="small" variant="outlined" color="primary" />
+              <Chip label={`LI: ${layer.type.protectionLI}`} size="small" variant="outlined" />
+              <Chip label={`HI: ${layer.type.protectionHI}`} size="small" variant="outlined" />
+              <Chip label={`En: ${layer.type.protectionEn}`} size="small" variant="outlined" />
+            </Box>
+          ))}
+          {armorLayers.length === 0 && (
             <Chip label="No Armor" size="small" variant="outlined" color="warning" />
           )}
         </Box>

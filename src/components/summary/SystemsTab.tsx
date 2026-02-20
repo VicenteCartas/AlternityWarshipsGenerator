@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@mui/material';
 import type { Hull } from '../../types/hull';
-import type { ArmorType, ArmorWeight } from '../../types/armor';
+import type { ShipArmor } from '../../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../../types/ftlDrive';
@@ -47,8 +47,7 @@ interface SystemsTabStats {
 
 interface SystemsTabProps {
   hull: Hull;
-  selectedArmorWeight: ArmorWeight | null;
-  selectedArmorType: ArmorType | null;
+  armorLayers: ShipArmor[];
   installedPowerPlants: InstalledPowerPlant[];
   installedFuelTanks: InstalledFuelTank[];
   installedEngines: InstalledEngine[];
@@ -72,8 +71,7 @@ export type { SystemsTabStats };
 
 export function SystemsTab({
   hull,
-  selectedArmorWeight,
-  selectedArmorType,
+  armorLayers,
   installedPowerPlants,
   installedFuelTanks,
   installedEngines,
@@ -107,14 +105,14 @@ export function SystemsTab({
               <TableCell align="right" sx={{ width: '20%' }}>—</TableCell>
               <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hull.cost)}</TableCell>
             </TableRow>
-            {selectedArmorWeight && selectedArmorType && (
-              <TableRow>
-                <TableCell>{selectedArmorWeight.charAt(0).toUpperCase() + selectedArmorWeight.slice(1)} {selectedArmorType.name} Armor</TableCell>
-                <TableCell align="right">{stats.armor.hp} HP</TableCell>
+            {armorLayers.map((layer) => (
+              <TableRow key={layer.weight}>
+                <TableCell>{layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1)} {layer.type.name} Armor</TableCell>
+                <TableCell align="right">{layer.hullPointsUsed} HP</TableCell>
                 <TableCell align="right">—</TableCell>
-                <TableCell align="right">{formatCost(stats.armor.cost)}</TableCell>
+                <TableCell align="right">{formatCost(layer.cost)}</TableCell>
               </TableRow>
-            )}
+            ))}
           </TableBody>
         </Table>
       </Paper>

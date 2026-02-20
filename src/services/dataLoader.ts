@@ -48,6 +48,7 @@ interface DataCache {
   hulls: Hull[] | null;
   armors: ArmorType[] | null;
   armorWeights: ArmorWeightConfig[] | null;
+  armorAllowMultipleLayers: boolean;
   powerPlants: PowerPlantType[] | null;
   fuelTank: FuelTankType | null;
   engines: EngineType[] | null;
@@ -82,6 +83,7 @@ const cache: DataCache = {
   hulls: null,
   armors: null,
   armorWeights: null,
+  armorAllowMultipleLayers: false,
   powerPlants: null,
   fuelTank: null,
   engines: null,
@@ -375,6 +377,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     cache.hulls = (mergedHulls as { hulls: Hull[] }).hulls;
     cache.armors = (mergedArmor as { armors: ArmorType[] }).armors;
     cache.armorWeights = (mergedArmor as { armorWeights: ArmorWeightConfig[] }).armorWeights;
+    cache.armorAllowMultipleLayers = (mergedArmor as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
     cache.powerPlants = (mergedPowerPlants as { powerPlants: PowerPlantType[] }).powerPlants;
     cache.fuelTank = (mergedFuelTank as { fuelTank: FuelTankType }).fuelTank;
     cache.engines = (mergedEngines as { engines: EngineType[] }).engines;
@@ -458,6 +461,16 @@ export function getArmorWeightsData(): ArmorWeightConfig[] {
 }
 
 /**
+ * Get whether multiple armor layers are allowed (must call loadAllGameData first)
+ */
+export function getArmorAllowMultipleLayers(): boolean {
+  if (!dataLoaded) {
+    return (armorDataFallback as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
+  }
+  return cache.armorAllowMultipleLayers;
+}
+
+/**
  * Get all power plant types (must call loadAllGameData first)
  */
 export function getPowerPlantsData(): PowerPlantType[] {
@@ -511,6 +524,7 @@ export async function reloadAllGameData(): Promise<DataLoadResult> {
   cache.hulls = null;
   cache.armors = null;
   cache.armorWeights = null;
+  cache.armorAllowMultipleLayers = false;
   cache.powerPlants = null;
   cache.fuelTank = null;
   cache.engines = null;

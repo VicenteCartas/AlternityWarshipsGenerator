@@ -14,41 +14,49 @@ import {
   Tooltip,
   Button,
   Chip,
+  IconButton,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import type { Hull } from '../types/hull';
-import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { ArmorType, ArmorWeight, ShipArmor } from '../types/armor';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getArmorWeightsForShipClass,
   getArmorTypesByWeight,
   calculateArmorHullPoints,
   calculateArmorCost,
+  calculateMultiLayerArmorHP,
+  calculateMultiLayerArmorCost,
   filterByDesignConstraints,
+  isMultipleArmorLayersAllowed,
 } from '../services/armorService';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { headerCellSx } from '../constants/tableStyles';
 
 interface ArmorSelectionProps {
   hull: Hull;
-  selectedWeight: ArmorWeight | null;
-  selectedType: ArmorType | null;
+  armorLayers: ShipArmor[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onArmorSelect: (weight: ArmorWeight, type: ArmorType) => void;
   onArmorClear: () => void;
+  onArmorRemoveLayer: (weight: ArmorWeight) => void;
 }
 
 export function ArmorSelection({
   hull,
-  selectedWeight,
-  selectedType,
+  armorLayers,
   designProgressLevel,
   designTechTracks,
   onArmorSelect,
   onArmorClear,
+  onArmorRemoveLayer,
 }: ArmorSelectionProps) {
   // Filter for armor weight categories (All, Light, Medium, Heavy, Super-Heavy)
   const [weightFilter, setWeightFilter] = useState<ArmorWeight | 'all'>('all');
+
+  const multiLayerAllowed = useMemo(() => isMultipleArmorLayersAllowed(), []);
+  const usedWeights = useMemo(() => new Set(armorLayers.map(l => l.weight)), [armorLayers]);
 
   const availableWeights = useMemo(
     () => getArmorWeightsForShipClass(hull.shipClass),
@@ -86,9 +94,11 @@ export function ArmorSelection({
   };
 
   const handleTypeSelect = (armorType: ArmorType) => {
-    // Use the armor's own weight category
     onArmorSelect(armorType.armorWeight, armorType);
   };
+
+  const totalHP = calculateMultiLayerArmorHP(hull, armorLayers);
+  const totalCostValue = calculateMultiLayerArmorCost(hull, armorLayers);
 
   return (
     <Box>
@@ -96,14 +106,14 @@ export function ArmorSelection({
         <Typography variant="h6" sx={{ mb: 1 }}>
           Step 2: Select Armor (Optional)
         </Typography>
-        {(selectedWeight || selectedType) && (
+        {armorLayers.length > 0 && (
           <Button
             variant="outlined"
             size="small"
             color="secondary"
             onClick={onArmorClear}
           >
-            Remove Armor
+            Remove All Armor
           </Button>
         )}
       </Box>
@@ -111,25 +121,66 @@ export function ArmorSelection({
       {/* Armor Summary */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          {selectedType && selectedWeight && (
+          {armorLayers.map((layer) => (
             <Chip
-              label={`${selectedType.name} (${selectedWeight})`}
+              key={layer.weight}
+              label={`${layer.type.name} (${layer.weight})`}
               color="primary"
               variant="filled"
+              onDelete={multiLayerAllowed ? () => onArmorRemoveLayer(layer.weight) : undefined}
             />
-          )}
+          ))}
           <Chip
-            label={`HP: ${selectedWeight ? `${calculateArmorHullPoints(hull, selectedWeight)} (${((calculateArmorHullPoints(hull, selectedWeight) / hull.hullPoints) * 100).toFixed(1)}%)` : '0'}`}
+            label={`HP: ${totalHP > 0 ? `${totalHP} (${((totalHP / hull.hullPoints) * 100).toFixed(1)}%)` : '0'}`}
             color="default"
             variant="outlined"
           />
           <Chip
-            label={`Cost: ${selectedWeight && selectedType ? formatCost(calculateArmorCost(hull, selectedWeight, selectedType)) : '$0'}`}
+            label={`Cost: ${totalCostValue > 0 ? formatCost(totalCostValue) : '$0'}`}
             color="default"
             variant="outlined"
           />
         </Box>
       </Paper>
+
+      {/* Installed Layers (multi-layer only) */}
+      {multiLayerAllowed && armorLayers.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Installed Layers</Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>LI</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>HI</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>En</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>HP</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Cost</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold', width: 50 }}></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {armorLayers.map((layer) => (
+                <TableRow key={layer.weight}>
+                  <TableCell>{layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1)}</TableCell>
+                  <TableCell>{layer.type.name}</TableCell>
+                  <TableCell align="center" sx={{ fontFamily: 'monospace' }}>{layer.type.protectionLI}</TableCell>
+                  <TableCell align="center" sx={{ fontFamily: 'monospace' }}>{layer.type.protectionHI}</TableCell>
+                  <TableCell align="center" sx={{ fontFamily: 'monospace' }}>{layer.type.protectionEn}</TableCell>
+                  <TableCell align="right">{layer.hullPointsUsed}</TableCell>
+                  <TableCell align="right">{formatCost(layer.cost)}</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => onArmorRemoveLayer(layer.weight)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      )}
 
       {/* Weight Filter */}
       <Box sx={{ mb: 2 }}>
@@ -168,19 +219,21 @@ export function ArmorSelection({
             </TableHead>
             <TableBody>
               {filteredTypes.map((armorType) => {
-                const isSelected = selectedType?.id === armorType.id;
+                const isSelected = armorLayers.some(l => l.type.id === armorType.id);
+                const isWeightUsed = multiLayerAllowed && usedWeights.has(armorType.armorWeight) && !isSelected;
                 const hullPointsCost = calculateArmorHullPoints(hull, armorType.armorWeight);
-                const totalCost = calculateArmorCost(hull, armorType.armorWeight, armorType);
+                const rowTotalCost = calculateArmorCost(hull, armorType.armorWeight, armorType);
                 const weightConfig = availableWeights.find(w => w.weight === armorType.armorWeight);
 
                 return (
                   <TableRow
                     key={armorType.id}
-                    hover
+                    hover={!isWeightUsed}
                     selected={isSelected}
-                    onClick={() => handleTypeSelect(armorType)}
+                    onClick={() => !isWeightUsed && handleTypeSelect(armorType)}
                     sx={{
-                      cursor: 'pointer',
+                      cursor: isWeightUsed ? 'default' : 'pointer',
+                      opacity: isWeightUsed ? 0.45 : 1,
                       '&.Mui-selected': {
                         backgroundColor: 'action.selected',
                       },
@@ -234,7 +287,7 @@ export function ArmorSelection({
                       <Typography variant="body2">{formatCost(armorType.costPerHullPoint)}</Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2">{formatCost(totalCost)}</Typography>
+                      <Typography variant="body2">{formatCost(rowTotalCost)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Tooltip title={armorType.description} placement="left">

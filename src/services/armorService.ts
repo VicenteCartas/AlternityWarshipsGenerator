@@ -1,8 +1,8 @@
-import type { ArmorType, ArmorWeight, ArmorWeightConfig } from '../types/armor';
+import type { ArmorType, ArmorWeight, ArmorWeightConfig, ShipArmor } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SHIP_CLASS_ORDER } from '../types/common';
-import { getArmorTypesData, getArmorWeightsData } from './dataLoader';
+import { getArmorTypesData, getArmorWeightsData, getArmorAllowMultipleLayers } from './dataLoader';
 import { filterByDesignConstraints as filterByConstraints } from './utilities';
 
 /**
@@ -100,4 +100,49 @@ export function calculateArmorCostHullPoints(hull: Hull, weight: ArmorWeight): n
 export function calculateArmorCost(hull: Hull, weight: ArmorWeight, armorType: ArmorType): number {
   const costHullPoints = calculateArmorCostHullPoints(hull, weight);
   return costHullPoints * armorType.costPerHullPoint;
+}
+
+/**
+ * Check if multiple armor layers are allowed
+ */
+export function isMultipleArmorLayersAllowed(): boolean {
+  return getArmorAllowMultipleLayers();
+}
+
+/**
+ * Calculate total hull points for multiple armor layers
+ */
+export function calculateMultiLayerArmorHP(hull: Hull, layers: ShipArmor[]): number {
+  return layers.reduce((sum, layer) => sum + calculateArmorHullPoints(hull, layer.weight), 0);
+}
+
+/**
+ * Calculate total cost for multiple armor layers
+ */
+export function calculateMultiLayerArmorCost(hull: Hull, layers: ShipArmor[]): number {
+  return layers.reduce((sum, layer) => sum + calculateArmorCost(hull, layer.weight, layer.type), 0);
+}
+
+/**
+ * Build a ShipArmor from a hull and armor type
+ */
+export function buildShipArmor(hull: Hull, armorType: ArmorType): ShipArmor {
+  return {
+    weight: armorType.armorWeight,
+    type: armorType,
+    hullPointsUsed: calculateArmorHullPoints(hull, armorType.armorWeight),
+    cost: calculateArmorCost(hull, armorType.armorWeight, armorType),
+  };
+}
+
+/** Weight ordering for display: light → heavy */
+const ARMOR_WEIGHT_ORDER: ArmorWeight[] = ['light', 'medium', 'heavy', 'super-heavy'];
+
+/**
+ * Sort armor layers by weight category (light → super-heavy)
+ */
+export function sortArmorLayers(layers: ShipArmor[]): ShipArmor[] {
+  return [...layers].sort(
+    (a, b) => ARMOR_WEIGHT_ORDER.indexOf(a.weight) - ARMOR_WEIGHT_ORDER.indexOf(b.weight)
+  );
 }

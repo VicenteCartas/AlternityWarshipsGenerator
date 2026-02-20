@@ -88,6 +88,8 @@ export interface SavedLifeSupport {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Extra HP allocated for expansion (if expandable) */
+  extraHp?: number;
 }
 
 /**
@@ -100,6 +102,8 @@ export interface SavedAccommodation {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Extra HP allocated for expansion (if expandable) */
+  extraHp?: number;
 }
 
 /**
@@ -112,6 +116,8 @@ export interface SavedStoreSystem {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Extra HP allocated for expansion (if expandable) */
+  extraHp?: number;
 }
 
 /**
@@ -338,11 +344,17 @@ export interface WarshipSaveFile {
     id: string;
   } | null;
   
-  /** Armor configuration */
+  /** Armor configuration (legacy single-layer, kept for backward compatibility) */
   armor: {
     /** Armor type ID (includes weight in the ID) */
     id: string;
   } | null;
+  
+  /** Armor layers (new multi-layer format) */
+  armorLayers?: {
+    /** Armor type ID */
+    id: string;
+  }[];
   
   /** Design progress level constraint */
   designProgressLevel: ProgressLevel;
@@ -415,4 +427,4 @@ export interface WarshipSaveFile {
 }
 
 /** Current save file version */
-export const SAVE_FILE_VERSION = '1.2';
+export const SAVE_FILE_VERSION = '1.3';

@@ -29,7 +29,7 @@ import { TabPanel } from './shared';
 import { FireDiagram, DamageZonesOverview } from './summary';
 import { PdfExportDialog, type PdfExportOptions } from './PdfExportDialog';
 import type { Hull } from '../types/hull';
-import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
@@ -43,7 +43,7 @@ import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
 import type { ProgressLevel } from '../types/common';
-import { calculateArmorHullPoints, calculateArmorCost } from '../services/armorService';
+import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
 import { calculateTotalPowerPlantStats, calculateFuelTankCost } from '../services/powerPlantService';
 import { calculateTotalEngineStats, calculateEngineFuelTankCost } from '../services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLFuelTankCost } from '../services/ftlDriveService';
@@ -65,8 +65,7 @@ interface SummarySelectionProps {
   warshipName: string;
   shipDescription: ShipDescription;
   onShipDescriptionChange: (description: ShipDescription) => void;
-  selectedArmorWeight: ArmorWeight | null;
-  selectedArmorType: ArmorType | null;
+  armorLayers: ShipArmor[];
   installedPowerPlants: InstalledPowerPlant[];
   installedFuelTanks: InstalledFuelTank[];
   installedEngines: InstalledEngine[];
@@ -95,8 +94,7 @@ export function SummarySelection({
   warshipName,
   shipDescription,
   onShipDescriptionChange,
-  selectedArmorWeight,
-  selectedArmorType,
+  armorLayers,
   installedPowerPlants,
   installedFuelTanks,
   installedEngines,
@@ -185,10 +183,8 @@ export function SummarySelection({
 
     const totalHP = hull.hullPoints + hull.bonusHullPoints;
     
-    const armorHP = selectedArmorWeight ? calculateArmorHullPoints(hull, selectedArmorWeight) : 0;
-    const armorCost = selectedArmorWeight && selectedArmorType 
-      ? calculateArmorCost(hull, selectedArmorWeight, selectedArmorType) 
-      : 0;
+    const armorHP = calculateMultiLayerArmorHP(hull, armorLayers);
+    const armorCost = calculateMultiLayerArmorCost(hull, armorLayers);
 
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, hull);
@@ -267,8 +263,7 @@ export function SummarySelection({
     };
   }, [
     hull,
-    selectedArmorWeight,
-    selectedArmorType,
+    armorLayers,
     installedPowerPlants,
     installedFuelTanks,
     installedEngines,
@@ -325,7 +320,7 @@ export function SummarySelection({
 
       // WARNING: Optional steps not completed
       const missingOptional: string[] = [];
-      if (!selectedArmorWeight) {
+      if (armorLayers.length === 0) {
         missingOptional.push('Armor');
       }
       if (!installedFTLDrive) {
@@ -453,7 +448,7 @@ export function SummarySelection({
   }, [
     hull, 
     stats, 
-    selectedArmorWeight,
+    armorLayers,
     installedPowerPlants,
     installedFuelTanks,
     installedEngines,
@@ -513,8 +508,7 @@ export function SummarySelection({
         warshipName,
         hull,
         shipDescription,
-        selectedArmorWeight,
-        selectedArmorType,
+        armorLayers,
         installedPowerPlants,
         installedFuelTanks,
         installedEngines,
@@ -736,14 +730,14 @@ export function SummarySelection({
                     <TableCell align="right" sx={{ width: '20%' }}>—</TableCell>
                     <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hull.cost)}</TableCell>
                   </TableRow>
-                  {selectedArmorWeight && selectedArmorType && (
-                    <TableRow>
-                      <TableCell>{selectedArmorWeight.charAt(0).toUpperCase() + selectedArmorWeight.slice(1)} {selectedArmorType.name} Armor</TableCell>
-                      <TableCell align="right">{stats.armor.hp} HP</TableCell>
+                  {armorLayers.map((layer) => (
+                    <TableRow key={layer.weight}>
+                      <TableCell>{layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1)} {layer.type.name} Armor</TableCell>
+                      <TableCell align="right">{layer.hullPointsUsed} HP</TableCell>
                       <TableCell align="right">—</TableCell>
-                      <TableCell align="right">{formatCost(stats.armor.cost)}</TableCell>
+                      <TableCell align="right">{formatCost(layer.cost)}</TableCell>
                     </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </Paper>
@@ -1097,7 +1091,7 @@ export function SummarySelection({
 
       {/* Damage Zones Tab */}
             <TabPanel value={tabValue} index={hasIssues ? 4 : 3}>
-        <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} selectedArmorWeight={selectedArmorWeight} selectedArmorType={selectedArmorType} />
+        <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} armorLayers={armorLayers} />
       </TabPanel>
     </Box>
   );

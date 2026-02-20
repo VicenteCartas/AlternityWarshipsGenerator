@@ -1,4 +1,5 @@
 {
+    "allowMultipleLayers": false,
     "armorWeights": [
         {
             "weight": "light",

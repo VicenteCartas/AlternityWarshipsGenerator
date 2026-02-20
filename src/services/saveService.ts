@@ -1,6 +1,6 @@
 import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart } from '../types/saveFile';
 import type { Hull } from '../types/hull';
-import type { ArmorType, ArmorWeight } from '../types/armor';
+import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
@@ -16,7 +16,7 @@ import type { DamageZone, HitLocationChart, SystemDamageCategory, ZoneCode } fro
 import type { ShipDescription } from '../types/summary';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls } from './hullService';
-import { getAllArmorTypes } from './armorService';
+import { getAllArmorTypes, buildShipArmor } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
 import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
@@ -36,8 +36,7 @@ export interface WarshipState {
   name: string;
   shipDescription: ShipDescription;
   hull: Hull | null;
-  armorWeight: ArmorWeight | null;
-  armorType: ArmorType | null;
+  armorLayers: ShipArmor[];
   powerPlants: InstalledPowerPlant[];
   fuelTanks: InstalledFuelTank[];
   engines: InstalledEngine[];
@@ -86,7 +85,8 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     imageData: state.shipDescription.imageData,
     imageMimeType: state.shipDescription.imageMimeType,
     hull: state.hull ? { id: state.hull.id } : null,
-    armor: state.armorType ? { id: state.armorType.id } : null,
+    armor: state.armorLayers.length === 1 ? { id: state.armorLayers[0].type.id } : null,
+    armorLayers: state.armorLayers.map(layer => ({ id: layer.type.id })),
     designProgressLevel: state.designProgressLevel,
     designTechTracks: state.designTechTracks,
     powerPlants: (state.powerPlants || []).map((pp): SavedPowerPlant => ({
@@ -123,16 +123,19 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: ls.id,
       typeId: ls.type.id,
       quantity: ls.quantity,
+      ...(ls.extraHp ? { extraHp: ls.extraHp } : {}),
     })),
     accommodations: (state.accommodations || []).map((acc): SavedAccommodation => ({
       id: acc.id,
       typeId: acc.type.id,
       quantity: acc.quantity,
+      ...(acc.extraHp ? { extraHp: acc.extraHp } : {}),
     })),
     storeSystems: (state.storeSystems || []).map((ss): SavedStoreSystem => ({
       id: ss.id,
       typeId: ss.type.id,
       quantity: ss.quantity,
+      ...(ss.extraHp ? { extraHp: ss.extraHp } : {}),
     })),
     gravitySystems: (state.gravitySystems || []).map((gs): SavedGravitySystem => ({
       id: gs.id,
@@ -398,14 +401,31 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
-  // Load armor
-  let armorType: ArmorType | null = null;
-  let armorWeight: ArmorWeight | null = null;
-  if (saveFile.armor?.id) {
-    const allArmors = getAllArmorTypes();
-    armorType = allArmors.find(a => a.id === saveFile.armor!.id) ?? null;
-    if (armorType) {
-      armorWeight = armorType.armorWeight;
+  // Load armor layers (new format: armorLayers array; old format: single armor object)
+  const armorLayers: ShipArmor[] = [];
+  const allArmors = getAllArmorTypes();
+  const savedArmorLayers = saveFile.armorLayers;
+  
+  if (savedArmorLayers && Array.isArray(savedArmorLayers) && savedArmorLayers.length > 0) {
+    // New format: armorLayers array
+    for (const savedLayer of savedArmorLayers) {
+      const armorType = allArmors.find(a => a.id === savedLayer.id) ?? null;
+      if (armorType && hull) {
+        armorLayers.push(buildShipArmor(hull, armorType));
+      } else if (armorType) {
+        // No hull to calculate, store minimal
+        armorLayers.push({ weight: armorType.armorWeight, type: armorType, hullPointsUsed: 0, cost: 0 });
+      } else {
+        warnings.push(`Armor type not found: ${savedLayer.id}`);
+      }
+    }
+  } else if (saveFile.armor?.id) {
+    // Old format: single armor object — migrate to single-element array
+    const armorType = allArmors.find(a => a.id === saveFile.armor!.id) ?? null;
+    if (armorType && hull) {
+      armorLayers.push(buildShipArmor(hull, armorType));
+    } else if (armorType) {
+      armorLayers.push({ weight: armorType.armorWeight, type: armorType, hullPointsUsed: 0, cost: 0 });
     } else {
       warnings.push(`Armor type not found: ${saveFile.armor.id}`);
     }
@@ -520,6 +540,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         id: savedLS.id || generateLifeSupportId(),
         type: lsType,
         quantity: savedLS.quantity,
+        ...(savedLS.extraHp ? { extraHp: savedLS.extraHp } : {}),
       });
     } else {
       warnings.push(`Life support type not found: ${savedLS.typeId}`);
@@ -537,6 +558,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         id: savedAcc.id || generateAccommodationId(),
         type: accType,
         quantity: savedAcc.quantity,
+        ...(savedAcc.extraHp ? { extraHp: savedAcc.extraHp } : {}),
       });
     } else {
       warnings.push(`Accommodation type not found: ${savedAcc.typeId}`);
@@ -554,6 +576,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         id: savedSS.id || generateStoreSystemId(),
         type: ssType,
         quantity: savedSS.quantity,
+        ...(savedSS.extraHp ? { extraHp: savedSS.extraHp } : {}),
       });
     } else {
       warnings.push(`Store system type not found: ${savedSS.typeId}`);
@@ -933,8 +956,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         imageMimeType: saveFile.imageMimeType ?? null,
       },
       hull,
-      armorWeight,
-      armorType,
+      armorLayers,
       powerPlants,
       fuelTanks,
       engines,

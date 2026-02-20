@@ -49,7 +49,7 @@ import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
 import { ModManager } from './components/ModManager';
 import type { Hull } from './types/hull';
-import type { ArmorType, ArmorWeight } from './types/armor';
+import type { ArmorType, ArmorWeight, ShipArmor } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
 import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
@@ -65,7 +65,7 @@ import type { DamageZone, HitLocationChart } from './types/damageDiagram';
 import type { ShipDescription } from './types/summary';
 import './types/electron.d.ts';
 import { calculateHullStats } from './types/hull';
-import { calculateArmorHullPoints, calculateArmorCost } from './services/armorService';
+import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost, buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from './services/armorService';
 import { calculateTotalPowerPlantStats } from './services/powerPlantService';
 import { calculateTotalEngineStats } from './services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './services/ftlDriveService';
@@ -117,8 +117,7 @@ function App() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
   const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
-  const [selectedArmorWeight, setSelectedArmorWeight] = useState<ArmorWeight | null>(null);
-  const [selectedArmorType, setSelectedArmorType] = useState<ArmorType | null>(null);
+  const [armorLayers, setArmorLayers] = useState<ShipArmor[]>([]);
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
   const [installedFuelTanks, setInstalledFuelTanks] = useState<InstalledFuelTank[]>([]);
   const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
@@ -225,8 +224,7 @@ function App() {
     // Reset all state for a new warship
     setActiveStep(0);
     setSelectedHull(null);
-    setSelectedArmorWeight(null);
-    setSelectedArmorType(null);
+    setArmorLayers([]);
     setInstalledPowerPlants([]);
     setInstalledFuelTanks([]);
     setInstalledEngines([]);
@@ -299,8 +297,7 @@ function App() {
 
       // Apply loaded state
       setSelectedHull(loadResult.state.hull);
-      setSelectedArmorWeight(loadResult.state.armorWeight);
-      setSelectedArmorType(loadResult.state.armorType);
+      setArmorLayers(loadResult.state.armorLayers || []);
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
       setInstalledFuelTanks(loadResult.state.fuelTanks || []);
       setInstalledEngines(loadResult.state.engines || []);
@@ -368,8 +365,7 @@ function App() {
       name: warshipName,
       shipDescription,
       hull: selectedHull,
-      armorWeight: selectedArmorWeight,
-      armorType: selectedArmorType,
+      armorLayers,
       powerPlants: installedPowerPlants,
       fuelTanks: installedFuelTanks,
       engines: installedEngines,
@@ -412,7 +408,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks]);
+  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -430,8 +426,7 @@ function App() {
       name: warshipName,
       shipDescription,
       hull: selectedHull,
-      armorWeight: selectedArmorWeight,
-      armorType: selectedArmorType,
+      armorLayers,
       powerPlants: installedPowerPlants,
       fuelTanks: installedFuelTanks,
       engines: installedEngines,
@@ -467,7 +462,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, selectedArmorWeight, selectedArmorType, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -531,19 +526,31 @@ function App() {
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
     // Reset armor and power plants if hull changes
-    setSelectedArmorWeight(null);
-    setSelectedArmorType(null);
+    setArmorLayers([]);
     setInstalledPowerPlants([]);
   };
 
   const handleArmorSelect = (weight: ArmorWeight, type: ArmorType) => {
-    setSelectedArmorWeight(weight);
-    setSelectedArmorType(type);
+    if (!selectedHull) return;
+    const newLayer = buildShipArmor(selectedHull, type);
+    if (isMultipleArmorLayersAllowed()) {
+      // Multi-layer: add/replace layer for this weight category
+      setArmorLayers(prev => {
+        const filtered = prev.filter(l => l.weight !== weight);
+        return sortArmorLayers([...filtered, newLayer]);
+      });
+    } else {
+      // Single layer: replace entirely
+      setArmorLayers([newLayer]);
+    }
   };
 
   const handleArmorClear = () => {
-    setSelectedArmorWeight(null);
-    setSelectedArmorType(null);
+    setArmorLayers([]);
+  };
+
+  const handleArmorRemoveLayer = (weight: ArmorWeight) => {
+    setArmorLayers(prev => prev.filter(l => l.weight !== weight));
   };
 
   const handlePowerPlantsChange = (powerPlants: InstalledPowerPlant[]) => {
@@ -613,11 +620,7 @@ function App() {
   // Calculate used hull points (armor + power plants)
   const getUsedHullPointsBeforePowerPlants = () => {
     if (!selectedHull) return 0;
-    let used = 0;
-    if (selectedArmorWeight) {
-      used += calculateArmorHullPoints(selectedHull, selectedArmorWeight);
-    }
-    return used;
+    return calculateMultiLayerArmorHP(selectedHull, armorLayers);
   };
 
   // Calculate used hull points before engines (armor + power plants)
@@ -633,9 +636,7 @@ function App() {
   const getRemainingHullPoints = () => {
     if (!selectedHull) return 0;
     let remaining = selectedHull.hullPoints + selectedHull.bonusHullPoints;
-    if (selectedArmorWeight) {
-      remaining -= calculateArmorHullPoints(selectedHull, selectedArmorWeight);
-    }
+    remaining -= calculateMultiLayerArmorHP(selectedHull, armorLayers);
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     remaining -= powerPlantStats.totalHullPoints;
     const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull);
@@ -729,7 +730,7 @@ function App() {
   const getHPBreakdown = () => {
     if (!selectedHull) return { armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, weapons: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
     return {
-      armor: selectedArmorWeight ? calculateArmorHullPoints(selectedHull, selectedArmorWeight) : 0,
+      armor: calculateMultiLayerArmorHP(selectedHull, armorLayers),
       powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalHullPoints,
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalHullPoints,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalHullPoints + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalHullPoints : 0,
@@ -747,7 +748,7 @@ function App() {
     if (!selectedHull) return { hull: 0, armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, weapons: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
     return {
       hull: selectedHull.cost,
-      armor: selectedArmorWeight && selectedArmorType ? calculateArmorCost(selectedHull, selectedArmorWeight, selectedArmorType) : 0,
+      armor: calculateMultiLayerArmorCost(selectedHull, armorLayers),
       powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalCost,
       engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalCost,
       ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalCost + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalCost : 0,
@@ -764,8 +765,8 @@ function App() {
   const getTotalCost = () => {
     if (!selectedHull) return 0;
     let cost = selectedHull.cost;
-    if (selectedArmorWeight && selectedArmorType) {
-      cost += calculateArmorCost(selectedHull, selectedArmorWeight, selectedArmorType);
+    if (armorLayers.length > 0) {
+      cost += calculateMultiLayerArmorCost(selectedHull, armorLayers);
     }
     const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
     cost += powerPlantStats.totalCost;
@@ -829,7 +830,7 @@ function App() {
     if (!sensorStats.hasBasicSensors && installedSensors.length > 0) return 'warning'; // Has sensors but no active
     
     // Check optional steps
-    if (!selectedArmorWeight || !installedFTLDrive || installedDefenses.length === 0 || 
+    if (armorLayers.length === 0 || !installedFTLDrive || installedDefenses.length === 0 || 
         installedCommandControl.length === 0 || installedSensors.length === 0 ||
         (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
         (installedLifeSupport.length === 0 && installedAccommodations.length === 0)) {
@@ -842,9 +843,9 @@ function App() {
   // Get unique tech tracks required by all selected components
   const getUniqueTechTracks = (): TechTrack[] => {
     const tracks = new Set<TechTrack>();
-    if (selectedArmorType) {
-      selectedArmorType.techTracks.forEach((t) => tracks.add(t));
-    }
+    armorLayers.forEach((layer) => {
+      layer.type.techTracks.forEach((t) => tracks.add(t));
+    });
     installedPowerPlants.forEach((pp) => {
       pp.type.techTracks.forEach((t) => tracks.add(t));
     });
@@ -898,12 +899,12 @@ function App() {
         return (
           <ArmorSelection
             hull={selectedHull}
-            selectedWeight={selectedArmorWeight}
-            selectedType={selectedArmorType}
+            armorLayers={armorLayers}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onArmorSelect={handleArmorSelect}
             onArmorClear={handleArmorClear}
+            onArmorRemoveLayer={handleArmorRemoveLayer}
           />
         );
       case 2:
@@ -1130,8 +1131,7 @@ function App() {
             warshipName={warshipName}
             shipDescription={shipDescription}
             onShipDescriptionChange={setShipDescription}
-            selectedArmorWeight={selectedArmorWeight}
-            selectedArmorType={selectedArmorType}
+            armorLayers={armorLayers}
             installedPowerPlants={installedPowerPlants}
             installedFuelTanks={installedFuelTanks}
             installedEngines={installedEngines}
@@ -1594,7 +1594,7 @@ function App() {
             const isStepCompleted = (() => {
               switch (index) {
                 case 0: return selectedHull !== null; // Hull
-                case 1: return selectedArmorWeight !== null; // Armor (optional)
+                case 1: return armorLayers.length > 0; // Armor (optional)
                 case 2: return installedPowerPlants.length > 0; // Power Plant
                 case 3: return installedEngines.length > 0; // Engines
                 case 4: return installedFTLDrive !== null; // FTL Drive (optional)
