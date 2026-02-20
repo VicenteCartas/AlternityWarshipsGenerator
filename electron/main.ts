@@ -143,6 +143,13 @@ function createMenu() {
           },
         },
         { type: 'separator' },
+        {
+          label: 'Return to Start Screen',
+          click: () => {
+            mainWindow?.webContents.send('menu-return-to-start');
+          },
+        },
+        { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
     },
@@ -157,12 +164,6 @@ function createMenu() {
               ? path.join(__dirname, '../src/data')
               : path.join(process.resourcesPath, 'data');
             shell.openPath(dataPath);
-          },
-        },
-        {
-          label: 'Manage Mods',
-          click: () => {
-            mainWindow?.webContents.send('menu-manage-mods');
           },
         },
         { type: 'separator' as const },

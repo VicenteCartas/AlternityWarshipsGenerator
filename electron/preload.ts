@@ -23,8 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onShowAbout: (callback: () => void) => {
     ipcRenderer.on('menu-show-about', callback);
   },
-  onManageMods: (callback: () => void) => {
-    ipcRenderer.on('menu-manage-mods', callback);
+  onReturnToStart: (callback: () => void) => {
+    ipcRenderer.on('menu-return-to-start', callback);
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);

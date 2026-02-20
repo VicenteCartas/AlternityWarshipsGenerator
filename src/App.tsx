@@ -268,6 +268,10 @@ function App() {
     setMode(preModeForMods);
   }, [preModeForMods]);
 
+  const handleReturnToStart = useCallback(() => {
+    setMode('welcome');
+  }, []);
+
   // Helper function to load a warship from a file path
   const loadFromFile = useCallback(async (filePath: string): Promise<boolean> => {
     if (!window.electronAPI) {
@@ -507,8 +511,8 @@ function App() {
       window.electronAPI.onShowAbout(() => {
         setAboutDialogOpen(true);
       });
-      window.electronAPI.onManageMods(() => {
-        handleManageMods();
+      window.electronAPI.onReturnToStart(() => {
+        handleReturnToStart();
       });
 
       return () => {
@@ -518,10 +522,10 @@ function App() {
         window.electronAPI?.removeAllListeners('menu-save-warship-as');
         window.electronAPI?.removeAllListeners('menu-open-recent');
         window.electronAPI?.removeAllListeners('menu-show-about');
-        window.electronAPI?.removeAllListeners('menu-manage-mods');
+        window.electronAPI?.removeAllListeners('menu-return-to-start');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleManageMods]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
