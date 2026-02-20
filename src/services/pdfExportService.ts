@@ -331,18 +331,21 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   }
   y += 5;
 
-  // Row 3: Toughness, Armor, Target Modifier
+  // Row 3: Toughness, Target Modifier
   addLabel('Toughness', hull.toughness.toString(), margin);
-  if (data.armorLayers.length > 0) {
-    const armorLabel = data.armorLayers.map(l => `${capitalize(l.weight)} ${l.type.name}`).join(' + ');
-    addLabel('Armor', armorLabel, margin + col3W + 10);
-  } else {
-    addLabel('Armor', 'None', margin + col3W + 10);
-  }
-  addLabel('Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), margin + 2 * col3W + 10);
+  addLabel('Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), margin + col3W + 10);
   y += 5;
 
-  // Row 4: Acceleration, FTL
+  // Row 4: Armor
+  if (data.armorLayers.length > 0) {
+    const armorLabel = data.armorLayers.map(l => `${capitalize(l.weight)} ${l.type.name}`).join(' + ');
+    addLabel('Armor', armorLabel, margin);
+  } else {
+    addLabel('Armor', 'None', margin);
+  }
+  y += 5;
+
+  // Row 5: Acceleration, FTL
   addLabel('Acceleration', stats.totalAcceleration.toString(), margin);
   if (data.installedFTLDrive) {
     addLabel('FTL', data.installedFTLDrive.type.name, margin + col3W + 10);
