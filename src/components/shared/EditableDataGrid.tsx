@@ -215,14 +215,22 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             onChange={e => setEditValue(e.target.value)}
             onBlur={commitEdit}
             onKeyDown={handleKeyDown}
+            onFocus={e => { if (col.type === 'number') e.target.select(); }}
             size="small"
             autoFocus
             fullWidth
-            type={col.type === 'number' ? 'number' : 'text'}
             error={!!errorMsg}
             helperText={errorMsg}
-            inputProps={col.type === 'number' ? { min: col.min, max: col.max, step: 'any' } : undefined}
-            sx={{ '& input': { fontSize: '0.875rem', py: 0.5 } }}
+            slotProps={{
+              htmlInput: {
+                inputMode: col.type === 'number' ? 'decimal' : undefined,
+                style: { fontSize: '0.875rem', padding: '4px 8px' },
+              },
+            }}
+            sx={{
+              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
+              '& input[type=number]': { MozAppearance: 'textfield' },
+            }}
           />
         );
     }
@@ -272,11 +280,11 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
       {/* Table */}
       <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 280px)' }}>
-        <Table size="small" stickyHeader>
+        <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
               {columns.map(col => (
-                <TableCell key={col.key} sx={{ fontWeight: 600, minWidth: col.width || 80, whiteSpace: 'nowrap' }}>
+                <TableCell key={col.key} sx={{ fontWeight: 600, width: col.width || 80, minWidth: col.width || 80, maxWidth: col.width || 80, whiteSpace: 'nowrap' }}>
                   {col.label}
                   {col.required && <Typography component="span" color="error" sx={{ ml: 0.5 }}>*</Typography>}
                 </TableCell>
@@ -340,7 +348,10 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           border: cellError && !isEditing(rowIndex, col.key) ? '1px solid' : undefined,
                           borderColor: cellError && !isEditing(rowIndex, col.key) ? 'error.main' : undefined,
                           '&:hover': { backgroundColor: 'action.hover' },
+                          width: col.width || 80,
                           minWidth: col.width || 80,
+                          maxWidth: col.width || 80,
+                          overflow: 'hidden',
                         }}
                         onClick={() => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
                       >
