@@ -81,8 +81,12 @@ export function ArmorSelection({
   // Get armor types filtered by weight, then apply design constraints
   const filteredTypes = useMemo(() => {
     const byWeight = getArmorTypesByWeight(hull.shipClass, weightFilter);
-    return filterByDesignConstraints(byWeight, designProgressLevel, designTechTracks);
-  }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks]);
+    const byConstraints = filterByDesignConstraints(byWeight, designProgressLevel, designTechTracks);
+    if (multiLayerAllowed) {
+      return byConstraints.filter(t => !usedWeights.has(t.armorWeight) || armorLayers.some(l => l.type.id === t.id));
+    }
+    return byConstraints;
+  }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks, multiLayerAllowed, usedWeights, armorLayers]);
 
   const handleWeightFilterChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -220,7 +224,6 @@ export function ArmorSelection({
             <TableBody>
               {filteredTypes.map((armorType) => {
                 const isSelected = armorLayers.some(l => l.type.id === armorType.id);
-                const isWeightUsed = multiLayerAllowed && usedWeights.has(armorType.armorWeight) && !isSelected;
                 const hullPointsCost = calculateArmorHullPoints(hull, armorType.armorWeight);
                 const rowTotalCost = calculateArmorCost(hull, armorType.armorWeight, armorType);
                 const weightConfig = availableWeights.find(w => w.weight === armorType.armorWeight);
@@ -228,12 +231,11 @@ export function ArmorSelection({
                 return (
                   <TableRow
                     key={armorType.id}
-                    hover={!isWeightUsed}
+                    hover
                     selected={isSelected}
-                    onClick={() => !isWeightUsed && handleTypeSelect(armorType)}
+                    onClick={() => handleTypeSelect(armorType)}
                     sx={{
-                      cursor: isWeightUsed ? 'default' : 'pointer',
-                      opacity: isWeightUsed ? 0.45 : 1,
+                      cursor: 'pointer',
                       '&.Mui-selected': {
                         backgroundColor: 'action.selected',
                       },
