@@ -437,27 +437,44 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         onClose={() => setImportAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        <Box sx={{ p: 1, maxHeight: 400, overflow: 'auto', minWidth: 300 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ mb: 0.5, display: 'block', px: 1 }}>
+        <Box sx={{ maxHeight: 450, overflow: 'auto' }}>
+          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', px: 1.5, pt: 1, pb: 0.5 }}>
             Select a base item to import
           </Typography>
-          {(baseData || []).map((item, i) => {
-            const exists = rows.some(r => r.id === item.id);
-            return (
-              <Button
-                key={i}
-                fullWidth
-                size="small"
-                onClick={() => handleImportFromBase(item)}
-                sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 0.5 }}
-              >
-                <Typography variant="body2" noWrap>
-                  {String(item.name || item.id || `Item ${i}`)}
-                  {exists && <Chip label="override" size="small" color="warning" sx={{ ml: 1, height: 18 }} />}
-                </Typography>
-              </Button>
-            );
-          })}
+          <Table size="small" sx={{ minWidth: 400 }}>
+            <TableHead>
+              <TableRow>
+                {columns.filter(c => c.type !== 'json' && c.type !== 'techTracks').slice(0, 6).map(col => (
+                  <TableCell key={col.key} sx={{ py: 0.5, fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {col.label}
+                  </TableCell>
+                ))}
+                <TableCell sx={{ py: 0.5, width: 70 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(baseData || []).map((item, i) => {
+                const exists = rows.some(r => r.id === item.id);
+                return (
+                  <TableRow
+                    key={i}
+                    hover
+                    onClick={() => handleImportFromBase(item)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {columns.filter(c => c.type !== 'json' && c.type !== 'techTracks').slice(0, 6).map(col => (
+                      <TableCell key={col.key} sx={{ py: 0.25, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                        {renderCellDisplay(getNestedValue(item, col.key), col)}
+                      </TableCell>
+                    ))}
+                    <TableCell sx={{ py: 0.25 }}>
+                      {exists && <Chip label="override" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </Box>
       </Popover>
     </Box>
