@@ -444,7 +444,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ py: 0.5, width: 60 }} />
+                <TableCell sx={{ py: 0.5, width: 60, fontWeight: 600, fontSize: '0.75rem' }}>Status</TableCell>
                 {columns.filter(c => c.key !== 'description').map(col => (
                   <TableCell key={col.key} sx={{ py: 0.5, fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                     {col.label}
