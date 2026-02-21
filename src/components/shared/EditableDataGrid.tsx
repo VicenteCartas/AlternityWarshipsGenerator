@@ -182,7 +182,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             size="small"
             autoFocus
             fullWidth
-            sx={{ fontSize: '0.875rem' }}
+            sx={{ fontSize: '0.875rem', '& .MuiSelect-select': { py: '4px', px: '8px' } }}
           >
             {(col.options || []).map(o => (
               <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
@@ -204,7 +204,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             autoFocus
             fullWidth
             error={!!errorMsg}
-            helperText={errorMsg}
             sx={{ fontSize: '0.75rem' }}
           />
         );
@@ -220,7 +219,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             autoFocus
             fullWidth
             error={!!errorMsg}
-            helperText={errorMsg}
             slotProps={{
               htmlInput: {
                 inputMode: col.type === 'number' ? 'decimal' : undefined,
@@ -303,7 +301,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
               </TableRow>
             ) : (
               rows.map((row, rowIndex) => (
-                <TableRow key={rowIndex} hover>
+                <TableRow key={rowIndex} hover sx={{ height: 37 }}>
                   {columns.map(col => {
                     const cellValue = row[col.key];
                     const cellError = validateField(cellValue, col);
