@@ -14,8 +14,6 @@ import {
   TextField,
   ToggleButtonGroup,
   ToggleButton,
-  Switch,
-  FormControlLabel,
   Paper,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -82,8 +80,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   const [description, setDescription] = useState(mod.manifest.description);
   const [manifestDirty, setManifestDirty] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({ open: false, message: '', severity: 'success' });
-  // House rules: ruleId → boolean value
-  const [houseRules, setHouseRules] = useState<Record<string, boolean>>({});
+  // House rules: ruleId → true/false/null (null = not set by this mod)
+  const [houseRules, setHouseRules] = useState<Record<string, boolean | null>>({});
   const [houseRulesDirty, setHouseRulesDirty] = useState(false);
 
   // Total tab count: 1 (House Rules) + EDITOR_SECTIONS.length
@@ -146,13 +144,13 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       }
 
       // Load house rule values from mod files
-      const loadedHouseRules: Record<string, boolean> = {};
+      const loadedHouseRules: Record<string, boolean | null> = {};
       for (const rule of HOUSE_RULES) {
         const fileData = loadedFiles.get(rule.fileName);
         if (fileData && rule.jsonKey in fileData) {
           loadedHouseRules[rule.id] = !!fileData[rule.jsonKey];
         } else {
-          loadedHouseRules[rule.id] = rule.defaultValue;
+          loadedHouseRules[rule.id] = null;
         }
       }
 
@@ -176,7 +174,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     setDirtyFiles(prev => new Set(prev).add(section.fileName));
   }, []);
 
-  const handleHouseRuleChange = useCallback((rule: HouseRule, value: boolean) => {
+  const handleHouseRuleChange = useCallback((rule: HouseRule, value: boolean | null) => {
     setHouseRules(prev => ({ ...prev, [rule.id]: value }));
     setHouseRulesDirty(true);
   }, []);
@@ -232,8 +230,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       // Check if any section in this file has data or house rules are set
       const hasData = sections.some(s => (sectionData[s.id] || []).length > 0);
       const fileHouseRules = HOUSE_RULES.filter(r => r.fileName === fileName);
-      const hasNonDefaultRules = fileHouseRules.some(r => houseRules[r.id] !== r.defaultValue);
-      if (!hasData && !hasNonDefaultRules) continue;
+      const hasSetRules = fileHouseRules.some(r => houseRules[r.id] !== null);
+      if (!hasData && !hasSetRules) continue;
 
       // Build the file object — only include sections that have data
       const fileObj: Record<string, unknown> = {};
@@ -249,9 +247,12 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         fileObj[section.rootKey] = cleanRows;
       }
 
-      // Add house rule values for this file
+      // Add house rule values for this file (only if explicitly set)
       for (const rule of fileHouseRules) {
-        fileObj[rule.jsonKey] = houseRules[rule.id] ?? rule.defaultValue;
+        const val = houseRules[rule.id];
+        if (val !== null && val !== undefined) {
+          fileObj[rule.jsonKey] = val;
+        }
       }
 
       const success = await saveModFileData(mod.folderName, fileName, fileObj);
@@ -365,8 +366,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
                 <span>House Rules</span>
-                {HOUSE_RULES.some(r => houseRules[r.id] !== r.defaultValue) && (
-                  <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== r.defaultValue).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
+                {HOUSE_RULES.some(r => houseRules[r.id] !== null) && (
+                  <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== null).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                 )}
               </Box>
             }
@@ -401,16 +402,24 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               </Typography>
               {HOUSE_RULES.map((rule) => (
                 <Paper key={rule.id} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={houseRules[rule.id] ?? rule.defaultValue}
-                        onChange={(_e, checked) => handleHouseRuleChange(rule, checked)}
-                      />
-                    }
-                    label={<Typography fontWeight="medium">{rule.label}</Typography>}
-                  />
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 7 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
+                    <Typography fontWeight="medium">{rule.label}</Typography>
+                    <ToggleButtonGroup
+                      size="small"
+                      exclusive
+                      value={houseRules[rule.id] === null ? 'notset' : houseRules[rule.id] ? 'enabled' : 'disabled'}
+                      onChange={(_e, val) => {
+                        if (val === null) return;
+                        const mapped = val === 'notset' ? null : val === 'enabled';
+                        handleHouseRuleChange(rule, mapped);
+                      }}
+                    >
+                      <ToggleButton value="notset" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Not Set</ToggleButton>
+                      <ToggleButton value="enabled" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Enabled</ToggleButton>
+                      <ToggleButton value="disabled" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Disabled</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
                     {rule.description}
                   </Typography>
                 </Paper>
