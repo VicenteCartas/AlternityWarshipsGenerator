@@ -77,7 +77,7 @@ The installers will be created in the `release/` folder.
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server only (web preview at http://localhost:4200) |
+| `npm run dev` | Start Vite dev server only (web preview at http://localhost:1537) |
 | `npm run dev:electron` | Start Vite + Electron together for desktop development |
 | `npm run electron:start` | Start Electron only (requires Vite to be running) |
 | `npm run build` | Build React app for production |

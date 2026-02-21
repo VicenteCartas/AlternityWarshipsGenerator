@@ -19,7 +19,7 @@
     "dev": "vite",
     "dev:electron": "concurrently -k \"npm run dev\" \"npm run electron:start\"",
     "electron:build": "node scripts/build-electron.mjs",
-    "electron:start": "wait-on http://localhost:4200 && npm run electron:build && cross-env NODE_ENV=development npx electron .",
+    "electron:start": "wait-on http://localhost:1537 && npm run electron:build && cross-env NODE_ENV=development npx electron .",
     "build": "tsc -b && vite build",
     "build:electron": "npm run build && npm run electron:build",
     "dist": "npm run build:electron && electron-builder",
