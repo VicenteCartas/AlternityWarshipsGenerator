@@ -444,7 +444,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
               <TableRow>
-                {columns.filter(c => c.type !== 'json' && c.type !== 'techTracks').slice(0, 6).map(col => (
+                {columns.map(col => (
                   <TableCell key={col.key} sx={{ py: 0.5, fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                     {col.label}
                   </TableCell>
@@ -462,7 +462,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                     onClick={() => handleImportFromBase(item)}
                     sx={{ cursor: 'pointer' }}
                   >
-                    {columns.filter(c => c.type !== 'json' && c.type !== 'techTracks').slice(0, 6).map(col => (
+                    {columns.map(col => (
                       <TableCell key={col.key} sx={{ py: 0.25, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                         {renderCellDisplay(getNestedValue(item, col.key), col)}
                       </TableCell>
