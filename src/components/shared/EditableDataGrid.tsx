@@ -444,12 +444,12 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
               <TableRow>
-                {columns.map(col => (
+                <TableCell sx={{ py: 0.5, width: 60 }} />
+                {columns.filter(c => c.key !== 'description').map(col => (
                   <TableCell key={col.key} sx={{ py: 0.5, fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                     {col.label}
                   </TableCell>
                 ))}
-                <TableCell sx={{ py: 0.5, width: 70 }} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -462,14 +462,14 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                     onClick={() => handleImportFromBase(item)}
                     sx={{ cursor: 'pointer' }}
                   >
-                    {columns.map(col => (
+                    <TableCell sx={{ py: 0.25 }}>
+                      {exists && <Chip label="override" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />}
+                    </TableCell>
+                    {columns.filter(c => c.key !== 'description').map(col => (
                       <TableCell key={col.key} sx={{ py: 0.25, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                         {renderCellDisplay(getNestedValue(item, col.key), col)}
                       </TableCell>
                     ))}
-                    <TableCell sx={{ py: 0.25 }}>
-                      {exists && <Chip label="override" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />}
-                    </TableCell>
                   </TableRow>
                 );
               })}
