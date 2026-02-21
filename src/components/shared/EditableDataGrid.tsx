@@ -48,6 +48,25 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const [editValue, setEditValue] = useState<unknown>('');
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
 
+  // Helpers for dot-notation keys (e.g. "damageTrack.stun")
+  const getNestedValue = (obj: Record<string, unknown>, key: string): unknown => {
+    const parts = key.split('.');
+    let current: unknown = obj;
+    for (const part of parts) {
+      if (current === null || current === undefined || typeof current !== 'object') return undefined;
+      current = (current as Record<string, unknown>)[part];
+    }
+    return current;
+  };
+
+  const setNestedValue = (obj: Record<string, unknown>, key: string, value: unknown): Record<string, unknown> => {
+    const parts = key.split('.');
+    if (parts.length === 1) return { ...obj, [key]: value };
+    const [head, ...rest] = parts;
+    const child = (obj[head] && typeof obj[head] === 'object' ? obj[head] : {}) as Record<string, unknown>;
+    return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) };
+  };
+
   const commitEdit = useCallback(() => {
     if (!editingCell) return;
     const { rowIndex, columnKey } = editingCell;
@@ -66,7 +85,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     }
 
     const updated = [...rows];
-    updated[rowIndex] = { ...updated[rowIndex], [columnKey]: finalValue };
+    updated[rowIndex] = setNestedValue(updated[rowIndex], columnKey, finalValue);
     onChange(updated);
     setEditingCell(null);
   }, [editingCell, editValue, columns, rows, onChange]);
@@ -74,7 +93,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const startEdit = useCallback((rowIndex: number, columnKey: string) => {
     const col = columns.find(c => c.key === columnKey);
     if (!col) return;
-    const value = rows[rowIndex][columnKey];
+    const value = getNestedValue(rows[rowIndex], columnKey);
     if (col.type === 'json') {
       setEditValue(typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? ''));
     } else {
@@ -132,7 +151,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     }
 
     const updated = [...rows];
-    updated[rowIndex] = { ...updated[rowIndex], [columnKey]: finalValue };
+    updated[rowIndex] = setNestedValue(updated[rowIndex], columnKey, finalValue);
     onChange(updated);
   }, [columns, rows, onChange]);
 
@@ -303,7 +322,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
               rows.map((row, rowIndex) => (
                 <TableRow key={rowIndex} hover sx={{ height: 37 }}>
                   {columns.map(col => {
-                    const cellValue = row[col.key];
+                    const cellValue = getNestedValue(row, col.key);
                     const cellError = validateField(cellValue, col);
 
                     // Boolean: always show checkbox inline
