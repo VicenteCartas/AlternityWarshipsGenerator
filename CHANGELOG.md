@@ -4,7 +4,6 @@
 
 ### House rules
 
-- Allow all systems to be extensible like launchers are. Update all json handling to manage this data if it exists, and the UI to show the extension control.
 - Support multiple layers of armors of different categories
 - Add a Thrust gravity option which doesn't consume HP.
 
@@ -28,6 +27,7 @@
 - Power Plants and Engine section will show how many HP is 5% of the hull.
 - Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" so it's easier to distinguish them.
 - Fuel tank and power plant/engine chips will explain better what the fuel number represents.
+- Support systems can be made expandable like launchers. Base systems stay as is, but useful for custom mods.
 
 ### Fixes
 

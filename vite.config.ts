@@ -9,7 +9,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    port: 4200,
+    port: 1537,
     strictPort: true, // Fail if port is in use
   },
 })

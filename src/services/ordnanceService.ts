@@ -217,7 +217,7 @@ export function calculateLaunchSystemStats(
 
   // Add extra HP for expansion if expandable
   if (launchSystem.expandable && extraHp > 0) {
-    const extraCapacity = extraHp * (launchSystem.expansionCapacityPerHp || 0);
+    const extraCapacity = extraHp * (launchSystem.expansionValuePerHp || 0);
     const extraCost = extraHp * (launchSystem.expansionCostPerHp || 0);
     hullPoints += extraHp;
     cost += extraCost;

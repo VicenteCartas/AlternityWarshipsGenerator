@@ -1,8 +1,8 @@
-import type { ProgressLevel, TechTrack, InstalledQuantityItem, InstalledItemBase, BaseSystemStats } from './common';
+import type { ProgressLevel, TechTrack, InstalledQuantityItem, InstalledItemBase, BaseSystemStats, ExpandableFields } from './common';
 
 // ============== Life Support Types ==============
 
-export interface LifeSupportType {
+export interface LifeSupportType extends ExpandableFields {
   id: string;
   name: string;
   progressLevel: ProgressLevel;
@@ -24,7 +24,7 @@ export interface InstalledLifeSupport extends InstalledQuantityItem<LifeSupportT
 
 export type AccommodationCategory = 'crew' | 'passenger' | 'troop' | 'suspended';
 
-export interface AccommodationType {
+export interface AccommodationType extends ExpandableFields {
   id: string;
   name: string;
   progressLevel: ProgressLevel;
@@ -50,7 +50,7 @@ export interface InstalledAccommodation extends InstalledQuantityItem<Accommodat
 
 export type StoreSystemEffect = 'feeds' | 'reduces-consumption' | 'adds-stores';
 
-export interface StoreSystemType {
+export interface StoreSystemType extends ExpandableFields {
   id: string;
   name: string;
   progressLevel: ProgressLevel;

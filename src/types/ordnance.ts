@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs, ExpandableFields } from './common';
 import type { AreaEffect } from './weapon';
 
 // ============== Ordnance Categories ==============
@@ -48,7 +48,7 @@ export const LAUNCH_SYSTEM_ORDNANCE_TYPES: Record<LaunchSystemType, OrdnanceCate
 
 // ============== Launch System Definition ==============
 
-export interface LaunchSystem {
+export interface LaunchSystem extends ExpandableFields {
   id: LaunchSystemType;
   name: string;
   progressLevel: ProgressLevel;
@@ -61,12 +61,6 @@ export interface LaunchSystem {
   cost: number;
   /** Base capacity in size points */
   capacity: number;
-  /** Whether capacity can be expanded */
-  expandable: boolean;
-  /** Capacity gained per additional HP (if expandable) */
-  expansionCapacityPerHp?: number;
-  /** Cost per additional HP (if expandable) */
-  expansionCostPerHp?: number;
   /** Rate of fire per round */
   rateOfFire: number;
   /** Can be reloaded in space */

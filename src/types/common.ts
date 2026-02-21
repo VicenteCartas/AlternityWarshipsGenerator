@@ -95,6 +95,22 @@ export interface PowerConsumingStats extends BaseSystemStats {
   totalPowerRequired: number;
 }
 
+// ============== Expandable System Fields ==============
+
+/**
+ * Optional fields that make a system type expandable.
+ * When expandable is true, users can allocate extra HP to increase
+ * the system's primary output (capacity, coverage, effectValue, etc.)
+ */
+export interface ExpandableFields {
+  /** Whether this system can be expanded with extra HP */
+  expandable?: boolean;
+  /** Primary output value gained per additional HP (if expandable) */
+  expansionValuePerHp?: number;
+  /** Cost per additional HP (if expandable) */
+  expansionCostPerHp?: number;
+}
+
 // ============== Base Installed Item Interfaces ==============
 
 /**
@@ -112,6 +128,8 @@ export interface InstalledItemBase {
 export interface InstalledQuantityItem<T> extends InstalledItemBase {
   type: T;
   quantity: number;
+  /** Extra HP allocated for expansion (if the type is expandable) */
+  extraHp?: number;
 }
 
 /**

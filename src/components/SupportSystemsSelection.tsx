@@ -85,16 +85,19 @@ export function SupportSystemsSelection({
   // Life Support state
   const [selectedLifeSupport, setSelectedLifeSupport] = useState<LifeSupportType | null>(null);
   const [lifeSupportQuantity, setLifeSupportQuantity] = useState<string>('1');
+  const [lifeSupportExtraHp, setLifeSupportExtraHp] = useState<number>(0);
   const [editingLifeSupportId, setEditingLifeSupportId] = useState<string | null>(null);
 
   // Accommodation state
   const [selectedAccommodation, setSelectedAccommodation] = useState<AccommodationType | null>(null);
   const [accommodationQuantity, setAccommodationQuantity] = useState<string>('1');
+  const [accommodationExtraHp, setAccommodationExtraHp] = useState<number>(0);
   const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
 
   // Store System state
   const [selectedStoreSystem, setSelectedStoreSystem] = useState<StoreSystemType | null>(null);
   const [storeSystemQuantity, setStoreSystemQuantity] = useState<string>('1');
+  const [storeSystemExtraHp, setStoreSystemExtraHp] = useState<number>(0);
   const [editingStoreSystemId, setEditingStoreSystemId] = useState<string | null>(null);
 
   // Get filtered types
@@ -132,18 +135,20 @@ export function SupportSystemsSelection({
   const handleSelectLifeSupport = (type: LifeSupportType) => {
     setSelectedLifeSupport(type);
     setLifeSupportQuantity('1');
+    setLifeSupportExtraHp(0);
     setEditingLifeSupportId(null);
   };
 
   const handleAddLifeSupport = () => {
     if (!selectedLifeSupport) return;
     const quantity = parseInt(lifeSupportQuantity, 10) || 1;
+    const extraHp = selectedLifeSupport.expandable ? lifeSupportExtraHp : undefined;
 
     if (editingLifeSupportId) {
       onLifeSupportChange(
         installedLifeSupport.map((ls) =>
           ls.id === editingLifeSupportId
-            ? { ...ls, type: selectedLifeSupport, quantity }
+            ? { ...ls, type: selectedLifeSupport, quantity, extraHp }
             : ls
         )
       );
@@ -151,18 +156,20 @@ export function SupportSystemsSelection({
       // Always add as a new installation (don't combine with existing)
       onLifeSupportChange([
         ...installedLifeSupport,
-        { id: generateLifeSupportId(), type: selectedLifeSupport, quantity },
+        { id: generateLifeSupportId(), type: selectedLifeSupport, quantity, extraHp },
       ]);
     }
 
     setSelectedLifeSupport(null);
     setLifeSupportQuantity('1');
+    setLifeSupportExtraHp(0);
     setEditingLifeSupportId(null);
   };
 
   const handleEditLifeSupport = (installed: InstalledLifeSupport) => {
     setSelectedLifeSupport(installed.type);
     setLifeSupportQuantity(installed.quantity.toString());
+    setLifeSupportExtraHp(installed.extraHp || 0);
     setEditingLifeSupportId(installed.id);
   };
 
@@ -171,6 +178,7 @@ export function SupportSystemsSelection({
       id: generateLifeSupportId(),
       type: installed.type,
       quantity: installed.quantity,
+      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
     };
     const index = installedLifeSupport.findIndex(ls => ls.id === installed.id);
     const updated = [...installedLifeSupport];
@@ -187,18 +195,20 @@ export function SupportSystemsSelection({
   const handleSelectAccommodation = (type: AccommodationType) => {
     setSelectedAccommodation(type);
     setAccommodationQuantity('1');
+    setAccommodationExtraHp(0);
     setEditingAccommodationId(null);
   };
 
   const handleAddAccommodation = () => {
     if (!selectedAccommodation) return;
     const quantity = parseInt(accommodationQuantity, 10) || 1;
+    const extraHp = selectedAccommodation.expandable ? accommodationExtraHp : undefined;
 
     if (editingAccommodationId) {
       onAccommodationsChange(
         installedAccommodations.map((acc) =>
           acc.id === editingAccommodationId
-            ? { ...acc, type: selectedAccommodation, quantity }
+            ? { ...acc, type: selectedAccommodation, quantity, extraHp }
             : acc
         )
       );
@@ -206,18 +216,20 @@ export function SupportSystemsSelection({
       // Always add as a new installation (don't combine with existing)
       onAccommodationsChange([
         ...installedAccommodations,
-        { id: generateAccommodationId(), type: selectedAccommodation, quantity },
+        { id: generateAccommodationId(), type: selectedAccommodation, quantity, extraHp },
       ]);
     }
 
     setSelectedAccommodation(null);
     setAccommodationQuantity('1');
+    setAccommodationExtraHp(0);
     setEditingAccommodationId(null);
   };
 
   const handleEditAccommodation = (installed: InstalledAccommodation) => {
     setSelectedAccommodation(installed.type);
     setAccommodationQuantity(installed.quantity.toString());
+    setAccommodationExtraHp(installed.extraHp || 0);
     setEditingAccommodationId(installed.id);
   };
 
@@ -226,6 +238,7 @@ export function SupportSystemsSelection({
       id: generateAccommodationId(),
       type: installed.type,
       quantity: installed.quantity,
+      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
     };
     const index = installedAccommodations.findIndex(acc => acc.id === installed.id);
     const updated = [...installedAccommodations];
@@ -242,18 +255,20 @@ export function SupportSystemsSelection({
   const handleSelectStoreSystem = (type: StoreSystemType) => {
     setSelectedStoreSystem(type);
     setStoreSystemQuantity('1');
+    setStoreSystemExtraHp(0);
     setEditingStoreSystemId(null);
   };
 
   const handleAddStoreSystem = () => {
     if (!selectedStoreSystem) return;
     const quantity = parseInt(storeSystemQuantity, 10) || 1;
+    const extraHp = selectedStoreSystem.expandable ? storeSystemExtraHp : undefined;
 
     if (editingStoreSystemId) {
       onStoreSystemsChange(
         installedStoreSystems.map((store) =>
           store.id === editingStoreSystemId
-            ? { ...store, type: selectedStoreSystem, quantity }
+            ? { ...store, type: selectedStoreSystem, quantity, extraHp }
             : store
         )
       );
@@ -261,18 +276,20 @@ export function SupportSystemsSelection({
       // Always add as a new installation (don't combine with existing)
       onStoreSystemsChange([
         ...installedStoreSystems,
-        { id: generateStoreSystemId(), type: selectedStoreSystem, quantity },
+        { id: generateStoreSystemId(), type: selectedStoreSystem, quantity, extraHp },
       ]);
     }
 
     setSelectedStoreSystem(null);
     setStoreSystemQuantity('1');
+    setStoreSystemExtraHp(0);
     setEditingStoreSystemId(null);
   };
 
   const handleEditStoreSystem = (installed: InstalledStoreSystem) => {
     setSelectedStoreSystem(installed.type);
     setStoreSystemQuantity(installed.quantity.toString());
+    setStoreSystemExtraHp(installed.extraHp || 0);
     setEditingStoreSystemId(installed.id);
   };
 
@@ -281,6 +298,7 @@ export function SupportSystemsSelection({
       id: generateStoreSystemId(),
       type: installed.type,
       quantity: installed.quantity,
+      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
     };
     const index = installedStoreSystems.findIndex(s => s.id === installed.id);
     const updated = [...installedStoreSystems];
@@ -318,10 +336,10 @@ export function SupportSystemsSelection({
                     }}
                   >
                   <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}
+                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
                   </Typography>
                   <Chip
-                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
                     size="small"
                     variant="outlined"
                   />
@@ -331,13 +349,13 @@ export function SupportSystemsSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity} HP (${((installed.type.coveragePerHullPoint * installed.quantity / hull.hullPoints) * 100).toFixed(0)}%)`}
+                    label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)} HP (${((( installed.type.coveragePerHullPoint * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%)`}
                     size="small"
                     color="primary"
                     variant="outlined"
                   />
                   <Chip
-                    label={formatCost(installed.type.cost * installed.quantity)}
+                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
                     size="small"
                     variant="outlined"
                   />
@@ -364,12 +382,23 @@ export function SupportSystemsSelection({
                         inputProps={{ min: 1 }}
                         sx={{ width: 100 }}
                       />
+                      {selectedLifeSupport.expandable && (
+                        <TextField
+                          label="Extra HP"
+                          type="number"
+                          size="small"
+                          value={lifeSupportExtraHp}
+                          onChange={(e) => setLifeSupportExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          inputProps={{ min: 0 }}
+                          sx={{ width: 100 }}
+                        />
+                      )}
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1)} |
+                          HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp : 0)} |
                           Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
-                          Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1)} HP ({((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) / hull.hullPoints) * 100).toFixed(0)}%) |
-                          Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))}
+                          Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)} HP ({(((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%) |
+                          Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionCostPerHp || 0) : 0))}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
@@ -418,12 +447,23 @@ export function SupportSystemsSelection({
               inputProps={{ min: 1 }}
               sx={{ width: 100 }}
             />
+            {selectedLifeSupport.expandable && (
+              <TextField
+                label="Extra HP"
+                type="number"
+                size="small"
+                value={lifeSupportExtraHp}
+                onChange={(e) => setLifeSupportExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                inputProps={{ min: 0 }}
+                sx={{ width: 100 }}
+              />
+            )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1)} |
+                HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp : 0)} |
                 Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
-                Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1)} HP ({((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) / hull.hullPoints) * 100).toFixed(0)}%) |
-                Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1))}
+                Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)} HP ({(((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%) |
+                Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionCostPerHp || 0) : 0))}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -555,10 +595,10 @@ export function SupportSystemsSelection({
                     }}
                   >
                   <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}
+                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
                   </Typography>
                   <Chip
-                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
                     size="small"
                     variant="outlined"
                   />
@@ -568,7 +608,7 @@ export function SupportSystemsSelection({
                     variant="outlined"
                   />
                   <Chip
-                    label={`${installed.type.capacity * installed.quantity} ${installed.type.category}${installed.type.category === 'crew' ? ` (${((installed.type.capacity * installed.quantity / hull.crew) * 100).toFixed(0)}%)` : ''}`}
+                    label={`${installed.type.capacity * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)} ${installed.type.category}${installed.type.category === 'crew' ? ` (${(((installed.type.capacity * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''}`}
                     size="small"
                     color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'troop' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
                     variant="outlined"
@@ -582,7 +622,7 @@ export function SupportSystemsSelection({
                     />
                   )}
                   <Chip
-                    label={formatCost(installed.type.cost * installed.quantity)}
+                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
                     size="small"
                     variant="outlined"
                   />
@@ -609,12 +649,23 @@ export function SupportSystemsSelection({
                         inputProps={{ min: 1 }}
                         sx={{ width: 100 }}
                       />
+                      {selectedAccommodation.expandable && (
+                        <TextField
+                          label="Extra HP"
+                          type="number"
+                          size="small"
+                          value={accommodationExtraHp}
+                          onChange={(e) => setAccommodationExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          inputProps={{ min: 0 }}
+                          sx={{ width: 100 }}
+                        />
+                      )}
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1)} |
+                          HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp : 0)} |
                           Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
-                          Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1)}{selectedAccommodation.category === 'crew' ? ` (${((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) / hull.crew) * 100).toFixed(0)}%)` : ''} |
-                          Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1))}
+                          Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)}{selectedAccommodation.category === 'crew' ? ` (${(((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''} |
+                          Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionCostPerHp || 0) : 0))}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
@@ -663,12 +714,23 @@ export function SupportSystemsSelection({
               inputProps={{ min: 1 }}
               sx={{ width: 100 }}
             />
+            {selectedAccommodation.expandable && (
+              <TextField
+                label="Extra HP"
+                type="number"
+                size="small"
+                value={accommodationExtraHp}
+                onChange={(e) => setAccommodationExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                inputProps={{ min: 0 }}
+                sx={{ width: 100 }}
+              />
+            )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1)} |
+                HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp : 0)} |
                 Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
-                Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1)}{selectedAccommodation.category === 'crew' ? ` (${((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) / hull.crew) * 100).toFixed(0)}%)` : ''} |
-                Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1))}
+                Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)}{selectedAccommodation.category === 'crew' ? ` (${(((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''} |
+                Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionCostPerHp || 0) : 0))}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -817,10 +879,10 @@ export function SupportSystemsSelection({
                     }}
                   >
                   <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}
+                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
                   </Typography>
                   <Chip
-                    label={`${installed.type.hullPoints * installed.quantity} HP`}
+                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
                     size="small"
                     variant="outlined"
                   />
@@ -831,7 +893,7 @@ export function SupportSystemsSelection({
                   />
                   {installed.type.effect === 'feeds' && (() => {
                     const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                    const feedCount = installed.type.effectValue * installed.quantity;
+                    const feedCount = installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
                     return (
                       <Chip
                         label={`Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
@@ -843,7 +905,7 @@ export function SupportSystemsSelection({
                   })()}
                   {installed.type.effect === 'reduces-consumption' && (() => {
                     const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                    const recycleCount = (installed.type.affectedPeople || 0) * installed.quantity;
+                    const recycleCount = (installed.type.affectedPeople || 0) * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
                     return (
                       <Chip
                         label={`Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
@@ -855,14 +917,14 @@ export function SupportSystemsSelection({
                   })()}
                   {installed.type.effect === 'adds-stores' && (
                     <Chip
-                      label={`Stores: +${(installed.type.effectValue * installed.quantity).toLocaleString()} days`}
+                      label={`Stores: +${(installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)).toLocaleString()} days`}
                       size="small"
                       color="primary"
                       variant="outlined"
                     />
                   )}
                   <Chip
-                    label={formatCost(installed.type.cost * installed.quantity)}
+                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
                     size="small"
                     variant="outlined"
                   />
@@ -889,22 +951,33 @@ export function SupportSystemsSelection({
                         inputProps={{ min: 1 }}
                         sx={{ width: 100 }}
                       />
+                      {selectedStoreSystem.expandable && (
+                        <TextField
+                          label="Extra HP"
+                          type="number"
+                          size="small"
+                          value={storeSystemExtraHp}
+                          onChange={(e) => setStoreSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          inputProps={{ min: 0 }}
+                          sx={{ width: 100 }}
+                        />
+                      )}
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1)} |
+                          HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp : 0)} |
                           Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
                           {selectedStoreSystem.effect === 'feeds' && (() => {
                             const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                            const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1);
+                            const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
                             return `Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
                           })()}
                           {selectedStoreSystem.effect === 'reduces-consumption' && (() => {
                             const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                            const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1);
+                            const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
                             return `Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
                           })()}
-                          {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)).toLocaleString()} days | `}
-                          Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
+                          {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0)).toLocaleString()} days | `}
+                          Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionCostPerHp || 0) : 0))}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
@@ -953,22 +1026,33 @@ export function SupportSystemsSelection({
               inputProps={{ min: 1 }}
               sx={{ width: 100 }}
             />
+            {selectedStoreSystem.expandable && (
+              <TextField
+                label="Extra HP"
+                type="number"
+                size="small"
+                value={storeSystemExtraHp}
+                onChange={(e) => setStoreSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                inputProps={{ min: 0 }}
+                sx={{ width: 100 }}
+              />
+            )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1)} |
+                HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp : 0)} |
                 Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
                 {selectedStoreSystem.effect === 'feeds' && (() => {
                   const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                  const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1);
+                  const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
                   return `Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
                 })()}
                 {selectedStoreSystem.effect === 'reduces-consumption' && (() => {
                   const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                  const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1);
+                  const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
                   return `Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
                 })()}
-                {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1)).toLocaleString()} days | `}
-                Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1))}
+                {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0)).toLocaleString()} days | `}
+                Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionCostPerHp || 0) : 0))}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button

@@ -248,7 +248,7 @@ function createWindow() {
   mainWindow.maximize();
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:4200');
+    mainWindow.loadURL('http://localhost:1537');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));

@@ -114,10 +114,11 @@ export function calculateSupportSystemsStats(
   let recyclingFromLifeSupport = 0;
 
   for (const ls of lifeSupport) {
-    lifeSupportHP += ls.type.hullPoints * ls.quantity;
+    const extraHp = ls.extraHp || 0;
+    lifeSupportHP += ls.type.hullPoints * ls.quantity + extraHp;
     lifeSupportPower += ls.type.powerRequired * ls.quantity;
-    lifeSupportCost += ls.type.cost * ls.quantity;
-    totalCoverage += ls.type.coveragePerHullPoint * ls.quantity;
+    lifeSupportCost += ls.type.cost * ls.quantity + (ls.type.expandable && extraHp > 0 ? extraHp * (ls.type.expansionCostPerHp || 0) : 0);
+    totalCoverage += ls.type.coveragePerHullPoint * ls.quantity + (ls.type.expandable && extraHp > 0 ? extraHp * (ls.type.expansionValuePerHp || 0) : 0);
     if (ls.type.recyclingCapacity) {
       recyclingFromLifeSupport += ls.type.recyclingCapacity * ls.quantity;
     }
@@ -135,11 +136,13 @@ export function calculateSupportSystemsStats(
   let baseStoreDays = 0;
 
   for (const acc of accommodations) {
-    accommodationsHP += acc.type.hullPoints * acc.quantity;
+    const extraHp = acc.extraHp || 0;
+    accommodationsHP += acc.type.hullPoints * acc.quantity + extraHp;
     accommodationsPower += acc.type.powerRequired * acc.quantity;
-    accommodationsCost += acc.type.cost * acc.quantity;
+    accommodationsCost += acc.type.cost * acc.quantity + (acc.type.expandable && extraHp > 0 ? extraHp * (acc.type.expansionCostPerHp || 0) : 0);
     
-    const capacity = acc.type.capacity * acc.quantity;
+    const extraCapacity = acc.type.expandable && extraHp > 0 ? extraHp * (acc.type.expansionValuePerHp || 0) : 0;
+    const capacity = acc.type.capacity * acc.quantity + extraCapacity;
     switch (acc.type.category) {
       case 'crew':
         crewCapacity += capacity;
@@ -177,16 +180,19 @@ export function calculateSupportSystemsStats(
   let additionalStoresDays = 0;
 
   for (const store of storeSystems) {
-    storeSystemsHP += store.type.hullPoints * store.quantity;
+    const extraHp = store.extraHp || 0;
+    storeSystemsHP += store.type.hullPoints * store.quantity + extraHp;
     storeSystemsPower += store.type.powerRequired * store.quantity;
-    storeSystemsCost += store.type.cost * store.quantity;
+    storeSystemsCost += store.type.cost * store.quantity + (store.type.expandable && extraHp > 0 ? extraHp * (store.type.expansionCostPerHp || 0) : 0);
+    
+    const extraValue = store.type.expandable && extraHp > 0 ? extraHp * (store.type.expansionValuePerHp || 0) : 0;
     
     switch (store.type.effect) {
       case 'feeds': {
         // effectValue people are considered as 1 for stores calculation
         // So if effectValue=10 and quantity=2, 20 people are fed but count as 2 for stores
         // Reduction = peopleFed - (peopleFed / effectValue) = peopleFed * (effectValue - 1) / effectValue
-        const fed = store.type.effectValue * store.quantity;
+        const fed = store.type.effectValue * store.quantity + extraValue;
         peopleFed += fed;
         feedsReduction += fed - (fed / store.type.effectValue);
         break;
@@ -196,14 +202,14 @@ export function calculateSupportSystemsStats(
         // affectedPeople is how many people each unit affects
         // Example: 15 recyclers * 20 affectedPeople = 300 people at 10% consumption
         // Those 300 people consume like 30 people, saving 270 person-equivalents
-        const affected = (store.type.affectedPeople || 0) * store.quantity;
+        const affected = (store.type.affectedPeople || 0) * store.quantity + extraValue;
         const reductionRate = 1 - (store.type.effectValue / 100);
         recyclingCapacity += affected;
         recyclingReduction += affected * reductionRate;
         break;
       }
       case 'adds-stores':
-        additionalStoresDays += store.type.effectValue * store.quantity;
+        additionalStoresDays += store.type.effectValue * store.quantity + extraValue;
         break;
     }
   }
