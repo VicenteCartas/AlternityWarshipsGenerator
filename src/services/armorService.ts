@@ -1,6 +1,5 @@
 import type { ArmorType, ArmorWeight, ArmorWeightConfig, ShipArmor } from '../types/armor';
 import type { Hull, ShipClass } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
 import { SHIP_CLASS_ORDER } from '../types/common';
 import { getArmorTypesData, getArmorWeightsData, getArmorAllowMultipleLayers } from './dataLoader';
 
