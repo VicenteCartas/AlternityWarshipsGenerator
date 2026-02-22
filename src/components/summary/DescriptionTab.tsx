@@ -145,7 +145,7 @@ export function DescriptionTab({
           multiline
           rows={12}
           fullWidth
-          placeholder="Write the history, purpose, and background of your warship..."
+          placeholder="Write the history, purpose, and background of your design..."
           value={shipDescription.lore}
           onChange={handleLoreChange}
           variant="outlined"

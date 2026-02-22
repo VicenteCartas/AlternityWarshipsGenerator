@@ -13,7 +13,7 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledLaunchSystem, OrdnanceDesign, MissileDesign } from '../types/ordnance';
 import type { DamageZone, ZoneCode, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
-import type { ProgressLevel } from '../types/common';
+import type { ProgressLevel, DesignType, StationType } from '../types/common';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from './armorService';
@@ -27,7 +27,7 @@ import { calculateDefenseStats } from './defenseService';
 import { calculateCommandControlStats } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
-import { formatCost, formatAccuracyModifier, formatAcceleration } from './formatters';
+import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
 
 // ============ INTERFACES ============
 
@@ -56,6 +56,8 @@ export interface ShipData {
   damageDiagramZones: DamageZone[];
   hitLocationChart?: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
+  designType?: DesignType;
+  stationType?: StationType | null;
   targetDirectory?: string;
 }
 
@@ -214,6 +216,8 @@ function computeShipStats(data: ShipData): ShipStats {
 
 export async function exportShipToPDF(data: ShipData, options: PdfExportOptions = defaultExportOptions): Promise<string> {
   const { hull, warshipName } = data;
+  const isStation = data.designType === 'station';
+  const hasEngines = data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0;
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -305,11 +309,14 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
 
   pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`${capitalize(hull.shipClass)} Class – ${hull.name}`, pageWidth / 2, y, { align: 'center' });
+  const subtitle = isStation && data.stationType
+    ? `${getStationTypeDisplayName(data.stationType)} – ${hull.name}`
+    : `${capitalize(hull.shipClass)} Class – ${hull.name}`;
+  pdf.text(subtitle, pageWidth / 2, y, { align: 'center' });
   y += 8;
 
   // --- Key Stats ---
-  addSectionTitle('Ship Overview');
+  addSectionTitle(isStation ? 'Station Overview' : 'Ship Overview');
   y += 3;
 
   const col3W = contentWidth / 3;
@@ -345,14 +352,18 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   }
   y += 5;
 
-  // Row 5: Acceleration, FTL
-  addLabel('Acceleration', stats.totalAcceleration.toString(), margin);
-  if (data.installedFTLDrive) {
-    addLabel('FTL', data.installedFTLDrive.type.name, margin + col3W + 10);
+  // Row 5: Acceleration, FTL (only if design has engines or FTL)
+  if (hasEngines || data.installedFTLDrive) {
+    addLabel('Acceleration', hasEngines ? stats.totalAcceleration.toString() : 'N/A', margin);
+    if (data.installedFTLDrive) {
+      addLabel('FTL', data.installedFTLDrive.type.name, margin + col3W + 10);
+    } else {
+      addLabel('FTL', 'None', margin + col3W + 10);
+    }
+    y += 8;
   } else {
-    addLabel('FTL', 'None', margin + col3W + 10);
+    y += 3;
   }
-  y += 8;
 
   // --- Systems Summary Table ---
   addSectionTitle('Systems Summary');
@@ -466,26 +477,28 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
     y += 1;
   }
 
-  // Engines
-  addStatsRow('Engines', stats.engines.hp.toString(), stats.engines.power.toString(), stats.engines.cost);
-  if (options.includeDetailedSystems && (data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0)) {
-    addDetailColumnHeaders();
-    for (const eng of data.installedEngines) {
-      const engPower = calculateEnginePowerRequired(eng.type, eng.hullPoints);
-      const engCost = calculateEngineCost(eng.type, eng.hullPoints);
-      addDetailRow(
-        `${eng.type.name} (${eng.hullPoints} HP)`,
-        eng.hullPoints.toString(), engPower.toString(), formatCost(engCost)
-      );
+  // Engines (skip entirely if no engines installed)
+  if (hasEngines) {
+    addStatsRow('Engines', stats.engines.hp.toString(), stats.engines.power.toString(), stats.engines.cost);
+    if (options.includeDetailedSystems) {
+      addDetailColumnHeaders();
+      for (const eng of data.installedEngines) {
+        const engPower = calculateEnginePowerRequired(eng.type, eng.hullPoints);
+        const engCost = calculateEngineCost(eng.type, eng.hullPoints);
+        addDetailRow(
+          `${eng.type.name} (${eng.hullPoints} HP)`,
+          eng.hullPoints.toString(), engPower.toString(), formatCost(engCost)
+        );
+      }
+      for (const tank of data.installedEngineFuelTanks) {
+        const tankCost = calculateEngineFuelTankCost(tank.forEngineType, tank.hullPoints);
+        addDetailRow(
+          `Fuel Tank for ${tank.forEngineType.name} (${tank.hullPoints} HP)`,
+          tank.hullPoints.toString(), '-', formatCost(tankCost)
+        );
+      }
+      y += 1;
     }
-    for (const tank of data.installedEngineFuelTanks) {
-      const tankCost = calculateEngineFuelTankCost(tank.forEngineType, tank.hullPoints);
-      addDetailRow(
-        `Fuel Tank for ${tank.forEngineType.name} (${tank.hullPoints} HP)`,
-        tank.hullPoints.toString(), '-', formatCost(tankCost)
-      );
-    }
-    y += 1;
   }
 
   // FTL Drive
@@ -681,7 +694,7 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
 
   if (hasLore) {
     checkNewPage(20);
-    addSectionTitle('Ship Description');
+    addSectionTitle('Description');
     y += 3;
 
     pdf.setFontSize(8);
@@ -1144,7 +1157,8 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   // SAVE
   // =============================================
 
-  const filename = `${shipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;
+  const sheetType = isStation ? 'station_sheet' : 'ship_sheet';
+  const filename = `${shipName.replace(/[^a-zA-Z0-9]/g, '_')}_${sheetType}.pdf`;
 
   if (window.electronAPI && data.targetDirectory) {
     const separator = data.targetDirectory.includes('\\') ? '\\' : '/';

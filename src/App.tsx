@@ -1164,6 +1164,8 @@ function App() {
             installedHangarMisc={installedHangarMisc}
             damageDiagramZones={damageDiagramZones}
             designProgressLevel={designProgressLevel}
+            designType={designType}
+            stationType={stationType}
             currentFilePath={currentFilePath}
             onShowNotification={showNotification}
           />

@@ -963,7 +963,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   return {
     success: true,
     state: {
-      name: saveFile.name || 'Unnamed Warship',
+      name: saveFile.name || 'Unnamed Design',
       shipDescription: {
         lore: saveFile.lore || '',
         imageData: saveFile.imageData ?? null,

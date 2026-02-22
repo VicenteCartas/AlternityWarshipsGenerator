@@ -23,7 +23,7 @@ import { getModFileData, saveModFileData } from '../services/modService';
 import { EDITOR_SECTIONS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
 import { validateRows } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
-import { getActiveMods, getHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
+import { getActiveMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
 
 interface ModEditorProps {
   mod: Mod;
@@ -35,6 +35,7 @@ interface ModEditorProps {
 function getBaseDataForSection(sectionId: string, pureBase = false): Record<string, unknown>[] {
   const getters: Record<string, () => Record<string, unknown>[]> = {
     hulls: () => getHullsData(pureBase) as unknown as Record<string, unknown>[],
+    stationHulls: () => getStationHullsData(pureBase) as unknown as Record<string, unknown>[],
     armors: () => getArmorTypesData(pureBase) as unknown as Record<string, unknown>[],
     armorWeights: () => getArmorWeightsData(pureBase) as unknown as Record<string, unknown>[],
     powerPlants: () => getPowerPlantsData(pureBase) as unknown as Record<string, unknown>[],

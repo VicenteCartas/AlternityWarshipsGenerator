@@ -42,7 +42,7 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
-import type { ProgressLevel } from '../types/common';
+import type { ProgressLevel, DesignType, StationType } from '../types/common';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
 import { calculateTotalPowerPlantStats, calculateFuelTankCost } from '../services/powerPlantService';
 import { calculateTotalEngineStats, calculateEngineFuelTankCost } from '../services/engineService';
@@ -85,6 +85,8 @@ interface SummarySelectionProps {
   installedHangarMisc: InstalledHangarMiscSystem[];
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
+  designType: DesignType;
+  stationType: StationType | null;
   currentFilePath: string | null;
   onShowNotification: (message: string, severity: 'success' | 'error' | 'warning' | 'info', action?: { label: string; onClick: () => void }) => void;
 }
@@ -114,6 +116,8 @@ export function SummarySelection({
   installedHangarMisc,
   damageDiagramZones,
   designProgressLevel,
+  designType,
+  stationType,
   currentFilePath,
   onShowNotification,
 }: SummarySelectionProps) {
@@ -305,7 +309,8 @@ export function SummarySelection({
       if (installedPowerPlants.length === 0) {
         missingMandatory.push('Power Plant');
       }
-      if (installedEngines.length === 0) {
+      // Engines are mandatory only for warships
+      if (designType === 'warship' && installedEngines.length === 0) {
         missingMandatory.push('Engines');
       }
       if (missingMandatory.length > 0) {
@@ -323,7 +328,9 @@ export function SummarySelection({
       if (armorLayers.length === 0) {
         missingOptional.push('Armor');
       }
-      if (!installedFTLDrive) {
+      // Only warn about FTL if the design type supports it
+      const hasFtlStep = designType === 'warship' || stationType === 'space-station';
+      if (hasFtlStep && !installedFTLDrive) {
         missingOptional.push('FTL Drive');
       }
       if (installedLifeSupport.length === 0 && installedAccommodations.length === 0) {
@@ -466,6 +473,8 @@ export function SummarySelection({
     installedHangarMisc,
     damageDiagramZones,
     designProgressLevel,
+    designType,
+    stationType,
   ]);
 
   // Check if there are any issues
@@ -475,7 +484,7 @@ export function SummarySelection({
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
-          Please select a hull first to view the ship summary.
+          Please select a hull first to view the summary.
         </Alert>
       </Box>
     );
@@ -528,9 +537,12 @@ export function SummarySelection({
         installedHangarMisc,
         damageDiagramZones,
         designProgressLevel,
+        designType,
+        stationType,
         targetDirectory,
       }, options);
-      const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_ship_sheet.pdf`;
+      const sheetType = designType === 'station' ? 'station_sheet' : 'ship_sheet';
+      const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_${sheetType}.pdf`;
       
       // Create action to open the PDF file
       const openAction = window.electronAPI ? {
@@ -698,13 +710,13 @@ export function SummarySelection({
           {/* Lore/Description section */}
           <Box sx={{ flex: 1, minWidth: 300 }}>
             <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-              Ship Lore & Description
+              Lore & Description
             </Typography>
             <TextField
               multiline
               rows={12}
               fullWidth
-              placeholder="Write the history, purpose, and background of your warship..."
+              placeholder="Write the history, purpose, and background of your design..."
               value={shipDescription.lore}
               onChange={handleLoreChange}
               variant="outlined"
