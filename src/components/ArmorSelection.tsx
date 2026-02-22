@@ -27,9 +27,9 @@ import {
   calculateArmorCost,
   calculateMultiLayerArmorHP,
   calculateMultiLayerArmorCost,
-  filterByDesignConstraints,
   isMultipleArmorLayersAllowed,
 } from '../services/armorService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { headerCellSx } from '../constants/tableStyles';
 

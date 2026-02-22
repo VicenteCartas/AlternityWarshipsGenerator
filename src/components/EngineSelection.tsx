@@ -32,7 +32,6 @@ import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../ty
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getEngineTypesForShipClass,
-  filterByDesignConstraints,
   calculateEnginePowerRequired,
   calculateEngineCost,
   calculateEngineFuelTankCost,
@@ -49,6 +48,7 @@ import {
   getTotalEngineFuelTankHPForEngineType,
   getTotalEngineHPForEngineType,
 } from '../services/engineService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName, formatAcceleration } from '../services/formatters';
 
 interface EngineSelectionProps {

@@ -1,7 +1,6 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
 import { FIREPOWER_ORDER } from '../types/common';
 import type { ShipClass } from '../types/hull';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import type {
   BeamWeaponType,
   ProjectileWeaponType,
@@ -57,18 +56,6 @@ export function getAllTorpedoWeaponTypes(): TorpedoWeaponType[] {
  */
 export function getAllSpecialWeaponTypes(): SpecialWeaponType[] {
   return getSpecialWeaponsData();
-}
-
-/**
- * Filter weapon types by design constraints (Progress Level and Tech Tracks)
- * Re-exported from utilities for backwards compatibility
- */
-export function filterByDesignConstraints<T extends WeaponType>(
-  weapons: T[],
-  designPL: ProgressLevel,
-  designTechTracks: TechTrack[]
-): T[] {
-  return filterByConstraints(weapons, designPL, designTechTracks, false);
 }
 
 /**

@@ -10,7 +10,7 @@ import type {
   InstalledGravitySystem,
   SupportSystemsStats,
 } from '../types/supportSystem';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import {
   getLifeSupportData,
   getAccommodationsData,
@@ -50,16 +50,6 @@ export function getStoreSystemTypeById(id: string): StoreSystemType | undefined 
 
 export function getGravitySystemTypeById(id: string): GravitySystemType | undefined {
   return getAllGravitySystemTypes().find((t) => t.id === id);
-}
-
-// ============== Filtering ==============
-
-export function filterByDesignConstraints<T extends { progressLevel: ProgressLevel; techTracks: TechTrack[] }>(
-  items: T[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): T[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
 }
 
 // ============== ID Generation ==============

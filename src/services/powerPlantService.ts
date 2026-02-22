@@ -1,8 +1,7 @@
 import type { PowerPlantType, FuelTankType, InstalledPowerPlant, InstalledFuelTank, PowerPlantStats } from '../types/powerPlant';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
 import { getPowerPlantsData, getFuelTankData } from './dataLoader';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId, validateMinSize, validateFuelTank } from './utilities';
 
 /**
  * Get all power plant types
@@ -22,15 +21,6 @@ export function getFuelTankType(): FuelTankType {
  * Get power plant types available for a specific ship class
  * Note: Currently all power plants are available for all ship classes
  */
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: PowerPlantType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): PowerPlantType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
-}
 
 export function getPowerPlantTypesForShipClass(): PowerPlantType[] {
   return getAllPowerPlantTypes();
@@ -178,17 +168,7 @@ export function validatePowerPlantInstallation(
   plant: PowerPlantType,
   hullPoints: number
 ): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Check minimum size
-  if (hullPoints < plant.minSize) {
-    errors.push(`${plant.name} requires a minimum of ${plant.minSize} hull points.`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return validateMinSize(plant.name, hullPoints, plant.minSize);
 }
 
 /**
@@ -199,23 +179,7 @@ export function validateFuelTankInstallation(
   hull: Hull,
   usedHullPoints: number
 ): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Check minimum size (fuel tanks have min 1 HP)
-  if (hullPoints < 1) {
-    errors.push('Fuel tank requires at least 1 hull point.');
-  }
-  
-  // Check available hull points
-  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (hullPoints > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return validateFuelTank(hullPoints, hull, usedHullPoints);
 }
 
 /**

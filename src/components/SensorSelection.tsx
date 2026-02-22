@@ -29,12 +29,12 @@ import type { SensorType, InstalledSensor, SensorCategory } from '../types/senso
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import {
   getAllSensorTypes,
-  filterByDesignConstraints,
   calculateSensorStats,
   createInstalledSensor,
   updateInstalledSensor,
   calculateTrackingCapability,
 } from '../services/sensorService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, formatSensorRange } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
 import { sensorHasSensorControl, getSensorControlForSensor } from '../services/commandControlService';

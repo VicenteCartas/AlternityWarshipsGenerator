@@ -20,7 +20,7 @@ import {
   getWarheadsData,
   getGuidanceSystemsData,
 } from './dataLoader';
-import { generateId } from './utilities';
+import { generateId, filterByDesignConstraints } from './utilities';
 
 // ============== Data Getters ==============
 
@@ -61,23 +61,7 @@ export function filterLaunchSystemsByConstraints(
   designProgressLevel: ProgressLevel,
   designTechTracks: TechTrack[]
 ): LaunchSystem[] {
-  return launchSystems.filter((ls) => {
-    // Filter by progress level
-    if (ls.progressLevel > designProgressLevel) return false;
-
-    // Filter by tech tracks (if design has tech tracks specified)
-    if (designTechTracks.length > 0) {
-      // If launch system requires tech tracks, at least one must match
-      if (ls.techTracks.length > 0) {
-        const hasMatchingTech = ls.techTracks.some((tech) =>
-          designTechTracks.includes(tech)
-        );
-        if (!hasMatchingTech) return false;
-      }
-    }
-
-    return true;
-  });
+  return filterByDesignConstraints(launchSystems, designProgressLevel, designTechTracks);
 }
 
 export function filterPropulsionByConstraints(
@@ -86,25 +70,8 @@ export function filterPropulsionByConstraints(
   designTechTracks: TechTrack[],
   category: OrdnanceCategory
 ): PropulsionSystem[] {
-  return propulsionSystems.filter((ps) => {
-    // Filter by progress level
-    if (ps.progressLevel > designProgressLevel) return false;
-
-    // Filter by tech tracks
-    if (designTechTracks.length > 0) {
-      if (ps.techTracks.length > 0) {
-        const hasMatchingTech = ps.techTracks.some((tech) =>
-          designTechTracks.includes(tech)
-        );
-        if (!hasMatchingTech) return false;
-      }
-    }
-
-    // Filter by applicable ordnance category
-    if (!ps.applicableTo.includes(category)) return false;
-
-    return true;
-  });
+  return filterByDesignConstraints(propulsionSystems, designProgressLevel, designTechTracks)
+    .filter((ps) => ps.applicableTo.includes(category));
 }
 
 export function filterWarheadsByConstraints(
@@ -113,25 +80,8 @@ export function filterWarheadsByConstraints(
   designTechTracks: TechTrack[],
   maxWarheadSize: number
 ): Warhead[] {
-  return warheads.filter((wh) => {
-    // Filter by progress level
-    if (wh.progressLevel > designProgressLevel) return false;
-
-    // Filter by tech tracks
-    if (designTechTracks.length > 0) {
-      if (wh.techTracks.length > 0) {
-        const hasMatchingTech = wh.techTracks.some((tech) =>
-          designTechTracks.includes(tech)
-        );
-        if (!hasMatchingTech) return false;
-      }
-    }
-
-    // Filter by warhead size
-    if (wh.size > maxWarheadSize) return false;
-
-    return true;
-  });
+  return filterByDesignConstraints(warheads, designProgressLevel, designTechTracks)
+    .filter((wh) => wh.size <= maxWarheadSize);
 }
 
 export function filterGuidanceByConstraints(
@@ -140,53 +90,41 @@ export function filterGuidanceByConstraints(
   designTechTracks: TechTrack[],
   category: OrdnanceCategory
 ): GuidanceSystem[] {
-  return guidanceSystems.filter((gs) => {
-    // Filter by progress level
-    if (gs.progressLevel > designProgressLevel) return false;
-
-    // Filter by tech tracks
-    if (designTechTracks.length > 0) {
-      if (gs.techTracks.length > 0) {
-        const hasMatchingTech = gs.techTracks.some((tech) =>
-          designTechTracks.includes(tech)
-        );
-        if (!hasMatchingTech) return false;
-      }
-    }
-
-    // Filter by applicable ordnance category
-    if (!gs.applicableTo.includes(category)) return false;
-
-    return true;
-  });
+  return filterByDesignConstraints(guidanceSystems, designProgressLevel, designTechTracks)
+    .filter((gs) => gs.applicableTo.includes(category));
 }
 
 // ============== Design Calculations ==============
+
+/**
+ * Calculate ordnance design stats from its components.
+ * Sums accuracy and cost from all components; capacity comes from propulsion size.
+ */
+function calculateOrdnanceComponents(
+  ...components: { accuracyModifier: number; cost: number }[]
+): { totalAccuracy: number; totalCost: number } {
+  let totalAccuracy = 0;
+  let totalCost = 0;
+  for (const c of components) {
+    totalAccuracy += c.accuracyModifier;
+    totalCost += c.cost;
+  }
+  return { totalAccuracy, totalCost };
+}
 
 export function calculateMissileDesign(
   propulsion: PropulsionSystem,
   guidance: GuidanceSystem,
   warhead: Warhead
 ): { totalAccuracy: number; totalCost: number; capacityRequired: number } {
-  const totalAccuracy =
-    propulsion.accuracyModifier +
-    guidance.accuracyModifier +
-    warhead.accuracyModifier;
-  const totalCost = propulsion.cost + guidance.cost + warhead.cost;
-  const capacityRequired = propulsion.size;
-
-  return { totalAccuracy, totalCost, capacityRequired };
+  return { ...calculateOrdnanceComponents(propulsion, guidance, warhead), capacityRequired: propulsion.size };
 }
 
 export function calculateBombDesign(
   propulsion: PropulsionSystem,
   warhead: Warhead
 ): { totalAccuracy: number; totalCost: number; capacityRequired: number } {
-  const totalAccuracy = propulsion.accuracyModifier + warhead.accuracyModifier;
-  const totalCost = propulsion.cost + warhead.cost;
-  const capacityRequired = propulsion.size;
-
-  return { totalAccuracy, totalCost, capacityRequired };
+  return { ...calculateOrdnanceComponents(propulsion, warhead), capacityRequired: propulsion.size };
 }
 
 export function calculateMineDesign(
@@ -194,14 +132,7 @@ export function calculateMineDesign(
   guidance: GuidanceSystem,
   warhead: Warhead
 ): { totalAccuracy: number; totalCost: number; capacityRequired: number } {
-  const totalAccuracy =
-    propulsion.accuracyModifier +
-    guidance.accuracyModifier +
-    warhead.accuracyModifier;
-  const totalCost = propulsion.cost + guidance.cost + warhead.cost;
-  const capacityRequired = propulsion.size;
-
-  return { totalAccuracy, totalCost, capacityRequired };
+  return { ...calculateOrdnanceComponents(propulsion, guidance, warhead), capacityRequired: propulsion.size };
 }
 
 // ============== Launch System Calculations ==============

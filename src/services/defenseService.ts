@@ -1,10 +1,9 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
   DefenseSystemType,
   InstalledDefenseSystem,
   DefenseStats,
 } from '../types/defense';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import { getDefenseSystemsData } from './dataLoader';
 
 // ============== Getters ==============
@@ -15,16 +14,6 @@ export function getAllDefenseSystemTypes(): DefenseSystemType[] {
 
 export function getDefenseSystemTypeById(id: string): DefenseSystemType | undefined {
   return getAllDefenseSystemTypes().find((t) => t.id === id);
-}
-
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: DefenseSystemType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): DefenseSystemType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
 }
 
 // ============== ID Generation ==============

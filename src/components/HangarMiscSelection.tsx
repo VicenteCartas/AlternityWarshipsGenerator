@@ -28,7 +28,6 @@ import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
 import {
   getAllHangarMiscSystemTypes,
-  filterByDesignConstraints,
   calculateHangarMiscStats,
   createInstalledHangarMiscSystem,
   updateInstalledHangarMiscSystem,
@@ -37,6 +36,7 @@ import {
   calculateHangarMiscCost,
   calculateHangarMiscCapacity,
 } from '../services/hangarMiscService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
 
@@ -66,7 +66,7 @@ export function HangarMiscSelection({
 
   // Get filtered system types
   const availableSystems = useMemo(() => {
-    return filterByDesignConstraints(getAllHangarMiscSystemTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllHangarMiscSystemTypes(), designProgressLevel, designTechTracks, false);
   }, [designProgressLevel, designTechTracks]);
 
   // Get systems by category (excluding already installed single-install systems)

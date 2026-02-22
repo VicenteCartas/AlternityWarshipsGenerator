@@ -43,7 +43,6 @@ import {
   getAllAccommodationTypes,
   getAllStoreSystemTypes,
   getAllGravitySystemTypes,
-  filterByDesignConstraints,
   calculateSupportSystemsStats,
   generateLifeSupportId,
   generateAccommodationId,
@@ -52,6 +51,7 @@ import {
   calculateGravitySystemHullPoints,
   calculateGravitySystemCost,
 } from '../services/supportSystemService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
 interface SupportSystemsSelectionProps {

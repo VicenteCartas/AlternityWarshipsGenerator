@@ -32,7 +32,6 @@ import type { ProgressLevel, TechTrack } from '../types/common';
 import type { DefenseSystemType, InstalledDefenseSystem } from '../types/defense';
 import {
   getAllDefenseSystemTypes,
-  filterByDesignConstraints,
   calculateDefenseStats,
   calculateDefenseHullPoints,
   calculateDefensePower,
@@ -42,6 +41,7 @@ import {
   hasScreenConflict,
   getInstalledScreenNames,
 } from '../services/defenseService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
 interface DefenseSelectionProps {

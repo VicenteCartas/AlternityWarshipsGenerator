@@ -1,4 +1,3 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
   CommandControlSystemType,
   InstalledCommandControlSystem,
@@ -8,7 +7,7 @@ import type {
 import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledLaunchSystem } from '../types/ordnance';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import { getLaunchSystemsData, getCommandControlSystemsData } from './dataLoader';
 
 // ============== Getters ==============
@@ -22,14 +21,6 @@ export function getCommandControlSystemTypeById(id: string): CommandControlSyste
 }
 
 // ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: CommandControlSystemType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): CommandControlSystemType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
-}
 
 /**
  * Filter command systems based on ship hull points

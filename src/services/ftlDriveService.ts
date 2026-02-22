@@ -1,21 +1,11 @@
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
 import { getFTLDrivesData } from './dataLoader';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId, interpolateByPercentage } from './utilities';
 
 /**
  * Get all FTL drive types
  */
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: FTLDriveType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): FTLDriveType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
-}
 
 export function getAllFTLDriveTypes(): FTLDriveType[] {
   return getFTLDrivesData();
@@ -36,43 +26,7 @@ export function getFTLRatingForPercentage(
   percentage: number
 ): number | null {
   if (!drive.ftlRatings) return null;
-  
-  const ratings = drive.ftlRatings;
-  
-  // Below 5% - no rating
-  if (percentage < 5) return null;
-  
-  // At or above 50% - cap at 50% value
-  if (percentage >= 50) return ratings.at50Percent;
-  
-  // Define breakpoints and their values
-  const breakpoints = [
-    { pct: 5, value: ratings.at5Percent },
-    { pct: 10, value: ratings.at10Percent },
-    { pct: 15, value: ratings.at15Percent },
-    { pct: 20, value: ratings.at20Percent },
-    { pct: 30, value: ratings.at30Percent },
-    { pct: 40, value: ratings.at40Percent },
-    { pct: 50, value: ratings.at50Percent },
-  ];
-  
-  // Find the two breakpoints to interpolate between
-  for (let i = 0; i < breakpoints.length - 1; i++) {
-    const lower = breakpoints[i];
-    const upper = breakpoints[i + 1];
-    if (percentage >= lower.pct && percentage < upper.pct) {
-      // If upper value is null, return lower value (or null if also null)
-      if (upper.value === null) return lower.value;
-      // If lower value is null, treat it as 0 for interpolation
-      const lowerValue = lower.value ?? 0;
-      
-      // Linear interpolation
-      const ratio = (percentage - lower.pct) / (upper.pct - lower.pct);
-      return lowerValue + ratio * (upper.value - lowerValue);
-    }
-  }
-  
-  return null;
+  return interpolateByPercentage(drive.ftlRatings, percentage, 'null');
 }
 
 /**

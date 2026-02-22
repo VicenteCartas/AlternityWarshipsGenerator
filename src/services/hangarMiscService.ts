@@ -1,6 +1,5 @@
-import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscStats } from '../types/hangarMisc';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import { getHangarMiscSystemsData } from './dataLoader';
 
 /**
@@ -8,17 +7,6 @@ import { getHangarMiscSystemsData } from './dataLoader';
  */
 export function getAllHangarMiscSystemTypes(): HangarMiscSystemType[] {
   return getHangarMiscSystemsData();
-}
-
-/**
- * Filter system types by design constraints (Progress Level and Tech Tracks)
- */
-export function filterByDesignConstraints(
-  systems: HangarMiscSystemType[],
-  designPL: ProgressLevel,
-  designTechTracks: TechTrack[]
-): HangarMiscSystemType[] {
-  return filterByConstraints(systems, designPL, designTechTracks, false);
 }
 
 /**

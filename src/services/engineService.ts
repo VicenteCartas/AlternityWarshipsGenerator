@@ -1,8 +1,7 @@
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank, EngineStats, AccelerationRatings } from '../types/engine';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
 import { getEnginesData, getFuelTankData } from './dataLoader';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId, interpolateByPercentage, validateMinSize, validateFuelTank } from './utilities';
 
 /**
  * Get all engine types
@@ -15,15 +14,6 @@ export function getAllEngineTypes(): EngineType[] {
  * Get engine types available for a specific ship class
  * Note: Currently all engines are available for all ship classes
  */
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: EngineType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): EngineType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
-}
 
 export function getEngineTypesForShipClass(): EngineType[] {
   return getAllEngineTypes();
@@ -53,38 +43,7 @@ export function getAccelerationForPercentage(
   ratings: AccelerationRatings,
   percentage: number
 ): number {
-  // Below 5% - interpolate between 0 and 5% value
-  if (percentage < 5) {
-    const ratio = percentage / 5;
-    return ratio * ratings.at5Percent;
-  }
-  
-  // At or above 50% - cap at 50% value
-  if (percentage >= 50) return ratings.at50Percent;
-  
-  // Define breakpoints and their values
-  const breakpoints = [
-    { pct: 5, value: ratings.at5Percent },
-    { pct: 10, value: ratings.at10Percent },
-    { pct: 15, value: ratings.at15Percent },
-    { pct: 20, value: ratings.at20Percent },
-    { pct: 30, value: ratings.at30Percent },
-    { pct: 40, value: ratings.at40Percent },
-    { pct: 50, value: ratings.at50Percent },
-  ];
-  
-  // Find the two breakpoints to interpolate between
-  for (let i = 0; i < breakpoints.length - 1; i++) {
-    const lower = breakpoints[i];
-    const upper = breakpoints[i + 1];
-    if (percentage >= lower.pct && percentage < upper.pct) {
-      // Linear interpolation
-      const ratio = (percentage - lower.pct) / (upper.pct - lower.pct);
-      return lower.value + ratio * (upper.value - lower.value);
-    }
-  }
-  
-  return 0;
+  return interpolateByPercentage(ratings, percentage, 'interpolate-from-zero') ?? 0;
 }
 
 /**
@@ -253,17 +212,7 @@ export function validateEngineInstallation(
   engine: EngineType,
   hullPoints: number
 ): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Check minimum size
-  if (hullPoints < engine.minSize) {
-    errors.push(`${engine.name} requires a minimum of ${engine.minSize} hull points.`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return validateMinSize(engine.name, hullPoints, engine.minSize);
 }
 
 /**
@@ -274,23 +223,7 @@ export function validateEngineFuelTankInstallation(
   hull: Hull,
   usedHullPoints: number
 ): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Check minimum size (fuel tanks have min 1 HP)
-  if (hullPoints < 1) {
-    errors.push('Fuel tank requires at least 1 hull point.');
-  }
-  
-  // Check available hull points
-  const availableHullPoints = hull.hullPoints + hull.bonusHullPoints - usedHullPoints;
-  if (hullPoints > availableHullPoints) {
-    errors.push(`Not enough hull points available. Need ${hullPoints}, have ${availableHullPoints}.`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return validateFuelTank(hullPoints, hull, usedHullPoints);
 }
 
 /**

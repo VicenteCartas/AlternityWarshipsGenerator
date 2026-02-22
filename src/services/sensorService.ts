@@ -6,7 +6,7 @@ import type {
   ComputerQuality,
   TrackingTable,
 } from '../types/sensor';
-import { generateId, filterByDesignConstraints as filterByConstraints } from './utilities';
+import { generateId } from './utilities';
 import { getSensorsData, getTrackingTableData } from './dataLoader';
 
 // Re-export ComputerQuality for backwards compatibility
@@ -20,16 +20,6 @@ export function getAllSensorTypes(): SensorType[] {
 
 export function getSensorTypeById(id: string): SensorType | undefined {
   return getAllSensorTypes().find((t) => t.id === id);
-}
-
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: SensorType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): SensorType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
 }
 
 // ============== ID Generation ==============

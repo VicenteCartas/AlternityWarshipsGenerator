@@ -30,7 +30,6 @@ import type { InstalledPowerPlant } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getAllFTLDriveTypes,
-  filterByDesignConstraints,
   calculateFTLHullPercentage,
   getFTLRatingForPercentage,
   calculateFTLPowerRequired,
@@ -49,6 +48,7 @@ import {
   calculateFixedSizeHullPoints,
   calculateMinFuelTankHP,
 } from '../services/ftlDriveService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { getPowerPlantTypeById } from '../services/powerPlantService';
 

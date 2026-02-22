@@ -3,7 +3,6 @@ import type { Hull, ShipClass } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import { SHIP_CLASS_ORDER } from '../types/common';
 import { getArmorTypesData, getArmorWeightsData, getArmorAllowMultipleLayers } from './dataLoader';
-import { filterByDesignConstraints as filterByConstraints } from './utilities';
 
 /**
  * Get all armor weight configurations
@@ -41,15 +40,6 @@ export function getArmorTypesForShipClass(shipClass: ShipClass): ArmorType[] {
 /**
  * Get armor types filtered by weight category
  */
-// ============== Filtering ==============
-
-export function filterByDesignConstraints(
-  items: ArmorType[],
-  designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
-): ArmorType[] {
-  return filterByConstraints(items, designProgressLevel, designTechTracks);
-}
 
 export function getArmorTypesByWeight(shipClass: ShipClass, weight: ArmorWeight | 'all'): ArmorType[] {
   const availableTypes = getArmorTypesForShipClass(shipClass);

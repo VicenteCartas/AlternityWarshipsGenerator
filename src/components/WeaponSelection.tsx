@@ -49,7 +49,6 @@ import {
   getAllProjectileWeaponTypes,
   getAllTorpedoWeaponTypes,
   getAllSpecialWeaponTypes,
-  filterByDesignConstraints,
   sortWeapons,
   calculateWeaponStats,
   createInstalledWeapon,
@@ -66,6 +65,7 @@ import {
   validateArcs,
   generateWeaponId,
 } from '../services/weaponService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { getGunConfigurationsData, getMountModifiersData } from '../services/dataLoader';
 import { formatCost, formatAccuracyModifier, getAreaEffectTooltip } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
@@ -112,22 +112,22 @@ export function WeaponSelection({
 
   // Get filtered beam weapons
   const availableBeamWeapons = useMemo(() => {
-    return sortWeapons(filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks));
+    return sortWeapons(filterByDesignConstraints(getAllBeamWeaponTypes(), designProgressLevel, designTechTracks, false));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered projectile weapons
   const availableProjectileWeapons = useMemo(() => {
-    return sortWeapons(filterByDesignConstraints(getAllProjectileWeaponTypes(), designProgressLevel, designTechTracks));
+    return sortWeapons(filterByDesignConstraints(getAllProjectileWeaponTypes(), designProgressLevel, designTechTracks, false));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered torpedo weapons
   const availableTorpedoWeapons = useMemo(() => {
-    return sortWeapons(filterByDesignConstraints(getAllTorpedoWeaponTypes(), designProgressLevel, designTechTracks));
+    return sortWeapons(filterByDesignConstraints(getAllTorpedoWeaponTypes(), designProgressLevel, designTechTracks, false));
   }, [designProgressLevel, designTechTracks]);
 
   // Get filtered special weapons
   const availableSpecialWeapons = useMemo(() => {
-    return sortWeapons(filterByDesignConstraints(getAllSpecialWeaponTypes(), designProgressLevel, designTechTracks));
+    return sortWeapons(filterByDesignConstraints(getAllSpecialWeaponTypes(), designProgressLevel, designTechTracks, false));
   }, [designProgressLevel, designTechTracks]);
 
   // Calculate stats

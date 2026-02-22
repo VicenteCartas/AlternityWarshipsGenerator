@@ -39,7 +39,6 @@ import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledLaunchSystem } from '../types/ordnance';
 import {
   getAllCommandControlSystemTypes,
-  filterByDesignConstraints,
   filterCommandSystemsByShipSize,
   calculateCommandControlStats,
   calculateCommandControlHullPoints,
@@ -59,6 +58,7 @@ import {
   getOrphanedFireControls,
   getOrphanedSensorControls,
 } from '../services/commandControlService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, formatCommandControlCost } from '../services/formatters';
 import { TechTrackCell } from './shared';
 

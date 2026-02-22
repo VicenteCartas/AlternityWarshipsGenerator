@@ -29,7 +29,6 @@ import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getPowerPlantTypesForShipClass,
-  filterByDesignConstraints,
   calculatePowerGenerated,
   calculatePowerPlantCost,
   calculateFuelTankCost,
@@ -43,6 +42,7 @@ import {
   generateFuelTankId,
   getFuelRequiringInstallations,
 } from '../services/powerPlantService';
+import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 
 interface PowerPlantSelectionProps {
