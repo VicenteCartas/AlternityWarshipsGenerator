@@ -133,6 +133,31 @@ export const EDITOR_SECTIONS: EditorSection[] = [
     defaultItem: { id: '', name: '', shipClass: 'light', category: 'military', hullPoints: 20, bonusHullPoints: 0, toughness: 'Light', targetModifier: 0, maneuverability: 2, damageTrack: { stun: 5, wound: 10, mortal: 5, critical: 5 }, crew: 5, cost: 1000000, description: '' },
   },
 
+  // ---- Station Hulls ----
+  {
+    id: 'stationHulls',
+    label: 'Station Hulls',
+    fileName: 'hulls.json',
+    rootKey: 'stationHulls',
+    columns: [
+      COL_ID, COL_NAME,
+      { key: 'shipClass', label: 'Class', type: 'select', required: true, width: 130, options: SHIP_CLASS_OPTIONS },
+      { key: 'category', label: 'Type', type: 'select', required: true, width: 80, options: [{ value: 'military', label: 'Military' }, { value: 'civilian', label: 'Civilian' }] },
+      { key: 'hullPoints', label: 'HP', type: 'number', required: true, min: 1, width: 80 },
+      { key: 'bonusHullPoints', label: 'Bonus HP', type: 'number', min: 0, width: 90 },
+      { key: 'toughness', label: 'Toughness', type: 'select', width: 120, options: ['Good', 'Small Craft', 'Light', 'Medium', 'Heavy', 'Super-Heavy'].map(v => ({ value: v, label: v })) },
+      { key: 'targetModifier', label: 'Target Mod', type: 'number', width: 100 },
+      { key: 'maneuverability', label: 'Maneuver', type: 'select', width: 100, options: [0, 1, 2, 3, 4].map(v => ({ value: String(v), label: String(v) })) },
+      { key: 'damageTrack.stun', label: 'Stun', type: 'number', min: 0, width: 70 },
+      { key: 'damageTrack.wound', label: 'Wound', type: 'number', min: 0, width: 75 },
+      { key: 'damageTrack.mortal', label: 'Mortal', type: 'number', min: 0, width: 75 },
+      { key: 'damageTrack.critical', label: 'Crit', type: 'number', min: 0, width: 70 },
+      { key: 'crew', label: 'Crew', type: 'number', required: true, min: 1, width: 80 },
+      COL_COST, COL_DESC,
+    ],
+    defaultItem: { id: '', name: '', shipClass: 'light', category: 'military', hullPoints: 100, bonusHullPoints: 10, toughness: 'Light', targetModifier: 0, maneuverability: 0, damageTrack: { stun: 25, wound: 25, mortal: 13, critical: 7 }, crew: 10, cost: 5000000, description: '' },
+  },
+
   // ---- Armor ----
   {
     id: 'armorWeights',

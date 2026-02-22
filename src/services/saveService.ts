@@ -11,11 +11,11 @@ import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
-import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
 import type { DamageZone, HitLocationChart, SystemDamageCategory, ZoneCode } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
-import { getAllHulls } from './hullService';
+import { getAllHulls, getAllStationHulls } from './hullService';
 import { getAllArmorTypes, buildShipArmor } from './armorService';
 import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
 import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
@@ -35,6 +35,10 @@ import { getActiveMods } from './dataLoader';
 export interface WarshipState {
   name: string;
   shipDescription: ShipDescription;
+  designType: DesignType;
+  stationType: StationType | null;
+  surfaceProvidesLifeSupport: boolean;
+  surfaceProvidesGravity: boolean;
   hull: Hull | null;
   armorLayers: ShipArmor[];
   powerPlants: InstalledPowerPlant[];
@@ -78,6 +82,10 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
   
   return {
     version: SAVE_FILE_VERSION,
+    designType: state.designType !== 'warship' ? state.designType : undefined,
+    stationType: state.stationType || undefined,
+    surfaceProvidesLifeSupport: state.surfaceProvidesLifeSupport || undefined,
+    surfaceProvidesGravity: state.surfaceProvidesGravity || undefined,
     name: state.name,
     createdAt: now,
     modifiedAt: now,
@@ -390,10 +398,17 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     }
   }
   
+  // Load design type and station settings
+  const designType: DesignType = (saveFile.designType as DesignType) || 'warship';
+  const stationType: StationType | null = (saveFile.stationType as StationType) || null;
+  const surfaceProvidesLifeSupport = saveFile.surfaceProvidesLifeSupport ?? false;
+  const surfaceProvidesGravity = saveFile.surfaceProvidesGravity ?? false;
+  
   // Load hull
   let hull: Hull | null = null;
   if (saveFile.hull?.id) {
-    const allHulls = getAllHulls();
+    // Search both ship hulls and station hulls
+    const allHulls = [...getAllHulls(), ...getAllStationHulls()];
     hull = allHulls.find(h => h.id === saveFile.hull!.id) ?? null;
     if (!hull) {
       errors.push(`Hull type not found: ${saveFile.hull.id}`);
@@ -954,6 +969,10 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         imageData: saveFile.imageData ?? null,
         imageMimeType: saveFile.imageMimeType ?? null,
       },
+      designType,
+      stationType,
+      surfaceProvidesLifeSupport,
+      surfaceProvidesGravity,
       hull,
       armorLayers,
       powerPlants,

@@ -17,6 +17,7 @@ import {
   Tabs,
   Tab,
   Stack,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -61,6 +62,8 @@ interface SupportSystemsSelectionProps {
   installedGravitySystems: InstalledGravitySystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
+  surfaceProvidesLifeSupport?: boolean;
+  surfaceProvidesGravity?: boolean;
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
@@ -75,6 +78,8 @@ export function SupportSystemsSelection({
   installedGravitySystems,
   designProgressLevel,
   designTechTracks,
+  surfaceProvidesLifeSupport = false,
+  surfaceProvidesGravity = false,
   onLifeSupportChange,
   onAccommodationsChange,
   onStoreSystemsChange,
@@ -1353,6 +1358,22 @@ export function SupportSystemsSelection({
         Step 6: Support Systems (Optional)
       </Typography>
 
+      {/* Surface environment info banners */}
+      {(surfaceProvidesLifeSupport || surfaceProvidesGravity) && (
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          {surfaceProvidesLifeSupport && (
+            <Alert severity="info" variant="outlined">
+              <strong>Surface provides life support</strong> — This ground base has a breathable atmosphere. Life support systems are optional but can provide backup or sealed areas.
+            </Alert>
+          )}
+          {surfaceProvidesGravity && (
+            <Alert severity="info" variant="outlined">
+              <strong>Surface provides gravity</strong> — This ground base has natural gravity. Artificial gravity systems are not required.
+            </Alert>
+          )}
+        </Stack>
+      )}
+
       {/* Summary Chips */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1371,11 +1392,19 @@ export function SupportSystemsSelection({
             color="default"
             variant="outlined"
           />
-          <Chip
-            label={`Life Support: ${stats.totalCoverage}/${hull.hullPoints} HP (${((stats.totalCoverage / hull.hullPoints) * 100).toFixed(0)}%)`}
-            color={stats.totalCoverage >= hull.hullPoints ? 'success' : 'warning'}
-            variant="outlined"
-          />
+          {surfaceProvidesLifeSupport ? (
+            <Chip
+              label="Life Support: Surface"
+              color="success"
+              variant="outlined"
+            />
+          ) : (
+            <Chip
+              label={`Life Support: ${stats.totalCoverage}/${hull.hullPoints} HP (${((stats.totalCoverage / hull.hullPoints) * 100).toFixed(0)}%)`}
+              color={stats.totalCoverage >= hull.hullPoints ? 'success' : 'warning'}
+              variant="outlined"
+            />
+          )}
           <Chip
             label={`Crew: ${stats.crewCapacity}/${hull.crew} (${((stats.crewCapacity / hull.crew) * 100).toFixed(0)}%)`}
             color={stats.crewCapacity >= hull.crew ? 'success' : 'warning'}
@@ -1424,14 +1453,21 @@ export function SupportSystemsSelection({
             }
             return null;
           })()}
-          {!stats.hasArtificialGravity && !stats.hasGravitySystemInstalled && (
+          {!stats.hasArtificialGravity && !stats.hasGravitySystemInstalled && !surfaceProvidesGravity && (
             <Chip
               label="No Gravity"
               color="warning"
               variant="outlined"
             />
           )}
-          {(stats.hasArtificialGravity || stats.hasGravitySystemInstalled) && (
+          {surfaceProvidesGravity && (
+            <Chip
+              label="Surface Gravity"
+              color="success"
+              variant="outlined"
+            />
+          )}
+          {!surfaceProvidesGravity && (stats.hasArtificialGravity || stats.hasGravitySystemInstalled) && (
             <Chip
               label="Artificial Gravity"
               color="success"
@@ -1450,7 +1486,7 @@ export function SupportSystemsSelection({
           <Tab label={`Life Support (${installedLifeSupport.length})`} />
           <Tab label={`Accommodations (${installedAccommodations.length})`} />
           <Tab label={`Stores (${installedStoreSystems.length})`} />
-          <Tab label="Gravity" />
+          {!surfaceProvidesGravity && <Tab label="Gravity" />}
         </Tabs>
       </Box>
 
@@ -1463,9 +1499,11 @@ export function SupportSystemsSelection({
       <TabPanel value={activeTab} index={2}>
         {renderStoresTab()}
       </TabPanel>
-      <TabPanel value={activeTab} index={3}>
-        {renderGravityTab()}
-      </TabPanel>
+      {!surfaceProvidesGravity && (
+        <TabPanel value={activeTab} index={3}>
+          {renderGravityTab()}
+        </TabPanel>
+      )}
     </Box>
   );
 }

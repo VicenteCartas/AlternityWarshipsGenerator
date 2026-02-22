@@ -17,6 +17,21 @@ export const SHIP_CLASS_ORDER: ShipClass[] = ['small-craft', 'light', 'medium', 
 export const FIREPOWER_ORDER: Record<string, number> = { 'Gd': 0, 'S': 1, 'L': 2, 'M': 3, 'H': 4, 'SH': 5 };
 
 /**
+ * Design type: the kind of construction being designed
+ * 'warship' = mobile vessel (ship or craft)
+ * 'station' = fixed installation (ground base, outpost, or space station)
+ */
+export type DesignType = 'warship' | 'station';
+
+/**
+ * Station type: the specific kind of station installation
+ * 'ground-base' = surface installation with environmental support from the surface
+ * 'outpost' = sealed structure on a hostile surface (needs life support & gravity)
+ * 'space-station' = orbital or deep-space installation
+ */
+export type StationType = 'ground-base' | 'outpost' | 'space-station';
+
+/**
  * Progress Level for technology
  * PL 6 = Fusion Age
  * PL 7 = Gravity Age

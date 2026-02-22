@@ -46,6 +46,7 @@ import weaponsDataFallback from '../data/weapons.json';
 // Cache for loaded data
 interface DataCache {
   hulls: Hull[] | null;
+  stationHulls: Hull[] | null;
   armors: ArmorType[] | null;
   armorWeights: ArmorWeightConfig[] | null;
   armorAllowMultipleLayers: boolean;
@@ -81,6 +82,7 @@ interface DataCache {
 
 const cache: DataCache = {
   hulls: null,
+  stationHulls: null,
   armors: null,
   armorWeights: null,
   armorAllowMultipleLayers: false,
@@ -111,6 +113,7 @@ const cache: DataCache = {
 
 const pureBaseCache: DataCache = {
   hulls: null,
+  stationHulls: null,
   armors: null,
   armorWeights: null,
   armorAllowMultipleLayers: false,
@@ -367,6 +370,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
 
     // Store pure base data in pureBaseCache
     pureBaseCache.hulls = (hullsData as { hulls: Hull[] }).hulls;
+    pureBaseCache.stationHulls = (hullsData as { stationHulls?: Hull[] }).stationHulls || [];
     pureBaseCache.armors = (armorData as { armors: ArmorType[] }).armors;
     pureBaseCache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
     pureBaseCache.armorAllowMultipleLayers = (armorData as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
@@ -435,6 +439,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
 
     // Store merged data in cache
     cache.hulls = (mergedHulls as { hulls: Hull[] }).hulls;
+    cache.stationHulls = (mergedHulls as { stationHulls?: Hull[] }).stationHulls || [];
     cache.armors = (mergedArmor as { armors: ArmorType[] }).armors;
     cache.armorWeights = (mergedArmor as { armorWeights: ArmorWeightConfig[] }).armorWeights;
     cache.armorAllowMultipleLayers = (mergedArmor as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
@@ -496,6 +501,17 @@ export function getHullsData(pureBase = false): Hull[] {
     return (hullsDataFallback as { hulls: Hull[] }).hulls;
   }
   return pureBase ? pureBaseCache.hulls! : cache.hulls!;
+}
+
+/**
+ * Get all station hulls (must call loadAllGameData first)
+ */
+export function getStationHullsData(pureBase = false): Hull[] {
+  if (!dataLoaded) {
+    console.warn('[DataLoader] Data not loaded, using fallback');
+    return (hullsDataFallback as { stationHulls?: Hull[] }).stationHulls || [];
+  }
+  return pureBase ? pureBaseCache.stationHulls! : cache.stationHulls!;
 }
 
 /**

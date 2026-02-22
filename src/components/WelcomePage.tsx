@@ -62,7 +62,7 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods }: Welco
             disableRipple
             sx={{ py: 1.5 }}
           >
-            New Warship
+            New Design
           </Button>
           
           <Button
@@ -73,7 +73,7 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods }: Welco
             fullWidth
             sx={{ py: 1.5 }}
           >
-            Load Warship
+            Load Design
           </Button>
 
           <Button

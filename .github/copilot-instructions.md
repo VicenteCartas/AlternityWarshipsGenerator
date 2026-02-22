@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Desktop app for generating Warships for the **Alternity** sci-fi tabletop RPG, implementing ship construction rules from the "Warships" sourcebook by Richard Baker. Guides users through a step-by-step warship building wizard.
+Desktop app for generating Warships and Stations/Bases for the **Alternity** sci-fi tabletop RPG, implementing construction rules from the "Warships" sourcebook by Richard Baker. Guides users through a step-by-step building wizard, supporting both ship and station design types.
 
 ## Tech Stack
 
@@ -42,24 +42,49 @@ There is no test framework configured.
 
 ### Key Directories
 
-- `src/components/` — One `*Selection.tsx` component per wizard step, plus dialogs and `shared/` reusable components
-- `src/services/` — Business logic: one `*Service.ts` per game subsystem, plus `formatters.ts`, `dataLoader.ts`, `modService.ts`, `pdfExportService.ts`, `saveService.ts`
-- `src/types/` — TypeScript interfaces mirroring Warships rulebook terminology; one file per subsystem
-- `src/data/` — JSON game data (hulls, armor, weapons, etc.)
+- `src/components/` — One `*Selection.tsx` component per wizard step, plus dialogs and sub-directories:
+  - `shared/` — Reusable components: `EditableDataGrid`, `ArcRadarSelector`, `TechTrackCell`, `TruncatedDescription`, `TabPanel`
+  - `summary/` — Summary sub-components: `SystemsTab`, `DescriptionTab`, `FireDiagram`, `DamageZonesOverview`
+- `src/services/` — Business logic: one `*Service.ts` per game subsystem, plus:
+  - `formatters.ts` — All display formatting (costs, tech tracks, ship classes, design types, etc.)
+  - `dataLoader.ts` — Dual-cache data loading (base + mod-merged) with Electron IPC
+  - `saveService.ts` — Serialize/deserialize warship state, save file versioning & migration
+  - `modService.ts` / `modValidationService.ts` / `modEditorSchemas.ts` — Mod system
+  - `pdfExportService.ts` — PDF export
+  - `utilities.ts` — Shared utility functions
+- `src/types/` — TypeScript interfaces mirroring Warships rulebook terminology; one file per subsystem, plus `common.ts` for shared types
+- `src/data/` — 14 JSON game data files (hulls, armor, weapons, etc.)
 - `src/constants/` — `tableStyles.ts` (shared table styling), `version.ts` (app version)
 - `electron/` — `main.ts` (main process), `preload.ts` (IPC bridge)
+
+### Design Types & Dynamic Steps
+
+The app supports two design types (`DesignType`): **warship** and **station**.
+
+When creating a new design, a `DesignTypeDialog` lets users choose the type. Stations have three sub-types (`StationType`):
+- **Ground Base** — Surface installation; may have breathable atmosphere and natural gravity (surface environment flags: `surfaceProvidesLifeSupport`, `surfaceProvidesGravity`). No Engines or FTL steps.
+- **Outpost** — Sealed structure on hostile surface. Must provide own life support and gravity. No Engines or FTL steps.
+- **Space Station** — Orbital/deep-space installation. Engines and FTL become optional steps.
+
+Steps are defined as `StepDef` objects with `StepId` identifiers (not numeric indices). The function `getStepsForDesign()` in `App.tsx` filters/adjusts steps based on design type. The `renderStepContent()` switch uses `activeStepId` string matching, and the stepper completion logic uses `step.id`. **Never use hardcoded numeric step indices.**
+
+Station hulls are stored in `hulls.json` under the `stationHulls` key (separate from `hulls` for ships) and loaded via `getStationHullsData()` / `getAllStationHulls()`.
+
+### Building Steps (warship — all 13)
+
+1. Hull (required) → 2. Armor → 3. Power Plant (required) → 4. Engines (required) → 5. FTL Drive → 6. Support Systems → 7. Weapons → 8. Defenses → 9. Sensors (required) → 10. C4 (required) → 11. Hangars & Misc → 12. Damage Zones (required) → 13. Summary
+
+Station step lists vary: ground bases/outposts skip Engines & FTL; space stations keep all steps but Engines becomes optional.
 
 ### Mod System
 
 Mods live in `<userData>/mods/<modName>/` with a `mod.json` manifest. Each mod can provide replacement or additive data for any game data file. Key files:
 - `src/types/mod.ts` — Mod types (`ModManifest`, `Mod`, `AltmodFile`)
 - `src/services/modService.ts` — IPC wrappers for mod management
-- `src/services/dataLoader.ts` — Merges mod data after base load
-- `src/components/ModManager.tsx` / `ModEditor.tsx` — Mod UI
-
-### Warship Building Steps (in order)
-
-1. Hull (required) → 2. Armor → 3. Power Plant (required) → 4. Engines (required) → 5. FTL Drive → 6. Support Systems → 7. Weapons → 8. Defenses → 9. Command & Control (required) → 10. Sensors (required) → 11. Hangars & Misc → 12. Damage Zones (required) → 13. Summary
+- `src/services/modValidationService.ts` — Validates mod data against schemas
+- `src/services/modEditorSchemas.ts` — Defines editor column schemas per data file section
+- `src/services/dataLoader.ts` — Merges mod data after base load (dual-cache: `pureBaseCache` + mod-merged `cache`)
+- `src/components/ModManager.tsx` / `ModEditor.tsx` — Mod UI with `EditableDataGrid`
 
 ### Design Constraints Filtering
 
@@ -84,13 +109,14 @@ The app bar has global design constraints that filter available components acros
 - **Calculations in services, not components**: Components handle display only
 - **Functional React components** with hooks; no class components
 - Step headers use `Typography variant="h6"` with `sx={{ mb: 1 }}` and format `"Step N: Name (Required/Optional)"`
+- **Step identification**: Always use `StepId` strings, never hardcoded numeric indices
 
 ### Avoiding Code Duplication
 
 Before adding a new helper, check if it already exists:
 
 1. **Cost formatting**: Use `formatCost()` from `src/services/formatters.ts`
-2. **All UI formatting**: Check `src/services/formatters.ts` first (tech track names, ship classes, etc.)
+2. **All UI formatting**: Check `src/services/formatters.ts` first (tech track names, ship classes, design types, station types, etc.)
 3. **Data loading**: All services must use `src/services/dataLoader.ts` getters — never import JSON directly
 4. **Table styling**: Use `headerCellSx`, `selectableRowSx` etc. from `src/constants/tableStyles.ts`
 5. **Shared components**: Check `src/components/shared/` (TechTrackCell, TruncatedDescription, ArcRadarSelector, EditableDataGrid, TabPanel)
@@ -117,13 +143,14 @@ When releasing, these must ALL be updated in sync:
 - **Action columns last**: Place action buttons at rightmost position
 - **Sort by Progress Level**: Lowest to highest PL
 - **Inline editing only**: Never navigate away for edits — use expandable rows, inline forms, or overlay dialogs
+- **Surface environment awareness**: When `surfaceProvidesLifeSupport` or `surfaceProvidesGravity` is true, show info banners in Support Systems and adjust chips/validation accordingly (no gravity tab, "Surface Gravity"/"Life Support: Surface" chips)
 
 ### Chip Color Scheme
 
 **Section Page Chips** (all `outlined` variant):
 - Gray (`default`): Consumption — HP used, Power consumed, Cost
-- Blue (`primary`): Production — Power generated, Acceleration
-- Green (`success`): Positive state (fuel available, at capacity)
+- Blue (`primary`): Production — Power generated, Acceleration, station type display
+- Green (`success`): Positive state (fuel available, at capacity, gravity available)
 - Red (`error`): Missing/negative state
 - Yellow (`warning`): Partial state
 
@@ -134,7 +161,16 @@ When releasing, these must ALL be updated in sync:
 - JSON files store **raw values only** — no derived/display fields
 - All display formatting goes through `src/services/formatters.ts`
 - Tech tracks in JSON: `[]`, `["G"]`, `["P", "X"]`
+- Hull data: `hulls.json` has two root keys: `hulls` (ships) and `stationHulls` (stations/bases)
 
 ## Reference Material
 
-`Warships.txt` in the project root contains the full Alternity Warships sourcebook text. Use it as the authoritative reference for ship construction rules, hull stats, equipment costs, and game terminology.
+The `rules/` folder contains sourcebook rules text. Use those `.md` files as the authoritative reference for ship/station construction rules, hull stats, equipment costs, and game terminology.
+
+## MCP Usage Rules
+- Always check memory at session start for project context and past decisions.
+- Save all architecture, design, and convention decisions to memory immediately.
+- When referencing engine/framework APIs, fetch the official docs rather than relying on training data.
+- For complex system design (AI, networking, physics, procedural generation), use sequential thinking.
+- When I mention an open-source project or engine internals, search GitHub for the source.
+- When planning a new feature, combine: memory (context) → fetch (docs) → sequential-thinking (design) → memory (save decisions).

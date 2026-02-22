@@ -48,6 +48,7 @@ import { DamageDiagramSelection } from './components/DamageDiagramSelection';
 import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
 import { ModManager } from './components/ModManager';
+import { DesignTypeDialog } from './components/DesignTypeDialog';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight, ShipArmor } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -60,7 +61,7 @@ import type { InstalledCommandControlSystem } from './types/commandControl';
 import type { InstalledSensor } from './types/sensor';
 import type { InstalledHangarMiscSystem } from './types/hangarMisc';
 import type { OrdnanceDesign, InstalledLaunchSystem } from './types/ordnance';
-import type { ProgressLevel, TechTrack } from './types/common';
+import type { ProgressLevel, TechTrack, DesignType, StationType } from './types/common';
 import type { DamageZone, HitLocationChart } from './types/damageDiagram';
 import type { ShipDescription } from './types/summary';
 import './types/electron.d.ts';
@@ -76,7 +77,7 @@ import { calculateDefenseStats } from './services/defenseService';
 import { calculateCommandControlStats } from './services/commandControlService';
 import { calculateSensorStats } from './services/sensorService';
 import { calculateHangarMiscStats } from './services/hangarMiscService';
-import { formatCost, getTechTrackName, ALL_TECH_TRACK_CODES } from './services/formatters';
+import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES } from './services/formatters';
 import { loadAllGameData, reloadAllGameData, type DataLoadResult } from './services/dataLoader';
 import { 
   serializeWarship, 
@@ -89,21 +90,52 @@ import {
 
 type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
 
-const steps = [
-  { label: 'Hull', required: true },
-  { label: 'Armor', required: false },
-  { label: 'Power', required: true },
-  { label: 'Engines', required: true },
-  { label: 'FTL', required: false },
-  { label: 'Support', required: false },
-  { label: 'Weapons', required: false },
-  { label: 'Defenses', required: false },
-  { label: 'Sensors', required: true },  // Moved before C4 so sensor controls can reference sensors
-  { label: 'C4', required: true },
-  { label: 'Misc', required: false },
-  { label: 'Zones', required: true },   // Damage Diagram - all systems must be assigned
-  { label: 'Summary', required: false }, // Final summary
+type StepId = 'hull' | 'armor' | 'power' | 'engines' | 'ftl' | 'support' | 'weapons' | 'defenses' | 'sensors' | 'c4' | 'hangars' | 'damage' | 'summary';
+
+interface StepDef {
+  id: StepId;
+  label: string;
+  required: boolean;
+}
+
+const ALL_STEPS: StepDef[] = [
+  { id: 'hull', label: 'Hull', required: true },
+  { id: 'armor', label: 'Armor', required: false },
+  { id: 'power', label: 'Power', required: true },
+  { id: 'engines', label: 'Engines', required: true },
+  { id: 'ftl', label: 'FTL', required: false },
+  { id: 'support', label: 'Support', required: false },
+  { id: 'weapons', label: 'Weapons', required: false },
+  { id: 'defenses', label: 'Defenses', required: false },
+  { id: 'sensors', label: 'Sensors', required: true },
+  { id: 'c4', label: 'C4', required: true },
+  { id: 'hangars', label: 'Misc', required: false },
+  { id: 'damage', label: 'Zones', required: true },
+  { id: 'summary', label: 'Summary', required: false },
 ];
+
+/**
+ * Get the visible steps based on design type and station type.
+ * - Ground bases: no Engines, no FTL
+ * - Outposts: no Engines, no FTL
+ * - Space stations: Engines and FTL become optional
+ * - Warships: all steps shown (Engines required, FTL optional)
+ */
+function getStepsForDesign(designType: DesignType, stationType: StationType | null): StepDef[] {
+  if (designType === 'warship') return ALL_STEPS;
+
+  // Station types
+  if (stationType === 'ground-base' || stationType === 'outpost') {
+    // No engines, no FTL for ground installations
+    return ALL_STEPS.filter(s => s.id !== 'engines' && s.id !== 'ftl');
+  }
+
+  // Space station: engines and FTL are optional
+  return ALL_STEPS.map(s => {
+    if (s.id === 'engines') return { ...s, required: false };
+    return s;
+  });
+}
 
 // Progress level display names
 const PL_NAMES: Record<ProgressLevel, string> = {
@@ -116,6 +148,20 @@ const PL_NAMES: Record<ProgressLevel, string> = {
 function App() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Design type state
+  const [designType, setDesignType] = useState<DesignType>('warship');
+  const [stationType, setStationType] = useState<StationType | null>(null);
+  const [surfaceProvidesLifeSupport, setSurfaceProvidesLifeSupport] = useState(false);
+  const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(false);
+  const [showDesignTypeDialog, setShowDesignTypeDialog] = useState(false);
+  
+  // Compute visible steps based on design type
+  const steps = getStepsForDesign(designType, stationType);
+  
+  // Get the step ID for the current active index
+  const activeStepId = steps[activeStep]?.id;
+  
   const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
   const [armorLayers, setArmorLayers] = useState<ShipArmor[]>([]);
   const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
@@ -221,8 +267,22 @@ function App() {
   };
 
   const handleNewWarship = useCallback(() => {
-    // Reset all state for a new warship
+    setShowDesignTypeDialog(true);
+  }, []);
+
+  const handleDesignTypeConfirm = useCallback((
+    newDesignType: DesignType,
+    newStationType: StationType | null,
+    newSurfaceProvidesLifeSupport: boolean,
+    newSurfaceProvidesGravity: boolean,
+  ) => {
+    setShowDesignTypeDialog(false);
+    // Reset all state for a new design
     setActiveStep(0);
+    setDesignType(newDesignType);
+    setStationType(newStationType);
+    setSurfaceProvidesLifeSupport(newSurfaceProvidesLifeSupport);
+    setSurfaceProvidesGravity(newSurfaceProvidesGravity);
     setSelectedHull(null);
     setArmorLayers([]);
     setInstalledPowerPlants([]);
@@ -245,7 +305,7 @@ function App() {
     setDamageDiagramZones([]);
     setHitLocationChart(null);
     setShipDescription({ lore: '', imageData: null, imageMimeType: null });
-    setWarshipName('New Ship');
+    setWarshipName(newDesignType === 'station' ? 'New Station' : 'New Ship');
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
     setDesignTechTracks([]);
@@ -300,6 +360,10 @@ function App() {
       }
 
       // Apply loaded state
+      setDesignType(loadResult.state.designType || 'warship');
+      setStationType(loadResult.state.stationType || null);
+      setSurfaceProvidesLifeSupport(loadResult.state.surfaceProvidesLifeSupport || false);
+      setSurfaceProvidesGravity(loadResult.state.surfaceProvidesGravity || false);
       setSelectedHull(loadResult.state.hull);
       setArmorLayers(loadResult.state.armorLayers || []);
       setInstalledPowerPlants(loadResult.state.powerPlants || []);
@@ -391,6 +455,10 @@ function App() {
       hitLocationChart: hitLocationChart,
       designProgressLevel,
       designTechTracks,
+      designType,
+      stationType,
+      surfaceProvidesLifeSupport,
+      surfaceProvidesGravity,
     };
 
     try {
@@ -412,7 +480,7 @@ function App() {
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks]);
+  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -452,6 +520,10 @@ function App() {
       hitLocationChart: hitLocationChart,
       designProgressLevel,
       designTechTracks,
+      designType,
+      stationType,
+      surfaceProvidesLifeSupport,
+      surfaceProvidesGravity,
     };
 
     try {
@@ -466,7 +538,7 @@ function App() {
     } catch (error) {
       showNotification(`Error saving file: ${error}`, 'error');
     }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, saveToFile]);
+  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, saveToFile]);
 
   // Save - saves to current file or prompts if no file yet
   const handleSaveWarship = useCallback(async () => {
@@ -807,7 +879,11 @@ function App() {
     // Check for errors
     const remainingHP = getRemainingHullPoints();
     if (remainingHP < 0) return 'error'; // HP exceeded
-    if (installedPowerPlants.length === 0 || installedEngines.length === 0) return 'error'; // Mandatory steps
+    if (installedPowerPlants.length === 0) return 'error'; // Power plants always mandatory
+    
+    // Engines are mandatory for warships, optional/absent for stations
+    const enginesRequired = steps.some(s => s.id === 'engines' && s.required);
+    if (enginesRequired && installedEngines.length === 0) return 'error';
     
     // Check for warnings
     const powerGenerated = getTotalPower();
@@ -819,7 +895,7 @@ function App() {
     // Check support systems
     const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
     if (supportStats.crewCapacity < selectedHull.crew) return 'warning'; // Crew accommodations
-    if (supportStats.totalCoverage < selectedHull.hullPoints) return 'warning'; // Life support
+    if (!surfaceProvidesLifeSupport && supportStats.totalCoverage < selectedHull.hullPoints) return 'warning'; // Life support
     
     // Check escape systems
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
@@ -833,11 +909,12 @@ function App() {
     const sensorStats = calculateSensorStats(installedSensors);
     if (!sensorStats.hasBasicSensors && installedSensors.length > 0) return 'warning'; // Has sensors but no active
     
-    // Check optional steps
-    if (armorLayers.length === 0 || !installedFTLDrive || installedDefenses.length === 0 || 
+    // Check optional steps (only warn about steps that exist in current design)
+    const hasFtlStep = steps.some(s => s.id === 'ftl');
+    if (armorLayers.length === 0 || (hasFtlStep && !installedFTLDrive) || installedDefenses.length === 0 || 
         installedCommandControl.length === 0 || installedSensors.length === 0 ||
         (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
-        (installedLifeSupport.length === 0 && installedAccommodations.length === 0)) {
+        (!surfaceProvidesLifeSupport && installedLifeSupport.length === 0 && installedAccommodations.length === 0)) {
       return 'warning';
     }
     
@@ -884,25 +961,29 @@ function App() {
   };
 
   const renderStepContent = () => {
-    switch (activeStep) {
-      case 0:
+    // Most steps require a hull to be selected first
+    const requiresHull = activeStepId !== 'hull' && activeStepId !== 'summary';
+    if (requiresHull && !selectedHull) {
+      return (
+        <Typography color="text.secondary">
+          Please select a hull first.
+        </Typography>
+      );
+    }
+
+    switch (activeStepId) {
+      case 'hull':
         return (
           <HullSelection
             selectedHull={selectedHull}
             onHullSelect={handleHullSelect}
+            designType={designType}
           />
         );
-      case 1:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'armor':
         return (
           <ArmorSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             armorLayers={armorLayers}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
@@ -911,17 +992,10 @@ function App() {
             onArmorRemoveLayer={handleArmorRemoveLayer}
           />
         );
-      case 2:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'power':
         return (
           <PowerPlantSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedPowerPlants={installedPowerPlants}
             installedFuelTanks={installedFuelTanks}
             usedHullPoints={getUsedHullPointsBeforePowerPlants()}
@@ -931,37 +1005,24 @@ function App() {
             onFuelTanksChange={setInstalledFuelTanks}
           />
         );
-      case 3:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'engines':
         return (
           <EngineSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedEngines={installedEngines}
             installedFuelTanks={installedEngineFuelTanks}
             usedHullPoints={getUsedHullPointsBeforeEngines()}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
+            isRequired={steps.find(s => s.id === 'engines')?.required ?? true}
             onEnginesChange={handleEnginesChange}
             onFuelTanksChange={setInstalledEngineFuelTanks}
           />
         );
-      case 4:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'ftl':
         return (
           <FTLDriveSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedFTLDrive={installedFTLDrive}
             installedFTLFuelTanks={installedFTLFuelTanks}
             installedPowerPlants={installedPowerPlants}
@@ -972,40 +1033,28 @@ function App() {
             onFTLFuelTanksChange={setInstalledFTLFuelTanks}
           />
         );
-      case 5:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'support':
         return (
           <SupportSystemsSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedLifeSupport={installedLifeSupport}
             installedAccommodations={installedAccommodations}
             installedStoreSystems={installedStoreSystems}
             installedGravitySystems={installedGravitySystems}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
+            surfaceProvidesLifeSupport={surfaceProvidesLifeSupport}
+            surfaceProvidesGravity={surfaceProvidesGravity}
             onLifeSupportChange={handleLifeSupportChange}
             onAccommodationsChange={handleAccommodationsChange}
             onStoreSystemsChange={handleStoreSystemsChange}
             onGravitySystemsChange={handleGravitySystemsChange}
           />
         );
-      case 6:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'weapons':
         return (
           <WeaponSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedWeapons={installedWeapons}
             installedCommandControl={installedCommandControl}
             ordnanceDesigns={ordnanceDesigns}
@@ -1017,32 +1066,17 @@ function App() {
             onLaunchSystemsChange={setInstalledLaunchSystems}
           />
         );
-      case 7:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'defenses':
         return (
           <DefenseSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedDefenses={installedDefenses}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             onDefensesChange={handleDefensesChange}
           />
         );
-      case 8:
-        // Sensors step (moved before C4)
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'sensors':
         return (
           <SensorSelection
             installedSensors={installedSensors}
@@ -1052,18 +1086,10 @@ function App() {
             onSensorsChange={handleSensorsChange}
           />
         );
-      case 9:
-        // Command & Control step (moved after Sensors)
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'c4':
         return (
           <CommandControlSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedSystems={installedCommandControl}
             installedSensors={installedSensors}
             installedWeapons={installedWeapons}
@@ -1073,39 +1099,23 @@ function App() {
             onSystemsChange={handleCommandControlChange}
           />
         );
-      case 10:
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
-        {
-          const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-          return (
-            <HangarMiscSelection
-              hull={selectedHull}
-              installedSystems={installedHangarMisc}
-              designProgressLevel={designProgressLevel}
-              designTechTracks={designTechTracks}
-              totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity + supportStats.troopCapacity}
-              onSystemsChange={handleHangarMiscChange}
-            />
-          );
-        }
-      case 11:
-        // Damage Diagram step
-        if (!selectedHull) {
-          return (
-            <Typography color="text.secondary">
-              Please select a hull first.
-            </Typography>
-          );
-        }
+      case 'hangars': {
+        const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+        return (
+          <HangarMiscSelection
+            hull={selectedHull!}
+            installedSystems={installedHangarMisc}
+            designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
+            totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity + supportStats.troopCapacity}
+            onSystemsChange={handleHangarMiscChange}
+          />
+        );
+      }
+      case 'damage':
         return (
           <DamageDiagramSelection
-            hull={selectedHull}
+            hull={selectedHull!}
             installedPowerPlants={installedPowerPlants}
             installedFuelTanks={installedFuelTanks}
             installedEngines={installedEngines}
@@ -1127,8 +1137,7 @@ function App() {
             onZonesChange={setDamageDiagramZones}
           />
         );
-      case 12:
-        // Summary step
+      case 'summary':
         return (
           <SummarySelection
             hull={selectedHull}
@@ -1162,7 +1171,7 @@ function App() {
       default:
         return (
           <Typography color="text.secondary">
-            Step {activeStep + 1}: {steps[activeStep].label} - Coming soon...
+            Step {activeStep + 1}: {steps[activeStep]?.label} - Coming soon...
           </Typography>
         );
     }
@@ -1192,11 +1201,18 @@ function App() {
   // Show welcome page if in welcome mode
   if (mode === 'welcome') {
     return (
-      <WelcomePage
-        onNewWarship={handleNewWarship}
-        onLoadWarship={handleLoadWarship}
-        onManageMods={handleManageMods}
-      />
+      <>
+        <WelcomePage
+          onNewWarship={handleNewWarship}
+          onLoadWarship={handleLoadWarship}
+          onManageMods={handleManageMods}
+        />
+        <DesignTypeDialog
+          open={showDesignTypeDialog}
+          onClose={() => setShowDesignTypeDialog(false)}
+          onConfirm={handleDesignTypeConfirm}
+        />
+      </>
     );
   }
 
@@ -1325,6 +1341,14 @@ function App() {
           <Box sx={{ flexGrow: 1 }} />
           {selectedHull && (
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+              {designType === 'station' && stationType && (
+                <Chip
+                  label={getStationTypeDisplayName(stationType)}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+              )}
               <Chip
                 label={selectedHull.name}
                 variant="outlined"
@@ -1596,23 +1620,21 @@ function App() {
           {steps.map((step, index) => {
             // Determine if step is completed
             const isStepCompleted = (() => {
-              switch (index) {
-                case 0: return selectedHull !== null; // Hull
-                case 1: return armorLayers.length > 0; // Armor (optional)
-                case 2: return installedPowerPlants.length > 0; // Power Plant
-                case 3: return installedEngines.length > 0; // Engines
-                case 4: return installedFTLDrive !== null; // FTL Drive (optional)
-                case 5: return installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0; // Support Systems (optional)
-                case 6: return installedWeapons.length > 0; // Weapons (optional)
-                case 7: return installedDefenses.length > 0; // Defenses (optional)
-                case 8: return installedSensors.length > 0; // Sensors (required) - now before C4
-                case 9: return installedCommandControl.some(s => s.type.isRequired); // C4 (required - needs command system)
-                case 10: return installedHangarMisc.length > 0; // Misc (optional)
-                case 11: {
-                  // Damage Diagram (required) - all systems must be assigned to zones
+              switch (step.id) {
+                case 'hull': return selectedHull !== null;
+                case 'armor': return armorLayers.length > 0;
+                case 'power': return installedPowerPlants.length > 0;
+                case 'engines': return installedEngines.length > 0;
+                case 'ftl': return installedFTLDrive !== null;
+                case 'support': return installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0;
+                case 'weapons': return installedWeapons.length > 0;
+                case 'defenses': return installedDefenses.length > 0;
+                case 'sensors': return installedSensors.length > 0;
+                case 'c4': return installedCommandControl.some(s => s.type.isRequired);
+                case 'hangars': return installedHangarMisc.length > 0;
+                case 'damage': {
                   if (damageDiagramZones.length === 0) return false;
                   const totalAssigned = damageDiagramZones.reduce((sum, z) => sum + z.systems.length, 0);
-                  // Count total systems that should be assigned
                   const totalSystems = installedPowerPlants.length + installedFuelTanks.length +
                     installedEngines.length + installedEngineFuelTanks.length +
                     (installedFTLDrive ? 1 : 0) + installedFTLFuelTanks.length +
@@ -1623,18 +1645,18 @@ function App() {
                     installedSensors.length + installedHangarMisc.length;
                   return totalAssigned >= totalSystems && totalSystems > 0;
                 }
-                case 12: return getSummaryValidationState() === 'valid'; // Summary - only complete if no issues
+                case 'summary': return getSummaryValidationState() === 'valid';
                 default: return false;
               }
             })();
 
             // Get summary validation state for special handling
-            const summaryState = index === 12 ? getSummaryValidationState() : null;
+            const summaryState = step.id === 'summary' ? getSummaryValidationState() : null;
 
             // Determine icon based on required status and completion
             const getStepIcon = () => {
               // Special handling for Summary step
-              if (index === 12) {
+              if (step.id === 'summary') {
                 if (summaryState === 'valid') {
                   return <CheckCircleIcon color="success" />;
                 } else if (summaryState === 'error') {
@@ -1658,7 +1680,7 @@ function App() {
             };
 
             return (
-              <Step key={step.label} completed={isStepCompleted}>
+              <Step key={step.id} completed={isStepCompleted}>
                 <StepButton onClick={() => handleStepClick(index)}>
                   <StepLabel StepIconComponent={getStepIcon}>
                     {step.label}
@@ -1731,6 +1753,13 @@ function App() {
       <AboutDialog 
         open={aboutDialogOpen} 
         onClose={() => setAboutDialogOpen(false)} 
+      />
+
+      {/* Design Type Dialog */}
+      <DesignTypeDialog
+        open={showDesignTypeDialog}
+        onClose={() => setShowDesignTypeDialog(false)}
+        onConfirm={handleDesignTypeConfirm}
       />
     </Box>
   );

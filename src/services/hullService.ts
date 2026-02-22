@@ -1,12 +1,19 @@
 import type { Hull, ShipClass, HullCategory } from '../types/hull';
 import { SHIP_CLASS_ORDER } from '../types/common';
-import { getHullsData } from './dataLoader';
+import { getHullsData, getStationHullsData } from './dataLoader';
 
 /**
- * Get all hulls from the data file
+ * Get all ship hulls from the data file
  */
 export function getAllHulls(): Hull[] {
   return getHullsData();
+}
+
+/**
+ * Get all station hulls from the data file
+ */
+export function getAllStationHulls(): Hull[] {
+  return getStationHullsData();
 }
 
 /**

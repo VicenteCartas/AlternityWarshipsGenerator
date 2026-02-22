@@ -1,4 +1,4 @@
-import type { ProgressLevel, TechTrack } from './common';
+import type { ProgressLevel, TechTrack, DesignType, StationType } from './common';
 import type { ZoneCode, AttackDirection } from './damageDiagram';
 import type { SavedModReference } from './mod';
 
@@ -320,6 +320,18 @@ export interface WarshipSaveFile {
   /** File format version for future compatibility */
   version: string;
   
+  /** Design type: warship or station (defaults to 'warship' for legacy saves) */
+  designType?: DesignType;
+  
+  /** Station type (only when designType is 'station') */
+  stationType?: StationType;
+  
+  /** Whether the surface provides life support (ground bases only) */
+  surfaceProvidesLifeSupport?: boolean;
+  
+  /** Whether the surface provides gravity (ground bases only) */
+  surfaceProvidesGravity?: boolean;
+  
   /** User-defined name for this warship */
   name: string;
   
@@ -427,4 +439,4 @@ export interface WarshipSaveFile {
 }
 
 /** Current save file version */
-export const SAVE_FILE_VERSION = '1.3';
+export const SAVE_FILE_VERSION = '1.4';

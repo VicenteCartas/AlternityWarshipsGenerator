@@ -58,6 +58,7 @@ interface EngineSelectionProps {
   usedHullPoints: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
+  isRequired?: boolean;
   onEnginesChange: (engines: InstalledEngine[]) => void;
   onFuelTanksChange: (fuelTanks: InstalledEngineFuelTank[]) => void;
 }
@@ -69,6 +70,7 @@ export function EngineSelection({
   usedHullPoints,
   designProgressLevel,
   designTechTracks,
+  isRequired = true,
   onEnginesChange,
   onFuelTanksChange,
 }: EngineSelectionProps) {
@@ -346,7 +348,7 @@ export function EngineSelection({
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
-          Step 4: Engines (Required)
+          Step 4: Engines ({isRequired ? 'Required' : 'Optional'})
         </Typography>
         {installedEngines.length > 0 && (
           <Button

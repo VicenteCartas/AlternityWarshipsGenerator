@@ -15,8 +15,10 @@ import {
   Tooltip,
 } from '@mui/material';
 import type { Hull, ShipClass, HullCategory } from '../types/hull';
+import type { DesignType } from '../types/common';
 import {
   getAllHulls,
+  getAllStationHulls,
   getShipClasses,
 } from '../services/hullService';
 import { formatCost, formatTargetModifier, getShipClassDisplayName } from '../services/formatters';
@@ -25,13 +27,16 @@ import { headerCellSx } from '../constants/tableStyles';
 interface HullSelectionProps {
   selectedHull: Hull | null;
   onHullSelect: (hull: Hull) => void;
+  designType: DesignType;
 }
 
-export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps) {
+export function HullSelection({ selectedHull, onHullSelect, designType }: HullSelectionProps) {
   const [shipClassFilter, setShipClassFilter] = useState<ShipClass | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<HullCategory | 'all'>('all');
 
-  const allHulls = useMemo(() => getAllHulls(), []);
+  const allHulls = useMemo(() => designType === 'station' ? getAllStationHulls() : getAllHulls(), [designType]);
+
+  const isStation = designType === 'station';
 
   const hulls = useMemo(() => {
     let filtered = allHulls;
@@ -91,7 +96,7 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 1: Select Hull
+        Step 1: Select {isStation ? 'Station' : 'Hull'}
       </Typography>
 
       {/* Hull Summary */}
@@ -138,16 +143,18 @@ export function HullSelection({ selectedHull, onHullSelect }: HullSelectionProps
           ))}
         </ToggleButtonGroup>
 
-        <ToggleButtonGroup
-          value={categoryFilter}
-          exclusive
-          onChange={handleCategoryChange}
-          size="small"
-        >
-          <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
-          <ToggleButton value="military">Military ({categoryCounts.military})</ToggleButton>
-          <ToggleButton value="civilian">Civilian ({categoryCounts.civilian})</ToggleButton>
-        </ToggleButtonGroup>
+        {!isStation && (
+          <ToggleButtonGroup
+            value={categoryFilter}
+            exclusive
+            onChange={handleCategoryChange}
+            size="small"
+          >
+            <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
+            <ToggleButton value="military">Military ({categoryCounts.military})</ToggleButton>
+            <ToggleButton value="civilian">Civilian ({categoryCounts.civilian})</ToggleButton>
+          </ToggleButtonGroup>
+        )}
       </Box>
 
       {/* Hull Table */}

@@ -1,5 +1,5 @@
 import type { ShipClass } from '../types/hull';
-import type { TechTrack } from '../types/common';
+import type { TechTrack, DesignType, StationType } from '../types/common';
 import type { AreaEffect } from '../types/weapon';
 
 /**
@@ -202,4 +202,27 @@ export function getAreaEffectTooltip(area?: AreaEffect): string {
     tooltip += `\nNotes: ${area.notes}`;
   }
   return tooltip;
+}
+
+/**
+ * Get display name for a design type
+ */
+export function getDesignTypeDisplayName(designType: DesignType): string {
+  switch (designType) {
+    case 'warship': return 'Warship';
+    case 'station': return 'Station';
+    default: return designType;
+  }
+}
+
+/**
+ * Get display name for a station type
+ */
+export function getStationTypeDisplayName(stationType: StationType): string {
+  switch (stationType) {
+    case 'ground-base': return 'Ground Base';
+    case 'outpost': return 'Outpost';
+    case 'space-station': return 'Space Station';
+    default: return stationType;
+  }
 }
