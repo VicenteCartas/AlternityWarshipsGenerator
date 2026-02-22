@@ -109,6 +109,36 @@ const cache: DataCache = {
   concealmentModifier: null,
 };
 
+const pureBaseCache: DataCache = {
+  hulls: null,
+  armors: null,
+  armorWeights: null,
+  armorAllowMultipleLayers: false,
+  powerPlants: null,
+  fuelTank: null,
+  engines: null,
+  ftlDrives: null,
+  supportSystems: null,
+  defenseSystems: null,
+  commandControlSystems: null,
+  sensors: null,
+  trackingTable: null,
+  hangarMiscSystems: null,
+  launchSystems: null,
+  propulsionSystems: null,
+  warheads: null,
+  guidanceSystems: null,
+  damageDiagram: null,
+  // Weapons
+  beamWeapons: null,
+  projectileWeapons: null,
+  torpedoWeapons: null,
+  specialWeapons: null,
+  mountModifiers: null,
+  gunConfigurations: null,
+  concealmentModifier: null,
+};
+
 let dataLoaded = false;
 let loadPromise: Promise<DataLoadResult> | null = null;
 
@@ -163,26 +193,23 @@ async function loadDataFile<T>(
 
 // ============== Mod Merge Utilities ==============
 
-interface ItemWithId {
-  id: string;
-  _source?: string;
-}
-
 /**
  * Merge two arrays of items by ID. Mod items override base items with the
  * same ID; new IDs are appended. Each item is tagged with _source.
  */
-function mergeArraysById<T extends ItemWithId>(
+function mergeArraysById<T extends Record<string, unknown>>(
   base: T[],
   mod: T[],
   sourceName: string
 ): T[] {
   const map = new Map<string, T>();
   for (const item of base) {
-    map.set(item.id, item);
+    const key = (item.id as string) || JSON.stringify(item);
+    map.set(key, item);
   }
   for (const item of mod) {
-    map.set(item.id, { ...item, _source: sourceName });
+    const key = (item.id as string) || JSON.stringify(item);
+    map.set(key, { ...item, _source: sourceName });
   }
   return Array.from(map.values());
 }
@@ -190,7 +217,7 @@ function mergeArraysById<T extends ItemWithId>(
 /**
  * Tag all items in an array with a _source field.
  */
-function tagArraySource<T extends ItemWithId>(items: T[], source: string): T[] {
+function tagArraySource<T extends Record<string, unknown>>(items: T[], source: string): T[] {
   return items.map(item => (item._source ? item : { ...item, _source: source }));
 }
 
@@ -235,7 +262,7 @@ function applyModToFileData(
     for (const key of Object.keys(result)) {
       const val = result[key];
       if (Array.isArray(val)) {
-        result[key] = tagArraySource(val as ItemWithId[], modName);
+        result[key] = tagArraySource(val as Record<string, unknown>[], modName);
       }
     }
     return result;
@@ -248,7 +275,7 @@ function applyModToFileData(
     const modVal = modData[key];
 
     if (Array.isArray(baseVal) && Array.isArray(modVal)) {
-      result[key] = mergeArraysById(baseVal as ItemWithId[], modVal as ItemWithId[], modName);
+      result[key] = mergeArraysById(baseVal as Record<string, unknown>[], modVal as Record<string, unknown>[], modName);
     } else if (
       baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal) &&
       modVal !== null && typeof modVal === 'object' && !Array.isArray(modVal)
@@ -278,7 +305,7 @@ async function applyModsToFile(
   for (const key of Object.keys(data)) {
     const val = data[key];
     if (Array.isArray(val)) {
-      data[key] = tagArraySource(val as ItemWithId[], 'base');
+      data[key] = tagArraySource(val as Record<string, unknown>[], 'base');
     }
   }
 
@@ -337,6 +364,39 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
       loadDataFile('damageDiagram.json', damageDiagramDataFallback, failedFiles),
       loadDataFile('weapons.json', weaponsDataFallback, failedFiles),
     ]);
+
+    // Store pure base data in pureBaseCache
+    pureBaseCache.hulls = (hullsData as { hulls: Hull[] }).hulls;
+    pureBaseCache.armors = (armorData as { armors: ArmorType[] }).armors;
+    pureBaseCache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
+    pureBaseCache.armorAllowMultipleLayers = (armorData as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
+    pureBaseCache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
+    pureBaseCache.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
+    pureBaseCache.engines = (enginesData as { engines: EngineType[] }).engines;
+    pureBaseCache.ftlDrives = (ftlDrivesData as { ftlDrives: FTLDriveType[] }).ftlDrives;
+    pureBaseCache.supportSystems = supportSystemsData as {
+      lifeSupport: LifeSupportType[];
+      accommodations: AccommodationType[];
+      storeSystems: StoreSystemType[];
+      gravitySystems: GravitySystemType[];
+    };
+    pureBaseCache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
+    pureBaseCache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
+    pureBaseCache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
+    pureBaseCache.trackingTable = (sensorsData as { trackingTable?: TrackingTable }).trackingTable || null;
+    pureBaseCache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
+    pureBaseCache.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
+    pureBaseCache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
+    pureBaseCache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
+    pureBaseCache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
+    pureBaseCache.damageDiagram = damageDiagramData as unknown as DamageDiagramData;
+    pureBaseCache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
+    pureBaseCache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
+    pureBaseCache.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
+    pureBaseCache.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
+    pureBaseCache.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+    pureBaseCache.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
+    pureBaseCache.concealmentModifier = (weaponsData as { concealmentModifier?: MountModifier }).concealmentModifier || null;
 
     // Apply mods: load enabled mods sorted by priority, merge into base data
     let enabledMods: Mod[] = [];
@@ -430,88 +490,88 @@ export function isDataLoaded(): boolean {
 /**
  * Get all hulls (must call loadAllGameData first)
  */
-export function getHullsData(): Hull[] {
+export function getHullsData(pureBase = false): Hull[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (hullsDataFallback as { hulls: Hull[] }).hulls;
   }
-  return cache.hulls!;
+  return pureBase ? pureBaseCache.hulls! : cache.hulls!;
 }
 
 /**
  * Get all armor types (must call loadAllGameData first)
  */
-export function getArmorTypesData(): ArmorType[] {
+export function getArmorTypesData(pureBase = false): ArmorType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (armorDataFallback as { armors: ArmorType[] }).armors;
   }
-  return cache.armors!;
+  return pureBase ? pureBaseCache.armors! : cache.armors!;
 }
 
 /**
  * Get all armor weight configs (must call loadAllGameData first)
  */
-export function getArmorWeightsData(): ArmorWeightConfig[] {
+export function getArmorWeightsData(pureBase = false): ArmorWeightConfig[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (armorDataFallback as { armorWeights: ArmorWeightConfig[] }).armorWeights;
   }
-  return cache.armorWeights!;
+  return pureBase ? pureBaseCache.armorWeights! : cache.armorWeights!;
 }
 
 /**
  * Get whether multiple armor layers are allowed (must call loadAllGameData first)
  */
-export function getArmorAllowMultipleLayers(): boolean {
+export function getArmorAllowMultipleLayers(pureBase = false): boolean {
   if (!dataLoaded) {
     return (armorDataFallback as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
   }
-  return cache.armorAllowMultipleLayers;
+  return pureBase ? pureBaseCache.armorAllowMultipleLayers : cache.armorAllowMultipleLayers;
 }
 
 /**
  * Get all power plant types (must call loadAllGameData first)
  */
-export function getPowerPlantsData(): PowerPlantType[] {
+export function getPowerPlantsData(pureBase = false): PowerPlantType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (powerPlantDataFallback as { powerPlants: PowerPlantType[] }).powerPlants;
   }
-  return cache.powerPlants!;
+  return pureBase ? pureBaseCache.powerPlants! : cache.powerPlants!;
 }
 
 /**
  * Get the fuel tank type (must call loadAllGameData first)
  */
-export function getFuelTankData(): FuelTankType {
+export function getFuelTankData(pureBase = false): FuelTankType {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (fuelTankDataFallback as { fuelTank: FuelTankType }).fuelTank;
   }
-  return cache.fuelTank!;
+  return pureBase ? pureBaseCache.fuelTank! : cache.fuelTank!;
 }
 
 /**
  * Get all engine types (must call loadAllGameData first)
  */
-export function getEnginesData(): EngineType[] {
+export function getEnginesData(pureBase = false): EngineType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (enginesDataFallback as { engines: EngineType[] }).engines;
   }
-  return cache.engines!;
+  return pureBase ? pureBaseCache.engines! : cache.engines!;
 }
 
 /**
  * Get all FTL drive types (must call loadAllGameData first)
  */
-export function getFTLDrivesData(): FTLDriveType[] {
+export function getFTLDrivesData(pureBase = false): FTLDriveType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (ftlDrivesDataFallback as { ftlDrives: FTLDriveType[] }).ftlDrives;
   }
-  return cache.ftlDrives!;
+  return pureBase ? pureBaseCache.ftlDrives! : cache.ftlDrives!;
 }
 
 /**
@@ -547,6 +607,34 @@ export async function reloadAllGameData(): Promise<DataLoadResult> {
   cache.mountModifiers = null;
   cache.gunConfigurations = null;
   cache.concealmentModifier = null;
+
+  pureBaseCache.hulls = null;
+  pureBaseCache.armors = null;
+  pureBaseCache.armorWeights = null;
+  pureBaseCache.armorAllowMultipleLayers = false;
+  pureBaseCache.powerPlants = null;
+  pureBaseCache.fuelTank = null;
+  pureBaseCache.engines = null;
+  pureBaseCache.ftlDrives = null;
+  pureBaseCache.supportSystems = null;
+  pureBaseCache.defenseSystems = null;
+  pureBaseCache.commandControlSystems = null;
+  pureBaseCache.sensors = null;
+  pureBaseCache.trackingTable = null;
+  pureBaseCache.hangarMiscSystems = null;
+  pureBaseCache.launchSystems = null;
+  pureBaseCache.propulsionSystems = null;
+  pureBaseCache.warheads = null;
+  pureBaseCache.guidanceSystems = null;
+  pureBaseCache.damageDiagram = null;
+  pureBaseCache.beamWeapons = null;
+  pureBaseCache.projectileWeapons = null;
+  pureBaseCache.torpedoWeapons = null;
+  pureBaseCache.specialWeapons = null;
+  pureBaseCache.mountModifiers = null;
+  pureBaseCache.gunConfigurations = null;
+  pureBaseCache.concealmentModifier = null;
+
   return loadAllGameData();
 }
 
@@ -571,210 +659,210 @@ export async function getDataDirectoryPath(): Promise<string | null> {
 /**
  * Get all sensor types (must call loadAllGameData first)
  */
-export function getSensorsData(): SensorType[] {
+export function getSensorsData(pureBase = false): SensorType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (sensorsDataFallback as { sensors: SensorType[] }).sensors;
   }
-  return cache.sensors!;
+  return pureBase ? pureBaseCache.sensors! : cache.sensors!;
 }
 
 /**
  * Get all hangar/misc system types (must call loadAllGameData first)
  */
-export function getHangarMiscSystemsData(): HangarMiscSystemType[] {
+export function getHangarMiscSystemsData(pureBase = false): HangarMiscSystemType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (hangarMiscDataFallback as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
   }
-  return cache.hangarMiscSystems!;
+  return pureBase ? pureBaseCache.hangarMiscSystems! : cache.hangarMiscSystems!;
 }
 
 /**
  * Get all launch systems (must call loadAllGameData first)
  */
-export function getLaunchSystemsData(): LaunchSystem[] {
+export function getLaunchSystemsData(pureBase = false): LaunchSystem[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (ordnanceDataFallback as { launchSystems: LaunchSystem[] }).launchSystems;
   }
-  return cache.launchSystems!;
+  return pureBase ? pureBaseCache.launchSystems! : cache.launchSystems!;
 }
 
 /**
  * Get all propulsion systems (must call loadAllGameData first)
  */
-export function getPropulsionSystemsData(): PropulsionSystem[] {
+export function getPropulsionSystemsData(pureBase = false): PropulsionSystem[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (ordnanceDataFallback as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
   }
-  return cache.propulsionSystems!;
+  return pureBase ? pureBaseCache.propulsionSystems! : cache.propulsionSystems!;
 }
 
 /**
  * Get all warheads (must call loadAllGameData first)
  */
-export function getWarheadsData(): Warhead[] {
+export function getWarheadsData(pureBase = false): Warhead[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (ordnanceDataFallback as { warheads: Warhead[] }).warheads;
   }
-  return cache.warheads!;
+  return pureBase ? pureBaseCache.warheads! : cache.warheads!;
 }
 
 /**
  * Get all guidance systems (must call loadAllGameData first)
  */
-export function getGuidanceSystemsData(): GuidanceSystem[] {
+export function getGuidanceSystemsData(pureBase = false): GuidanceSystem[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (ordnanceDataFallback as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
   }
-  return cache.guidanceSystems!;
+  return pureBase ? pureBaseCache.guidanceSystems! : cache.guidanceSystems!;
 }
 
 /**
  * Get all beam weapon types (must call loadAllGameData first)
  */
-export function getBeamWeaponsData(): BeamWeaponType[] {
+export function getBeamWeaponsData(pureBase = false): BeamWeaponType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { beamWeapons: BeamWeaponType[] }).beamWeapons;
   }
-  return cache.beamWeapons!;
+  return pureBase ? pureBaseCache.beamWeapons! : cache.beamWeapons!;
 }
 
 /**
  * Get all projectile weapon types (must call loadAllGameData first)
  */
-export function getProjectileWeaponsData(): ProjectileWeaponType[] {
+export function getProjectileWeaponsData(pureBase = false): ProjectileWeaponType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
   }
-  return cache.projectileWeapons!;
+  return pureBase ? pureBaseCache.projectileWeapons! : cache.projectileWeapons!;
 }
 
 /**
  * Get all torpedo weapon types (must call loadAllGameData first)
  */
-export function getTorpedoWeaponsData(): TorpedoWeaponType[] {
+export function getTorpedoWeaponsData(pureBase = false): TorpedoWeaponType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
   }
-  return cache.torpedoWeapons!;
+  return pureBase ? pureBaseCache.torpedoWeapons! : cache.torpedoWeapons!;
 }
 
 /**
  * Get all special weapon types (must call loadAllGameData first)
  */
-export function getSpecialWeaponsData(): SpecialWeaponType[] {
+export function getSpecialWeaponsData(pureBase = false): SpecialWeaponType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
   }
-  return cache.specialWeapons!;
+  return pureBase ? pureBaseCache.specialWeapons! : cache.specialWeapons!;
 }
 
 /**
  * Get mount modifiers (must call loadAllGameData first)
  */
-export function getMountModifiersData(): Record<MountType, MountModifier> | null {
+export function getMountModifiersData(pureBase = false): Record<MountType, MountModifier> | null {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
   }
-  return cache.mountModifiers;
+  return pureBase ? pureBaseCache.mountModifiers : cache.mountModifiers;
 }
 
 /**
  * Get gun configurations (must call loadAllGameData first)
  */
-export function getGunConfigurationsData(): Record<GunConfiguration, GunConfigModifier> | null {
+export function getGunConfigurationsData(pureBase = false): Record<GunConfiguration, GunConfigModifier> | null {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
   }
-  return cache.gunConfigurations;
+  return pureBase ? pureBaseCache.gunConfigurations : cache.gunConfigurations;
 }
 
 /**
  * Get concealment modifier (must call loadAllGameData first)
  */
-export function getConcealmentModifierData(): MountModifier | null {
+export function getConcealmentModifierData(pureBase = false): MountModifier | null {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (weaponsDataFallback as { concealmentModifier?: MountModifier }).concealmentModifier || null;
   }
-  return cache.concealmentModifier;
+  return pureBase ? pureBaseCache.concealmentModifier : cache.concealmentModifier;
 }
 
 /**
  * Get all life support types (must call loadAllGameData first)
  */
-export function getLifeSupportData(): LifeSupportType[] {
+export function getLifeSupportData(pureBase = false): LifeSupportType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (supportSystemsDataFallback as { lifeSupport: LifeSupportType[] }).lifeSupport;
   }
-  return cache.supportSystems?.lifeSupport || [];
+  return (pureBase ? pureBaseCache.supportSystems?.lifeSupport : cache.supportSystems?.lifeSupport) || [];
 }
 
 /**
  * Get all accommodation types (must call loadAllGameData first)
  */
-export function getAccommodationsData(): AccommodationType[] {
+export function getAccommodationsData(pureBase = false): AccommodationType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (supportSystemsDataFallback as { accommodations: AccommodationType[] }).accommodations;
   }
-  return cache.supportSystems?.accommodations || [];
+  return (pureBase ? pureBaseCache.supportSystems?.accommodations : cache.supportSystems?.accommodations) || [];
 }
 
 /**
  * Get all store system types (must call loadAllGameData first)
  */
-export function getStoreSystemsData(): StoreSystemType[] {
+export function getStoreSystemsData(pureBase = false): StoreSystemType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (supportSystemsDataFallback as { storeSystems: StoreSystemType[] }).storeSystems;
   }
-  return cache.supportSystems?.storeSystems || [];
+  return (pureBase ? pureBaseCache.supportSystems?.storeSystems : cache.supportSystems?.storeSystems) || [];
 }
 
 /**
  * Get all gravity system types (must call loadAllGameData first)
  */
-export function getGravitySystemsData(): GravitySystemType[] {
+export function getGravitySystemsData(pureBase = false): GravitySystemType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (supportSystemsDataFallback as { gravitySystems?: GravitySystemType[] }).gravitySystems || [];
   }
-  return cache.supportSystems?.gravitySystems || [];
+  return (pureBase ? pureBaseCache.supportSystems?.gravitySystems : cache.supportSystems?.gravitySystems) || [];
 }
 
 /**
  * Get all defense system types (must call loadAllGameData first)
  */
-export function getDefenseSystemsData(): DefenseSystemType[] {
+export function getDefenseSystemsData(pureBase = false): DefenseSystemType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (defensesDataFallback as { defenseSystems: DefenseSystemType[] }).defenseSystems;
   }
-  return cache.defenseSystems!;
+  return pureBase ? pureBaseCache.defenseSystems! : cache.defenseSystems!;
 }
 
 /**
  * Get all command control system types (must call loadAllGameData first)
  */
-export function getCommandControlSystemsData(): CommandControlSystemType[] {
+export function getCommandControlSystemsData(pureBase = false): CommandControlSystemType[] {
   if (!dataLoaded) {
     console.warn('[DataLoader] Data not loaded, using fallback');
     return (commandControlDataFallback as { commandSystems: CommandControlSystemType[] }).commandSystems;
   }
-  return cache.commandControlSystems!;
+  return pureBase ? pureBaseCache.commandControlSystems! : cache.commandControlSystems!;
 }
 
 /**

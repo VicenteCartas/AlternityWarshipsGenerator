@@ -23,7 +23,7 @@ import { getModFileData, saveModFileData } from '../services/modService';
 import { EDITOR_SECTIONS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
 import { validateRows } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
-import { getHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData } from '../services/dataLoader';
+import { getActiveMods, getHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
 
 interface ModEditorProps {
   mod: Mod;
@@ -32,30 +32,43 @@ interface ModEditorProps {
 }
 
 // Map section IDs to base data getter functions
-function getBaseDataForSection(sectionId: string): Record<string, unknown>[] {
+function getBaseDataForSection(sectionId: string, pureBase = false): Record<string, unknown>[] {
   const getters: Record<string, () => Record<string, unknown>[]> = {
-    hulls: () => getHullsData() as unknown as Record<string, unknown>[],
-    armors: () => getArmorTypesData() as unknown as Record<string, unknown>[],
-    armorWeights: () => getArmorWeightsData() as unknown as Record<string, unknown>[],
-    powerPlants: () => getPowerPlantsData() as unknown as Record<string, unknown>[],
-    engines: () => getEnginesData() as unknown as Record<string, unknown>[],
-    ftlDrives: () => getFTLDrivesData() as unknown as Record<string, unknown>[],
-    lifeSupport: () => getLifeSupportData() as unknown as Record<string, unknown>[],
-    accommodations: () => getAccommodationsData() as unknown as Record<string, unknown>[],
-    storeSystems: () => getStoreSystemsData() as unknown as Record<string, unknown>[],
-    gravitySystems: () => getGravitySystemsData() as unknown as Record<string, unknown>[],
-    defenseSystems: () => getDefenseSystemsData() as unknown as Record<string, unknown>[],
-    commandSystems: () => getCommandControlSystemsData() as unknown as Record<string, unknown>[],
-    sensors: () => getSensorsData() as unknown as Record<string, unknown>[],
-    hangarMiscSystems: () => getHangarMiscSystemsData() as unknown as Record<string, unknown>[],
-    beamWeapons: () => getBeamWeaponsData() as unknown as Record<string, unknown>[],
-    projectileWeapons: () => getProjectileWeaponsData() as unknown as Record<string, unknown>[],
-    torpedoWeapons: () => getTorpedoWeaponsData() as unknown as Record<string, unknown>[],
-    specialWeapons: () => getSpecialWeaponsData() as unknown as Record<string, unknown>[],
-    launchSystems: () => getLaunchSystemsData() as unknown as Record<string, unknown>[],
-    propulsionSystems: () => getPropulsionSystemsData() as unknown as Record<string, unknown>[],
-    warheads: () => getWarheadsData() as unknown as Record<string, unknown>[],
-    guidanceSystems: () => getGuidanceSystemsData() as unknown as Record<string, unknown>[],
+    hulls: () => getHullsData(pureBase) as unknown as Record<string, unknown>[],
+    armors: () => getArmorTypesData(pureBase) as unknown as Record<string, unknown>[],
+    armorWeights: () => getArmorWeightsData(pureBase) as unknown as Record<string, unknown>[],
+    powerPlants: () => getPowerPlantsData(pureBase) as unknown as Record<string, unknown>[],
+    fuelTank: () => [getFuelTankData(pureBase)] as unknown as Record<string, unknown>[],
+    engines: () => getEnginesData(pureBase) as unknown as Record<string, unknown>[],
+    ftlDrives: () => getFTLDrivesData(pureBase) as unknown as Record<string, unknown>[],
+    lifeSupport: () => getLifeSupportData(pureBase) as unknown as Record<string, unknown>[],
+    accommodations: () => getAccommodationsData(pureBase) as unknown as Record<string, unknown>[],
+    storeSystems: () => getStoreSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    gravitySystems: () => getGravitySystemsData(pureBase) as unknown as Record<string, unknown>[],
+    defenseSystems: () => getDefenseSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    commandSystems: () => getCommandControlSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    sensors: () => getSensorsData(pureBase) as unknown as Record<string, unknown>[],
+    hangarMiscSystems: () => getHangarMiscSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    mountModifiers: () => {
+      const data = getMountModifiersData(pureBase);
+      return data ? Object.entries(data).map(([k, v]) => ({ id: k, ...v })) as unknown as Record<string, unknown>[] : [];
+    },
+    gunConfigurations: () => {
+      const data = getGunConfigurationsData(pureBase);
+      return data ? Object.entries(data).map(([k, v]) => ({ id: k, ...v })) as unknown as Record<string, unknown>[] : [];
+    },
+    concealmentModifier: () => {
+      const data = getConcealmentModifierData(pureBase);
+      return data ? [{ id: 'concealmentModifier', ...data }] as unknown as Record<string, unknown>[] : [];
+    },
+    beamWeapons: () => getBeamWeaponsData(pureBase) as unknown as Record<string, unknown>[],
+    projectileWeapons: () => getProjectileWeaponsData(pureBase) as unknown as Record<string, unknown>[],
+    torpedoWeapons: () => getTorpedoWeaponsData(pureBase) as unknown as Record<string, unknown>[],
+    specialWeapons: () => getSpecialWeaponsData(pureBase) as unknown as Record<string, unknown>[],
+    launchSystems: () => getLaunchSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    propulsionSystems: () => getPropulsionSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    warheads: () => getWarheadsData(pureBase) as unknown as Record<string, unknown>[],
+    guidanceSystems: () => getGuidanceSystemsData(pureBase) as unknown as Record<string, unknown>[],
   };
   try {
     return getters[sectionId]?.() || [];
@@ -133,8 +146,30 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         const fileData = loadedFiles.get(fileName);
         if (fileData) {
           for (const section of sections) {
-            const arr = fileData[section.rootKey];
-            data[section.id] = Array.isArray(arr) ? arr as Record<string, unknown>[] : [];
+            const val = fileData[section.rootKey];
+            if (section.dataType === 'record') {
+              if (val && typeof val === 'object' && !Array.isArray(val)) {
+                data[section.id] = Object.entries(val).map(([key, item]) => ({
+                  id: key,
+                  ...(item as Record<string, unknown>)
+                }));
+              } else {
+                data[section.id] = [];
+              }
+            } else if (section.dataType === 'object') {
+              if (val && typeof val === 'object' && !Array.isArray(val)) {
+                data[section.id] = [{ id: section.id, ...(val as Record<string, unknown>) }];
+              } else {
+                data[section.id] = [];
+              }
+            } else {
+              // Default is array
+              if (Array.isArray(val)) {
+                data[section.id] = val as Record<string, unknown>[];
+              } else {
+                data[section.id] = [];
+              }
+            }
           }
         } else {
           for (const section of sections) {
@@ -244,7 +279,21 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           void _source;
           return rest;
         });
-        fileObj[section.rootKey] = cleanRows;
+        
+        if (section.dataType === 'record') {
+          const recordObj: Record<string, unknown> = {};
+          for (const row of cleanRows) {
+            const { id, ...rest } = row;
+            if (id && typeof id === 'string') {
+              recordObj[id] = rest;
+            }
+          }
+          fileObj[section.rootKey] = recordObj;
+        } else if (section.dataType === 'object') {
+          fileObj[section.rootKey] = cleanRows[0];
+        } else {
+          fileObj[section.rootKey] = cleanRows;
+        }
       }
 
       // Add house rule values for this file (only if explicitly set)
@@ -352,20 +401,21 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         {/* Side tabs */}
         <Tabs
           orientation="vertical"
+          variant="scrollable"
           value={activeTab}
           onChange={(_e, v) => setActiveTab(v)}
           sx={{
             borderRight: 1,
             borderColor: 'divider',
             minWidth: 180,
-            '& .MuiTab-root': { textTransform: 'none', alignItems: 'flex-start', minHeight: 36, py: 0.5, fontSize: '0.85rem' },
+            '& .MuiTab-root': { textTransform: 'none', alignItems: 'flex-start', textAlign: 'left', minHeight: 36, py: 0.5, fontSize: '0.85rem' },
           }}
         >
           <Tab
             key="house-rules"
             label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
-                <span>House Rules</span>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, width: '100%', textAlign: 'left' }}>
+                <span style={{ textAlign: 'left' }}>House Rules</span>
                 {HOUSE_RULES.some(r => houseRules[r.id] !== null) && (
                   <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== null).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                 )}
@@ -380,10 +430,12 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               <Tab
                 key={section.id}
                 label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
-                    <span>{section.label}</span>
-                    {rowCount > 0 && <Chip label={rowCount} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />}
-                    {isDirty && <Typography color="warning.main" sx={{ fontSize: '0.7rem' }}>●</Typography>}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, width: '100%', textAlign: 'left' }}>
+                    <span style={{ textAlign: 'left' }}>{section.label}</span>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {rowCount > 0 && <Chip label={rowCount} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />}
+                      {isDirty && <Typography color="warning.main" sx={{ fontSize: '0.7rem' }}>●</Typography>}
+                    </Box>
                   </Box>
                 }
                 value={idx + sectionTabOffset}
@@ -447,7 +499,10 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                 rows={sectionData[activeSection.id] || []}
                 onChange={rows => handleSectionDataChange(activeSection.id, rows)}
                 defaultItem={activeSection.defaultItem}
-                baseData={getBaseDataForSection(activeSection.id)}
+                baseData={getBaseDataForSection(activeSection.id, true)}
+                activeModsData={getActiveMods().length > 0 ? getBaseDataForSection(activeSection.id, false) : undefined}
+                disableAdd={activeSection.dataType === 'object'}
+                disableDelete={activeSection.dataType === 'object'}
               />
             </>
           )}

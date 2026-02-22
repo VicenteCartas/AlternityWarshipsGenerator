@@ -38,6 +38,7 @@ import type {
   WeaponCategory,
   InstalledWeapon,
   MountType,
+  MountModifier,
   GunConfiguration,
   FiringArc,
 } from '../types/weapon';
@@ -58,7 +59,6 @@ import {
   calculateWeaponCost,
   getMountTypeName,
   getGunConfigurationName,
-  isBankMountAvailable,
   canUseZeroArcs,
   getDefaultArcs,
   getFreeArcCount,
@@ -66,6 +66,7 @@ import {
   validateArcs,
   generateWeaponId,
 } from '../services/weaponService';
+import { getGunConfigurationsData, getMountModifiersData } from '../services/dataLoader';
 import { formatCost, formatAccuracyModifier, getAreaEffectTooltip } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
 import { createWeaponBatteryKey, batteryHasFireControl, getFireControlsForBattery } from '../services/commandControlService';
@@ -140,6 +141,27 @@ export function WeaponSelection({
     return launchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length;
   }, [launchSystems]);
 
+  // Get gun configurations
+  const gunConfigurations = useMemo(() => {
+    return getGunConfigurationsData() || {
+      single: { effectiveGunCount: 1, actualGunCount: 1 },
+      twin: { effectiveGunCount: 1.5, actualGunCount: 2 },
+      triple: { effectiveGunCount: 2, actualGunCount: 3 },
+      quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
+    };
+  }, []);
+
+  // Get mount modifiers
+  const mountModifiers: Record<string, MountModifier> = useMemo(() => {
+    return getMountModifiersData() || {
+      standard: { costMultiplier: 1, hpMultiplier: 1, standardArcs: 1, allowsZeroArc: true },
+      fixed: { costMultiplier: 0.75, hpMultiplier: 0.75, standardArcs: 1, allowsZeroArc: false },
+      turret: { costMultiplier: 1.25, hpMultiplier: 1.25, standardArcs: 3, allowsZeroArc: true },
+      sponson: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 2, allowsZeroArc: true },
+      bank: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 3, allowsZeroArc: true, allowedCategories: ['beam'], minProgressLevel: 8 }
+    };
+  }, []);
+
   // Check if selected weapon can use zero arcs
   const weaponCanUseZero = selectedWeapon ? canUseZeroArcs(selectedWeapon) : false;
   
@@ -169,11 +191,12 @@ export function WeaponSelection({
 
   const handleSelectWeapon = (weapon: WeaponType) => {
     setSelectedWeapon(weapon);
-    setMountType('standard');
+    const defaultMount = Object.keys(mountModifiers)[0] || 'standard';
+    setMountType(defaultMount);
     setGunConfiguration('single');
     setConcealed(false);
     setQuantity(1);
-    setSelectedArcs(getDefaultArcs('standard', shipClass, canUseZeroArcs(weapon)));
+    setSelectedArcs(getDefaultArcs(defaultMount, shipClass, canUseZeroArcs(weapon)));
     setEditingWeaponId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -210,7 +233,7 @@ export function WeaponSelection({
     }
 
     setSelectedWeapon(null);
-    setMountType('standard');
+    setMountType(Object.keys(mountModifiers)[0] || 'standard');
     setGunConfiguration('single');
     setConcealed(false);
     setQuantity(1);
@@ -256,7 +279,7 @@ export function WeaponSelection({
   const handleCancelEdit = () => {
     const weaponIdToScrollTo = editingWeaponId;
     setSelectedWeapon(null);
-    setMountType('standard');
+    setMountType(Object.keys(mountModifiers)[0] || 'standard');
     setGunConfiguration('single');
     setConcealed(false);
     setQuantity(1);
@@ -337,9 +360,6 @@ export function WeaponSelection({
   const previewCost = selectedWeapon
     ? calculateWeaponCost(selectedWeapon, mountType, gunConfiguration, concealed)
     : 0;
-
-  // Check if bank mount is available for selected weapon (PL8+ beam weapons only)
-  const bankAvailable = selectedWeapon ? isBankMountAvailable(selectedWeapon, activeTab) : false;
 
   // Filter installed weapons by category
   const getInstalledWeaponsByCategory = (category: WeaponCategory) => {
@@ -499,23 +519,24 @@ export function WeaponSelection({
               size="small"
               sx={{ flexWrap: 'wrap', mb: 2 }}
             >
-              <Tooltip title="1× cost, 1× HP — 1 zero + 1 arc">
-                <ToggleButton value="standard">Standard</ToggleButton>
-              </Tooltip>
-              <Tooltip title="0.75× cost, 0.75× HP — 1 arc only">
-                <ToggleButton value="fixed">Fixed</ToggleButton>
-              </Tooltip>
-              <Tooltip title="1.5× cost, 1.5× HP — 1 zero + 2 arcs">
-                <ToggleButton value="turret">Turret</ToggleButton>
-              </Tooltip>
-              <Tooltip title="1.25× cost, 1× HP — 1 zero + 1 arc">
-                <ToggleButton value="sponson">Sponson</ToggleButton>
-              </Tooltip>
-              <Tooltip title="1.25× cost, 1× HP — PL8+ beams only">
-                <span>
-                  <ToggleButton value="bank" disabled={!bankAvailable}>Bank</ToggleButton>
-                </span>
-              </Tooltip>
+              {Object.entries(mountModifiers).map(([key, mod]) => {
+                const isAvailable = selectedWeapon ? (
+                  (!mod.allowedCategories || mod.allowedCategories.includes(activeTab)) &&
+                  (!mod.minProgressLevel || selectedWeapon.progressLevel >= mod.minProgressLevel)
+                ) : true;
+                
+                const tooltipText = `${mod.costMultiplier}× cost, ${mod.hpMultiplier}× HP — ${mod.allowsZeroArc ? '1 zero + ' : ''}${mod.standardArcs ?? 1} arc${(mod.standardArcs ?? 1) > 1 ? 's' : ''}${mod.allowedCategories ? ` (${mod.allowedCategories.join(', ')} only)` : ''}${mod.minProgressLevel ? ` (PL${mod.minProgressLevel}+)` : ''}`;
+                
+                return (
+                  <Tooltip key={key} title={tooltipText}>
+                    <span>
+                      <ToggleButton value={key} disabled={!isAvailable}>
+                        {getMountTypeName(key)}
+                      </ToggleButton>
+                    </span>
+                  </Tooltip>
+                );
+              })}
             </ToggleButtonGroup>
 
             {/* Gun Configuration */}
@@ -529,18 +550,11 @@ export function WeaponSelection({
               size="small"
               sx={{ flexWrap: 'wrap', mb: 2 }}
             >
-              <Tooltip title="1× cost, 1× HP">
-                <ToggleButton value="single">Single</ToggleButton>
-              </Tooltip>
-              <Tooltip title="1.5× cost, 1.5× HP">
-                <ToggleButton value="twin">Twin</ToggleButton>
-              </Tooltip>
-              <Tooltip title="1.75× cost, 1.75× HP">
-                <ToggleButton value="triple">Triple</ToggleButton>
-              </Tooltip>
-              <Tooltip title="2× cost, 2× HP">
-                <ToggleButton value="quadruple">Quad</ToggleButton>
-              </Tooltip>
+              {Object.entries(gunConfigurations).map(([key, config]) => (
+                <Tooltip key={key} title={`${config.effectiveGunCount}× cost, ${config.effectiveGunCount}× HP`}>
+                  <ToggleButton value={key}>{getGunConfigurationName(key)}</ToggleButton>
+                </Tooltip>
+              ))}
             </ToggleButtonGroup>
 
             {/* Options */}
@@ -565,12 +579,12 @@ export function WeaponSelection({
             <ArcRadarSelector
               selectedArcs={selectedArcs}
               onArcToggle={handleArcToggle}
-              showZeroArcs={weaponCanUseZero && mountType !== 'fixed'}
+              showZeroArcs={weaponCanUseZero && (mountModifiers[mountType]?.allowsZeroArc ?? false)}
               disableZeroArcs={shipClass === 'small-craft'}
               maxStandardArcs={freeArcCount.standardArcs}
               maxZeroArcs={freeArcCount.zeroArcs}
             />
-            {!weaponCanUseZero && mountType !== 'fixed' && (
+            {!weaponCanUseZero && mountModifiers[mountType]?.allowsZeroArc && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
                 Only S/L firepower can use zero arcs
               </Typography>

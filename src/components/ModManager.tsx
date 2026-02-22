@@ -59,6 +59,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   // Create dialog state
   const [newModName, setNewModName] = useState('');
   const [newModAuthor, setNewModAuthor] = useState('');
+  const [newModVersion, setNewModVersion] = useState('1.0.0');
   const [newModDescription, setNewModDescription] = useState('');
 
   const loadMods = useCallback(async () => {
@@ -121,19 +122,29 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     const manifest: ModManifest = {
       name: newModName.trim(),
       author: newModAuthor.trim(),
-      version: '1.0.0',
+      version: newModVersion.trim(),
       description: newModDescription.trim(),
     };
-    const success = await createMod(manifest);
-    if (success) {
+    const folderName = await createMod(manifest);
+    if (folderName) {
       setCreateDialogOpen(false);
       setNewModName('');
       setNewModAuthor('');
+      setNewModVersion('1.0.0');
       setNewModDescription('');
-      await loadMods();
+      
+      // Load mods and find the newly created one to edit it immediately
+      const installed = await getInstalledMods();
+      installed.sort((a, b) => a.priority - b.priority);
+      setMods(installed);
+      
+      const newMod = installed.find(m => m.folderName === folderName);
+      if (newMod) {
+        setEditingMod(newMod);
+      }
     }
     setSaving(false);
-  }, [newModName, newModAuthor, newModDescription, loadMods]);
+  }, [newModName, newModAuthor, newModVersion, newModDescription]);
 
   const handleDeleteMod = useCallback(async (mod: Mod) => {
     setSaving(true);
@@ -235,7 +246,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
 
       {/* Description */}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Higher priority mods are applied last and win conflicts.
+        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Mods are ordered from lowest to highest priority. Higher priority mods are applied last and win conflicts.
       </Typography>
 
       {/* Mods Table */}
@@ -365,21 +376,39 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
               fullWidth
             />
             <TextField
+              label="Version"
+              value={newModVersion}
+              onChange={e => setNewModVersion(e.target.value)}
+              fullWidth
+              required
+              error={!/^\d+\.\d+(\.\d+)?$/.test(newModVersion)}
+              helperText={!/^\d+\.\d+(\.\d+)?$/.test(newModVersion) ? "Must be formatted like 1.0 or 1.0.5" : ""}
+            />
+            <TextField
               label="Description"
               value={newModDescription}
               onChange={e => setNewModDescription(e.target.value)}
               fullWidth
               multiline
               rows={2}
+              onKeyDown={e => {
+                if (e.key === 'Tab' && !e.shiftKey) {
+                  e.preventDefault();
+                  const createButton = document.getElementById('create-mod-btn');
+                  if (createButton) createButton.focus();
+                }
+              }}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button disableRipple onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
           <Button
+            id="create-mod-btn"
             variant="contained"
+            disableRipple
             onClick={handleCreateMod}
-            disabled={!newModName.trim() || saving}
+            disabled={!newModName.trim() || !/^\d+\.\d+(\.\d+)?$/.test(newModVersion) || saving}
           >
             Create
           </Button>

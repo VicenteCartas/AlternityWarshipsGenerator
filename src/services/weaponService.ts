@@ -106,10 +106,14 @@ export function isMountTypeAvailable(
   mountType: MountType,
   category: WeaponCategory
 ): boolean {
-  // Bank mounts are only available for PL8+ beam weapons
-  if (mountType === 'bank') {
-    if (category !== 'beam') return false;
-    if (weapon.progressLevel < 8) return false;
+  const mountMod = getMountModifiers(mountType);
+  
+  if (mountMod.allowedCategories && !mountMod.allowedCategories.includes(category)) {
+    return false;
+  }
+  
+  if (mountMod.minProgressLevel && weapon.progressLevel < mountMod.minProgressLevel) {
+    return false;
   }
   
   return true;
@@ -126,11 +130,11 @@ export function isMountTypeAvailable(
 export function getMountModifiers(mountType: MountType): MountModifier {
   // Fallback defaults in case JSON not loaded
   const defaults: Record<MountType, MountModifier> = {
-    standard: { costMultiplier: 1, hpMultiplier: 1 },
-    fixed: { costMultiplier: 0.75, hpMultiplier: 0.75 },
-    turret: { costMultiplier: 1.25, hpMultiplier: 1.25 },
-    sponson: { costMultiplier: 1.25, hpMultiplier: 1 },
-    bank: { costMultiplier: 1.25, hpMultiplier: 1 },
+    standard: { costMultiplier: 1, hpMultiplier: 1, standardArcs: 1, allowsZeroArc: true },
+    fixed: { costMultiplier: 0.75, hpMultiplier: 0.75, standardArcs: 1, allowsZeroArc: false },
+    turret: { costMultiplier: 1.25, hpMultiplier: 1.25, standardArcs: 3, allowsZeroArc: true },
+    sponson: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 2, allowsZeroArc: true },
+    bank: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 3, allowsZeroArc: true, allowedCategories: ['beam'], minProgressLevel: 8 },
   };
   // Try dataLoader first, then hardcoded defaults
   const modifiers = getMountModifiersData();
@@ -146,7 +150,7 @@ export function getMountModifiers(mountType: MountType): MountModifier {
  */
 export function getGunConfigurationModifiers(config: GunConfiguration): GunConfigModifier {
   // Fallback defaults in case JSON not loaded
-  const defaults: Record<GunConfiguration, GunConfigModifier> = {
+  const defaults: Record<string, GunConfigModifier> = {
     single: { effectiveGunCount: 1, actualGunCount: 1 },
     twin: { effectiveGunCount: 1.5, actualGunCount: 2 },
     triple: { effectiveGunCount: 2, actualGunCount: 3 },
@@ -154,7 +158,7 @@ export function getGunConfigurationModifiers(config: GunConfiguration): GunConfi
   };
   // Try dataLoader first, then hardcoded defaults
   const configs = getGunConfigurationsData();
-  return configs?.[config] || defaults[config];
+  return configs?.[config] || defaults[config] || { effectiveGunCount: 1, actualGunCount: 1 };
 }
 
 /**
@@ -327,80 +331,43 @@ export function calculateWeaponStats(weapons: InstalledWeapon[]): WeaponStats {
 }
 
 /**
- * Check if bank mount is available for a weapon
- * Bank mounts are only available for PL8+ beam weapons
- */
-export function isBankMountAvailable(weapon: WeaponType, category: WeaponCategory): boolean {
-  return category === 'beam' && weapon.progressLevel >= 8;
-}
-
-/**
  * Get mount type display name
  */
 export function getMountTypeName(mountType: MountType): string {
-  const names: Record<MountType, string> = {
-    standard: 'Standard',
-    fixed: 'Fixed',
-    turret: 'Turret',
-    sponson: 'Sponson',
-    bank: 'Bank',
-  };
-  return names[mountType];
+  return mountType.charAt(0).toUpperCase() + mountType.slice(1);
 }
 
 /**
  * Get gun configuration display name
  */
 export function getGunConfigurationName(config: GunConfiguration): string {
-  const names: Record<GunConfiguration, string> = {
+  const names: Record<string, string> = {
     single: 'Single',
     twin: 'Twin',
     triple: 'Triple',
     quadruple: 'Quadruple',
   };
-  return names[config];
+  return names[config] || config.charAt(0).toUpperCase() + config.slice(1);
 }
 
 // ============== Firing Arc Functions ==============
 
 /**
  * Get the number of free arcs based on mount type and ship class
- * Rules:
- * - Fixed: 1 arc only (no zero arc)
- * - Standard on light+: 1 zero arc + 1 standard arc
- * - Sponson on light+: 1 zero arc + 2 standard arcs
- * - Turret/Bank on light+: 1 zero arc + 3 standard arcs
- * - Small craft: all zero arcs free + normal mount arcs
  */
 export function getFreeArcCount(mountType: MountType, shipClass: ShipClass): { zeroArcs: number; standardArcs: number } {
   const isSmallCraft = shipClass === 'small-craft';
+  const mountMod = getMountModifiers(mountType);
   
-  if (mountType === 'fixed') {
-    // Fixed mounts only have 1 arc, no zero arc option
-    return { zeroArcs: 0, standardArcs: 1 };
+  if (!mountMod.allowsZeroArc) {
+    return { zeroArcs: 0, standardArcs: mountMod.standardArcs ?? 1 };
   }
   
   if (isSmallCraft) {
-    // Small craft get all zero arcs for free
-    // Plus their normal mount arcs
-    if (mountType === 'turret' || mountType === 'bank') {
-      return { zeroArcs: 4, standardArcs: 3 }; // All zero + 3 standard
-    } else if (mountType === 'sponson') {
-      return { zeroArcs: 4, standardArcs: 2 }; // All zero + 2 standard
-    } else {
-      return { zeroArcs: 4, standardArcs: 1 }; // All zero + 1 standard
-    }
+    return { zeroArcs: 4, standardArcs: mountMod.standardArcs ?? 1 };
   }
   
-  // Light or larger ships
-  if (mountType === 'turret' || mountType === 'bank') {
-    return { zeroArcs: 1, standardArcs: 3 }; // 1 zero + 3 standard
-  } else if (mountType === 'sponson') {
-    return { zeroArcs: 1, standardArcs: 2 }; // 1 zero + 2 standard
-  } else {
-    // standard
-    return { zeroArcs: 1, standardArcs: 1 }; // 1 zero + 1 standard
-  }
+  return { zeroArcs: 1, standardArcs: mountMod.standardArcs ?? 1 };
 }
 
 /**
@@ -421,32 +388,24 @@ export function getDefaultArcs(
 ): FiringArc[] {
   const arcs: FiringArc[] = [];
   const isSmallCraft = shipClass === 'small-craft';
+  const mountMod = getMountModifiers(mountType);
   
-  if (mountType === 'fixed') {
-    // Fixed mount: only forward arc
+  if (!mountMod.allowsZeroArc) {
     return ['forward'];
   }
   
   if (isSmallCraft && canUseZero) {
-    // Small craft get all zero arcs free
     arcs.push(...ALL_ZERO_ARCS);
   } else if (canUseZero) {
-    // Light+ ships: default to zero-forward
     arcs.push('zero-forward');
   }
   
-  // Add default standard arc
   arcs.push('forward');
   
-  // Sponsons get 2 standard arcs
-  if (mountType === 'sponson') {
-    arcs.push('starboard');
-  }
-  
-  // Turrets get 3 standard arcs
-  if (mountType === 'turret') {
-    arcs.push('starboard', 'port');
-  }
+  const standardArcs = mountMod.standardArcs ?? 1;
+  if (standardArcs >= 2) arcs.push('starboard');
+  if (standardArcs >= 3) arcs.push('port');
+  if (standardArcs >= 4) arcs.push('aft');
   
   return arcs;
 }
@@ -468,6 +427,7 @@ export function validateArcs(
   const zeroArcs = arcs.filter(a => a.startsWith('zero-')) as ZeroArc[];
   const standardArcs = arcs.filter(a => !a.startsWith('zero-')) as StandardArc[];
   
+  const mountMod = getMountModifiers(mountType);
   const freeArcs = getFreeArcCount(mountType, shipClass);
   
   // Check zero arc restrictions
@@ -475,13 +435,12 @@ export function validateArcs(
     return 'Only Small and Light firepower weapons can use zero arcs';
   }
   
-  // Fixed mounts can only have 1 standard arc
-  if (mountType === 'fixed') {
-    if (standardArcs.length !== 1) {
-      return 'Fixed mounts must have exactly 1 arc';
+  if (!mountMod.allowsZeroArc) {
+    if (standardArcs.length !== (mountMod.standardArcs ?? 1)) {
+      return `${getMountTypeName(mountType)} mounts must have exactly ${mountMod.standardArcs ?? 1} arc(s)`;
     }
     if (zeroArcs.length > 0) {
-      return 'Fixed mounts cannot use zero arcs';
+      return `${getMountTypeName(mountType)} mounts cannot use zero arcs`;
     }
     return '';
   }

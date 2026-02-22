@@ -197,9 +197,9 @@ export interface SavedWeapon {
   /** Weapon category */
   category: 'beam' | 'projectile' | 'torpedo' | 'special' | 'ordnance';
   /** Mount type */
-  mountType: 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
+  mountType: string;
   /** Gun configuration */
-  gunConfiguration: 'single' | 'twin' | 'triple' | 'quadruple';
+  gunConfiguration: string;
   /** Whether concealed */
   concealed: boolean;
   /** Number of mounts */

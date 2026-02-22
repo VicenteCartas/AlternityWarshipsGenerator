@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Table,
@@ -35,6 +35,9 @@ interface EditableDataGridProps {
   onChange: (rows: Record<string, unknown>[]) => void;
   defaultItem: Record<string, unknown>;
   baseData?: Record<string, unknown>[];
+  activeModsData?: Record<string, unknown>[];
+  disableAdd?: boolean;
+  disableDelete?: boolean;
 }
 
 type EditingCell = { rowIndex: number; columnKey: string } | null;
@@ -43,10 +46,11 @@ type EditingCell = { rowIndex: number; columnKey: string } | null;
  * Generic editable data grid for the mod editor.
  * Supports inline cell editing, add/delete/duplicate rows, and import from base.
  */
-export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData }: EditableDataGridProps) {
+export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete }: EditableDataGridProps) {
   const [editingCell, setEditingCell] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState<unknown>('');
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
+  const [importSource, setImportSource] = useState<'base' | 'active'>('base');
 
   // Helpers for dot-notation keys (e.g. "damageTrack.stun")
   const getNestedValue = (obj: Record<string, unknown>, key: string): unknown => {
@@ -67,17 +71,28 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) };
   };
 
-  const commitEdit = useCallback(() => {
+  const commitEdit = useCallback((overrideValue?: unknown) => {
     if (!editingCell) return;
     const { rowIndex, columnKey } = editingCell;
     const col = columns.find(c => c.key === columnKey);
     if (!col) return;
 
-    let finalValue = editValue;
+    let finalValue = overrideValue !== undefined ? overrideValue : editValue;
     // Type coercion
-    if (col.type === 'number' || col.type === 'progressLevel') {
-      const num = parseFloat(String(finalValue));
-      finalValue = isNaN(num) ? 0 : num;
+    if (col.type === 'number') {
+      if (finalValue === '' || finalValue === undefined || finalValue === null) {
+        finalValue = undefined;
+      } else {
+        const num = parseFloat(String(finalValue));
+        finalValue = isNaN(num) ? undefined : num;
+      }
+    } else if (col.type === 'progressLevel') {
+      if (finalValue === '' || finalValue === undefined || finalValue === null) {
+        finalValue = undefined;
+      } else {
+        const num = parseInt(String(finalValue), 10);
+        finalValue = isNaN(num) ? undefined : num;
+      }
     } else if (col.type === 'json') {
       if (typeof finalValue === 'string') {
         try { finalValue = JSON.parse(finalValue); } catch { /* keep as string, validation will catch */ }
@@ -105,7 +120,48 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
     if (e.key === 'Escape') { setEditingCell(null); }
-  }, [commitEdit]);
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (!editingCell) return;
+      
+      const { rowIndex, columnKey } = editingCell;
+      const colIndex = columns.findIndex(c => c.key === columnKey);
+      
+      let nextColIndex = colIndex + (e.shiftKey ? -1 : 1);
+      let nextRowIndex = rowIndex;
+      
+      let found = false;
+      while (nextRowIndex >= 0 && nextRowIndex < rows.length) {
+        while (nextColIndex >= 0 && nextColIndex < columns.length) {
+          found = true;
+          break;
+        }
+        if (found) break;
+        nextRowIndex += e.shiftKey ? -1 : 1;
+        nextColIndex = e.shiftKey ? columns.length - 1 : 0;
+      }
+      
+      commitEdit();
+      
+      if (found) {
+        const nextColKey = columns[nextColIndex].key;
+        const nextCol = columns[nextColIndex];
+        
+        setTimeout(() => {
+          if (nextCol.type === 'boolean' || nextCol.type === 'techTracks' || nextCol.type === 'multiselect') {
+            // For these types, we don't enter "edit mode" with an input field,
+            // but we want to focus the cell so the user can interact with it.
+            const cellElement = document.querySelector(`td[data-row="${nextRowIndex}"][data-col="${nextColKey}"]`) as HTMLElement;
+            if (cellElement) {
+              cellElement.focus();
+            }
+          } else {
+            startEdit(nextRowIndex, nextColKey);
+          }
+        }, 0);
+      }
+    }
+  }, [commitEdit, editingCell, columns, rows, startEdit]);
 
   const handleAddRow = useCallback(() => {
     const newRow = { ...defaultItem, id: `new-item-${Date.now()}` };
@@ -161,10 +217,11 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     switch (col.type) {
       case 'boolean':
         return <Checkbox checked={!!value} size="small" readOnly tabIndex={-1} sx={{ p: 0 }} />;
-      case 'techTracks': {
-        const tracks = (Array.isArray(value) ? value : []) as string[];
-        if (tracks.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
-        return <Typography variant="caption">{tracks.join(', ')}</Typography>;
+      case 'techTracks':
+      case 'multiselect': {
+        const items = (Array.isArray(value) ? value : []) as string[];
+        if (items.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
+        return <Typography variant="caption">{items.join(', ')}</Typography>;
       }
       case 'json':
         return (
@@ -176,8 +233,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         );
       case 'select':
       case 'progressLevel': {
-        const opt = col.options?.find(o => o.value === String(value));
-        return <Typography variant="body2">{opt?.label ?? String(value)}</Typography>;
+        const opt = col.options?.find(o => o.value === String(value ?? ''));
+        return <Typography variant="body2">{opt?.label ?? String(value ?? '')}</Typography>;
       }
       default:
         return <Typography variant="body2" noWrap>{String(value)}</Typography>;
@@ -186,7 +243,20 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
   const renderCellEditor = (_rowIndex: number, col: ColumnDef) => {
     const value = editValue;
-    const errorMsg = validateField(value, col);
+    let errorMsg = validateField(value, col);
+
+    // Add duplicate ID warning in editor
+    if (col.key === 'id' && typeof value === 'string' && duplicateIds.has(value)) {
+      // Only show duplicate warning if it's not the original value of the cell we're editing,
+      // or if it IS the original value but it was already a duplicate.
+      // Actually, since duplicateIds is computed from rows, if we type a new duplicate,
+      // it won't be in duplicateIds until we commit.
+      // To do real-time duplicate checking while typing, we'd need to check against other rows.
+      const isDuplicate = rows.some((r, i) => i !== _rowIndex && r.id === value);
+      if (isDuplicate) {
+        errorMsg = errorMsg ? `${errorMsg} | Duplicate ID` : 'Duplicate ID';
+      }
+    }
 
     switch (col.type) {
       case 'boolean':
@@ -196,10 +266,18 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         return (
           <Select
             value={String(value ?? '')}
-            onChange={e => { setEditValue(e.target.value); }}
-            onBlur={commitEdit}
+            onChange={e => { 
+              setEditValue(e.target.value); 
+              // When a value is selected, commit the edit immediately
+              // This will close the editor and return focus to the cell
+              // We need to pass the value directly to commitEdit because state updates are async
+              setTimeout(() => commitEdit(e.target.value), 0);
+            }}
+            onBlur={() => commitEdit()}
+            onKeyDown={handleKeyDown}
             size="small"
             autoFocus
+            defaultOpen
             fullWidth
             sx={{ fontSize: '0.875rem', '& .MuiSelect-select': { py: '4px', px: '8px' } }}
           >
@@ -209,85 +287,125 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           </Select>
         );
       case 'techTracks':
+      case 'multiselect':
         return null; // Handled via popover
       case 'json':
         return (
-          <TextField
-            value={String(value ?? '')}
-            onChange={e => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-            size="small"
-            multiline
-            maxRows={4}
-            autoFocus
-            fullWidth
-            error={!!errorMsg}
-            sx={{ fontSize: '0.75rem' }}
-          />
+          <Tooltip title={errorMsg || ''} placement="top" open={!!errorMsg}>
+            <TextField
+              value={String(value ?? '')}
+              onChange={e => setEditValue(e.target.value)}
+              onBlur={() => commitEdit()}
+              onKeyDown={handleKeyDown}
+              onFocus={e => e.target.select()}
+              size="small"
+              multiline
+              maxRows={4}
+              autoFocus
+              fullWidth
+              error={!!errorMsg}
+              sx={{ fontSize: '0.75rem' }}
+            />
+          </Tooltip>
         );
       default:
         return (
-          <TextField
-            value={String(value ?? '')}
-            onChange={e => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-            onFocus={e => { if (col.type === 'number') e.target.select(); }}
-            size="small"
-            autoFocus
-            fullWidth
-            error={!!errorMsg}
-            slotProps={{
-              htmlInput: {
-                inputMode: col.type === 'number' ? 'decimal' : undefined,
-                style: { fontSize: '0.875rem', padding: '4px 8px' },
-              },
-            }}
-            sx={{
-              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
-              '& input[type=number]': { MozAppearance: 'textfield' },
-            }}
-          />
+          <Tooltip title={errorMsg || ''} placement="top" open={!!errorMsg}>
+            <TextField
+              value={String(value ?? '')}
+              onChange={e => setEditValue(e.target.value)}
+              onBlur={() => commitEdit()}
+              onKeyDown={handleKeyDown}
+              onFocus={e => e.target.select()}
+              size="small"
+              autoFocus
+              fullWidth
+              error={!!errorMsg}
+              slotProps={{
+                htmlInput: {
+                  inputMode: col.type === 'number' ? 'decimal' : undefined,
+                  style: { fontSize: '0.875rem', padding: '4px 8px' },
+                },
+              }}
+              sx={{
+                '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
+                '& input[type=number]': { MozAppearance: 'textfield' },
+              }}
+            />
+          </Tooltip>
         );
     }
   };
 
-  // Tech tracks popover state
-  const [techTrackAnchor, setTechTrackAnchor] = useState<HTMLElement | null>(null);
-  const [techTrackRowIndex, setTechTrackRowIndex] = useState<number>(-1);
+  // Tech tracks / Multiselect popover state
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [popoverRowIndex, setPopoverRowIndex] = useState<number>(-1);
+  const [popoverColumnKey, setPopoverColumnKey] = useState<string>('');
 
-  const handleTechTrackClick = (e: React.MouseEvent<HTMLElement>, rowIndex: number) => {
-    setTechTrackAnchor(e.currentTarget);
-    setTechTrackRowIndex(rowIndex);
+  // Reset transient UI state when switching sections (columns change)
+  useEffect(() => {
+    setEditingCell(null);
+    setPopoverAnchor(null);
+    setPopoverRowIndex(-1);
+    setPopoverColumnKey('');
+  }, [columns]);
+
+  const handlePopoverClick = (e: React.MouseEvent<HTMLElement>, rowIndex: number, columnKey: string) => {
+    setPopoverAnchor(e.currentTarget);
+    setPopoverRowIndex(rowIndex);
+    setPopoverColumnKey(columnKey);
   };
 
-  const handleTechTrackToggle = (track: TechTrack) => {
-    if (techTrackRowIndex < 0) return;
-    const current = (rows[techTrackRowIndex].techTracks as TechTrack[]) || [];
-    const updated = current.includes(track)
-      ? current.filter(t => t !== track)
-      : [...current, track];
-    handleCellChange(techTrackRowIndex, 'techTracks', updated);
+  const handlePopoverToggle = (item: string) => {
+    if (popoverRowIndex < 0 || !popoverColumnKey || !rows[popoverRowIndex]) return;
+    const current = (rows[popoverRowIndex][popoverColumnKey] as string[]) || [];
+    const updated = current.includes(item)
+      ? current.filter(t => t !== item)
+      : [...current, item];
+    handleCellChange(popoverRowIndex, popoverColumnKey, updated);
   };
 
   const isEditing = (rowIndex: number, columnKey: string) =>
     editingCell?.rowIndex === rowIndex && editingCell?.columnKey === columnKey;
 
+  // Compute duplicate IDs for validation warning
+  const duplicateIds = new Set<string>();
+  const idCounts = new Map<string, number>();
+  for (const row of rows) {
+    const id = row.id as string;
+    if (id) {
+      idCounts.set(id, (idCounts.get(id) || 0) + 1);
+    }
+  }
+  for (const [id, count] of idCounts.entries()) {
+    if (count > 1) duplicateIds.add(id);
+  }
+
   return (
     <Box>
       {/* Toolbar */}
       <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-        <Button size="small" startIcon={<AddIcon />} onClick={handleAddRow} variant="outlined">
-          Add Row
-        </Button>
+        {!disableAdd && (
+          <Button size="small" startIcon={<AddIcon />} onClick={handleAddRow} variant="outlined">
+            Add Row
+          </Button>
+        )}
         {baseData && baseData.length > 0 && (
           <Button
             size="small"
             variant="outlined"
-            onClick={e => setImportAnchor(e.currentTarget)}
+            onClick={e => { setImportSource('base'); setImportAnchor(e.currentTarget); }}
           >
-            Import from Base ({baseData.length})
+            Import from Base Game ({baseData.length})
+          </Button>
+        )}
+        {activeModsData && activeModsData.length > 0 && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={e => { setImportSource('active'); setImportAnchor(e.currentTarget); }}
+          >
+            Import from Active Mods ({activeModsData.length})
           </Button>
         )}
         <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
@@ -300,13 +418,13 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ width: 90, fontWeight: 600, minWidth: 90, maxWidth: 90 }} align="center">Actions</TableCell>
               {columns.map(col => (
                 <TableCell key={col.key} sx={{ fontWeight: 600, width: col.width || 80, minWidth: col.width || 80, maxWidth: col.width || 80, whiteSpace: 'nowrap' }}>
                   {col.label}
                   {col.required && <Typography component="span" color="error" sx={{ ml: 0.5 }}>*</Typography>}
                 </TableCell>
               ))}
-              <TableCell sx={{ width: 90, fontWeight: 600 }} align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -321,35 +439,92 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             ) : (
               rows.map((row, rowIndex) => (
                 <TableRow key={rowIndex} hover sx={{ height: 37 }}>
+                  <TableCell align="center" sx={{ py: 0.5, whiteSpace: 'nowrap', width: 90, minWidth: 90, maxWidth: 90 }}>
+                    {!disableAdd && (
+                      <Tooltip title="Duplicate">
+                        <IconButton size="small" onClick={() => handleDuplicateRow(rowIndex)}>
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {!disableDelete && (
+                      <Tooltip title="Delete">
+                        <IconButton size="small" onClick={() => handleDeleteRow(rowIndex)} color="error">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </TableCell>
                   {columns.map(col => {
                     const cellValue = getNestedValue(row, col.key);
-                    const cellError = validateField(cellValue, col);
+                    let cellError = validateField(cellValue, col);
+                    
+                    // Add duplicate ID warning
+                    if (col.key === 'id' && typeof cellValue === 'string' && duplicateIds.has(cellValue)) {
+                      cellError = cellError ? `${cellError} | Duplicate ID` : 'Duplicate ID';
+                    }
 
                     // Boolean: always show checkbox inline
                     if (col.type === 'boolean') {
                       return (
-                        <TableCell key={col.key} sx={{ py: 0.5, cursor: 'pointer' }}>
+                        <TableCell 
+                          key={col.key} 
+                          data-row={rowIndex}
+                          data-col={col.key}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                              e.preventDefault();
+                              handleCellChange(rowIndex, col.key, !cellValue);
+                            }
+                          }}
+                          sx={{ 
+                            py: 0.5, 
+                            cursor: 'pointer',
+                            '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
+                          }}
+                        >
                           <Checkbox
                             checked={!!cellValue}
                             size="small"
                             onChange={e => handleCellChange(rowIndex, col.key, e.target.checked)}
+                            tabIndex={-1}
                             sx={{ p: 0 }}
                           />
                         </TableCell>
                       );
                     }
 
-                    // TechTracks: chip display + popover
-                    if (col.type === 'techTracks') {
-                      const tracks = (Array.isArray(cellValue) ? cellValue : []) as string[];
+                    // TechTracks / Multiselect: chip display + popover
+                    if (col.type === 'techTracks' || col.type === 'multiselect') {
+                      const items = (Array.isArray(cellValue) ? cellValue : []) as string[];
                       return (
                         <TableCell
                           key={col.key}
-                          sx={{ py: 0.5, cursor: 'pointer', border: cellError ? '1px solid red' : undefined }}
-                          onClick={e => handleTechTrackClick(e, rowIndex)}
+                          data-row={rowIndex}
+                          data-col={col.key}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                              e.preventDefault();
+                              handlePopoverClick(e as unknown as React.MouseEvent<HTMLElement>, rowIndex, col.key);
+                            }
+                          }}
+                          sx={{ 
+                            py: 0.5, 
+                            cursor: 'pointer', 
+                            border: cellError ? '1px solid red' : undefined,
+                            '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
+                          }}
+                          onClick={e => handlePopoverClick(e, rowIndex, col.key)}
                         >
-                          {tracks.length > 0
-                            ? tracks.map(t => <Chip key={t} label={t} size="small" sx={{ mr: 0.25, height: 20 }} />)
+                          {items.length > 0
+                            ? items.map(t => {
+                                const displayLabel = col.type === 'multiselect' && col.options 
+                                  ? col.options.find(o => o.value === t)?.label || t 
+                                  : t;
+                                return <Chip key={t} label={displayLabel} size="small" sx={{ mr: 0.25, height: 20 }} />;
+                              })
                             : <Typography variant="caption" color="text.disabled">—</Typography>}
                         </TableCell>
                       );
@@ -359,12 +534,23 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                     return (
                       <TableCell
                         key={col.key}
+                        data-row={rowIndex}
+                        data-col={col.key}
+                        tabIndex={0}
+                        onFocus={() => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            startEdit(rowIndex, col.key);
+                          }
+                        }}
                         sx={{
                           py: 0.5,
                           cursor: 'pointer',
                           border: cellError && !isEditing(rowIndex, col.key) ? '1px solid' : undefined,
                           borderColor: cellError && !isEditing(rowIndex, col.key) ? 'error.main' : undefined,
                           '&:hover': { backgroundColor: 'action.hover' },
+                          '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' },
                           width: col.width || 80,
                           minWidth: col.width || 80,
                           maxWidth: col.width || 80,
@@ -382,18 +568,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                       </TableCell>
                     );
                   })}
-                  <TableCell align="right" sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
-                    <Tooltip title="Duplicate">
-                      <IconButton size="small" onClick={() => handleDuplicateRow(rowIndex)}>
-                        <ContentCopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteRow(rowIndex)} color="error">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -401,32 +575,54 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         </Table>
       </TableContainer>
 
-      {/* Tech Track Popover */}
+      {/* Tech Track / Multiselect Popover */}
       <Popover
-        open={!!techTrackAnchor}
-        anchorEl={techTrackAnchor}
-        onClose={() => setTechTrackAnchor(null)}
+        open={!!popoverAnchor}
+        anchorEl={popoverAnchor}
+        onClose={() => setPopoverAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
         <Box sx={{ p: 1.5, maxWidth: 280 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>Tech Tracks</Typography>
-          {ALL_TECH_TRACK_CODES.filter(t => t !== '-').map(track => {
-            const current = techTrackRowIndex >= 0 ? ((rows[techTrackRowIndex]?.techTracks as TechTrack[]) || []) : [];
-            return (
-              <FormControlLabel
-                key={track}
-                control={
-                  <Checkbox
-                    checked={current.includes(track)}
-                    onChange={() => handleTechTrackToggle(track)}
-                    size="small"
-                  />
-                }
-                label={`${track} — ${getTechTrackName(track)}`}
-                sx={{ display: 'block', '& .MuiTypography-root': { fontSize: '0.8rem' } }}
-              />
-            );
-          })}
+          <Typography variant="caption" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+            {popoverColumnKey === 'techTracks' ? 'Tech Tracks' : columns.find(c => c.key === popoverColumnKey)?.label || 'Select Options'}
+          </Typography>
+          {popoverColumnKey === 'techTracks' ? (
+            ALL_TECH_TRACK_CODES.filter(t => t !== '-').map(track => {
+              const current = popoverRowIndex >= 0 ? ((rows[popoverRowIndex]?.techTracks as TechTrack[]) || []) : [];
+              return (
+                <FormControlLabel
+                  key={track}
+                  control={
+                    <Checkbox
+                      checked={current.includes(track)}
+                      onChange={() => handlePopoverToggle(track)}
+                      size="small"
+                    />
+                  }
+                  label={`${track} — ${getTechTrackName(track)}`}
+                  sx={{ display: 'block', '& .MuiTypography-root': { fontSize: '0.8rem' } }}
+                />
+              );
+            })
+          ) : (
+            columns.find(c => c.key === popoverColumnKey)?.options?.map(opt => {
+              const current = popoverRowIndex >= 0 && rows[popoverRowIndex] ? ((rows[popoverRowIndex][popoverColumnKey] as string[]) || []) : [];
+              return (
+                <FormControlLabel
+                  key={opt.value}
+                  control={
+                    <Checkbox
+                      checked={current.includes(opt.value)}
+                      onChange={() => handlePopoverToggle(opt.value)}
+                      size="small"
+                    />
+                  }
+                  label={opt.label}
+                  sx={{ display: 'block', '& .MuiTypography-root': { fontSize: '0.8rem' } }}
+                />
+              );
+            })
+          )}
         </Box>
       </Popover>
 
@@ -439,7 +635,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
       >
         <Box sx={{ maxHeight: 450, overflow: 'auto' }}>
           <Typography variant="caption" fontWeight={600} sx={{ display: 'block', px: 1.5, pt: 1, pb: 0.5 }}>
-            Select a base item to import
+            Select an item to import
           </Typography>
           <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
@@ -453,7 +649,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
               </TableRow>
             </TableHead>
             <TableBody>
-              {(baseData || []).map((item, i) => {
+              {((importSource === 'base' ? baseData : activeModsData) || []).map((item, i) => {
                 const exists = rows.some(r => r.id === item.id);
                 return (
                   <TableRow

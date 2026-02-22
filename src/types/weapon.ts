@@ -6,7 +6,7 @@ export type WeaponCategory = 'beam' | 'projectile' | 'torpedo' | 'special' | 'or
 
 // ============== Mount Types ==============
 
-export type MountType = 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
+export type MountType = string;
 
 /**
  * Mount modifier configuration loaded from JSON
@@ -14,11 +14,16 @@ export type MountType = 'standard' | 'fixed' | 'turret' | 'sponson' | 'bank';
 export interface MountModifier {
   costMultiplier: number;
   hpMultiplier: number;
+  standardArcs?: number;
+  allowsZeroArc?: boolean;
+  allowedCategories?: WeaponCategory[];
+  minProgressLevel?: number;
+  description?: string;
 }
 
 // ============== Gun Configuration ==============
 
-export type GunConfiguration = 'single' | 'twin' | 'triple' | 'quadruple';
+export type GunConfiguration = string;
 
 /**
  * Gun configuration modifier loaded from JSON
@@ -26,6 +31,7 @@ export type GunConfiguration = 'single' | 'twin' | 'triple' | 'quadruple';
 export interface GunConfigModifier {
   effectiveGunCount: number;
   actualGunCount: number;
+  description?: string;
 }
 
 // ============== Firing Arcs ==============

@@ -29,8 +29,8 @@ export function getArmorTypesForShipClass(shipClass: ShipClass): ArmorType[] {
   
   return getAllArmorTypes().filter((armor) => {
     // Find the weight config for this armor's weight
-    const weightConfig = armorWeights.find(w => w.weight === armor.armorWeight);
-    if (!weightConfig) return false;
+    const weightConfig = armorWeights.find(w => w.id === armor.armorWeight);
+    if (!weightConfig) return true; // If weight config is missing, assume it's allowed
     
     // Check if ship class meets minimum requirement for this armor weight
     const minClassIndex = SHIP_CLASS_ORDER.indexOf(weightConfig.minShipClass);
@@ -75,7 +75,7 @@ export function getArmorWeightsForShipClass(shipClass: ShipClass): ArmorWeightCo
  * Calculate hull points required for armor weight
  */
 export function calculateArmorHullPoints(hull: Hull, weight: ArmorWeight): number {
-  const weightConfig = getArmorWeights().find((w) => w.weight === weight);
+  const weightConfig = getArmorWeights().find((w) => w.id === weight);
   if (!weightConfig) return 0;
   
   // Use base hull points (not including bonus) for percentage calculations
@@ -88,7 +88,7 @@ export function calculateArmorHullPoints(hull: Hull, weight: ArmorWeight): numbe
  * For example, light armor uses 0 HP but costs as if it used 2.5% of hull
  */
 export function calculateArmorCostHullPoints(hull: Hull, weight: ArmorWeight): number {
-  const weightConfig = getArmorWeights().find((w) => w.weight === weight);
+  const weightConfig = getArmorWeights().find((w) => w.id === weight);
   if (!weightConfig) return 0;
   
   return Math.max(1, Math.ceil(hull.hullPoints * (weightConfig.costHullPercentage / 100)));

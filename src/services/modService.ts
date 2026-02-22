@@ -75,10 +75,10 @@ export async function setModPriority(folderName: string, priority: number): Prom
 
 /**
  * Create a new mod with the given manifest.
- * Returns true on success.
+ * Returns the folder name on success, or null on failure.
  */
-export async function createMod(manifest: ModManifest): Promise<boolean> {
-  if (!window.electronAPI) return false;
+export async function createMod(manifest: ModManifest): Promise<string | null> {
+  if (!window.electronAPI) return null;
   const folderName = manifest.name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -86,8 +86,9 @@ export async function createMod(manifest: ModManifest): Promise<boolean> {
   const result = await window.electronAPI.createMod(folderName, JSON.stringify(manifest, null, 2));
   if (!result.success) {
     console.error('[ModService] Failed to create mod:', result.error);
+    return null;
   }
-  return result.success;
+  return folderName;
 }
 
 /**

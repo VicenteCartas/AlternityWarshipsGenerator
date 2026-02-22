@@ -2,7 +2,7 @@
     "allowMultipleLayers": false,
     "armorWeights": [
         {
-            "weight": "light",
+            "id": "light",
             "name": "Light Armor",
             "hullPercentage": 0,
             "costHullPercentage": 2.5,
@@ -10,7 +10,7 @@
             "minShipClass": "small-craft"
         },
         {
-            "weight": "medium",
+            "id": "medium",
             "name": "Medium Armor",
             "hullPercentage": 5,
             "costHullPercentage": 5,
@@ -18,7 +18,7 @@
             "minShipClass": "small-craft"
         },
         {
-            "weight": "heavy",
+            "id": "heavy",
             "name": "Heavy Armor",
             "hullPercentage": 10,
             "costHullPercentage": 10,
@@ -26,7 +26,7 @@
             "minShipClass": "light"
         },
         {
-            "weight": "super-heavy",
+            "id": "super-heavy",
             "name": "Super-Heavy Armor",
             "hullPercentage": 20,
             "costHullPercentage": 20,

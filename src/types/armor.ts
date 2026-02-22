@@ -6,7 +6,7 @@ export type { ProgressLevel, TechTrack, DamageType };
 /**
  * Armor weight categories
  */
-export type ArmorWeight = 'light' | 'medium' | 'heavy' | 'super-heavy';
+export type ArmorWeight = string;
 
 /**
  * Armor type definition
@@ -47,8 +47,8 @@ export interface ArmorType {
  * Armor weight configuration
  */
 export interface ArmorWeightConfig {
-  /** Weight category */
-  weight: ArmorWeight;
+  /** Unique identifier */
+  id: ArmorWeight;
   
   /** Display name */
   name: string;

@@ -2,18 +2,12 @@
 
 ## [0.2.6] - Unreleased
 
-### House rules
-
-- Support multiple layers of armors of different categories
-- Add a Thrust gravity option which doesn't consume HP.
-
-### Ideas
+### Bugs
 
 - Bug on assigning and sorting zones.
 
 ### Future ideas
 
-- Mods support.
 - Add stations.
 
 ## [0.2.5] - TODO
@@ -22,12 +16,24 @@
 
 - Save file version is now 1.2. Older saves should migrate automatically.
 
+### Mods
+
+Mod support added.
+
+- You can overwrite any component from Warships.
+- You can create your own custom components and systems.
+- Your custom systems can be added to the Warships data, or can replace it if you want to do a total conversion.
+- Multiple armors in a single ship can be enabled or disabled.
+- Weapon configurations and mounts can be modified.
+- Support systems can be expanded by using HP like launchers.
+
 ### Improvements
 
 - Power Plants and Engine section will show how many HP is 5% of the hull.
 - Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" so it's easier to distinguish them.
 - Fuel tank and power plant/engine chips will explain better what the fuel number represents.
 - Support systems can be made expandable like launchers. Base systems stay as is, but useful for custom mods.
+- Multiple layers of armor can be installed on a ship as a house rule. Disabled by default, but can be enabled with a mod.
 
 ### Fixes
 

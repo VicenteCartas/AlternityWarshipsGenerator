@@ -73,7 +73,7 @@ export function ArmorSelection({
   const weightCounts = useMemo(() => {
     const counts: Record<string, number> = { all: allFilteredByConstraints.length };
     for (const w of availableWeights) {
-      counts[w.weight] = allFilteredByConstraints.filter((a) => a.armorWeight === w.weight).length;
+      counts[w.id] = allFilteredByConstraints.filter((a) => a.armorWeight === w.id).length;
     }
     return counts;
   }, [allFilteredByConstraints, availableWeights]);
@@ -125,15 +125,20 @@ export function ArmorSelection({
       {/* Armor Summary */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          {armorLayers.map((layer) => (
+          {[...armorLayers]
+            .sort((a, b) => a.hullPointsUsed - b.hullPointsUsed)
+            .map((layer) => {
+            const weightConfig = availableWeights.find(w => w.id === layer.weight);
+            const weightName = weightConfig ? weightConfig.name : layer.weight;
+            return (
             <Chip
               key={layer.weight}
-              label={`${layer.type.name} (${layer.weight})`}
+              label={`${layer.type.name} (${weightName})`}
               color="primary"
               variant="filled"
               onDelete={multiLayerAllowed ? () => onArmorRemoveLayer(layer.weight) : undefined}
             />
-          ))}
+          )})}
           <Chip
             label={`HP: ${totalHP > 0 ? `${totalHP} (${((totalHP / hull.hullPoints) * 100).toFixed(1)}%)` : '0'}`}
             color="default"
@@ -165,9 +170,14 @@ export function ArmorSelection({
               </TableRow>
             </TableHead>
             <TableBody>
-              {armorLayers.map((layer) => (
+              {[...armorLayers]
+                .sort((a, b) => a.hullPointsUsed - b.hullPointsUsed)
+                .map((layer) => {
+                const weightConfig = availableWeights.find(w => w.id === layer.weight);
+                const weightName = weightConfig ? weightConfig.name : layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1);
+                return (
                 <TableRow key={layer.weight}>
-                  <TableCell>{layer.weight.charAt(0).toUpperCase() + layer.weight.slice(1)}</TableCell>
+                  <TableCell>{weightName}</TableCell>
                   <TableCell>{layer.type.name}</TableCell>
                   <TableCell align="center" sx={{ fontFamily: 'monospace' }}>{layer.type.protectionLI}</TableCell>
                   <TableCell align="center" sx={{ fontFamily: 'monospace' }}>{layer.type.protectionHI}</TableCell>
@@ -180,7 +190,7 @@ export function ArmorSelection({
                     </IconButton>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </Paper>
@@ -196,8 +206,8 @@ export function ArmorSelection({
         >
           <ToggleButton value="all">All ({weightCounts.all})</ToggleButton>
           {availableWeights.map((w) => (
-            <ToggleButton key={w.weight} value={w.weight}>
-              {w.name} ({weightCounts[w.weight]})
+            <ToggleButton key={w.id} value={w.id}>
+              {w.name} ({weightCounts[w.id]})
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -226,7 +236,7 @@ export function ArmorSelection({
                 const isSelected = armorLayers.some(l => l.type.id === armorType.id);
                 const hullPointsCost = calculateArmorHullPoints(hull, armorType.armorWeight);
                 const rowTotalCost = calculateArmorCost(hull, armorType.armorWeight, armorType);
-                const weightConfig = availableWeights.find(w => w.weight === armorType.armorWeight);
+                const weightConfig = availableWeights.find(w => w.id === armorType.armorWeight);
 
                 return (
                   <TableRow

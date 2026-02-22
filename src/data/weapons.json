@@ -1,10 +1,10 @@
 {
   "mountModifiers": {
-    "standard": { "costMultiplier": 1, "hpMultiplier": 1 },
-    "fixed": { "costMultiplier": 0.75, "hpMultiplier": 0.75 },
-    "turret": { "costMultiplier": 1.25, "hpMultiplier": 1.25 },
-    "sponson": { "costMultiplier": 1.25, "hpMultiplier": 1 },
-    "bank": { "costMultiplier": 1.25, "hpMultiplier": 1 }
+    "standard": { "costMultiplier": 1, "hpMultiplier": 1, "standardArcs": 1, "allowsZeroArc": true },
+    "fixed": { "costMultiplier": 0.75, "hpMultiplier": 0.75, "standardArcs": 1, "allowsZeroArc": false },
+    "turret": { "costMultiplier": 1.25, "hpMultiplier": 1.25, "standardArcs": 3, "allowsZeroArc": true },
+    "sponson": { "costMultiplier": 1.25, "hpMultiplier": 1, "standardArcs": 2, "allowsZeroArc": true },
+    "bank": { "costMultiplier": 1.25, "hpMultiplier": 1, "standardArcs": 3, "allowsZeroArc": true, "allowedCategories": ["beam"], "minProgressLevel": 8 }
   },
   "gunConfigurations": {
     "single": { "effectiveGunCount": 1, "actualGunCount": 1 },

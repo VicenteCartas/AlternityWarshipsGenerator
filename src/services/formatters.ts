@@ -199,7 +199,7 @@ export function getAreaEffectTooltip(area?: AreaEffect): string {
   }
   let tooltip = `Area Effect:\nAmazing: ${area.rangeAmazing}\nGood: ${area.rangeGood}\nOrdinary: ${area.rangeOrdinary}`;
   if (area.notes) {
-    tooltip += `\nType: ${area.notes}`;
+    tooltip += `\nNotes: ${area.notes}`;
   }
   return tooltip;
 }
