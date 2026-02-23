@@ -375,28 +375,19 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   
   // Apply migrations for older save files
   if (saveFile.version !== SAVE_FILE_VERSION) {
+    const originalVersion = saveFile.version;
     const migrationMessages = migrateSaveFile(saveFile);
     if (migrationMessages.length > 0) {
-      warnings.push(`Save file migrated from version ${saveFile.version} to ${SAVE_FILE_VERSION}:`);
+      warnings.push(`Save file migrated from version ${originalVersion} to ${SAVE_FILE_VERSION}:`);
       warnings.push(...migrationMessages);
     } else {
-      warnings.push(`Save file upgraded from version ${saveFile.version} to ${SAVE_FILE_VERSION}.`);
+      warnings.push(`Save file upgraded from version ${originalVersion} to ${SAVE_FILE_VERSION}.`);
     }
   }
   
-  // Check active mods against saved mods
-  const savedMods = saveFile.activeMods || [];
-  if (savedMods.length > 0) {
-    const currentMods = getActiveMods();
-    for (const savedMod of savedMods) {
-      const currentMod = currentMods.find(m => m.manifest.name === savedMod.name);
-      if (!currentMod) {
-        warnings.push(`Mod "${savedMod.name}" (v${savedMod.version}) was active when this ship was saved but is not currently enabled. Some items may be missing.`);
-      } else if (currentMod.manifest.version !== savedMod.version) {
-        warnings.push(`Mod "${savedMod.name}" version differs: saved with v${savedMod.version}, currently v${currentMod.manifest.version}.`);
-      }
-    }
-  }
+  // Note: Mod matching is now handled by the caller (App.tsx loadFromFile)
+  // which calls reloadWithSpecificMods() before deserializeWarship().
+  // The check below is a safety net for any edge cases.
   
   // Load design type and station settings
   const designType: DesignType = (saveFile.designType as DesignType) || 'warship';

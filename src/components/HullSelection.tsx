@@ -22,7 +22,8 @@ import {
   getShipClasses,
 } from '../services/hullService';
 import { formatCost, formatTargetModifier, getShipClassDisplayName } from '../services/formatters';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
+import { TruncatedDescription } from './shared';
 
 interface HullSelectionProps {
   selectedHull: Hull | null;
@@ -95,10 +96,6 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 1: Select {isStation ? 'Station' : 'Hull'}
-      </Typography>
-
       {/* Hull Summary */}
       {selectedHull && (
         <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
@@ -158,21 +155,21 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
       </Box>
 
       {/* Hull Table */}
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined" sx={scrollableTableContainerSx}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 130, whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 100, whiteSpace: 'nowrap' }}>Class</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Type</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Bonus</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Tough</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Target</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 45, whiteSpace: 'nowrap' }}>Mvr</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 115, whiteSpace: 'nowrap' }}>Damage Track</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>Crew</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Cost</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: columnWidths.name }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 100 }}>Class</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 70 }}>Type</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.hp }}>HP</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: 60 }}>Bonus</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 80 }}>Tough</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 90 }}>Target</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: 45 }}>Mvr</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 115 }}>Damage Track</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: 70 }}>Crew</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.cost }}>Cost</TableCell>
               <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
@@ -196,7 +193,7 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
                     },
                   }}
                 >
-                  <TableCell>
+                  <TableCell sx={stickyFirstColumnCellSx}>
                     <Typography variant="body2" fontWeight={isSelected ? 'bold' : 'normal'}>
                       {hull.name}
                     </Typography>
@@ -246,22 +243,7 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
                     <Typography variant="body2">{formatCost(hull.cost)}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Tooltip title={hull.description} placement="left">
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={{ 
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {hull.description}
-                      </Typography>
-                    </Tooltip>
+                    <TruncatedDescription text={hull.description} />
                   </TableCell>
                 </TableRow>
               );

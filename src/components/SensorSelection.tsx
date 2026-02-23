@@ -441,10 +441,6 @@ export function SensorSelection({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 10: Sensors (Required)
-      </Typography>
-
       {/* Summary Section */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

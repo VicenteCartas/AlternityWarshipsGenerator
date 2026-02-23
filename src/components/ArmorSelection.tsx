@@ -32,6 +32,7 @@ import {
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { headerCellSx } from '../constants/tableStyles';
+import { TruncatedDescription } from './shared';
 
 interface ArmorSelectionProps {
   hull: Hull;
@@ -106,10 +107,7 @@ export function ArmorSelection({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Step 2: Select Armor (Optional)
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1 }}>
         {armorLayers.length > 0 && (
           <Button
             variant="outlined"
@@ -302,22 +300,7 @@ export function ArmorSelection({
                       <Typography variant="body2">{formatCost(rowTotalCost)}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={armorType.description} placement="left">
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {armorType.description}
-                        </Typography>
-                      </Tooltip>
+                      <TruncatedDescription text={armorType.description} />
                     </TableCell>
                   </TableRow>
                 );

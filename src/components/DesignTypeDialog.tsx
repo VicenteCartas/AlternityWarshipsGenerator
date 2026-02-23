@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,10 +12,16 @@ import {
   FormControlLabel,
   Checkbox,
   Collapse,
+  Divider,
+  CircularProgress,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import type { DesignType, StationType } from '../types/common';
+import type { Mod } from '../types/mod';
+import { getInstalledMods } from '../services/modService';
+
+const LAST_SELECTED_MODS_KEY = 'alternity-warships-last-selected-mods';
 
 interface DesignTypeDialogProps {
   open: boolean;
@@ -25,6 +31,7 @@ interface DesignTypeDialogProps {
     stationType: StationType | null,
     surfaceProvidesLifeSupport: boolean,
     surfaceProvidesGravity: boolean,
+    selectedMods: Mod[],
   ) => void;
 }
 
@@ -40,12 +47,65 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
   const [surfaceProvidesLifeSupport, setSurfaceProvidesLifeSupport] = useState(true);
   const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(true);
 
+  // Mod selection state
+  const [installedMods, setInstalledMods] = useState<Mod[]>([]);
+  const [selectedModFolders, setSelectedModFolders] = useState<Set<string>>(new Set());
+  const [modsLoading, setModsLoading] = useState(false);
+
+  // Load installed mods when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setModsLoading(true);
+    getInstalledMods().then(mods => {
+      if (cancelled) return;
+      // Sort by priority
+      mods.sort((a, b) => a.priority - b.priority);
+      setInstalledMods(mods);
+      // Restore last selection from localStorage, filtered to currently installed
+      try {
+        const stored = localStorage.getItem(LAST_SELECTED_MODS_KEY);
+        if (stored) {
+          const lastFolders: string[] = JSON.parse(stored);
+          const installedFolderSet = new Set(mods.map(m => m.folderName));
+          const validFolders = lastFolders.filter(f => installedFolderSet.has(f));
+          setSelectedModFolders(new Set(validFolders));
+        } else {
+          setSelectedModFolders(new Set());
+        }
+      } catch {
+        setSelectedModFolders(new Set());
+      }
+      setModsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const handleToggleMod = useCallback((folderName: string) => {
+    setSelectedModFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderName)) {
+        next.delete(folderName);
+      } else {
+        next.add(folderName);
+      }
+      return next;
+    });
+  }, []);
+
   const handleConfirm = () => {
+    // Persist last mod selection
+    localStorage.setItem(LAST_SELECTED_MODS_KEY, JSON.stringify([...selectedModFolders]));
+    // Build the selected Mod[] sorted by priority
+    const selectedMods = installedMods
+      .filter(m => selectedModFolders.has(m.folderName))
+      .sort((a, b) => a.priority - b.priority);
     onConfirm(
       designType,
       designType === 'station' ? stationType : null,
       designType === 'station' && stationType === 'ground-base' ? surfaceProvidesLifeSupport : false,
       designType === 'station' && stationType === 'ground-base' ? surfaceProvidesGravity : false,
+      selectedMods,
     );
   };
 
@@ -157,6 +217,55 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
             </Box>
           </Collapse>
         </Collapse>
+
+        {/* Mod Selection */}
+        {installedMods.length > 0 && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Mods
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Select which mods to use for this design. Mods cannot be changed after creation.
+            </Typography>
+            {modsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+                <CircularProgress size={20} />
+              </Box>
+            ) : (
+              <Box sx={{ pl: 1 }}>
+                {installedMods.map(mod => (
+                  <FormControlLabel
+                    key={mod.folderName}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={selectedModFolders.has(mod.folderName)}
+                        onChange={() => handleToggleMod(mod.folderName)}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" component="span">
+                          {mod.manifest.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: 1 }}>
+                          v{mod.manifest.version}
+                        </Typography>
+                        {mod.manifest.description && (
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 0 }}>
+                            {mod.manifest.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.5 }}
+                  />
+                ))}
+              </Box>
+            )}
+          </>
+        )}
       </DialogContent>
 
       <DialogActions>

@@ -19,6 +19,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import type { Hull } from '../types/hull';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -740,9 +741,6 @@ export function DamageDiagramSelection({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 500 }}>
       {/* Header */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Step 12: Damage Zones (Required)
-        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Assign systems to hit zones. Drag systems from the pool below into zone columns, or use Auto-Assign.
           {selectedIds.size > 0 && ` Click a zone header to assign ${selectedIds.size} selected system(s).`}
@@ -879,9 +877,28 @@ export function DamageDiagramSelection({
                 {/* Zone systems */}
                 <Box sx={{ flex: 1, overflow: 'auto', p: 0.5 }}>
                   {zone.systems.length === 0 ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ p: 1, textAlign: 'center', display: 'block' }}>
-                      Drop systems here
-                    </Typography>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      height: '100%',
+                      minHeight: 80,
+                      p: 1,
+                      border: '2px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      m: 0.5,
+                      opacity: 0.6,
+                    }}>
+                      <VerticalAlignTopIcon sx={{ fontSize: 28, color: 'text.secondary', transform: 'rotate(180deg)', mb: 0.5 }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', lineHeight: 1.3 }}>
+                        Drag from pool below
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', fontSize: '0.6rem' }}>
+                        or select &amp; click header
+                      </Typography>
+                    </Box>
                   ) : (
                     zone.systems.map((sys) => (
                       <Box

@@ -639,7 +639,11 @@ export function OrdnanceSelection({
                 <TableCell>{ls.powerRequired}</TableCell>
                 <TableCell>{ls.capacity}{ls.expandable && '+'}</TableCell>
                 <TableCell>{ls.rateOfFire}</TableCell>
-                <TableCell>{ls.spaceReload ? 'Yes' : 'No'}</TableCell>
+                <TableCell>
+                  <Typography variant="caption" color={ls.spaceReload ? 'success.main' : 'error.main'}>
+                    {ls.spaceReload ? 'Yes' : 'No'}
+                  </Typography>
+                </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(ls.cost)}</TableCell>
                 <TableCell sx={{ textTransform: 'capitalize' }}>{ls.ordnanceTypes.join(', ')}</TableCell>
                 <TableCell sx={{ maxWidth: 250 }}>

@@ -23,7 +23,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
+import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -343,10 +344,7 @@ export function PowerPlantSelection({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Step 3: Power Plant (Required)
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1 }}>
         {(installedPowerPlants.length > 0 || installedFuelTanks.length > 0) && (
           <Button
             variant="outlined"
@@ -818,18 +816,22 @@ export function PowerPlantSelection({
       )}
 
       {/* Power Plant Type Selection Table */}
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined" sx={scrollableTableContainerSx}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 150, whiteSpace: 'nowrap' }}>Name</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Power/HP</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Base Cost</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', width: 90, whiteSpace: 'nowrap' }}>Cost/HP</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 80, whiteSpace: 'nowrap' }}>Min Size</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Fuel</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: columnWidths.name }}>Name</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.pl }}>PL</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: columnWidths.tech }}>Tech</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>Power/HP</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.baseCost }}>Base Cost</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.costPerHp }}>Cost/HP</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.minSize }}>Min Size</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.fuel }}>
+                <Tooltip title="Whether this power plant requires fuel tanks. Fuel tanks provide operational endurance in power-days.">
+                  <span>Fuel</span>
+                </Tooltip>
+              </TableCell>
               <TableCell sx={headerCellSx}>Description</TableCell>
             </TableRow>
           </TableHead>
@@ -853,7 +855,7 @@ export function PowerPlantSelection({
                   }}
                   onClick={() => handleTypeSelect(plant)}
                 >
-                  <TableCell>
+                  <TableCell sx={stickyFirstColumnCellSx}>
                     <Typography
                       variant="body2"
                       fontWeight={isSelected ? 'bold' : 'normal'}
@@ -897,22 +899,7 @@ export function PowerPlantSelection({
                     )}
                   </TableCell>
                   <TableCell>
-                    <Tooltip title={plant.description} placement="left">
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {plant.description}
-                      </Typography>
-                    </Tooltip>
+                    <TruncatedDescription text={plant.description} />
                   </TableCell>
                 </TableRow>
               );

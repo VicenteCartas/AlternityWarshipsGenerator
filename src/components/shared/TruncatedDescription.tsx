@@ -3,6 +3,8 @@ import { truncatedDescriptionSx } from '../../constants/tableStyles';
 
 interface TruncatedDescriptionProps {
   text: string;
+  /** Override tooltip text (defaults to `text`). Useful when tooltip should show extra info like notes. */
+  tooltipText?: string;
   maxLines?: number;
   maxWidth?: number | string;
   sx?: SxProps<Theme>;
@@ -13,12 +15,13 @@ interface TruncatedDescriptionProps {
  */
 export function TruncatedDescription({ 
   text, 
+  tooltipText,
   maxLines = 2, 
   maxWidth,
   sx 
 }: TruncatedDescriptionProps) {
   return (
-    <Tooltip title={text} placement="left">
+    <Tooltip title={tooltipText ?? text} placement="left">
       <Typography
         variant="caption"
         color="text.secondary"

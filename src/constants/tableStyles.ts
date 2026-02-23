@@ -12,6 +12,60 @@ export const headerCellSx = {
 } as const;
 
 /**
+ * Standardized column widths for common columns across all selection tables.
+ * Use these to ensure consistent column sizing for columns with the same title.
+ */
+export const columnWidths = {
+  name: 150,
+  pl: 50,
+  tech: 60,
+  powerPerHp: 90,
+  baseCost: 90,
+  costPerHp: 90,
+  minSize: 80,
+  fuel: 60,
+  cost: 80,
+  hp: 60,
+  description: undefined, // flex fill
+} as const;
+
+/**
+ * Styling for a sticky first column in horizontally-scrollable tables.
+ * Apply to the first <TableCell> in each header and body row.
+ * Requires the parent Table to NOT use tableLayout: 'fixed'.
+ */
+export const stickyFirstColumnHeaderSx = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 3, // above other header cells (zIndex 2 by default for header)
+  bgcolor: 'background.paper',
+} as const;
+
+export const stickyFirstColumnCellSx = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 1,
+  bgcolor: 'background.paper',
+} as const;
+
+/**
+ * Styling for a TableContainer with always-visible horizontal scrollbar.
+ */
+export const scrollableTableContainerSx = {
+  overflowX: 'auto',
+  '&::-webkit-scrollbar': {
+    height: 8,
+  },
+  '&::-webkit-scrollbar-thumb': {
+    bgcolor: 'action.disabled',
+    borderRadius: 4,
+  },
+  '&::-webkit-scrollbar-track': {
+    bgcolor: 'action.hover',
+  },
+} as const;
+
+/**
  * Selectable row styling for data tables
  * Use: <TableRow sx={selectableRowSx} selected={isSelected}>
  */

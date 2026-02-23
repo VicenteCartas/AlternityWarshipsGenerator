@@ -10,7 +10,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Switch,
   IconButton,
   Tooltip,
   Stack,
@@ -86,16 +85,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     await updateModSettings(settings);
     await onModsChanged();
   }, [onModsChanged]);
-
-  const handleToggleEnabled = useCallback(async (mod: Mod) => {
-    setSaving(true);
-    const updated = mods.map(m =>
-      m.folderName === mod.folderName ? { ...m, enabled: !m.enabled } : m
-    );
-    setMods(updated);
-    await persistSettings(updated);
-    setSaving(false);
-  }, [mods, persistSettings]);
 
   const handleMovePriority = useCallback(async (mod: Mod, direction: 'up' | 'down') => {
     const idx = mods.findIndex(m => m.folderName === mod.folderName);
@@ -246,7 +235,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
 
       {/* Description */}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Mods are ordered from lowest to highest priority. Higher priority mods are applied last and win conflicts.
+        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Mods are ordered from lowest to highest priority. Higher priority mods are applied last and win conflicts. Select which mods to use when creating a new design.
       </Typography>
 
       {/* Mods Table */}
@@ -269,7 +258,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                 <TableCell>Author</TableCell>
                 <TableCell sx={{ width: 80 }}>Version</TableCell>
                 <TableCell>Data Files</TableCell>
-                <TableCell sx={{ width: 80 }} align="center">Enabled</TableCell>
                 <TableCell sx={{ width: 150 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -316,14 +304,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                         ? mod.files.map(f => f.replace('.json', '')).join(', ')
                         : 'No data files'}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Switch
-                      checked={mod.enabled}
-                      onChange={() => handleToggleEnabled(mod)}
-                      disabled={saving}
-                      size="small"
-                    />
                   </TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0} justifyContent="flex-end">

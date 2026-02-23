@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Container,
   Box,
@@ -26,12 +26,15 @@ import {
   Checkbox,
   FormControlLabel,
   Divider,
+  Badge,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import SaveIcon from '@mui/icons-material/Save';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { WelcomePage } from './components/WelcomePage';
 import { HullSelection } from './components/HullSelection';
 import { ArmorSelection } from './components/ArmorSelection';
@@ -49,6 +52,8 @@ import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
 import { ModManager } from './components/ModManager';
 import { DesignTypeDialog } from './components/DesignTypeDialog';
+import type { Mod } from './types/mod';
+import { StepHeader } from './components/shared/StepHeader';
 import type { Hull } from './types/hull';
 import type { ArmorType, ArmorWeight, ShipArmor } from './types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
@@ -78,7 +83,8 @@ import { calculateCommandControlStats } from './services/commandControlService';
 import { calculateSensorStats } from './services/sensorService';
 import { calculateHangarMiscStats } from './services/hangarMiscService';
 import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES } from './services/formatters';
-import { loadAllGameData, reloadAllGameData, type DataLoadResult } from './services/dataLoader';
+import { loadAllGameData, reloadAllGameData, reloadWithSpecificMods, type DataLoadResult } from './services/dataLoader';
+import { getInstalledMods } from './services/modService';
 import { 
   serializeWarship, 
   saveFileToJson, 
@@ -91,6 +97,22 @@ import {
 type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
 
 type StepId = 'hull' | 'armor' | 'power' | 'engines' | 'ftl' | 'support' | 'weapons' | 'defenses' | 'sensors' | 'c4' | 'hangars' | 'damage' | 'summary';
+
+const STEP_FULL_NAMES: Record<StepId, string> = {
+  hull: 'Hull',
+  armor: 'Armor',
+  power: 'Power Plant',
+  engines: 'Engines',
+  ftl: 'FTL Drive',
+  support: 'Support Systems',
+  weapons: 'Weapons',
+  defenses: 'Defenses',
+  sensors: 'Sensors',
+  c4: 'Command & Control',
+  hangars: 'Hangars & Miscellaneous',
+  damage: 'Damage Zones',
+  summary: 'Summary',
+};
 
 interface StepDef {
   id: StepId;
@@ -149,6 +171,24 @@ function App() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
   
+  // Stepper scroll state
+  const stepperRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollArrows = useCallback(() => {
+    const el = stepperRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    updateScrollArrows();
+    window.addEventListener('resize', updateScrollArrows);
+    return () => window.removeEventListener('resize', updateScrollArrows);
+  }, [updateScrollArrows]);
+
   // Design type state
   const [designType, setDesignType] = useState<DesignType>('warship');
   const [stationType, setStationType] = useState<StationType | null>(null);
@@ -158,6 +198,28 @@ function App() {
   
   // Compute visible steps based on design type
   const steps = getStepsForDesign(designType, stationType);
+
+  // Re-check stepper scroll arrows when steps change (design type switch)
+  useEffect(() => {
+    const timer = setTimeout(updateScrollArrows, 50);
+    return () => clearTimeout(timer);
+  }, [designType, stationType, updateScrollArrows]);
+
+  // Auto-scroll the active step into view within the stepper
+  useEffect(() => {
+    const container = stepperRef.current;
+    if (!container) return;
+    const buttons = container.querySelectorAll('.MuiStepButton-root');
+    const activeButton = buttons[activeStep] as HTMLElement | undefined;
+    if (!activeButton) return;
+    const containerRect = container.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+    if (buttonRect.left < containerRect.left) {
+      container.scrollBy({ left: buttonRect.left - containerRect.left - 16, behavior: 'smooth' });
+    } else if (buttonRect.right > containerRect.right) {
+      container.scrollBy({ left: buttonRect.right - containerRect.right + 16, behavior: 'smooth' });
+    }
+  }, [activeStep]);
   
   // Get the step ID for the current active index
   const activeStepId = steps[activeStep]?.id;
@@ -196,9 +258,16 @@ function App() {
   const [warshipName, setWarshipName] = useState<string>('New Ship');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   
+  // Unsaved changes tracking
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const skipDirtyCheck = useRef(true);
+  
   // Design constraints - filter available components
   const [designProgressLevel, setDesignProgressLevel] = useState<ProgressLevel>(9);
   const [designTechTracks, setDesignTechTracks] = useState<TechTrack[]>([]);
+  
+  // Per-design active mods (set at creation time or on load, locked during design)
+  const [designActiveMods, setDesignActiveMods] = useState<Mod[]>([]);
   
   // Tech track popover anchor
   const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
@@ -231,6 +300,23 @@ function App() {
 
   // About dialog state
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+
+  // Track design state changes to detect unsaved modifications
+  useEffect(() => {
+    if (skipDirtyCheck.current) {
+      skipDirtyCheck.current = false;
+      return;
+    }
+    if (mode === 'builder') {
+      setHasUnsavedChanges(true);
+    }
+  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,
+    installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
+    installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
+    installedWeapons, ordnanceDesigns, installedLaunchSystems,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    damageDiagramZones, hitLocationChart, warshipName, shipDescription,
+    designProgressLevel, designTechTracks]);
 
   // Sync app mode with Electron to enable/disable menu items
   useEffect(() => {
@@ -270,14 +356,18 @@ function App() {
     setShowDesignTypeDialog(true);
   }, []);
 
-  const handleDesignTypeConfirm = useCallback((
+  const handleDesignTypeConfirm = useCallback(async (
     newDesignType: DesignType,
     newStationType: StationType | null,
     newSurfaceProvidesLifeSupport: boolean,
     newSurfaceProvidesGravity: boolean,
+    selectedMods: Mod[],
   ) => {
     setShowDesignTypeDialog(false);
+    // Apply selected mods for this design
+    await reloadWithSpecificMods(selectedMods);
     // Reset all state for a new design
+    skipDirtyCheck.current = true;
     setActiveStep(0);
     setDesignType(newDesignType);
     setStationType(newStationType);
@@ -309,6 +399,8 @@ function App() {
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
     setDesignTechTracks([]);
+    setDesignActiveMods(selectedMods);
+    setHasUnsavedChanges(false);
     setMode('builder');
   }, []);
 
@@ -324,9 +416,13 @@ function App() {
     await reloadAllGameData();
   }, []);
 
-  const handleModsBack = useCallback(() => {
+  const handleModsBack = useCallback(async () => {
+    // Re-apply the current design's mods to the cache (since reloadAllGameData resets to no mods)
+    if (preModeForMods === 'builder' && designActiveMods.length > 0) {
+      await reloadWithSpecificMods(designActiveMods);
+    }
     setMode(preModeForMods);
-  }, [preModeForMods]);
+  }, [preModeForMods, designActiveMods]);
 
   const handleReturnToStart = useCallback(() => {
     setMode('welcome');
@@ -353,6 +449,33 @@ function App() {
         return false;
       }
 
+      // Match saved mods against installed mods and apply them before deserializing
+      const savedModRefs = saveFile.activeMods || [];
+      const modWarnings: string[] = [];
+      if (savedModRefs.length > 0) {
+        const installed = await getInstalledMods();
+        const matchedMods: Mod[] = [];
+        for (const ref of savedModRefs) {
+          const match = installed.find(m => m.manifest.name === ref.name);
+          if (!match) {
+            modWarnings.push(`Mod "${ref.name}" (v${ref.version}) was active when saved but is not installed. Some items may be missing.`);
+          } else {
+            if (match.manifest.version !== ref.version) {
+              modWarnings.push(`Mod "${ref.name}" version differs: saved with v${ref.version}, currently v${match.manifest.version}.`);
+            }
+            matchedMods.push(match);
+          }
+        }
+        // Sort matched mods by priority
+        matchedMods.sort((a, b) => a.priority - b.priority);
+        await reloadWithSpecificMods(matchedMods);
+        setDesignActiveMods(matchedMods);
+      } else {
+        // No mods in save — apply empty mod set (base data only)
+        await reloadWithSpecificMods([]);
+        setDesignActiveMods([]);
+      }
+
       const loadResult = deserializeWarship(saveFile);
       if (!loadResult.success || !loadResult.state) {
         showNotification(`Failed to load warship: ${loadResult.errors?.join(', ')}`, 'error');
@@ -360,6 +483,7 @@ function App() {
       }
 
       // Apply loaded state
+      skipDirtyCheck.current = true;
       setDesignType(loadResult.state.designType || 'warship');
       setStationType(loadResult.state.stationType || null);
       setSurfaceProvidesLifeSupport(loadResult.state.surfaceProvidesLifeSupport || false);
@@ -392,11 +516,17 @@ function App() {
       setCurrentFilePath(filePath);
       // Add to recent files list
       window.electronAPI.addRecentFile(filePath);
+      setHasUnsavedChanges(false);
       setActiveStep(0);
       setMode('builder');
 
       if (loadResult.warnings && loadResult.warnings.length > 0) {
-        showNotification(`Loaded with warnings: ${loadResult.warnings.join(', ')}`, 'warning');
+        // Combine mod match warnings with deserialize warnings, dedup
+        const allWarnings = [...modWarnings, ...loadResult.warnings];
+        const uniqueWarnings = [...new Set(allWarnings)];
+        showNotification(`Loaded with warnings: ${uniqueWarnings.join(', ')}`, 'warning');
+      } else if (modWarnings.length > 0) {
+        showNotification(`Loaded with warnings: ${modWarnings.join(', ')}`, 'warning');
       } else {
         showNotification(`Loaded: ${loadResult.state.name}`, 'success');
       }
@@ -470,6 +600,7 @@ function App() {
         setCurrentFilePath(filePath);
         // Add to recent files list
         window.electronAPI.addRecentFile(filePath);
+        setHasUnsavedChanges(false);
         showNotification('Warship saved successfully', 'success');
         return true;
       } else {
@@ -1208,6 +1339,7 @@ function App() {
           onNewWarship={handleNewWarship}
           onLoadWarship={handleLoadWarship}
           onManageMods={handleManageMods}
+          onLoadFile={loadFromFile}
         />
         <DesignTypeDialog
           open={showDesignTypeDialog}
@@ -1341,284 +1473,329 @@ function App() {
           </Popover>
           
           <Box sx={{ flexGrow: 1 }} />
-          {selectedHull && (
-            <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
-              {designType === 'station' && stationType && (
-                <Chip
-                  label={getStationTypeDisplayName(stationType)}
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                />
-              )}
-              <Chip
-                label={selectedHull.name}
-                variant="outlined"
-                size="small"
-              />
-              <Chip
-                label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
-                color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
-                variant="outlined"
-                size="small"
-                onClick={(e) => setHpAnchorEl(e.currentTarget)}
-                sx={{ cursor: 'pointer' }}
-              />
-              <Popover
-                open={Boolean(hpAnchorEl)}
-                anchorEl={hpAnchorEl}
-                onClose={() => setHpAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              >
-                <Box sx={{ p: 2, minWidth: 200 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Hull Points Breakdown
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Armor</span><span>{getHPBreakdown().armor} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Power Plants</span><span>{getHPBreakdown().powerPlants} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Engines</span><span>{getHPBreakdown().engines} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>FTL Drive</span><span>{getHPBreakdown().ftlDrive} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Support Systems</span><span>{getHPBreakdown().supportSystems} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Weapons</span><span>{getHPBreakdown().weapons} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Defenses</span><span>{getHPBreakdown().defenses} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>C4</span><span>{getHPBreakdown().commandControl} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Sensors</span><span>{getHPBreakdown().sensors} HP</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Hangars & Misc</span><span>{getHPBreakdown().hangarMisc} HP</span>
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <span>Total Used</span><span>{calculateHullStats(selectedHull).totalHullPoints - getRemainingHullPoints()} HP</span>
-                  </Typography>
-                </Box>
-              </Popover>
-              <Chip
-                label={`Power: ${getTotalPower() - getTotalPowerConsumed()} / ${getTotalPower()}`}
-                color={getTotalPowerConsumed() > getTotalPower() ? 'warning' : 'success'}
-                variant="outlined"
-                size="small"
-                onClick={(e) => setPowerAnchorEl(e.currentTarget)}
-                sx={{ cursor: 'pointer' }}
-              />
-              <Popover
-                open={Boolean(powerAnchorEl)}
-                anchorEl={powerAnchorEl}
-                onClose={() => setPowerAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              >
-                <Box sx={{ p: 2, minWidth: 220 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Power Scenario
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                    Select which systems to include in power calculations
-                  </Typography>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.engines}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, engines: e.target.checked })}
-                      />
-                    }
-                    label={`Engines (${getPowerBreakdown().engines} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.ftlDrive}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, ftlDrive: e.target.checked })}
-                      />
-                    }
-                    label={`FTL Drive (${getPowerBreakdown().ftlDrive} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.supportSystems}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, supportSystems: e.target.checked })}
-                      />
-                    }
-                    label={`Support Systems (${getPowerBreakdown().supportSystems} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.weapons}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, weapons: e.target.checked })}
-                      />
-                    }
-                    label={`Weapons (${getPowerBreakdown().weapons} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.defenses}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, defenses: e.target.checked })}
-                      />
-                    }
-                    label={`Defenses (${getPowerBreakdown().defenses} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.commandControl}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, commandControl: e.target.checked })}
-                      />
-                    }
-                    label={`C4 (${getPowerBreakdown().commandControl} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.sensors}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, sensors: e.target.checked })}
-                      />
-                    }
-                    label={`Sensors (${getPowerBreakdown().sensors} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={powerScenario.hangarMisc}
-                        onChange={(e) => setPowerScenario({ ...powerScenario, hangarMisc: e.target.checked })}
-                      />
-                    }
-                    label={`Hangars & Misc (${getPowerBreakdown().hangarMisc} PP)`}
-                    sx={{ display: 'block', m: 0 }}
-                  />
-                </Box>
-              </Popover>
-              <Chip
-                label={`Cost: ${formatCost(getTotalCost())}`}
-                color="default"
-                variant="outlined"
-                size="small"
-                onClick={(e) => setCostAnchorEl(e.currentTarget)}
-                sx={{ cursor: 'pointer' }}
-              />
-              <Popover
-                open={Boolean(costAnchorEl)}
-                anchorEl={costAnchorEl}
-                onClose={() => setCostAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              >
-                <Box sx={{ p: 2, minWidth: 220 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Cost Breakdown
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Hull</span><span>{formatCost(getCostBreakdown().hull)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Armor</span><span>{formatCost(getCostBreakdown().armor)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Power Plants</span><span>{formatCost(getCostBreakdown().powerPlants)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Engines</span><span>{formatCost(getCostBreakdown().engines)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>FTL Drive</span><span>{formatCost(getCostBreakdown().ftlDrive)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Support Systems</span><span>{formatCost(getCostBreakdown().supportSystems)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Weapons</span><span>{formatCost(getCostBreakdown().weapons)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Defenses</span><span>{formatCost(getCostBreakdown().defenses)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>C4</span><span>{formatCost(getCostBreakdown().commandControl)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Sensors</span><span>{formatCost(getCostBreakdown().sensors)}</span>
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Hangars & Misc</span><span>{formatCost(getCostBreakdown().hangarMisc)}</span>
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <span>Total</span><span>{formatCost(getTotalCost())}</span>
-                  </Typography>
-                </Box>
-              </Popover>
-              {getUniqueTechTracks().length > 0 && (
-                <Chip
-                  label={`Tech: ${getUniqueTechTracks().join(', ')}`}
-                  color="default"
-                  variant="outlined"
-                  size="small"
-                />
-              )}
-            </Box>
-          )}
-          <Tooltip title="Save Warship (Ctrl+S)">
+          <Tooltip title={hasUnsavedChanges ? 'Save Warship (Ctrl+S) \u2022 Unsaved changes' : 'Save Warship (Ctrl+S)'}>
             <IconButton
               color="primary"
               onClick={handleSaveWarship}
             >
-              <SaveIcon />
+              <Badge
+                variant="dot"
+                color="warning"
+                invisible={!hasUnsavedChanges}
+              >
+                <SaveIcon />
+              </Badge>
             </IconButton>
           </Tooltip>
         </Toolbar>
+        {selectedHull && (
+          <Toolbar variant="dense" sx={{ minHeight: 40, gap: 1, borderTop: 1, borderColor: 'divider' }}>
+            {designType === 'station' && stationType && (
+              <Chip
+                label={getStationTypeDisplayName(stationType)}
+                color="primary"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            <Chip
+              label={selectedHull.name}
+              variant="outlined"
+              size="small"
+            />
+            <Chip
+              label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
+              color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
+              variant="outlined"
+              size="small"
+              onClick={(e) => setHpAnchorEl(e.currentTarget)}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Popover
+              open={Boolean(hpAnchorEl)}
+              anchorEl={hpAnchorEl}
+              onClose={() => setHpAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              <Box sx={{ p: 2, minWidth: 200 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Hull Points Breakdown
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Armor</span><span>{getHPBreakdown().armor} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Power Plants</span><span>{getHPBreakdown().powerPlants} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Engines</span><span>{getHPBreakdown().engines} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>FTL Drive</span><span>{getHPBreakdown().ftlDrive} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Support Systems</span><span>{getHPBreakdown().supportSystems} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Weapons</span><span>{getHPBreakdown().weapons} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Defenses</span><span>{getHPBreakdown().defenses} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>C4</span><span>{getHPBreakdown().commandControl} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Sensors</span><span>{getHPBreakdown().sensors} HP</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Hangars & Misc</span><span>{getHPBreakdown().hangarMisc} HP</span>
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                  <span>Total Used</span><span>{calculateHullStats(selectedHull).totalHullPoints - getRemainingHullPoints()} HP</span>
+                </Typography>
+              </Box>
+            </Popover>
+            <Chip
+              label={`Power: ${getTotalPower() - getTotalPowerConsumed()} / ${getTotalPower()}`}
+              color={getTotalPowerConsumed() > getTotalPower() ? 'warning' : 'success'}
+              variant="outlined"
+              size="small"
+              onClick={(e) => setPowerAnchorEl(e.currentTarget)}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Popover
+              open={Boolean(powerAnchorEl)}
+              anchorEl={powerAnchorEl}
+              onClose={() => setPowerAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              <Box sx={{ p: 2, minWidth: 220 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Power Scenario
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  Select which systems to include in power calculations
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.engines}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, engines: e.target.checked })}
+                    />
+                  }
+                  label={`Engines (${getPowerBreakdown().engines} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.ftlDrive}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, ftlDrive: e.target.checked })}
+                    />
+                  }
+                  label={`FTL Drive (${getPowerBreakdown().ftlDrive} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.supportSystems}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, supportSystems: e.target.checked })}
+                    />
+                  }
+                  label={`Support Systems (${getPowerBreakdown().supportSystems} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.weapons}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, weapons: e.target.checked })}
+                    />
+                  }
+                  label={`Weapons (${getPowerBreakdown().weapons} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.defenses}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, defenses: e.target.checked })}
+                    />
+                  }
+                  label={`Defenses (${getPowerBreakdown().defenses} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.commandControl}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, commandControl: e.target.checked })}
+                    />
+                  }
+                  label={`C4 (${getPowerBreakdown().commandControl} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.sensors}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, sensors: e.target.checked })}
+                    />
+                  }
+                  label={`Sensors (${getPowerBreakdown().sensors} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={powerScenario.hangarMisc}
+                      onChange={(e) => setPowerScenario({ ...powerScenario, hangarMisc: e.target.checked })}
+                    />
+                  }
+                  label={`Hangars & Misc (${getPowerBreakdown().hangarMisc} PP)`}
+                  sx={{ display: 'block', m: 0 }}
+                />
+              </Box>
+            </Popover>
+            <Chip
+              label={`Cost: ${formatCost(getTotalCost())}`}
+              color="default"
+              variant="outlined"
+              size="small"
+              onClick={(e) => setCostAnchorEl(e.currentTarget)}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Popover
+              open={Boolean(costAnchorEl)}
+              anchorEl={costAnchorEl}
+              onClose={() => setCostAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              <Box sx={{ p: 2, minWidth: 220 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Cost Breakdown
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Hull</span><span>{formatCost(getCostBreakdown().hull)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Armor</span><span>{formatCost(getCostBreakdown().armor)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Power Plants</span><span>{formatCost(getCostBreakdown().powerPlants)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Engines</span><span>{formatCost(getCostBreakdown().engines)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>FTL Drive</span><span>{formatCost(getCostBreakdown().ftlDrive)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Support Systems</span><span>{formatCost(getCostBreakdown().supportSystems)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Weapons</span><span>{formatCost(getCostBreakdown().weapons)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Defenses</span><span>{formatCost(getCostBreakdown().defenses)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>C4</span><span>{formatCost(getCostBreakdown().commandControl)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Sensors</span><span>{formatCost(getCostBreakdown().sensors)}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Hangars & Misc</span><span>{formatCost(getCostBreakdown().hangarMisc)}</span>
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                  <span>Total</span><span>{formatCost(getTotalCost())}</span>
+                </Typography>
+              </Box>
+            </Popover>
+            {getUniqueTechTracks().length > 0 && (
+              <Chip
+                label={`Tech: ${getUniqueTechTracks().join(', ')}`}
+                color="default"
+                variant="outlined"
+                size="small"
+              />
+            )}
+          </Toolbar>
+        )}
       </AppBar>
 
       {/* Stepper */}
-      <Paper sx={{ px: 3, py: 2, minHeight: 72, position: 'sticky', top: 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider' }} elevation={0}>
-        <Stepper 
-          activeStep={activeStep} 
-          nonLinear 
-          sx={{ 
-            flexWrap: 'wrap',
-            rowGap: 1,
-            '& .MuiStepConnector-root': {
-              flex: '0 0 auto',
-              minWidth: 8,
-              maxWidth: 16,
-            },
-            '& .MuiStepButton-root': { 
-              outline: 'none', 
-              '&:focus': { outline: 'none' }, 
-              '&:focus-visible': { outline: 'none' } 
-            } 
+      <Paper sx={{ position: 'sticky', top: selectedHull ? 105 : 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }} elevation={0}>
+        {/* Left scroll arrow */}
+        <Box
+          onClick={() => {
+            stepperRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+          }}
+          sx={{
+            minWidth: 32,
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: canScrollLeft ? 'pointer' : 'default',
+            opacity: canScrollLeft ? 1 : 0.2,
+            transition: 'opacity 0.2s',
+            '&:hover': canScrollLeft ? { bgcolor: 'action.hover' } : {},
+            pointerEvents: canScrollLeft ? 'auto' : 'none',
+            borderRight: 1,
+            borderColor: 'divider',
+            flexShrink: 0,
           }}
         >
+          <ChevronLeftIcon fontSize="small" />
+        </Box>
+        <Box
+          ref={stepperRef}
+          onScroll={updateScrollArrows}
+          sx={{
+            flex: 1,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            py: 2,
+            px: 1,
+            scrollbarWidth: 'none',
+            '&::-webkit-scrollbar': { display: 'none' },
+          }}
+        >
+          <Stepper 
+            activeStep={activeStep} 
+            nonLinear 
+            sx={{ 
+              flexWrap: 'nowrap',
+              minWidth: 'max-content',
+              '& .MuiStepConnector-root': {
+                flex: '0 0 auto',
+                minWidth: 8,
+                maxWidth: 16,
+              },
+              '& .MuiStepButton-root': { 
+                outline: 'none', 
+                '&:focus': { outline: 'none' }, 
+                '&:focus-visible': { outline: 'none' } 
+              },
+              '& .MuiStepLabel-label': {
+                whiteSpace: 'nowrap',
+              },
+            }}
+          >
           {steps.map((step, index) => {
             // Determine if step is completed
             const isStepCompleted = (() => {
@@ -1691,26 +1868,55 @@ function App() {
               </Step>
             );
           })}
-        </Stepper>
+          </Stepper>
+        </Box>
+        {/* Right scroll arrow */}
+        <Box
+          onClick={() => {
+            stepperRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+          }}
+          sx={{
+            minWidth: 32,
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: canScrollRight ? 'pointer' : 'default',
+            opacity: canScrollRight ? 1 : 0.2,
+            transition: 'opacity 0.2s',
+            '&:hover': canScrollRight ? { bgcolor: 'action.hover' } : {},
+            pointerEvents: canScrollRight ? 'auto' : 'none',
+            borderLeft: 1,
+            borderColor: 'divider',
+            flexShrink: 0,
+          }}
+        >
+          <ChevronRightIcon fontSize="small" />
+        </Box>
       </Paper>
 
       {/* Main Content */}
       <Container maxWidth="xl" sx={{ py: 2, width: '100%' }}>
         <Paper sx={{ p: 3, minHeight: 400, width: '100%', boxSizing: 'border-box' }}>
+          {activeStepId && (
+            <StepHeader
+              stepNumber={activeStep + 1}
+              name={STEP_FULL_NAMES[activeStepId]}
+              isRequired={steps[activeStep]?.required}
+            />
+          )}
           {renderStepContent()}
         </Paper>
 
         {/* Navigation Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-          {activeStep > 0 ? (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+          {activeStep > 0 && (
             <Button
               variant="outlined"
               onClick={handleBack}
             >
               Back
             </Button>
-          ) : (
-            <Box />
           )}
           {activeStep < steps.length - 1 && (
             <Button

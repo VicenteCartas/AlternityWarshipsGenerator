@@ -25,7 +25,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
-import { TabPanel } from './shared';
+import { TabPanel, TruncatedDescription } from './shared';
 import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -559,22 +559,7 @@ export function DefenseSelection({
                     <TableCell align="right">{coverageDisplay}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{defense.effect}</TableCell>
                     <TableCell>
-                      <Tooltip title={defense.description} placement="left">
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {defense.description}
-                        </Typography>
-                      </Tooltip>
+                      <TruncatedDescription text={defense.description} />
                     </TableCell>
                   </TableRow>
                 );
@@ -612,10 +597,6 @@ export function DefenseSelection({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 8: Defenses (Optional)
-      </Typography>
-
       {/* Summary Chips */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

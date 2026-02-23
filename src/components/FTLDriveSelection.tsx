@@ -23,7 +23,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import WarningIcon from '@mui/icons-material/Warning';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
+import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { InstalledPowerPlant } from '../types/powerPlant';
@@ -329,10 +330,7 @@ export function FTLDriveSelection({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Step 5: FTL Drive (Optional)
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1 }}>
         {installedFTLDrive && (
           <Button
             variant="outlined"
@@ -703,7 +701,7 @@ export function FTLDriveSelection({
           component={Paper}
           variant="outlined"
           sx={{
-            overflowX: 'auto',
+            ...scrollableTableContainerSx,
             '& .MuiTable-root': {
               minWidth: 1100,
             }
@@ -712,14 +710,18 @@ export function FTLDriveSelection({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={headerCellSx}>FTL Drive</TableCell>
-                <TableCell align="center" sx={headerCellSx}>PL</TableCell>
-                <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
-                <TableCell align="right" sx={headerCellSx}>Power/HP</TableCell>
-                <TableCell align="right" sx={headerCellSx}>Base Cost</TableCell>
-                <TableCell align="right" sx={headerCellSx}>Cost/HP</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 90 }}>Size</TableCell>
-                <TableCell align="center" sx={headerCellSx}>Fuel</TableCell>
+                <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: columnWidths.name }}>FTL Drive</TableCell>
+                <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.pl }}>PL</TableCell>
+                <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.tech }}>Tech</TableCell>
+                <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>Power/HP</TableCell>
+                <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.baseCost }}>Base Cost</TableCell>
+                <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.costPerHp }}>Cost/HP</TableCell>
+                <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.minSize }}>Size</TableCell>
+                <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.fuel }}>
+                  <Tooltip title="Whether this FTL drive requires fuel tanks. Fuel tanks determine max light-years per jump.">
+                    <span>Fuel</span>
+                  </Tooltip>
+                </TableCell>
                 <TableCell sx={headerCellSx}>Performance</TableCell>
                 <TableCell sx={headerCellSx}>Description</TableCell>
               </TableRow>
@@ -734,7 +736,7 @@ export function FTLDriveSelection({
                     sx={{ cursor: 'pointer' }}
                     onClick={() => handleTypeSelect(drive)}
                   >
-                    <TableCell>
+                    <TableCell sx={stickyFirstColumnCellSx}>
                       <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
                         {drive.name}
                       </Typography>
@@ -788,22 +790,7 @@ export function FTLDriveSelection({
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={drive.description + (drive.notes ? ` (${drive.notes})` : '')} placement="left">
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {drive.description}
-                        </Typography>
-                      </Tooltip>
+                      <TruncatedDescription text={drive.description} tooltipText={drive.description + (drive.notes ? ` (${drive.notes})` : '')} />
                     </TableCell>
                   </TableRow>
                 );
@@ -902,22 +889,7 @@ export function FTLDriveSelection({
                         <Typography variant="body2">{drive.performanceUnit}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={drive.description + (drive.notes ? ` (${drive.notes})` : '')} placement="left">
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              lineHeight: 1.3,
-                            }}
-                          >
-                            {drive.description}
-                          </Typography>
-                        </Tooltip>
+                        <TruncatedDescription text={drive.description} tooltipText={drive.description + (drive.notes ? ` (${drive.notes})` : '')} />
                       </TableCell>
                     </TableRow>
                   );

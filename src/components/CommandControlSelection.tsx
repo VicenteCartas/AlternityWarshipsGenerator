@@ -60,7 +60,7 @@ import {
 } from '../services/commandControlService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, formatCommandControlCost } from '../services/formatters';
-import { TechTrackCell } from './shared';
+import { TechTrackCell, TruncatedDescription } from './shared';
 
 // Quality order for comparison
 const QUALITY_ORDER: Record<string, number> = { 'Ordinary': 1, 'Good': 2, 'Amazing': 3 };
@@ -949,22 +949,7 @@ export function CommandControlSelection({
                     {formatCommandControlCost(system)}
                   </TableCell>
                   <TableCell>
-                    <Tooltip title={system.description} placement="left">
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {system.description}
-                      </Typography>
-                    </Tooltip>
+                    <TruncatedDescription text={system.description} />
                   </TableCell>
                 </TableRow>
               );
@@ -1012,22 +997,7 @@ export function CommandControlSelection({
         </TableCell>
         <TableCell>{system.effect || '-'}</TableCell>
         <TableCell>
-          <Tooltip title={system.description} placement="left">
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: 1.3,
-              }}
-            >
-              {system.description}
-            </Typography>
-          </Tooltip>
+          <TruncatedDescription text={system.description} />
         </TableCell>
       </TableRow>
     );
@@ -1082,10 +1052,6 @@ export function CommandControlSelection({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 9: Command & Control (Required)
-      </Typography>
-
       {/* Summary Chips */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

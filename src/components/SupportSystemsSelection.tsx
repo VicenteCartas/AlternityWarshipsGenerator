@@ -24,7 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
-import { TabPanel } from './shared';
+import { TabPanel, TruncatedDescription } from './shared';
 import { headerCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -551,22 +551,7 @@ export function SupportSystemsSelection({
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
                 <TableCell align="right">{type.coveragePerHullPoint} HP</TableCell>
                 <TableCell>
-                  <Tooltip title={type.description} placement="left">
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {type.description}
-                    </Typography>
-                  </Tooltip>
+                  <TruncatedDescription text={type.description} />
                 </TableCell>
               </TableRow>
             ))}
@@ -835,22 +820,7 @@ export function SupportSystemsSelection({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Tooltip title={type.description} placement="left">
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {type.description}
-                    </Typography>
-                  </Tooltip>
+                  <TruncatedDescription text={type.description} />
                 </TableCell>
               </TableRow>
             ))}
@@ -1144,22 +1114,7 @@ export function SupportSystemsSelection({
                   {type.effect === 'adds-stores' && `+${type.effectValue.toLocaleString()} days`}
                 </TableCell>
                 <TableCell>
-                  <Tooltip title={type.description} placement="left">
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {type.description}
-                    </Typography>
-                  </Tooltip>
+                  <TruncatedDescription text={type.description} />
                 </TableCell>
               </TableRow>
             ))}
@@ -1323,22 +1278,7 @@ export function SupportSystemsSelection({
                         <TableCell>{formatCost(gt.costPerHullPoint)}</TableCell>
                         <TableCell>{formatCost(estCost)}</TableCell>
                         <TableCell>
-                          <Tooltip title={gt.description} placement="left">
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                lineHeight: 1.3,
-                              }}
-                            >
-                              {gt.description}
-                            </Typography>
-                          </Tooltip>
+                          <TruncatedDescription text={gt.description} />
                         </TableCell>
                       </TableRow>
                     );
@@ -1354,10 +1294,6 @@ export function SupportSystemsSelection({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 6: Support Systems (Optional)
-      </Typography>
-
       {/* Surface environment info banners */}
       {(surfaceProvidesLifeSupport || surfaceProvidesGravity) && (
         <Stack spacing={1} sx={{ mb: 2 }}>
@@ -1486,7 +1422,7 @@ export function SupportSystemsSelection({
           <Tab label={`Life Support (${installedLifeSupport.length})`} />
           <Tab label={`Accommodations (${installedAccommodations.length})`} />
           <Tab label={`Stores (${installedStoreSystems.length})`} />
-          {!surfaceProvidesGravity && <Tab label="Gravity" />}
+          {!surfaceProvidesGravity && <Tab label={`Gravity (${installedGravitySystems.length})`} />}
         </Tabs>
       </Box>
 

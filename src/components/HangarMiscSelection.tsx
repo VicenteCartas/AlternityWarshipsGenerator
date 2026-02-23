@@ -579,10 +579,6 @@ export function HangarMiscSelection({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Step 11: Hangars & Miscellaneous (Optional)
-      </Typography>
-
       {/* Summary Chips */}
       <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

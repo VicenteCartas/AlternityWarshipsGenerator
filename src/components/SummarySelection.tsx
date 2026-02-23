@@ -13,6 +13,7 @@ import {
   TableCell,
   TableRow,
   Alert,
+  Chip,
   Card,
   CardMedia,
   List,
@@ -482,10 +483,23 @@ export function SummarySelection({
 
   if (!hull) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
+      <Box>
+        <Alert severity="info" sx={{ mb: 2 }}>
           Please select a hull first to view the summary.
         </Alert>
+        <Typography variant="body2" color="text.secondary">
+          The summary shows a complete overview of your design including:
+        </Typography>
+        <Typography variant="body2" color="text.secondary" component="ul" sx={{ mt: 1 }}>
+          <li><strong>Issues</strong> — Validation errors and warnings that need attention</li>
+          <li><strong>Description</strong> — Ship image and lore text for your design</li>
+          <li><strong>Systems</strong> — Complete breakdown of all installed systems with HP, power, and cost</li>
+          <li><strong>Fire Diagram</strong> — Visual representation of weapon coverage by arc</li>
+          <li><strong>Damage Zones</strong> — Overview of hull toughness, armor, and damage zone assignments</li>
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Go to <strong>Step 1: Hull</strong> to begin your design.
+        </Typography>
       </Box>
     );
   }
@@ -565,6 +579,43 @@ export function SummarySelection({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Step header and overview */}
+      <Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+          <Chip
+            label={`HP: ${stats.usedHP} / ${stats.totalHP}`}
+            size="small"
+            variant="outlined"
+            color={stats.remainingHP < 0 ? 'error' : 'default'}
+          />
+          <Chip
+            label={`Power: ${stats.powerConsumed} / ${stats.powerGenerated}`}
+            size="small"
+            variant="outlined"
+            color={stats.powerBalance < 0 ? 'error' : stats.powerBalance === 0 ? 'warning' : 'success'}
+          />
+          <Chip
+            label={`Cost: ${formatCost(stats.totalCost)}`}
+            size="small"
+            variant="outlined"
+          />
+          {hasIssues && (
+            <Chip
+              label={`${validationIssues.errors.length} error(s), ${validationIssues.warnings.length} warning(s)`}
+              size="small"
+              color={validationIssues.errors.length > 0 ? 'error' : 'warning'}
+            />
+          )}
+          {!hasIssues && (
+            <Chip
+              label="Design valid"
+              size="small"
+              color="success"
+            />
+          )}
+        </Box>
+      </Box>
+
       {/* Tabs and Export Button */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="summary tabs">
