@@ -17,9 +17,8 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckIcon from '@mui/icons-material/Check';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
 import type { Hull } from '../types/hull';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -327,11 +326,13 @@ export function DamageDiagramSelection({
 
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<SystemDamageCategory | 'all'>('all');
+  // Pool sort state
+  const [poolSortMode, setPoolSortMode] = useState<'category' | 'hp' | 'name'>('category');
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  // Collapsible unassigned panel
-  const [unassignedExpanded, setUnassignedExpanded] = useState(true);
+  // Keyboard hints visibility
+  const [showKeyHints, setShowKeyHints] = useState(false);
   // Drag state
   const [draggedSystemId, setDraggedSystemId] = useState<string | null>(null);
   const [dragOverZone, setDragOverZone] = useState<ZoneCode | null>(null);
@@ -429,11 +430,41 @@ export function DamageDiagramSelection({
     return counts;
   }, [allSystems, unassignedSystems]);
 
-  // Filter unassigned systems
+  // Filter and sort unassigned systems
   const filteredUnassignedSystems = useMemo(() => {
-    if (categoryFilter === 'all') return unassignedSystems;
-    return unassignedSystems.filter(s => s.category === categoryFilter);
-  }, [unassignedSystems, categoryFilter]);
+    let systems = categoryFilter === 'all' ? unassignedSystems : unassignedSystems.filter(s => s.category === categoryFilter);
+    if (poolSortMode === 'hp') {
+      systems = [...systems].sort((a, b) => b.hullPoints - a.hullPoints);
+    } else if (poolSortMode === 'name') {
+      systems = [...systems].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // 'category' keeps original order from buildUnassignedSystemsList
+    return systems;
+  }, [unassignedSystems, categoryFilter, poolSortMode]);
+
+  // Compute info about what's being dragged (for capacity warnings + smart suggestions)
+  const dragInfo = useMemo(() => {
+    if (draggedSystemId) {
+      // Dragging from pool — could be single or multi-select
+      if (selectedIds.size > 0 && selectedIds.has(draggedSystemId)) {
+        const systems = unassignedSystems.filter(s => selectedIds.has(s.id));
+        const totalHp = systems.reduce((sum, s) => sum + s.hullPoints, 0);
+        const hasWeaponArcs = systems.some(s => s.category === 'weapon' && s.arcs && s.arcs.length > 0);
+        const weaponArcSets = systems.filter(s => s.category === 'weapon' && s.arcs && s.arcs.length > 0).map(s => s.arcs!);
+        return { totalHp, count: systems.length, hasWeaponArcs, weaponArcSets, fromZoneHp: 0 };
+      }
+      const system = unassignedSystems.find(s => s.id === draggedSystemId);
+      if (system) {
+        const hasWeaponArcs = system.category === 'weapon' && system.arcs && system.arcs.length > 0;
+        return { totalHp: system.hullPoints, count: 1, hasWeaponArcs: !!hasWeaponArcs, weaponArcSets: hasWeaponArcs ? [system.arcs!] : [], fromZoneHp: 0 };
+      }
+    }
+    if (draggedZoneSystem && dragSourceRef.current) {
+      const sys = dragSourceRef.current.systemRef;
+      return { totalHp: sys.hullPoints, count: 1, hasWeaponArcs: false, weaponArcSets: [] as string[][], fromZoneHp: sys.hullPoints };
+    }
+    return null;
+  }, [draggedSystemId, draggedZoneSystem, selectedIds, unassignedSystems]);
 
   // Total systems count
   const totalSystemsCount = useMemo(() => {
@@ -528,6 +559,10 @@ export function DamageDiagramSelection({
       }
       const system = unassignedSystems.find((s) => s.id === systemId);
       if (!system) return;
+      // Block incompatible weapon arc assignments
+      if (system.category === 'weapon' && system.arcs && system.arcs.length > 0) {
+        if (!canWeaponBeInZone(system.arcs, zoneCode)) return;
+      }
       const newRef: ZoneSystemReference = {
         id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
         hullPoints: system.hullPoints, installedSystemId: systemId, firepowerOrder: system.firepowerOrder,
@@ -669,10 +704,19 @@ export function DamageDiagramSelection({
   }, []);
 
   const handleDragOverZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
+    // Check arc compatibility — block drop on incompatible zones
+    if (dragInfo && dragInfo.hasWeaponArcs && dragInfo.weaponArcSets.length > 0) {
+      const anyIncompatible = dragInfo.weaponArcSets.some(arcs => !canWeaponBeInZone(arcs, zoneCode));
+      if (anyIncompatible) {
+        e.dataTransfer.dropEffect = 'none';
+        setDragOverZone(zoneCode);
+        return; // Don't preventDefault — disables the drop
+      }
+    }
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverZone(zoneCode);
-  }, []);
+  }, [dragInfo]);
 
   const handleDragLeaveZone = useCallback(() => {
     setDragOverZone(null);
@@ -733,6 +777,51 @@ export function DamageDiagramSelection({
     }
   }, [selectedIds, handleAssignMultiple]);
 
+  // ============== Keyboard Shortcuts ==============
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if typing in an input field
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      // Escape: clear selection
+      if (e.key === 'Escape') {
+        setSelectedIds(new Set());
+        setLastSelectedId(null);
+        return;
+      }
+
+      // Ctrl+A / Cmd+A: select all filtered unassigned
+      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setSelectedIds(new Set(filteredUnassignedSystems.map(s => s.id)));
+        return;
+      }
+
+      // 'a' without modifier: auto-assign all
+      if (e.key === 'a' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (unassignedSystems.length > 0) {
+          handleAutoAssign();
+        }
+        return;
+      }
+
+      // Number keys 1-9: assign selected to zone N
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= effectiveZones.length && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (selectedIds.size > 0) {
+          const zone = effectiveZones[num - 1];
+          handleAssignMultiple(Array.from(selectedIds), zone.code);
+        }
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [filteredUnassignedSystems, unassignedSystems, effectiveZones, selectedIds, handleAutoAssign, handleAssignMultiple]);
+
   // ============== Render ==============
 
   const allAssigned = unassignedSystems.length === 0;
@@ -741,10 +830,24 @@ export function DamageDiagramSelection({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 500 }}>
       {/* Header */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Assign systems to hit zones. Drag systems from the pool below into zone columns, or use Auto-Assign.
-          {selectedIds.size > 0 && ` Click a zone header to assign ${selectedIds.size} selected system(s).`}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Assign systems to hit zones. Drag from the pool or select &amp; press a zone number key.
+            {selectedIds.size > 0 && ` Click a zone header to assign ${selectedIds.size} selected system(s).`}
+          </Typography>
+          <Tooltip title={showKeyHints
+            ? 'Hide keyboard shortcuts'
+            : '1-N: assign selected to zone, Ctrl+A: select all, A: auto-assign, Esc: deselect'
+          }>
+            <IconButton
+              size="small"
+              onClick={() => setShowKeyHints(prev => !prev)}
+              sx={{ p: 0.25, color: showKeyHints ? 'primary.main' : 'text.secondary' }}
+            >
+              <KeyboardIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
         {/* Category filter chips */}
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -789,9 +892,9 @@ export function DamageDiagramSelection({
             );
           })}
           {unassignedSystems.length > 0 && (
-            <Tooltip title="Auto-assign all systems evenly across zones">
+            <Tooltip title={`Auto-assign all systems evenly across zones${showKeyHints ? ' (A)' : ''}`}>
               <Button size="small" startIcon={<AutoFixHighIcon />} onClick={handleAutoAssign}>
-                Auto-Assign All
+                Auto-Assign All{showKeyHints && <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.7, fontSize: '0.65rem' }}>A</Typography>}
               </Button>
             </Tooltip>
           )}
@@ -803,261 +906,343 @@ export function DamageDiagramSelection({
         </Box>
       </Box>
 
-      {/* Zone columns grid (main area) */}
-      <Box sx={{ flex: 1, overflow: 'auto', mb: 1, minHeight: 0 }}>
-        <Box sx={{ display: 'flex', gap: 1, minWidth: 'max-content', height: '100%', alignItems: 'stretch' }}>
-          {effectiveZones.map((zone) => {
-            const fillPercent = zone.maxHullPoints > 0 ? Math.min(100, (zone.totalHullPoints / zone.maxHullPoints) * 100) : 0;
-            const isOver = zone.totalHullPoints > zone.maxHullPoints;
-            const isEmpty = zone.systems.length === 0;
-            const isDragTarget = dragOverZone === zone.code;
-            const isClickableForAssign = selectedIds.size > 0;
+      {/* Main content: sidebar pool + zone columns */}
+      <Box sx={{ flex: 1, display: 'flex', gap: 1, minHeight: 0 }}>
 
-            return (
-              <Paper
-                key={zone.code}
-                variant="outlined"
-                onDragOver={(e) => handleDragOverZone(e, zone.code)}
-                onDragLeave={handleDragLeaveZone}
-                onDrop={(e) => handleDropOnZone(e, zone.code)}
-                sx={{
-                  width: Math.max(160, Math.floor(900 / effectiveZones.length)),
-                  minWidth: 140,
-                  flexShrink: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  transition: 'box-shadow 0.15s, border-color 0.15s',
-                  borderColor: isDragTarget ? 'primary.main' : isOver ? 'error.main' : 'divider',
-                  borderWidth: isDragTarget ? 2 : 1,
-                  boxShadow: isDragTarget ? 4 : 0,
-                  bgcolor: isDragTarget ? 'action.hover' : 'background.paper',
-                }}
-              >
-                {/* Zone header */}
-                <Box
-                  onClick={() => handleZoneHeaderClick(zone.code)}
-                  sx={{
-                    p: 1,
-                    flexShrink: 0,
-                    cursor: isClickableForAssign ? 'pointer' : 'default',
-                    bgcolor: isOver ? 'error.dark' : isEmpty ? 'warning.dark' : 'grey.800',
-                    color: '#fff',
-                    '&:hover': isClickableForAssign ? { bgcolor: 'primary.dark' } : {},
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: 'inherit' }}>
-                      {zone.code}
-                    </Typography>
-                    {zone.systems.length > 0 && (
-                      <Tooltip title="Clear zone">
-                        <IconButton size="small" sx={{ color: 'inherit', p: 0.25 }} onClick={(e) => { e.stopPropagation(); handleClearZone(zone.code); }}>
-                          <ClearAllIcon sx={{ fontSize: 14 }} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                  <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
-                    {ZONE_NAMES[zone.code]}
-                  </Typography>
-                  <Box sx={{ mt: 0.5 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={fillPercent}
-                      color={isOver ? 'error' : fillPercent >= 90 ? 'warning' : 'primary'}
-                      sx={{ height: 4, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.2)' }}
-                    />
-                    <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
-                      {zone.totalHullPoints}/{zone.maxHullPoints} HP
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Zone systems */}
-                <Box sx={{ flex: 1, overflow: 'auto', p: 0.5 }}>
-                  {zone.systems.length === 0 ? (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      height: '100%',
-                      minHeight: 80,
-                      p: 1,
-                      border: '2px dashed',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      m: 0.5,
-                      opacity: 0.6,
-                    }}>
-                      <VerticalAlignTopIcon sx={{ fontSize: 28, color: 'text.secondary', transform: 'rotate(180deg)', mb: 0.5 }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', lineHeight: 1.3 }}>
-                        Drag from pool below
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', fontSize: '0.6rem' }}>
-                        or select &amp; click header
-                      </Typography>
-                    </Box>
-                  ) : (
-                    zone.systems.map((sys) => (
-                      <Box
-                        key={sys.id}
-                        draggable
-                        onDragStart={(e) => handleDragStartZoneSystem(e, zone.code, sys)}
-                        onDragEnd={handleDragEnd}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.25,
-                          mb: 0.25,
-                          p: 0.5,
-                          borderRadius: 0.5,
-                          bgcolor: CATEGORY_COLORS[sys.systemType],
-                          color: CATEGORY_TEXT_COLORS[sys.systemType],
-                          cursor: 'grab',
-                          opacity: draggedZoneSystem?.refId === sys.id ? 0.4 : 1,
-                          '&:hover': { filter: 'brightness(1.1)' },
-                          '&:active': { cursor: 'grabbing' },
-                        }}
-                      >
-                        <DragIndicatorIcon sx={{ fontSize: 12, opacity: 0.6, flexShrink: 0 }} />
-                        <Tooltip title={`${sys.name} — ${sys.hullPoints} HP (${sys.systemType})`}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              flex: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              fontSize: '0.68rem',
-                              lineHeight: 1.3,
-                              color: 'inherit',
-                            }}
-                          >
-                            {sys.name}
-                          </Typography>
-                        </Tooltip>
-                        <Typography variant="caption" sx={{ flexShrink: 0, fontSize: '0.65rem', opacity: 0.8, color: 'inherit' }}>
-                          {sys.hullPoints}
-                        </Typography>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); handleRemoveFromZone(zone.code, sys.id); }}
-                          sx={{ p: 0.125, color: 'inherit', opacity: 0.6, '&:hover': { opacity: 1 } }}
-                        >
-                          <CloseIcon sx={{ fontSize: 12 }} />
-                        </IconButton>
-                      </Box>
-                    ))
-                  )}
-                </Box>
-              </Paper>
-            );
-          })}
-        </Box>
-      </Box>
-
-      {/* Unassigned systems pool (bottom panel) */}
-      <Paper
-        variant="outlined"
-        sx={{
-          flexShrink: 0,
-          maxHeight: unassignedExpanded ? 280 : 40,
-          transition: 'max-height 0.2s',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* Pool header */}
-        <Box
-          onClick={() => setUnassignedExpanded(!unassignedExpanded)}
+        {/* Left sidebar: Unassigned systems pool */}
+        <Paper
+          variant="outlined"
           sx={{
+            width: 280,
+            minWidth: 220,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Pool header */}
+          <Box sx={{
             display: 'flex',
             alignItems: 'center',
             gap: 1,
             px: 1.5,
             py: 0.5,
-            cursor: 'pointer',
             bgcolor: allAssigned ? 'success.dark' : 'grey.800',
             color: '#fff',
             flexShrink: 0,
-          }}
-        >
-          {allAssigned ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : <WarningIcon sx={{ fontSize: 16 }} />}
-          <Typography variant="subtitle2" sx={{ flex: 1, color: 'inherit' }}>
-            {allAssigned
-              ? 'All systems assigned'
-              : `Unassigned Systems (${unassignedSystems.length} remaining)`
-            }
-          </Typography>
-          {selectedIds.size > 0 && (
-            <Chip label={`${selectedIds.size} selected`} size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem' }} />
-          )}
-          {selectedIds.size > 0 && (
-            <Button size="small" variant="outlined" sx={{ color: 'inherit', borderColor: 'rgba(255,255,255,0.5)', py: 0, minHeight: 22, fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleClearSelection(); }}>
-              Clear
-            </Button>
-          )}
-          {!allAssigned && unassignedExpanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : !allAssigned ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : null}
-        </Box>
+          }}>
+            {allAssigned ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : <WarningIcon sx={{ fontSize: 16 }} />}
+            <Typography variant="subtitle2" sx={{ flex: 1, color: 'inherit', fontSize: '0.8rem' }}>
+              {allAssigned ? 'All assigned' : `Unassigned (${unassignedSystems.length})`}
+            </Typography>
+          </Box>
 
-        {/* Pool content */}
-        {unassignedExpanded && !allAssigned && (
-          <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
-            {filteredUnassignedSystems.length === 0 ? (
-              <Alert severity="info" sx={{ py: 0.5 }}>
-                All {CATEGORY_FILTERS.find(f => f.key === categoryFilter)?.label.toLowerCase()} assigned.
-              </Alert>
-            ) : (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {filteredUnassignedSystems.map((system) => {
-                  const isSelected = selectedIds.has(system.id);
-                  const isDragging = draggedSystemId === system.id;
-                  return (
-                    <Tooltip
-                      key={system.id}
-                      title={`${system.name} — ${system.hullPoints} HP${system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}`}
-                    >
-                      <Chip
-                        draggable
-                        onDragStart={(e) => handleDragStartUnassigned(e, system.id)}
-                        onDragEnd={handleDragEnd}
-                        onClick={(e) => handleRowClick(system.id, e)}
-                        icon={<DragIndicatorIcon sx={{ fontSize: 14 }} />}
-                        label={
-                          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{
-                              display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                              bgcolor: CATEGORY_COLORS[system.category], flexShrink: 0,
-                            }} />
-                            <Typography component="span" variant="caption" sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {system.name}
-                            </Typography>
-                            <Typography component="span" variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                              {system.hullPoints}HP
-                            </Typography>
-                          </Box>
-                        }
-                        size="small"
-                        variant={isSelected ? 'filled' : 'outlined'}
-                        color={isSelected ? 'primary' : 'default'}
+          {/* Pool content */}
+          {!allAssigned ? (
+            <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+              {/* Selection & sort controls */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.75, alignItems: 'center' }}>
+                {selectedIds.size > 0 && (
+                  <>
+                    <Chip label={`${selectedIds.size} sel`} size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    <Button size="small" variant="text" onClick={handleClearSelection} sx={{ py: 0, minHeight: 20, fontSize: '0.7rem', minWidth: 0 }}>
+                      Clear{showKeyHints && <Typography component="span" variant="caption" sx={{ ml: 0.25, opacity: 0.7, fontSize: '0.6rem' }}>Esc</Typography>}
+                    </Button>
+                    <Box sx={{ flex: 1 }} />
+                  </>
+                )}
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Sort:</Typography>
+                {(['category', 'hp', 'name'] as const).map(mode => (
+                  <Chip
+                    key={mode}
+                    label={mode === 'hp' ? 'HP \u2193' : mode === 'category' ? 'Cat' : 'Name'}
+                    size="small"
+                    variant={poolSortMode === mode ? 'filled' : 'outlined'}
+                    color={poolSortMode === mode ? 'primary' : 'default'}
+                    onClick={() => setPoolSortMode(mode)}
+                    sx={{ height: 20, fontSize: '0.65rem', cursor: 'pointer' }}
+                  />
+                ))}
+              </Box>
+
+              {showKeyHints && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontSize: '0.65rem', lineHeight: 1.3 }}>
+                  Ctrl+A: select all &bull; Esc: deselect
+                </Typography>
+              )}
+
+              {filteredUnassignedSystems.length === 0 ? (
+                <Alert severity="info" sx={{ py: 0.5 }}>
+                  All {CATEGORY_FILTERS.find(f => f.key === categoryFilter)?.label.toLowerCase()} assigned.
+                </Alert>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {filteredUnassignedSystems.map((system) => {
+                    const isSelected = selectedIds.has(system.id);
+                    const isDragging = draggedSystemId === system.id;
+                    return (
+                      <Tooltip
+                        key={system.id}
+                        title={`${system.name} — ${system.hullPoints} HP${system.arcs && system.arcs.length > 0 ? ` [${formatArcsShort(system.arcs)}]` : ''}`}
+                      >
+                        <Chip
+                          draggable
+                          onDragStart={(e) => handleDragStartUnassigned(e, system.id)}
+                          onDragEnd={handleDragEnd}
+                          onClick={(e) => handleRowClick(system.id, e)}
+                          icon={<DragIndicatorIcon sx={{ fontSize: 14 }} />}
+                          label={
+                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Box component="span" sx={{
+                                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                                bgcolor: CATEGORY_COLORS[system.category], flexShrink: 0,
+                              }} />
+                              <Typography component="span" variant="caption" sx={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {system.name}
+                              </Typography>
+                              <Typography component="span" variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                                {system.hullPoints}HP
+                              </Typography>
+                            </Box>
+                          }
+                          size="small"
+                          variant={isSelected ? 'filled' : 'outlined'}
+                          color={isSelected ? 'primary' : 'default'}
+                          sx={{
+                            cursor: 'grab',
+                            opacity: isDragging ? 0.4 : 1,
+                            '&:active': { cursor: 'grabbing' },
+                            maxWidth: 260,
+                          }}
+                        />
+                      </Tooltip>
+                    );
+                  })}
+                </Box>
+              )}
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, p: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                All systems have been assigned to zones.
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+
+        {/* Right: Zone columns grid */}
+        <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <Box sx={{ display: 'flex', gap: 1, minWidth: 'max-content', height: '100%', alignItems: 'stretch' }}>
+            {effectiveZones.map((zone, zoneIndex) => {
+              const fillPercent = zone.maxHullPoints > 0 ? Math.min(100, (zone.totalHullPoints / zone.maxHullPoints) * 100) : 0;
+              const isOver = zone.totalHullPoints > zone.maxHullPoints;
+              const isEmpty = zone.systems.length === 0;
+              const isDragTarget = dragOverZone === zone.code;
+              const isClickableForAssign = selectedIds.size > 0;
+              const zoneKeyNumber = zoneIndex + 1;
+
+              // Smart suggestions: is this zone compatible with the dragged item?
+              const isDragging = !!(draggedSystemId || draggedZoneSystem);
+              const isSourceZone = draggedZoneSystem?.zoneCode === zone.code;
+              let isIncompatible = false;
+              if (isDragging && dragInfo && !isSourceZone) {
+                // Check weapon arc compatibility
+                if (dragInfo.hasWeaponArcs && dragInfo.weaponArcSets.length > 0) {
+                  isIncompatible = dragInfo.weaponArcSets.some(arcs => !canWeaponBeInZone(arcs, zone.code));
+                }
+              }
+
+              // Capacity warning: projected HP if dropped here
+              const projectedHp = isDragTarget && dragInfo
+                ? zone.totalHullPoints + dragInfo.totalHp - (isSourceZone ? dragInfo.fromZoneHp : 0)
+                : null;
+              const wouldOverflow = projectedHp !== null && projectedHp > zone.maxHullPoints;
+              const remainingAfterDrop = projectedHp !== null ? zone.maxHullPoints - projectedHp : null;
+              // Fill-based border color: green → yellow → orange → red
+              const fillBorderColor = isOver
+                ? '#f44336'
+                : fillPercent >= 90
+                  ? '#ff9800'
+                  : fillPercent >= 50
+                    ? '#ffc107'
+                    : fillPercent > 0
+                      ? '#4caf50'
+                      : undefined;
+
+              return (
+                <Paper
+                  key={zone.code}
+                  variant="outlined"
+                  onDragOver={(e) => handleDragOverZone(e, zone.code)}
+                  onDragLeave={handleDragLeaveZone}
+                  onDrop={(e) => handleDropOnZone(e, zone.code)}
+                  sx={{
+                    width: Math.max(140, Math.floor(800 / effectiveZones.length)),
+                    minWidth: 120,
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.15s',
+                    borderColor: isDragTarget ? (isIncompatible ? 'error.main' : wouldOverflow ? '#ff9800' : 'primary.main') : fillBorderColor ?? 'divider',
+                    borderWidth: isDragTarget ? 2 : fillBorderColor ? 2 : 1,
+                    boxShadow: isDragTarget ? (isIncompatible ? 0 : 4) : 0,
+                    bgcolor: isDragTarget ? (isIncompatible ? 'rgba(244,67,54,0.05)' : 'action.hover') : 'background.paper',
+                    opacity: isDragging && !isDragTarget && (isIncompatible || isSourceZone) ? 0.45 : 1,
+                  }}
+                >
+                  {/* Zone header */}
+                  <Box
+                    onClick={() => handleZoneHeaderClick(zone.code)}
+                    sx={{
+                      p: 1,
+                      flexShrink: 0,
+                      cursor: isClickableForAssign ? 'pointer' : 'default',
+                      bgcolor: isOver ? 'error.dark' : isEmpty ? 'warning.dark' : 'grey.800',
+                      color: '#fff',
+                      '&:hover': isClickableForAssign ? { bgcolor: 'primary.dark' } : {},
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{ color: 'inherit' }}>
+                          {zone.code}
+                        </Typography>
+                        {showKeyHints && (
+                          <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.5, fontSize: '0.65rem', fontFamily: 'monospace' }}>
+                            {zoneKeyNumber}
+                          </Typography>
+                        )}
+                      </Box>
+                      {zone.systems.length > 0 && (
+                        <Tooltip title="Clear zone">
+                          <IconButton size="small" sx={{ color: 'inherit', p: 0.25 }} onClick={(e) => { e.stopPropagation(); handleClearZone(zone.code); }}>
+                            <ClearAllIcon sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
+                      {ZONE_NAMES[zone.code]}
+                    </Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={fillPercent}
                         sx={{
-                          cursor: 'grab',
-                          opacity: isDragging ? 0.4 : 1,
-                          '&:active': { cursor: 'grabbing' },
-                          maxWidth: 280,
+                          height: 4, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.2)',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: isOver ? '#f44336' : fillPercent >= 90 ? '#ff9800' : fillPercent >= 50 ? '#ffc107' : '#4caf50',
+                          },
                         }}
                       />
-                    </Tooltip>
-                  );
-                })}
-              </Box>
-            )}
+                      <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.85 }}>
+                        {isDragTarget && projectedHp !== null ? (
+                          <>
+                            <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5 }}>
+                              {zone.totalHullPoints}
+                            </Box>
+                            <Box component="span" sx={{ color: wouldOverflow ? '#ff6659' : '#81c784', fontWeight: 'bold' }}>
+                              {' → '}{projectedHp}/{zone.maxHullPoints} HP
+                            </Box>
+                            {remainingAfterDrop !== null && (
+                              <Box component="span" sx={{ fontSize: '0.6rem', opacity: 0.7 }}>
+                                {' '}({remainingAfterDrop >= 0 ? `${remainingAfterDrop} free` : `${Math.abs(remainingAfterDrop)} over`})
+                              </Box>
+                            )}
+                          </>
+                        ) : (
+                          `${zone.totalHullPoints}/${zone.maxHullPoints} HP`
+                        )}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Zone systems */}
+                  <Box sx={{ flex: 1, overflow: 'auto', p: 0.5 }}>
+                    {zone.systems.length === 0 ? (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        height: '100%',
+                        minHeight: 80,
+                        p: 1,
+                        border: '2px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        m: 0.5,
+                        opacity: 0.6,
+                      }}>
+                        <VerticalAlignTopIcon sx={{ fontSize: 28, color: 'text.secondary', transform: 'rotate(180deg)', mb: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', lineHeight: 1.3 }}>
+                          Drag from pool
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', fontSize: '0.6rem' }}>
+                          {showKeyHints ? `select & press ${zoneKeyNumber}` : 'or select & click header'}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      zone.systems.map((sys) => (
+                        <Box
+                          key={sys.id}
+                          draggable
+                          onDragStart={(e) => handleDragStartZoneSystem(e, zone.code, sys)}
+                          onDragEnd={handleDragEnd}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.25,
+                            mb: 0.25,
+                            p: 0.5,
+                            borderRadius: 0.5,
+                            bgcolor: CATEGORY_COLORS[sys.systemType],
+                            color: CATEGORY_TEXT_COLORS[sys.systemType],
+                            cursor: 'grab',
+                            opacity: draggedZoneSystem?.refId === sys.id ? 0.4 : 1,
+                            '&:hover': { filter: 'brightness(1.1)' },
+                            '&:active': { cursor: 'grabbing' },
+                          }}
+                        >
+                          <DragIndicatorIcon sx={{ fontSize: 12, opacity: 0.6, flexShrink: 0 }} />
+                          <Tooltip title={`${sys.name} — ${sys.hullPoints} HP (${sys.systemType})`}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                flex: 1,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.68rem',
+                                lineHeight: 1.3,
+                                color: 'inherit',
+                              }}
+                            >
+                              {sys.name}
+                            </Typography>
+                          </Tooltip>
+                          <Typography variant="caption" sx={{ flexShrink: 0, fontSize: '0.65rem', opacity: 0.8, color: 'inherit' }}>
+                            {sys.hullPoints}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveFromZone(zone.code, sys.id); }}
+                            sx={{ p: 0.125, color: 'inherit', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                          >
+                            <CloseIcon sx={{ fontSize: 12 }} />
+                          </IconButton>
+                        </Box>
+                      ))
+                    )}
+                  </Box>
+                </Paper>
+              );
+            })}
           </Box>
-        )}
-      </Paper>
+        </Box>
+      </Box>
     </Box>
   );
 }
