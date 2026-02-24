@@ -17,7 +17,6 @@ import {
   Snackbar,
   Alert,
   TextField,
-  InputAdornment,
   CircularProgress,
   Select,
   MenuItem,
@@ -28,7 +27,6 @@ import {
   Divider,
   Badge,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -321,7 +319,7 @@ function App() {
   // Sync app mode with Electron to enable/disable menu items
   useEffect(() => {
     if (window.electronAPI) {
-      window.electronAPI.setBuilderMode(mode === 'builder');
+      window.electronAPI.setBuilderMode(mode);
     }
   }, [mode]);
 
@@ -395,7 +393,12 @@ function App() {
     setDamageDiagramZones([]);
     setHitLocationChart(null);
     setShipDescription({ lore: '', imageData: null, imageMimeType: null });
-    setWarshipName(newDesignType === 'station' ? 'New Station' : 'New Ship');
+    setWarshipName(
+      newDesignType === 'warship' ? 'New Ship'
+        : newStationType === 'ground-base' ? 'New Base'
+        : newStationType === 'outpost' ? 'New Outpost'
+        : 'New Station'
+    );
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
     setDesignTechTracks([]);
@@ -1346,6 +1349,7 @@ function App() {
           onClose={() => setShowDesignTypeDialog(false)}
           onConfirm={handleDesignTypeConfirm}
         />
+        <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
       </>
     );
   }
@@ -1353,10 +1357,13 @@ function App() {
   // Show mod manager
   if (mode === 'mods') {
     return (
-      <ModManager
-        onBack={handleModsBack}
-        onModsChanged={handleModsChanged}
-      />
+      <>
+        <ModManager
+          onBack={handleModsBack}
+          onModsChanged={handleModsChanged}
+        />
+        <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
+      </>
     );
   }
 
@@ -1366,29 +1373,17 @@ function App() {
       <AppBar position="sticky" color="default" elevation={1} sx={{ top: 0, zIndex: 1200 }}>
         <Toolbar sx={{ minHeight: 64 }}>
           <TextField
+            label="Design Name"
             value={warshipName}
             onChange={(e) => setWarshipName(e.target.value)}
             variant="standard"
-            placeholder="Ship Name"
             sx={{
-              maxWidth: 250,
+              minWidth: 300,
+              maxWidth: 400,
               '& .MuiInput-root': {
                 fontSize: '1.25rem',
                 fontWeight: 500,
               },
-              '& .MuiInput-root:before': {
-                borderBottom: '1px solid transparent',
-              },
-              '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-              },
-            }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <EditIcon fontSize="small" sx={{ color: 'action.disabled' }} />
-                </InputAdornment>
-              ),
             }}
           />
           

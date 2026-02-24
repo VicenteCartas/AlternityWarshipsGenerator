@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Table,
@@ -26,6 +26,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import type { ColumnDef } from '../../services/modEditorSchemas';
 import { validateField } from '../../services/modValidationService';
 import type { TechTrack } from '../../types/common';
@@ -40,6 +42,10 @@ interface EditableDataGridProps {
   activeModsData?: Record<string, unknown>[];
   disableAdd?: boolean;
   disableDelete?: boolean;
+  /** When true, hides all editing controls and makes the grid display-only. */
+  readOnly?: boolean;
+  /** Optional function that returns an sx color string for a row's left-border highlight, or undefined for no highlight. */
+  rowHighlightColor?: (row: Record<string, unknown>, index: number) => string | undefined;
 }
 
 type EditingCell = { rowIndex: number; columnKey: string } | null;
@@ -48,7 +54,7 @@ type EditingCell = { rowIndex: number; columnKey: string } | null;
  * Generic editable data grid for the mod editor.
  * Supports inline cell editing, add/delete/duplicate rows, and import from base.
  */
-export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete }: EditableDataGridProps) {
+export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete, readOnly, rowHighlightColor }: EditableDataGridProps) {
   // Filter activeModsData to only items that differ from base (mod-contributed items)
   const modOnlyData = useMemo(() => {
     if (!activeModsData || !baseData) return activeModsData;
@@ -64,6 +70,58 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
       return JSON.stringify(stripSource(item)) !== JSON.stringify(stripSource(baseItem)); // Changed from base — mod-contributed
     });
   }, [activeModsData, baseData]);
+
+  // --- Undo / Redo ---
+  const MAX_UNDO = 50;
+  const undoStack = useRef<Record<string, unknown>[][]>([]);
+  const redoStack = useRef<Record<string, unknown>[][]>([]);
+  /** Track the latest rows so the keyboard handler always sees fresh data */
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
+  /** Wraps onChange to push current state onto the undo stack */
+  const onChangeWithHistory = useCallback((nextRows: Record<string, unknown>[]) => {
+    undoStack.current = [...undoStack.current.slice(-(MAX_UNDO - 1)), rowsRef.current];
+    redoStack.current = [];
+    onChange(nextRows);
+  }, [onChange]);
+
+  const canUndo = undoStack.current.length > 0;
+  const canRedo = redoStack.current.length > 0;
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.current.length === 0) return;
+    const prev = undoStack.current[undoStack.current.length - 1];
+    undoStack.current = undoStack.current.slice(0, -1);
+    redoStack.current = [...redoStack.current, rowsRef.current];
+    onChange(prev);
+  }, [onChange]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    const next = redoStack.current[redoStack.current.length - 1];
+    redoStack.current = redoStack.current.slice(0, -1);
+    undoStack.current = [...undoStack.current, rowsRef.current];
+    onChange(next);
+  }, [onChange]);
+
+  // Reset stacks when switching sections (columns change)
+  useEffect(() => {
+    undoStack.current = [];
+    redoStack.current = [];
+  }, [columns]);
+
+  // Keyboard shortcuts: Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+        if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo(); }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
 
   const [editingCell, setEditingCell] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState<unknown>('');
@@ -119,9 +177,9 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
     const updated = [...rows];
     updated[rowIndex] = setNestedValue(updated[rowIndex], columnKey, finalValue);
-    onChange(updated);
+    onChangeWithHistory(updated);
     setEditingCell(null);
-  }, [editingCell, editValue, columns, rows, onChange]);
+  }, [editingCell, editValue, columns, rows, onChangeWithHistory]);
 
   const startEdit = useCallback((rowIndex: number, columnKey: string) => {
     const col = columns.find(c => c.key === columnKey);
@@ -183,29 +241,29 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
   const handleAddRow = useCallback(() => {
     const newRow = { ...defaultItem, id: `new-item-${Date.now()}` };
-    onChange([...rows, newRow]);
-  }, [defaultItem, rows, onChange]);
+    onChangeWithHistory([...rows, newRow]);
+  }, [defaultItem, rows, onChangeWithHistory]);
 
   const handleDeleteRow = useCallback((index: number) => {
     const updated = rows.filter((_, i) => i !== index);
-    onChange(updated);
-  }, [rows, onChange]);
+    onChangeWithHistory(updated);
+  }, [rows, onChangeWithHistory]);
 
   const handleDuplicateRow = useCallback((index: number) => {
     const source = rows[index];
     const copy = { ...source, id: `${source.id}-copy-${Date.now()}` };
     const updated = [...rows];
     updated.splice(index + 1, 0, copy);
-    onChange(updated);
-  }, [rows, onChange]);
+    onChangeWithHistory(updated);
+  }, [rows, onChangeWithHistory]);
 
   const handleMoveRow = useCallback((index: number, direction: 'up' | 'down') => {
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
     if (swapIndex < 0 || swapIndex >= rows.length) return;
     const updated = [...rows];
     [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
-    onChange(updated);
-  }, [rows, onChange]);
+    onChangeWithHistory(updated);
+  }, [rows, onChangeWithHistory]);
 
   const handleImportFromBase = useCallback((item: Record<string, unknown>) => {
     // Strip _source tag when importing
@@ -215,12 +273,12 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     if (exists) {
       // Override existing
       const updated = rows.map(r => r.id === cleanItem.id ? { ...cleanItem } : r);
-      onChange(updated);
+      onChangeWithHistory(updated);
     } else {
-      onChange([...rows, { ...cleanItem }]);
+      onChangeWithHistory([...rows, { ...cleanItem }]);
     }
     setImportAnchor(null);
-  }, [rows, onChange]);
+  }, [rows, onChangeWithHistory]);
 
   const handleCellChange = useCallback((rowIndex: number, columnKey: string, value: unknown) => {
     const col = columns.find(c => c.key === columnKey);
@@ -234,8 +292,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
     const updated = [...rows];
     updated[rowIndex] = setNestedValue(updated[rowIndex], columnKey, finalValue);
-    onChange(updated);
-  }, [columns, rows, onChange]);
+    onChangeWithHistory(updated);
+  }, [columns, rows, onChangeWithHistory]);
 
   const renderCellDisplay = (value: unknown, col: ColumnDef) => {
     if (value === undefined || value === null) return <Typography variant="caption" color="text.disabled">—</Typography>;
@@ -437,45 +495,67 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   return (
     <Box>
       {/* Toolbar */}
-      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-        {!disableAdd && (
-          <Button size="small" startIcon={<AddIcon />} onClick={handleAddRow} variant="outlined">
-            Add Row
-          </Button>
-        )}
-        {baseData && baseData.length > 0 && (
-          <Tooltip title="Copy items from the unmodded base game data into your mod for editing. Items with matching IDs will be updated." arrow>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={e => { setImportSource('base'); setImportAnchor(e.currentTarget); }}
-            >
-              Import from Base Game ({baseData.length})
+      {!readOnly && (
+        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+          {!disableAdd && (
+            <Button size="small" startIcon={<AddIcon />} onClick={handleAddRow} variant="outlined">
+              Add Row
             </Button>
+          )}
+          {baseData && baseData.length > 0 && (
+            <Tooltip title="Copy items from the unmodded base game data into your mod for editing. Items with matching IDs will be updated." arrow>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={e => { setImportSource('base'); setImportAnchor(e.currentTarget); }}
+              >
+                Import from Base Game ({baseData.length})
+              </Button>
+            </Tooltip>
+          )}
+          {modOnlyData && modOnlyData.length > 0 && (
+            <Tooltip title="Copy items added or changed by other active mods. Only shows items that differ from the base game." arrow>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={e => { setImportSource('active'); setImportAnchor(e.currentTarget); }}
+              >
+                Import from Active Mods ({modOnlyData.length})
+              </Button>
+            </Tooltip>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+            {rows.length} item{rows.length !== 1 ? 's' : ''}
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          <Tooltip title="Undo (Ctrl+Z)">
+            <span>
+              <IconButton size="small" onClick={handleUndo} disabled={!canUndo}>
+                <UndoIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
-        )}
-        {modOnlyData && modOnlyData.length > 0 && (
-          <Tooltip title="Copy items added or changed by other active mods. Only shows items that differ from the base game." arrow>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={e => { setImportSource('active'); setImportAnchor(e.currentTarget); }}
-            >
-              Import from Active Mods ({modOnlyData.length})
-            </Button>
+          <Tooltip title="Redo (Ctrl+Y)">
+            <span>
+              <IconButton size="small" onClick={handleRedo} disabled={!canRedo}>
+                <RedoIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
-        )}
-        <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
-          {rows.length} item{rows.length !== 1 ? 's' : ''}
+        </Stack>
+      )}
+      {readOnly && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          {rows.length} item{rows.length !== 1 ? 's' : ''} after merge
         </Typography>
-      </Stack>
+      )}
 
       {/* Table */}
       <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 280px)' }}>
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 130, fontWeight: 600, minWidth: 130, maxWidth: 130 }} align="center">Actions</TableCell>
+              {!readOnly && <TableCell sx={{ width: 130, fontWeight: 600, minWidth: 130, maxWidth: 130 }} align="center">Actions</TableCell>}
               {columns.map(col => (
                 <TableCell key={col.key} sx={{ fontWeight: 600, width: col.width || 80, minWidth: col.width || 80, maxWidth: col.width || 80, whiteSpace: 'nowrap' }}>
                   {col.description ? (
@@ -491,24 +571,28 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} align="center">
+                <TableCell colSpan={columns.length + (readOnly ? 0 : 1)} align="center">
                   <Box sx={{ py: 3, px: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      This section is empty.
+                      {readOnly ? 'No items in this section after merge.' : 'This section is empty.'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {!disableAdd && 'Click "Add Row" to create a blank item, or use '}
-                      {!disableAdd && baseData && baseData.length > 0 && '"Import from Base Game" to copy existing items into your mod for editing.'}
-                      {!disableAdd && (!baseData || baseData.length === 0) && '"Add Row" to get started.'}
-                      {disableAdd && baseData && baseData.length > 0 && 'Use "Import from Base Game" to copy the base item into your mod for editing.'}
-                    </Typography>
+                    {!readOnly && (
+                      <Typography variant="caption" color="text.secondary">
+                        {!disableAdd && 'Click "Add Row" to create a blank item, or use '}
+                        {!disableAdd && baseData && baseData.length > 0 && '"Import from Base Game" to copy existing items into your mod for editing.'}
+                        {!disableAdd && (!baseData || baseData.length === 0) && '"Add Row" to get started.'}
+                        {disableAdd && baseData && baseData.length > 0 && 'Use "Import from Base Game" to copy the base item into your mod for editing.'}
+                      </Typography>
+                    )}
                   </Box>
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row, rowIndex) => (
-                <TableRow key={rowIndex} hover sx={{ height: 37 }}>
-                  <TableCell align="center" sx={{ py: 0.5, whiteSpace: 'nowrap', width: 130, minWidth: 130, maxWidth: 130 }}>
+              rows.map((row, rowIndex) => {
+                const highlightColor = rowHighlightColor?.(row, rowIndex);
+                return (
+                <TableRow key={rowIndex} hover sx={{ height: 37, ...(highlightColor ? { borderLeft: `4px solid ${highlightColor}` } : {}) }}>
+                  {!readOnly && <TableCell align="center" sx={{ py: 0.5, whiteSpace: 'nowrap', width: 130, minWidth: 130, maxWidth: 130 }}>
                     {!disableAdd && rows.length > 1 && (
                       <>
                         <Tooltip title="Move up">
@@ -541,7 +625,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                         </IconButton>
                       </Tooltip>
                     )}
-                  </TableCell>
+                  </TableCell>}
                   {columns.map(col => {
                     const cellValue = getNestedValue(row, col.key);
                     let cellError = validateField(cellValue, col);
@@ -558,8 +642,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           key={col.key} 
                           data-row={rowIndex}
                           data-col={col.key}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
+                          tabIndex={readOnly ? -1 : 0}
+                          onKeyDown={readOnly ? undefined : (e) => {
                             if (e.key === ' ' || e.key === 'Enter') {
                               e.preventDefault();
                               handleCellChange(rowIndex, col.key, !cellValue);
@@ -567,14 +651,15 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           }}
                           sx={{ 
                             py: 0.5, 
-                            cursor: 'pointer',
-                            '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
+                            cursor: readOnly ? 'default' : 'pointer',
+                            '&:focus': readOnly ? {} : { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
                           }}
                         >
                           <Checkbox
                             checked={!!cellValue}
                             size="small"
-                            onChange={e => handleCellChange(rowIndex, col.key, e.target.checked)}
+                            disabled={readOnly}
+                            onChange={readOnly ? undefined : e => handleCellChange(rowIndex, col.key, e.target.checked)}
                             tabIndex={-1}
                             sx={{ p: 0 }}
                           />
@@ -590,8 +675,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           key={col.key}
                           data-row={rowIndex}
                           data-col={col.key}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
+                          tabIndex={readOnly ? -1 : 0}
+                          onKeyDown={readOnly ? undefined : (e) => {
                             if (e.key === ' ' || e.key === 'Enter') {
                               e.preventDefault();
                               handlePopoverClick(e as unknown as React.MouseEvent<HTMLElement>, rowIndex, col.key);
@@ -599,11 +684,11 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           }}
                           sx={{ 
                             py: 0.5, 
-                            cursor: 'pointer', 
+                            cursor: readOnly ? 'default' : 'pointer', 
                             border: cellError ? '1px solid red' : undefined,
-                            '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
+                            '&:focus': readOnly ? {} : { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' }
                           }}
-                          onClick={e => handlePopoverClick(e, rowIndex, col.key)}
+                          onClick={readOnly ? undefined : e => handlePopoverClick(e, rowIndex, col.key)}
                         >
                           {items.length > 0
                             ? items.map(t => {
@@ -623,9 +708,9 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                         key={col.key}
                         data-row={rowIndex}
                         data-col={col.key}
-                        tabIndex={0}
-                        onFocus={() => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
-                        onKeyDown={(e) => {
+                        tabIndex={readOnly ? -1 : 0}
+                        onFocus={readOnly ? undefined : () => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
+                        onKeyDown={readOnly ? undefined : (e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             startEdit(rowIndex, col.key);
@@ -633,17 +718,17 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                         }}
                         sx={{
                           py: 0.5,
-                          cursor: 'pointer',
-                          border: cellError && !isEditing(rowIndex, col.key) ? '1px solid' : undefined,
-                          borderColor: cellError && !isEditing(rowIndex, col.key) ? 'error.main' : undefined,
-                          '&:hover': { backgroundColor: 'action.hover' },
-                          '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' },
+                          cursor: readOnly ? 'default' : 'pointer',
+                          border: !readOnly && cellError && !isEditing(rowIndex, col.key) ? '1px solid' : undefined,
+                          borderColor: !readOnly && cellError && !isEditing(rowIndex, col.key) ? 'error.main' : undefined,
+                          '&:hover': readOnly ? {} : { backgroundColor: 'action.hover' },
+                          '&:focus': readOnly ? {} : { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' },
                           width: col.width || 80,
                           minWidth: col.width || 80,
                           maxWidth: col.width || 80,
                           overflow: 'hidden',
                         }}
-                        onClick={() => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
+                        onClick={readOnly ? undefined : () => !isEditing(rowIndex, col.key) && startEdit(rowIndex, col.key)}
                       >
                         {isEditing(rowIndex, col.key)
                           ? renderCellEditor(rowIndex, col)
@@ -662,7 +747,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                     );
                   })}
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

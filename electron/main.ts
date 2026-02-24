@@ -14,8 +14,8 @@ const APP_NAME = 'Alternity Warship Generator';
 
 let mainWindow: BrowserWindow | null = null;
 
-// Track if app is in builder mode (About dialog only available in builder mode)
-let isInBuilderMode = false;
+// Track current app mode to enable/disable menu items contextually
+let currentAppMode: 'loading' | 'welcome' | 'builder' | 'mods' = 'loading';
 
 // Recent files management
 const MAX_RECENT_FILES = 10;
@@ -89,6 +89,9 @@ function createMenu() {
         },
       ];
 
+  const isInMods = currentAppMode === 'mods';
+  const isInBuilder = currentAppMode === 'builder';
+
   const template: MenuItemConstructorOptions[] = [
     // App menu (macOS only)
     ...(isMac ? [{
@@ -110,34 +113,39 @@ function createMenu() {
       label: 'File',
       submenu: [
         {
-          label: 'New Warship',
+          label: 'New Design',
           accelerator: 'CmdOrCtrl+N',
+          enabled: !isInMods,
           click: () => {
             mainWindow?.webContents.send('menu-new-warship');
           },
         },
         {
-          label: 'Load Warship...',
+          label: 'Load Design...',
           accelerator: 'CmdOrCtrl+O',
+          enabled: !isInMods,
           click: () => {
             mainWindow?.webContents.send('menu-load-warship');
           },
         },
         {
-          label: 'Recent Files',
+          label: 'Recent Designs',
+          enabled: !isInMods,
           submenu: recentFilesSubmenu,
         },
         { type: 'separator' },
         {
-          label: 'Save Warship',
+          label: 'Save Design',
           accelerator: 'CmdOrCtrl+S',
+          enabled: isInBuilder,
           click: () => {
             mainWindow?.webContents.send('menu-save-warship');
           },
         },
         {
-          label: 'Save Warship As...',
+          label: 'Save Design As...',
           accelerator: 'CmdOrCtrl+Shift+S',
+          enabled: isInBuilder,
           click: () => {
             mainWindow?.webContents.send('menu-save-warship-as');
           },
@@ -166,11 +174,23 @@ function createMenu() {
             shell.openPath(dataPath);
           },
         },
+        {
+          label: 'View Mod Files',
+          click: () => {
+            const modsDir = getModsDir();
+            if (!fs.existsSync(modsDir)) {
+              fs.mkdirSync(modsDir, { recursive: true });
+            }
+            shell.openPath(modsDir);
+          },
+        },
         { type: 'separator' as const },
-        { role: 'reload' as const },
-        { role: 'forceReload' as const },
-        { role: 'toggleDevTools' as const },
-        { type: 'separator' as const },
+        ...(isDev ? [
+          { role: 'reload' as const },
+          { role: 'forceReload' as const },
+          { role: 'toggleDevTools' as const },
+          { type: 'separator' as const },
+        ] : []),
         { role: 'resetZoom' as const },
         { role: 'zoomIn' as const },
         { role: 'zoomOut' as const },
@@ -200,7 +220,6 @@ function createMenu() {
       submenu: [
         {
           label: 'About',
-          enabled: isInBuilderMode,
           click: () => {
             mainWindow?.webContents.send('menu-show-about');
           },
@@ -210,6 +229,12 @@ function createMenu() {
           label: 'View on GitHub',
           click: () => {
             shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator');
+          },
+        },
+        {
+          label: 'Modding Guide',
+          click: () => {
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator/wiki/Modding-Guide');
           },
         },
         {
@@ -398,8 +423,8 @@ ipcMain.handle('clear-recent-files', async () => {
 });
 
 // App mode management - updates menu state
-ipcMain.handle('set-builder-mode', async (_event, isBuilder: boolean) => {
-  isInBuilderMode = isBuilder;
+ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
+  currentAppMode = mode as 'loading' | 'welcome' | 'builder' | 'mods';
   createMenu(); // Recreate menu with updated enabled state
   return { success: true };
 });

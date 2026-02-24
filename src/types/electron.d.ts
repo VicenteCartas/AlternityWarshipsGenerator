@@ -76,7 +76,7 @@ export interface ElectronAPI {
   clearRecentFiles: () => Promise<FileOperationResult>;
   
   // App mode management
-  setBuilderMode: (isBuilder: boolean) => Promise<FileOperationResult>;
+  setBuilderMode: (mode: string) => Promise<FileOperationResult>;
   
   // Mod system operations
   listMods: () => Promise<ListModsResult>;

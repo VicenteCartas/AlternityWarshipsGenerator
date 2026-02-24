@@ -63,8 +63,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('clear-recent-files'),
   
   // App mode management
-  setBuilderMode: (isBuilder: boolean) =>
-    ipcRenderer.invoke('set-builder-mode', isBuilder),
+  setBuilderMode: (mode: string) =>
+    ipcRenderer.invoke('set-builder-mode', mode),
   
   // Mod system operations
   listMods: () =>

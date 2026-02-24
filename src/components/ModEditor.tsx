@@ -23,6 +23,7 @@ import {
   ListItemText,
   Collapse,
   InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -30,10 +31,14 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import type { Mod, ModDataFileName } from '../types/mod';
 import { getModFileData, saveModFileData, getInstalledMods } from '../services/modService';
 import { EDITOR_SECTIONS, EDITOR_SECTION_GROUPS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
-import { validateRows } from '../services/modValidationService';
+import { validateRows, type ValidationError } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
 import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
 
@@ -110,12 +115,16 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   const [houseRules, setHouseRules] = useState<Record<string, boolean | null>>({});
   const [houseRulesDirty, setHouseRulesDirty] = useState(false);
   const [confirmBackOpen, setConfirmBackOpen] = useState(false);
+  // Validation results dialog
+  const [validationResults, setValidationResults] = useState<{ sectionLabel: string; sectionId: string; errors: ValidationError[] }[] | null>(null);
   // Sidebar groups: which are expanded
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   // Sidebar filter
   const [sidebarFilter, setSidebarFilter] = useState('');
   // Track whether other enabled mods exist (for Import from Active Mods)
   const [hasOtherMods, setHasOtherMods] = useState(false);
+  // Preview merged data toggle
+  const [previewMerged, setPreviewMerged] = useState(false);
 
   // Build a section lookup map
   const sectionMap = useMemo(() => {
@@ -291,6 +300,39 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     return sectionModes[rootKey] ?? 'add';
   }, [sectionModes]);
 
+  /** Compute merged preview data for the active section */
+  const mergedPreviewData = useMemo(() => {
+    if (!previewMerged || !activeSectionId || activeSectionId === 'house-rules') return [];
+    const section = sectionMap.get(activeSectionId);
+    if (!section) return [];
+
+    const modRows = sectionData[activeSectionId] || [];
+    const mode = getSectionMode(section.rootKey);
+
+    if (mode === 'replace') {
+      // In replace mode, only mod items exist — tag them all as mod-sourced
+      return modRows.map(r => ({ ...r, _source: 'mod' }));
+    }
+
+    // Add mode: merge mod items into base (including other enabled mods) by ID
+    const baseRows = getBaseDataForSection(activeSectionId, false);
+    const map = new Map<string, Record<string, unknown>>();
+    for (const item of baseRows) {
+      const key = (item.id as string) || JSON.stringify(item);
+      map.set(key, { ...item, _source: 'base' });
+    }
+    for (const item of modRows) {
+      const key = (item.id as string) || JSON.stringify(item);
+      map.set(key, { ...item, _source: 'mod' });
+    }
+    return Array.from(map.values());
+  }, [previewMerged, activeSectionId, sectionData, sectionMap, getSectionMode]);
+
+  /** Highlight function: mod-sourced rows get a primary color left border */
+  const previewRowHighlight = useCallback((row: Record<string, unknown>) => {
+    return row._source === 'mod' ? '#1976d2' : undefined;
+  }, []);
+
   const handleSave = useCallback(async () => {
     // Validate all dirty sections
     for (const section of EDITOR_SECTIONS) {
@@ -404,6 +446,20 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     }
   }, [sectionData, houseRules, dirtySections, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, sectionModes, manifestDirty, onModsChanged]);
 
+  /** Validate all sections and show results dialog */
+  const handleValidateAll = useCallback(() => {
+    const results: { sectionLabel: string; sectionId: string; errors: ValidationError[] }[] = [];
+    for (const section of EDITOR_SECTIONS) {
+      const rows = sectionData[section.id] || [];
+      if (rows.length === 0) continue;
+      const errors = validateRows(rows, section.columns);
+      if (errors.length > 0) {
+        results.push({ sectionLabel: section.label, sectionId: section.id, errors });
+      }
+    }
+    setValidationResults(results);
+  }, [sectionData]);
+
   const isHouseRulesTab = activeSectionId === 'house-rules';
   const activeSection = isHouseRulesTab ? null : sectionMap.get(activeSectionId) ?? null;
   const hasUnsavedChanges = dirtySections.size > 0 || manifestDirty || houseRulesDirty;
@@ -447,22 +503,21 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.5, letterSpacing: '0.08em' }}>
-            Mod Identity
-          </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={3} alignItems="baseline">
             <TextField
               label="Mod Name"
               value={modName}
               onChange={e => { setModName(e.target.value); setManifestDirty(true); }}
               size="small"
-              sx={{ flexGrow: 1, maxWidth: 350 }}
+              variant="standard"
+              sx={{ flexGrow: 1, maxWidth: 350, '& .MuiInput-root': { fontSize: '1.25rem', fontWeight: 500 } }}
             />
             <TextField
               label="Author"
               value={modAuthor}
               onChange={e => { setModAuthor(e.target.value); setManifestDirty(true); }}
               size="small"
+              variant="standard"
               sx={{ width: 200 }}
             />
             <TextField
@@ -470,7 +525,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               value={version}
               onChange={e => { setVersion(e.target.value); setManifestDirty(true); }}
               size="small"
-              sx={{ width: 120 }}
+              variant="standard"
+              sx={{ width: 100 }}
             />
           </Stack>
           <TextField
@@ -478,6 +534,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
             value={description}
             onChange={e => { setDescription(e.target.value); setManifestDirty(true); }}
             size="small"
+            variant="standard"
             multiline
             maxRows={3}
             fullWidth
@@ -495,6 +552,15 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           >
             {saving ? 'Saving...' : 'Save'}
           </Button>
+          <Tooltip title="Check all sections for validation errors" arrow>
+            <Button
+              variant="outlined"
+              startIcon={<CheckCircleOutlineIcon />}
+              onClick={handleValidateAll}
+            >
+              Validate
+            </Button>
+          </Tooltip>
         </Stack>
       </Box>
 
@@ -655,30 +721,51 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                   exclusive
                   value={getSectionMode(activeSection.rootKey)}
                   onChange={(_e, val) => { if (val) handleSectionModeChange(activeSection.rootKey, val); }}
+                  disabled={previewMerged}
                 >
                   <ToggleButton value="add" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Add to Base</ToggleButton>
                   <ToggleButton value="replace" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Replace Base</ToggleButton>
                 </ToggleButtonGroup>
+                <Box sx={{ flex: 1 }} />
+                <Tooltip title={previewMerged ? 'Return to edit mode' : 'Preview the final merged result (base + mod data)'} arrow>
+                  <Button
+                    size="small"
+                    variant={previewMerged ? 'contained' : 'outlined'}
+                    startIcon={previewMerged ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    onClick={() => setPreviewMerged(prev => !prev)}
+                  >
+                    {previewMerged ? 'Back to Edit' : 'Preview Merged'}
+                  </Button>
+                </Tooltip>
               </Box>
-              {activeSection.description && (
+              {!previewMerged && activeSection.description && (
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                   {activeSection.description}
                 </Typography>
               )}
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
-                {getSectionMode(activeSection.rootKey) === 'add'
-                  ? 'Add mode: Items here are merged with the base game data. If an item shares the same ID as a base item, it overrides the base version.'
-                  : 'Replace mode: This section completely replaces the base game data. Only items listed here will exist in-game.'}
-              </Typography>
+              {!previewMerged && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
+                  {getSectionMode(activeSection.rootKey) === 'add'
+                    ? 'Add mode: Items here are merged with the base game data. If an item shares the same ID as a base item, it overrides the base version.'
+                    : 'Replace mode: This section completely replaces the base game data. Only items listed here will exist in-game.'}
+                </Typography>
+              )}
+              {previewMerged && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
+                  Showing the final merged data that players will see. <Box component="span" sx={{ borderLeft: '4px solid #1976d2', pl: 0.5 }}>Blue-bordered rows</Box> are from this mod.
+                </Typography>
+              )}
               <EditableDataGrid
                 columns={activeSection.columns}
-                rows={sectionData[activeSection.id] || []}
+                rows={previewMerged ? mergedPreviewData : (sectionData[activeSection.id] || [])}
                 onChange={rows => handleSectionDataChange(activeSection.id, rows)}
                 defaultItem={activeSection.defaultItem}
                 baseData={getBaseDataForSection(activeSection.id, true)}
                 activeModsData={hasOtherMods ? getBaseDataForSection(activeSection.id, false) : undefined}
                 disableAdd={activeSection.dataType === 'object'}
                 disableDelete={activeSection.dataType === 'object'}
+                readOnly={previewMerged}
+                rowHighlightColor={previewMerged ? previewRowHighlight : undefined}
               />
             </>
           )}
@@ -696,6 +783,57 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         <DialogActions>
           <Button onClick={() => setConfirmBackOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={onBack}>Discard Changes</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Validation Results Dialog */}
+      <Dialog open={validationResults !== null} onClose={() => setValidationResults(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {validationResults && validationResults.length === 0
+            ? <><CheckCircleOutlineIcon color="success" /> Validation Passed</>
+            : <><ErrorOutlineIcon color="error" /> Validation Errors</>}
+        </DialogTitle>
+        <DialogContent>
+          {validationResults && validationResults.length === 0 ? (
+            <DialogContentText>All sections passed validation. No errors found.</DialogContentText>
+          ) : (
+            <Box>
+              <DialogContentText sx={{ mb: 1 }}>
+                Found {validationResults?.reduce((sum, r) => sum + r.errors.length, 0)} error{(validationResults?.reduce((sum, r) => sum + r.errors.length, 0) ?? 0) !== 1 ? 's' : ''} in {validationResults?.length} section{(validationResults?.length ?? 0) !== 1 ? 's' : ''}:
+              </DialogContentText>
+              {validationResults?.map(({ sectionLabel, sectionId, errors }) => (
+                <Box key={sectionId} sx={{ mb: 1.5 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                    color="primary"
+                    onClick={() => {
+                      setActiveSectionId(sectionId);
+                      for (const group of EDITOR_SECTION_GROUPS) {
+                        if (group.sectionIds.includes(sectionId)) {
+                          setExpandedGroups(prev => new Set(prev).add(group.id));
+                          break;
+                        }
+                      }
+                      setValidationResults(null);
+                    }}
+                  >
+                    {sectionLabel} ({errors.length})
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                    {errors.map((err, i) => (
+                      <Typography component="li" key={i} variant="caption" color="text.secondary">
+                        Row {err.rowIndex + 1}, {err.columnKey}: {err.message}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationResults(null)}>Close</Button>
         </DialogActions>
       </Dialog>
 

@@ -13,3 +13,6 @@ export const GITHUB_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGen
 
 /** GitHub issues URL */
 export const GITHUB_ISSUES_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues';
+
+/** GitHub wiki - Modding Guide */
+export const GITHUB_WIKI_MODS_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGenerator/wiki/Modding-Guide';
