@@ -226,3 +226,30 @@ export function getStationTypeDisplayName(stationType: StationType): string {
     default: return stationType;
   }
 }
+
+/**
+ * Map of data file names to user-friendly display names.
+ */
+const FRIENDLY_FILE_NAMES: Record<string, string> = {
+  'hulls.json': 'Hulls',
+  'armor.json': 'Armor',
+  'powerPlants.json': 'Power Plants',
+  'engines.json': 'Engines',
+  'fuelTank.json': 'Fuel Tank',
+  'ftlDrives.json': 'FTL Drives',
+  'supportSystems.json': 'Support Systems',
+  'weapons.json': 'Weapons',
+  'ordnance.json': 'Ordnance',
+  'defenses.json': 'Defenses',
+  'sensors.json': 'Sensors',
+  'commandControl.json': 'Command & Control',
+  'hangarMisc.json': 'Hangars & Misc',
+  'damageDiagram.json': 'Damage Diagram',
+};
+
+/**
+ * Get a user-friendly display name for a data file.
+ */
+export function getFriendlyFileName(fileName: string): string {
+  return FRIENDLY_FILE_NAMES[fileName] ?? fileName.replace('.json', '');
+}

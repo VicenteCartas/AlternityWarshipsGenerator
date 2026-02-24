@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,12 +14,15 @@ import {
   Collapse,
   Divider,
   CircularProgress,
+  Alert,
+  Chip,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import type { DesignType, StationType } from '../types/common';
 import type { Mod } from '../types/mod';
 import { getInstalledMods } from '../services/modService';
+import { getFriendlyFileName } from '../services/formatters';
 
 const LAST_SELECTED_MODS_KEY = 'alternity-warships-last-selected-mods';
 
@@ -51,6 +54,12 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
   const [installedMods, setInstalledMods] = useState<Mod[]>([]);
   const [selectedModFolders, setSelectedModFolders] = useState<Set<string>>(new Set());
   const [modsLoading, setModsLoading] = useState(false);
+
+  // Filter out mods with no data files (#6)
+  const selectableMods = useMemo(
+    () => installedMods.filter(m => m.files.length > 0),
+    [installedMods],
+  );
 
   // Load installed mods when dialog opens
   useEffect(() => {
@@ -219,22 +228,22 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
         </Collapse>
 
         {/* Mod Selection */}
-        {installedMods.length > 0 && (
+        {selectableMods.length > 0 && (
           <>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Mods
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Select which mods to use for this design. Mods cannot be changed after creation.
-            </Typography>
+            <Alert severity="warning" variant="outlined" sx={{ mb: 1.5 }}>
+              Mod selection is permanent — you cannot add or remove mods after the design is created.
+            </Alert>
             {modsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
                 <CircularProgress size={20} />
               </Box>
             ) : (
               <Box sx={{ pl: 1 }}>
-                {installedMods.map(mod => (
+                {selectableMods.map(mod => (
                   <FormControlLabel
                     key={mod.folderName}
                     control={
@@ -257,6 +266,17 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
                             {mod.manifest.description}
                           </Typography>
                         )}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                          {mod.files.map(f => (
+                            <Chip
+                              key={f}
+                              label={getFriendlyFileName(f)}
+                              size="small"
+                              variant="outlined"
+                              sx={{ height: 20, fontSize: '0.7rem' }}
+                            />
+                          ))}
+                        </Box>
                       </Box>
                     }
                     sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.5 }}

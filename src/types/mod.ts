@@ -14,7 +14,8 @@ export interface ModManifest {
   author: string;
   version: string;
   description: string;
-  /** Per-file merge mode. "add" = merge with base; "replace" = override base. Defaults to "add" if not specified. */
+  /** Per-section merge mode, keyed by rootKey (e.g. "beamWeapons", "hulls").
+   * "add" = merge with base; "replace" = override base. Defaults to "add" if not specified. */
   fileModes?: Partial<Record<string, 'add' | 'replace'>>;
 }
 

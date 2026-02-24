@@ -19,6 +19,9 @@ import {
   DialogActions,
   TextField,
   CircularProgress,
+  Switch,
+  Chip,
+  Collapse,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
@@ -29,6 +32,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { Mod, ModManifest } from '../types/mod';
 import {
   getInstalledMods,
@@ -37,10 +42,14 @@ import {
   deleteMod,
   exportMod,
   importMod,
+  setModEnabled,
   getModsDirectoryPath,
 } from '../services/modService';
+import { getSectionsForFile } from '../services/modEditorSchemas';
+import type { ModDataFileName } from '../types/mod';
 import { ModEditor } from './ModEditor';
 import type { ModSettings } from '../types/mod';
+
 
 interface ModManagerProps {
   onBack: () => void;
@@ -54,6 +63,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const [deleteConfirmMod, setDeleteConfirmMod] = useState<Mod | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingMod, setEditingMod] = useState<Mod | null>(null);
+  const [expandedMod, setExpandedMod] = useState<string | null>(null);
 
   // Create dialog state
   const [newModName, setNewModName] = useState('');
@@ -85,6 +95,14 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     await updateModSettings(settings);
     await onModsChanged();
   }, [onModsChanged]);
+
+  const handleToggleEnabled = useCallback(async (mod: Mod) => {
+    setSaving(true);
+    await setModEnabled(mod.folderName, !mod.enabled);
+    await loadMods();
+    await onModsChanged();
+    setSaving(false);
+  }, [loadMods, onModsChanged]);
 
   const handleMovePriority = useCallback(async (mod: Mod, direction: 'up' | 'down') => {
     const idx = mods.findIndex(m => m.folderName === mod.folderName);
@@ -235,7 +253,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
 
       {/* Description */}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Mods are ordered from lowest to highest priority. Higher priority mods are applied last and win conflicts. Select which mods to use when creating a new design.
+        Mods customize the game data used by the ship builder. Each data section within a mod can be set to &quot;Add&quot; (merge with base data) or &quot;Replace&quot; (override base data). Mods are applied in priority order from #1 upward — higher-numbered mods are applied last and win conflicts when multiple mods change the same item. Select which mods to use when creating a new design.
       </Typography>
 
       {/* Mods Table */}
@@ -253,84 +271,146 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 80 }}>Priority</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell sx={{ width: 80 }}>Version</TableCell>
-                <TableCell>Data Files</TableCell>
+                <TableCell sx={{ width: 60 }}>Enabled</TableCell>
+                <TableCell sx={{ width: 110 }}>
+                  <Tooltip title="Higher-numbered mods are applied last and win conflicts" placement="top">
+                    <span>Priority</span>
+                  </Tooltip>
+                </TableCell>
+                <TableCell>Mod</TableCell>
                 <TableCell sx={{ width: 150 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {mods.map((mod, idx) => (
-                <TableRow key={mod.folderName} hover>
-                  <TableCell>
-                    <Stack direction="row" spacing={0} alignItems="center">
-                      <IconButton
+              {mods.map((mod, idx) => {
+                const isExpanded = expandedMod === mod.folderName;
+                const sectionLabels = mod.files.flatMap(f => {
+                  const sections = getSectionsForFile(f as ModDataFileName);
+                  return sections.map(s => {
+                    const mode = mod.manifest.fileModes?.[s.rootKey];
+                    return { label: s.label, mode: mode || 'add' };
+                  });
+                });
+
+                return (
+                  <TableRow key={mod.folderName} hover sx={{ opacity: mod.enabled ? 1 : 0.5, verticalAlign: 'top' }}>
+                    <TableCell sx={{ pt: 1.5 }}>
+                      <Switch
                         size="small"
-                        onClick={() => handleMovePriority(mod, 'up')}
-                        disabled={idx === 0 || saving}
-                      >
-                        <ArrowUpwardIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleMovePriority(mod, 'down')}
-                        disabled={idx === mods.length - 1 || saving}
-                      >
-                        <ArrowDownwardIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
-                      {mod.manifest.name}
-                    </Typography>
-                    {mod.manifest.description && (
-                      <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 300 }}>
-                        {mod.manifest.description}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{mod.manifest.author || '—'}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{mod.manifest.version}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {mod.files.length > 0
-                        ? mod.files.map(f => f.replace('.json', '')).join(', ')
-                        : 'No data files'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={0} justifyContent="flex-end">
-                      <Tooltip title="Edit mod data">
-                        <IconButton size="small" onClick={() => setEditingMod(mod)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Export to .altmod.json">
-                        <IconButton size="small" onClick={() => handleExportMod(mod)}>
-                          <FileDownloadIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete mod">
+                        checked={mod.enabled}
+                        onChange={() => handleToggleEnabled(mod)}
+                        disabled={saving}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ pt: 1.5 }}>
+                      <Stack direction="row" spacing={0} alignItems="center">
+                        <Typography variant="body2" sx={{ minWidth: 24, textAlign: 'center', fontWeight: 500 }}>
+                          {idx + 1}
+                        </Typography>
                         <IconButton
                           size="small"
-                          onClick={() => setDeleteConfirmMod(mod)}
-                          disabled={saving}
-                          color="error"
+                          onClick={() => handleMovePriority(mod, 'up')}
+                          disabled={idx === 0 || saving}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <ArrowUpwardIcon fontSize="small" />
                         </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        <IconButton
+                          size="small"
+                          onClick={() => handleMovePriority(mod, 'down')}
+                          disabled={idx === mods.length - 1 || saving}
+                        >
+                          <ArrowDownwardIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => setExpandedMod(isExpanded ? null : mod.folderName)}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Typography variant="body2" fontWeight={500}>
+                            {mod.manifest.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            v{mod.manifest.version}
+                          </Typography>
+                          {mod.manifest.author && (
+                            <Typography variant="caption" color="text.secondary">
+                              by {mod.manifest.author}
+                            </Typography>
+                          )}
+                          {mod.files.length === 0 && (
+                            <Chip label="No data" size="small" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          )}
+                          {isExpanded ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+                        </Stack>
+                      </Box>
+                      <Collapse in={isExpanded}>
+                        <Box sx={{ mt: 1, mb: 0.5 }}>
+                          {mod.manifest.description && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              {mod.manifest.description}
+                            </Typography>
+                          )}
+                          {sectionLabels.length > 0 ? (
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                                Modified sections:
+                              </Typography>
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                {sectionLabels.map((s, i) => (
+                                  <Chip
+                                    key={i}
+                                    label={s.label}
+                                    size="small"
+                                    variant="outlined"
+                                    color={s.mode === 'replace' ? 'warning' : 'default'}
+                                    sx={{ height: 20, fontSize: '0.7rem' }}
+                                  />
+                                ))}
+                              </Stack>
+                              {sectionLabels.some(s => s.mode === 'replace') && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  Orange = replaces base data
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              This mod has no data files yet. Click Edit to add content.
+                            </Typography>
+                          )}
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                    <TableCell align="right" sx={{ pt: 1.5 }}>
+                      <Stack direction="row" spacing={0} justifyContent="flex-end">
+                        <Tooltip title="Edit mod data">
+                          <IconButton size="small" onClick={() => setEditingMod(mod)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Export to .altmod.json">
+                          <IconButton size="small" onClick={() => handleExportMod(mod)}>
+                            <FileDownloadIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete mod">
+                          <IconButton
+                            size="small"
+                            onClick={() => setDeleteConfirmMod(mod)}
+                            disabled={saving}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

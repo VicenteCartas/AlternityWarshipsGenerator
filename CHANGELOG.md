@@ -8,8 +8,6 @@
 
 ### Future ideas
 
-- Add stations.
-
 ## [0.2.5] - TODO
 
 ### Important
@@ -29,6 +27,7 @@ Mod support added.
 
 ### Improvements
 
+- Stations (space and ground) are now supported.
 - Power Plants and Engine section will show how many HP is 5% of the hull.
 - Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" so it's easier to distinguish them.
 - Fuel tank and power plant/engine chips will explain better what the fuel number represents.

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Table,
@@ -24,6 +24,8 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import type { ColumnDef } from '../../services/modEditorSchemas';
 import { validateField } from '../../services/modValidationService';
 import type { TechTrack } from '../../types/common';
@@ -47,6 +49,22 @@ type EditingCell = { rowIndex: number; columnKey: string } | null;
  * Supports inline cell editing, add/delete/duplicate rows, and import from base.
  */
 export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete }: EditableDataGridProps) {
+  // Filter activeModsData to only items that differ from base (mod-contributed items)
+  const modOnlyData = useMemo(() => {
+    if (!activeModsData || !baseData) return activeModsData;
+    const baseMap = new Map(baseData.map(item => [item.id as string, item]));
+    const stripSource = (item: Record<string, unknown>) => {
+      const { _source, ...rest } = item;
+      void _source;
+      return rest;
+    };
+    return activeModsData.filter(item => {
+      const baseItem = baseMap.get(item.id as string);
+      if (!baseItem) return true; // New item not in base — mod-contributed
+      return JSON.stringify(stripSource(item)) !== JSON.stringify(stripSource(baseItem)); // Changed from base — mod-contributed
+    });
+  }, [activeModsData, baseData]);
+
   const [editingCell, setEditingCell] = useState<EditingCell>(null);
   const [editValue, setEditValue] = useState<unknown>('');
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
@@ -181,6 +199,14 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     onChange(updated);
   }, [rows, onChange]);
 
+  const handleMoveRow = useCallback((index: number, direction: 'up' | 'down') => {
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= rows.length) return;
+    const updated = [...rows];
+    [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
+    onChange(updated);
+  }, [rows, onChange]);
+
   const handleImportFromBase = useCallback((item: Record<string, unknown>) => {
     // Strip _source tag when importing
     const { _source, ...cleanItem } = item;
@@ -234,10 +260,37 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
       case 'select':
       case 'progressLevel': {
         const opt = col.options?.find(o => o.value === String(value ?? ''));
-        return <Typography variant="body2">{opt?.label ?? String(value ?? '')}</Typography>;
+        return <Typography variant="body2" noWrap>{opt?.label ?? String(value ?? '')}</Typography>;
       }
       default:
         return <Typography variant="body2" noWrap>{String(value)}</Typography>;
+    }
+  };
+
+  /**
+   * Returns a plain-text version of the cell value for use in truncation tooltips.
+   * Returns empty string for short/non-textual values that don't benefit from tooltips.
+   */
+  const getCellDisplayText = (value: unknown, col: ColumnDef): string => {
+    if (value === undefined || value === null) return '';
+    switch (col.type) {
+      case 'boolean':
+        return '';
+      case 'techTracks':
+      case 'multiselect':
+        return '';
+      case 'json':
+        return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+      case 'select':
+      case 'progressLevel': {
+        const opt = col.options?.find(o => o.value === String(value ?? ''));
+        return opt?.label ?? String(value ?? '');
+      }
+      default: {
+        const text = String(value);
+        // Only show tooltip for values likely to be clipped
+        return text.length > 6 ? text : '';
+      }
     }
   };
 
@@ -391,22 +444,26 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
           </Button>
         )}
         {baseData && baseData.length > 0 && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={e => { setImportSource('base'); setImportAnchor(e.currentTarget); }}
-          >
-            Import from Base Game ({baseData.length})
-          </Button>
+          <Tooltip title="Copy items from the unmodded base game data into your mod for editing. Items with matching IDs will be updated." arrow>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={e => { setImportSource('base'); setImportAnchor(e.currentTarget); }}
+            >
+              Import from Base Game ({baseData.length})
+            </Button>
+          </Tooltip>
         )}
-        {activeModsData && activeModsData.length > 0 && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={e => { setImportSource('active'); setImportAnchor(e.currentTarget); }}
-          >
-            Import from Active Mods ({activeModsData.length})
-          </Button>
+        {modOnlyData && modOnlyData.length > 0 && (
+          <Tooltip title="Copy items added or changed by other active mods. Only shows items that differ from the base game." arrow>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={e => { setImportSource('active'); setImportAnchor(e.currentTarget); }}
+            >
+              Import from Active Mods ({modOnlyData.length})
+            </Button>
+          </Tooltip>
         )}
         <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
           {rows.length} item{rows.length !== 1 ? 's' : ''}
@@ -418,10 +475,14 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 90, fontWeight: 600, minWidth: 90, maxWidth: 90 }} align="center">Actions</TableCell>
+              <TableCell sx={{ width: 130, fontWeight: 600, minWidth: 130, maxWidth: 130 }} align="center">Actions</TableCell>
               {columns.map(col => (
                 <TableCell key={col.key} sx={{ fontWeight: 600, width: col.width || 80, minWidth: col.width || 80, maxWidth: col.width || 80, whiteSpace: 'nowrap' }}>
-                  {col.label}
+                  {col.description ? (
+                    <Tooltip title={col.description} arrow placement="top">
+                      <span style={{ borderBottom: '1px dotted', cursor: 'help' }}>{col.label}</span>
+                    </Tooltip>
+                  ) : col.label}
                   {col.required && <Typography component="span" color="error" sx={{ ml: 0.5 }}>*</Typography>}
                 </TableCell>
               ))}
@@ -431,15 +492,41 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + 1} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                    No items. Click &quot;Add Row&quot; to create one.
-                  </Typography>
+                  <Box sx={{ py: 3, px: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      This section is empty.
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {!disableAdd && 'Click "Add Row" to create a blank item, or use '}
+                      {!disableAdd && baseData && baseData.length > 0 && '"Import from Base Game" to copy existing items into your mod for editing.'}
+                      {!disableAdd && (!baseData || baseData.length === 0) && '"Add Row" to get started.'}
+                      {disableAdd && baseData && baseData.length > 0 && 'Use "Import from Base Game" to copy the base item into your mod for editing.'}
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((row, rowIndex) => (
                 <TableRow key={rowIndex} hover sx={{ height: 37 }}>
-                  <TableCell align="center" sx={{ py: 0.5, whiteSpace: 'nowrap', width: 90, minWidth: 90, maxWidth: 90 }}>
+                  <TableCell align="center" sx={{ py: 0.5, whiteSpace: 'nowrap', width: 130, minWidth: 130, maxWidth: 130 }}>
+                    {!disableAdd && rows.length > 1 && (
+                      <>
+                        <Tooltip title="Move up">
+                          <span>
+                            <IconButton size="small" onClick={() => handleMoveRow(rowIndex, 'up')} disabled={rowIndex === 0}>
+                              <ArrowUpwardIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Move down">
+                          <span>
+                            <IconButton size="small" onClick={() => handleMoveRow(rowIndex, 'down')} disabled={rowIndex === rows.length - 1}>
+                              <ArrowDownwardIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </>
+                    )}
                     {!disableAdd && (
                       <Tooltip title="Duplicate">
                         <IconButton size="small" onClick={() => handleDuplicateRow(rowIndex)}>
@@ -560,11 +647,17 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                       >
                         {isEditing(rowIndex, col.key)
                           ? renderCellEditor(rowIndex, col)
-                          : (
-                            <Tooltip title={cellError || ''} placement="top">
-                              <span>{renderCellDisplay(cellValue, col)}</span>
-                            </Tooltip>
-                          )}
+                          : (() => {
+                            const displayText = getCellDisplayText(cellValue, col);
+                            const tooltipText = cellError 
+                              ? (displayText ? `${cellError}\n\n${displayText}` : cellError)
+                              : displayText;
+                            return (
+                              <Tooltip title={tooltipText || ''} placement="top" enterDelay={400}>
+                                <span>{renderCellDisplay(cellValue, col)}</span>
+                              </Tooltip>
+                            );
+                          })()}
                       </TableCell>
                     );
                   })}
@@ -635,7 +728,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
       >
         <Box sx={{ maxHeight: 450, overflow: 'auto' }}>
           <Typography variant="caption" fontWeight={600} sx={{ display: 'block', px: 1.5, pt: 1, pb: 0.5 }}>
-            Select an item to import
+            Select an item to import — items with matching IDs will be updated, new IDs will be added
           </Typography>
           <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
@@ -643,13 +736,17 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                 <TableCell sx={{ py: 0.5, width: 60, fontWeight: 600, fontSize: '0.75rem' }}>Status</TableCell>
                 {columns.filter(c => c.key !== 'description').map(col => (
                   <TableCell key={col.key} sx={{ py: 0.5, fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                    {col.label}
+                    {col.description ? (
+                      <Tooltip title={col.description} arrow placement="top">
+                        <span style={{ borderBottom: '1px dotted', cursor: 'help' }}>{col.label}</span>
+                      </Tooltip>
+                    ) : col.label}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {((importSource === 'base' ? baseData : activeModsData) || []).map((item, i) => {
+              {((importSource === 'base' ? baseData : modOnlyData) || []).map((item, i) => {
                 const exists = rows.some(r => r.id === item.id);
                 return (
                   <TableRow

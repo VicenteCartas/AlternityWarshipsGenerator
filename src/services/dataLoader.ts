@@ -274,47 +274,65 @@ function deepMergeObjects<T extends Record<string, unknown>>(base: T, mod: Parti
 }
 
 /**
+ * Resolve per-section (rootKey) modes from a mod's fileModes map.
+ */
+function resolveSectionModes(
+  fileModes: Partial<Record<string, 'add' | 'replace'>> | undefined,
+  rootKeys: string[]
+): Record<string, 'add' | 'replace'> {
+  if (!fileModes) return {};
+
+  const result: Record<string, 'add' | 'replace'> = {};
+  for (const key of rootKeys) {
+    if (fileModes[key]) {
+      result[key] = fileModes[key];
+    }
+  }
+  return result;
+}
+
+/**
  * Apply a single mod's data for a specific file to the current file data.
- * For "replace" mode, the mod data fully replaces the base.
- * For "add" mode, arrays are merged by ID; objects are deep-merged.
+ * Each section (rootKey) can have its own merge mode:
+ * - "replace": mod data replaces that section entirely
+ * - "add" (default): arrays merged by ID; objects deep-merged
  */
 function applyModToFileData(
   baseData: Record<string, unknown>,
   modData: Record<string, unknown>,
-  mode: 'add' | 'replace',
+  sectionModes: Record<string, 'add' | 'replace'>,
   modName: string
 ): Record<string, unknown> {
-  if (mode === 'replace') {
-    // Tag arrays in the replacement data
-    const result = { ...modData };
-    for (const key of Object.keys(result)) {
-      const val = result[key];
-      if (Array.isArray(val)) {
-        result[key] = tagArraySource(val as Record<string, unknown>[], modName);
-      }
-    }
-    return result;
-  }
-
-  // "add" mode: merge each top-level key
   const result = { ...baseData };
+
   for (const key of Object.keys(modData)) {
     const baseVal = result[key];
     const modVal = modData[key];
+    const mode = sectionModes[key] ?? 'add';
 
-    if (Array.isArray(baseVal) && Array.isArray(modVal)) {
-      result[key] = mergeArraysById(baseVal as Record<string, unknown>[], modVal as Record<string, unknown>[], modName);
-    } else if (
-      baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal) &&
-      modVal !== null && typeof modVal === 'object' && !Array.isArray(modVal)
-    ) {
-      result[key] = deepMergeObjects(
-        baseVal as Record<string, unknown>,
-        modVal as Record<string, unknown>
-      );
+    if (mode === 'replace') {
+      // Replace this section entirely with mod data
+      if (Array.isArray(modVal)) {
+        result[key] = tagArraySource(modVal as Record<string, unknown>[], modName);
+      } else {
+        result[key] = modVal;
+      }
     } else {
-      // Scalar or new key — mod wins
-      result[key] = modVal;
+      // "add" mode: merge
+      if (Array.isArray(baseVal) && Array.isArray(modVal)) {
+        result[key] = mergeArraysById(baseVal as Record<string, unknown>[], modVal as Record<string, unknown>[], modName);
+      } else if (
+        baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal) &&
+        modVal !== null && typeof modVal === 'object' && !Array.isArray(modVal)
+      ) {
+        result[key] = deepMergeObjects(
+          baseVal as Record<string, unknown>,
+          modVal as Record<string, unknown>
+        );
+      } else {
+        // Scalar or new key — mod wins
+        result[key] = modVal;
+      }
     }
   }
   return result;
@@ -346,9 +364,12 @@ async function applyModsToFile(
       continue;
     }
 
-    const fileMode = mod.manifest.fileModes?.[fileName] ?? 'add';
-    console.log(`[DataLoader] Applying mod "${mod.manifest.name}" (${fileMode}) to ${fileName}`);
-    data = applyModToFileData(data, modFileData as Record<string, unknown>, fileMode, mod.manifest.name);
+    const sectionModes = resolveSectionModes(mod.manifest.fileModes, Object.keys(modFileData as Record<string, unknown>));
+    const modeDesc = Object.keys(sectionModes).length > 0
+      ? Object.entries(sectionModes).map(([k, m]) => `${k}:${m}`).join(', ')
+      : 'add (default)';
+    console.log(`[DataLoader] Applying mod "${mod.manifest.name}" [${modeDesc}] to ${fileName}`);
+    data = applyModToFileData(data, modFileData as Record<string, unknown>, sectionModes, mod.manifest.name);
   }
 
   return data;

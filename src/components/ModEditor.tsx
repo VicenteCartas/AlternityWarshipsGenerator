@@ -1,10 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Tabs,
-  Tab,
   IconButton,
   Snackbar,
   Alert,
@@ -15,15 +13,29 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  List,
+  ListItemButton,
+  ListItemText,
+  Collapse,
+  InputAdornment,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import type { Mod, ModDataFileName } from '../types/mod';
-import { getModFileData, saveModFileData } from '../services/modService';
-import { EDITOR_SECTIONS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
+import { getModFileData, saveModFileData, getInstalledMods } from '../services/modService';
+import { EDITOR_SECTIONS, EDITOR_SECTION_GROUPS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
 import { validateRows } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
-import { getActiveMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
+import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
 
 interface ModEditorProps {
   mod: Mod;
@@ -79,15 +91,15 @@ function getBaseDataForSection(sectionId: string, pureBase = false): Record<stri
 }
 
 export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeSectionId, setActiveSectionId] = useState<string>('house-rules');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Per-section data: sectionId → rows
   const [sectionData, setSectionData] = useState<Record<string, Record<string, unknown>[]>>({});
-  // Track which sections have unsaved changes
-  const [dirtyFiles, setDirtyFiles] = useState<Set<ModDataFileName>>(new Set());
-  // Per-file mode: "add" or "replace" (initialized from manifest)
-  const [fileModes, setFileModes] = useState<Record<string, 'add' | 'replace'>>({});
+  // Track which sections have unsaved changes (by section ID)
+  const [dirtySections, setDirtySections] = useState<Set<string>>(new Set());
+  // Per-section mode: rootKey → "add" or "replace" (initialized from manifest)
+  const [sectionModes, setSectionModes] = useState<Record<string, 'add' | 'replace'>>({});
   const [modName, setModName] = useState(mod.manifest.name);
   const [modAuthor, setModAuthor] = useState(mod.manifest.author);
   const [version, setVersion] = useState(mod.manifest.version);
@@ -97,15 +109,57 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   // House rules: ruleId → true/false/null (null = not set by this mod)
   const [houseRules, setHouseRules] = useState<Record<string, boolean | null>>({});
   const [houseRulesDirty, setHouseRulesDirty] = useState(false);
+  const [confirmBackOpen, setConfirmBackOpen] = useState(false);
+  // Sidebar groups: which are expanded
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // Sidebar filter
+  const [sidebarFilter, setSidebarFilter] = useState('');
+  // Track whether other enabled mods exist (for Import from Active Mods)
+  const [hasOtherMods, setHasOtherMods] = useState(false);
 
-  // Total tab count: 1 (House Rules) + EDITOR_SECTIONS.length
-  const HOUSE_RULES_TAB = 0;
-  const sectionTabOffset = 1;
+  // Build a section lookup map
+  const sectionMap = useMemo(() => {
+    const map = new Map<string, EditorSection>();
+    for (const s of EDITOR_SECTIONS) map.set(s.id, s);
+    return map;
+  }, []);
+
+  /** Get the count of data rows for a section */
+  const getSectionRowCount = useCallback((sectionId: string) => {
+    return (sectionData[sectionId] || []).length;
+  }, [sectionData]);
+
+  /** Get total data rows for a group */
+  const getGroupRowCount = useCallback((groupSectionIds: string[]) => {
+    return groupSectionIds.reduce((sum, id) => sum + getSectionRowCount(id), 0);
+  }, [getSectionRowCount]);
+
+  const toggleGroup = useCallback((groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
 
   // Load mod data for all sections
+  // Also apply other enabled mods to cache so "Import from Active Mods" works
   useEffect(() => {
     async function loadModData() {
       setLoading(true);
+
+      // Apply all enabled mods (except the one being edited) to the data cache
+      // so that getBaseDataForSection(id, false) returns merged data from other mods
+      const allMods = await getInstalledMods();
+      const otherEnabledMods = allMods
+        .filter(m => m.enabled && m.folderName !== mod.folderName && m.files.length > 0)
+        .sort((a, b) => a.priority - b.priority);
+      if (otherEnabledMods.length > 0) {
+        await reloadWithSpecificMods(otherEnabledMods);
+      }
+      setHasOtherMods(otherEnabledMods.length > 0);
+
       const data: Record<string, Record<string, unknown>[]> = {};
 
       // Group sections by file to avoid loading the same file multiple times
@@ -192,22 +246,34 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
       setSectionData(data);
       setHouseRules(loadedHouseRules);
-      setDirtyFiles(new Set());
-      // Initialize per-file modes from manifest
-      setFileModes(mod.manifest.fileModes
-        ? Object.fromEntries(Object.entries(mod.manifest.fileModes).filter(([, v]) => v !== undefined)) as Record<string, 'add' | 'replace'>
-        : {});
+      setDirtySections(new Set());
+      // Initialize per-section modes from manifest
+      setSectionModes(
+        mod.manifest.fileModes
+          ? Object.fromEntries(Object.entries(mod.manifest.fileModes).filter(([, v]) => v !== undefined)) as Record<string, 'add' | 'replace'>
+          : {}
+      );
       setManifestDirty(false);
+
+      // Auto-expand groups that have data
+      const groupsWithData = new Set<string>();
+      for (const group of EDITOR_SECTION_GROUPS) {
+        if (group.sectionIds.some(id => (data[id] || []).length > 0)) {
+          groupsWithData.add(group.id);
+        }
+      }
+      setExpandedGroups(groupsWithData);
+
       setLoading(false);
     }
     loadModData();
+    // Restore cache to no mods when leaving editor
+    return () => { reloadWithSpecificMods([]); };
   }, [mod]);
 
   const handleSectionDataChange = useCallback((sectionId: string, rows: Record<string, unknown>[]) => {
-    const section = EDITOR_SECTIONS.find(s => s.id === sectionId);
-    if (!section) return;
     setSectionData(prev => ({ ...prev, [sectionId]: rows }));
-    setDirtyFiles(prev => new Set(prev).add(section.fileName));
+    setDirtySections(prev => new Set(prev).add(sectionId));
   }, []);
 
   const handleHouseRuleChange = useCallback((rule: HouseRule, value: boolean | null) => {
@@ -215,15 +281,15 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     setHouseRulesDirty(true);
   }, []);
 
-  const handleFileModeChange = useCallback((fileName: ModDataFileName, newMode: 'add' | 'replace') => {
-    setFileModes(prev => ({ ...prev, [fileName]: newMode }));
+  const handleSectionModeChange = useCallback((rootKey: string, newMode: 'add' | 'replace') => {
+    setSectionModes(prev => ({ ...prev, [rootKey]: newMode }));
     setManifestDirty(true);
   }, []);
 
-  /** Resolve the effective mode for a file: per-file override → manifest default */
-  const getFileMode = useCallback((fileName: ModDataFileName): 'add' | 'replace' => {
-    return fileModes[fileName] ?? 'add';
-  }, [fileModes]);
+  /** Resolve the effective mode for a section by its rootKey */
+  const getSectionMode = useCallback((rootKey: string): 'add' | 'replace' => {
+    return sectionModes[rootKey] ?? 'add';
+  }, [sectionModes]);
 
   const handleSave = useCallback(async () => {
     // Validate all dirty sections
@@ -233,9 +299,14 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         const errors = validateRows(rows, section.columns);
         if (errors.length > 0) {
           setSnackbar({ open: true, message: `Validation errors in "${section.label}": ${errors[0].message}`, severity: 'error' });
-          // Switch to the tab with errors
-          const tabIndex = EDITOR_SECTIONS.findIndex(s => s.id === section.id);
-          if (tabIndex >= 0) setActiveTab(tabIndex + sectionTabOffset);
+          // Navigate to the section with errors and expand its group
+          setActiveSectionId(section.id);
+          for (const group of EDITOR_SECTION_GROUPS) {
+            if (group.sectionIds.includes(section.id)) {
+              setExpandedGroups(prev => new Set(prev).add(group.id));
+              break;
+            }
+          }
           return;
         }
       }
@@ -253,8 +324,12 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
     let saveErrors = 0;
 
-    // Collect all files that need saving: dirty section files + house rule files
-    const filesToSave = new Set(dirtyFiles);
+    // Derive which files need saving from dirty sections
+    const filesToSave = new Set<ModDataFileName>();
+    for (const sectionId of dirtySections) {
+      const section = EDITOR_SECTIONS.find(s => s.id === sectionId);
+      if (section) filesToSave.add(section.fileName);
+    }
     if (houseRulesDirty) {
       for (const rule of HOUSE_RULES) {
         filesToSave.add(rule.fileName);
@@ -311,7 +386,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
     // Save updated manifest if fileModes changed
     if (manifestDirty) {
-      const updatedManifest = { ...mod.manifest, name: modName, author: modAuthor, version, description, fileModes };
+      const updatedManifest = { ...mod.manifest, name: modName, author: modAuthor, version, description, fileModes: sectionModes };
       const success = await saveModFileData(mod.folderName, 'mod.json', updatedManifest);
       if (!success) saveErrors++;
     }
@@ -321,17 +396,40 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     if (saveErrors > 0) {
       setSnackbar({ open: true, message: `Failed to save ${saveErrors} file(s)`, severity: 'error' });
     } else {
-      setDirtyFiles(new Set());
+      setDirtySections(new Set());
       setHouseRulesDirty(false);
       setManifestDirty(false);
       setSnackbar({ open: true, message: 'Mod saved successfully', severity: 'success' });
       await onModsChanged();
     }
-  }, [sectionData, houseRules, dirtyFiles, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, fileModes, manifestDirty, onModsChanged]);
+  }, [sectionData, houseRules, dirtySections, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, sectionModes, manifestDirty, onModsChanged]);
 
-  const isHouseRulesTab = activeTab === HOUSE_RULES_TAB;
-  const activeSection = isHouseRulesTab ? null : EDITOR_SECTIONS[activeTab - sectionTabOffset];
-  const hasUnsavedChanges = dirtyFiles.size > 0 || manifestDirty || houseRulesDirty;
+  const isHouseRulesTab = activeSectionId === 'house-rules';
+  const activeSection = isHouseRulesTab ? null : sectionMap.get(activeSectionId) ?? null;
+  const hasUnsavedChanges = dirtySections.size > 0 || manifestDirty || houseRulesDirty;
+
+  // Filter sections by sidebar search
+  const filterLower = sidebarFilter.toLowerCase();
+  const filteredGroups = useMemo(() => {
+    if (!filterLower) return EDITOR_SECTION_GROUPS;
+    return EDITOR_SECTION_GROUPS.map(group => ({
+      ...group,
+      sectionIds: group.sectionIds.filter(id => {
+        const section = sectionMap.get(id);
+        return section && section.label.toLowerCase().includes(filterLower);
+      }),
+    })).filter(group =>
+      group.label.toLowerCase().includes(filterLower) || group.sectionIds.length > 0
+    );
+  }, [filterLower, sectionMap]);
+
+  // When filter is active, auto-expand all matching groups
+  const effectiveExpandedGroups = useMemo(() => {
+    if (filterLower) {
+      return new Set(filteredGroups.map(g => g.id));
+    }
+    return expandedGroups;
+  }, [filterLower, filteredGroups, expandedGroups]);
 
   if (loading) {
     return (
@@ -345,10 +443,13 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', p: 2, pb: 1, gap: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <IconButton onClick={onBack} sx={{ mt: 0.5 }}>
+        <IconButton onClick={() => hasUnsavedChanges ? setConfirmBackOpen(true) : onBack()} sx={{ mt: 0.5 }}>
           <ArrowBackIcon />
         </IconButton>
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.5, letterSpacing: '0.08em' }}>
+            Mod Identity
+          </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
             <TextField
               label="Mod Name"
@@ -397,53 +498,117 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
         </Stack>
       </Box>
 
-      {/* Tabs + Content */}
+      {/* Sidebar + Content */}
       <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
-        {/* Side tabs */}
-        <Tabs
-          orientation="vertical"
-          variant="scrollable"
-          value={activeTab}
-          onChange={(_e, v) => setActiveTab(v)}
-          sx={{
-            borderRight: 1,
-            borderColor: 'divider',
-            minWidth: 180,
-            '& .MuiTab-root': { textTransform: 'none', alignItems: 'flex-start', textAlign: 'left', minHeight: 36, py: 0.5, fontSize: '0.85rem' },
-          }}
-        >
-          <Tab
-            key="house-rules"
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, width: '100%', textAlign: 'left' }}>
-                <span style={{ textAlign: 'left' }}>House Rules</span>
+        {/* Grouped sidebar */}
+        <Box sx={{ borderRight: 1, borderColor: 'divider', minWidth: 220, maxWidth: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Filter */}
+          <Box sx={{ p: 1, pb: 0.5 }}>
+            <TextField
+              size="small"
+              placeholder="Filter sections..."
+              value={sidebarFilter}
+              onChange={e => setSidebarFilter(e.target.value)}
+              fullWidth
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: sidebarFilter ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSidebarFilter('')} edge="end">
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                },
+              }}
+              sx={{ '& .MuiInputBase-root': { fontSize: '0.85rem' } }}
+            />
+          </Box>
+
+          <List dense sx={{ flexGrow: 1, overflow: 'auto', py: 0 }}>
+            {/* House Rules item */}
+            {(!filterLower || 'house rules'.includes(filterLower)) && (
+              <ListItemButton
+                selected={isHouseRulesTab}
+                onClick={() => setActiveSectionId('house-rules')}
+                sx={{ py: 0.5, minHeight: 32 }}
+              >
+                <ListItemText
+                  primary="House Rules"
+                  primaryTypographyProps={{ fontSize: '0.85rem' }}
+                />
                 {HOUSE_RULES.some(r => houseRules[r.id] !== null) && (
                   <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== null).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                 )}
-              </Box>
-            }
-            value={HOUSE_RULES_TAB}
-          />
-          {EDITOR_SECTIONS.map((section, idx) => {
-            const rowCount = (sectionData[section.id] || []).length;
-            const isDirty = dirtyFiles.has(section.fileName);
-            return (
-              <Tab
-                key={section.id}
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, width: '100%', textAlign: 'left' }}>
-                    <span style={{ textAlign: 'left' }}>{section.label}</span>
+              </ListItemButton>
+            )}
+
+            {/* Grouped sections */}
+            {filteredGroups.map(group => {
+              const isExpanded = effectiveExpandedGroups.has(group.id);
+              const groupCount = getGroupRowCount(group.sectionIds);
+              // When filtering and group label matches, show ALL its original sections
+              const visibleSectionIds = filterLower && group.label.toLowerCase().includes(filterLower)
+                ? EDITOR_SECTION_GROUPS.find(g => g.id === group.id)?.sectionIds || group.sectionIds
+                : group.sectionIds;
+
+              return (
+                <Box key={group.id}>
+                  {/* Group header */}
+                  <ListItemButton
+                    onClick={() => toggleGroup(group.id)}
+                    sx={{ py: 0.25, minHeight: 32 }}
+                  >
+                    <ListItemText
+                      primary={group.label}
+                      primaryTypographyProps={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.03em' }}
+                    />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {rowCount > 0 && <Chip label={rowCount} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />}
-                      {isDirty && <Typography color="warning.main" sx={{ fontSize: '0.7rem' }}>●</Typography>}
+                      {groupCount > 0 && (
+                        <Chip label={groupCount} size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: '0.7rem' }} />
+                      )}
+                      {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                     </Box>
-                  </Box>
-                }
-                value={idx + sectionTabOffset}
-              />
-            );
-          })}
-        </Tabs>
+                  </ListItemButton>
+
+                  {/* Section items */}
+                  <Collapse in={isExpanded}>
+                    <List dense disablePadding>
+                      {visibleSectionIds.map(sectionId => {
+                        const section = sectionMap.get(sectionId);
+                        if (!section) return null;
+                        const rowCount = getSectionRowCount(sectionId);
+                        const isDirty = dirtySections.has(sectionId);
+                        return (
+                          <ListItemButton
+                            key={sectionId}
+                            selected={activeSectionId === sectionId}
+                            onClick={() => setActiveSectionId(sectionId)}
+                            sx={{ pl: 3, py: 0.25, minHeight: 28 }}
+                          >
+                            <ListItemText
+                              primary={section.label}
+                              primaryTypographyProps={{ fontSize: '0.82rem' }}
+                            />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {rowCount > 0 && <Chip label={rowCount} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />}
+                              {isDirty && <Typography color="warning.main" sx={{ fontSize: '0.7rem', lineHeight: 1 }}>●</Typography>}
+                            </Box>
+                          </ListItemButton>
+                        );
+                      })}
+                    </List>
+                  </Collapse>
+                </Box>
+              );
+            })}
+          </List>
+        </Box>
 
         {/* Content */}
         <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
@@ -481,27 +646,37 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           )}
           {activeSection && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
                 <Typography variant="h6">
                   {activeSection.label}
                 </Typography>
                 <ToggleButtonGroup
                   size="small"
                   exclusive
-                  value={getFileMode(activeSection.fileName)}
-                  onChange={(_e, val) => { if (val) handleFileModeChange(activeSection.fileName, val); }}
+                  value={getSectionMode(activeSection.rootKey)}
+                  onChange={(_e, val) => { if (val) handleSectionModeChange(activeSection.rootKey, val); }}
                 >
                   <ToggleButton value="add" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Add to Base</ToggleButton>
                   <ToggleButton value="replace" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Replace Base</ToggleButton>
                 </ToggleButtonGroup>
               </Box>
+              {activeSection.description && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {activeSection.description}
+                </Typography>
+              )}
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
+                {getSectionMode(activeSection.rootKey) === 'add'
+                  ? 'Add mode: Items here are merged with the base game data. If an item shares the same ID as a base item, it overrides the base version.'
+                  : 'Replace mode: This section completely replaces the base game data. Only items listed here will exist in-game.'}
+              </Typography>
               <EditableDataGrid
                 columns={activeSection.columns}
                 rows={sectionData[activeSection.id] || []}
                 onChange={rows => handleSectionDataChange(activeSection.id, rows)}
                 defaultItem={activeSection.defaultItem}
                 baseData={getBaseDataForSection(activeSection.id, true)}
-                activeModsData={getActiveMods().length > 0 ? getBaseDataForSection(activeSection.id, false) : undefined}
+                activeModsData={hasOtherMods ? getBaseDataForSection(activeSection.id, false) : undefined}
                 disableAdd={activeSection.dataType === 'object'}
                 disableDelete={activeSection.dataType === 'object'}
               />
@@ -509,6 +684,20 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           )}
         </Box>
       </Box>
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <Dialog open={confirmBackOpen} onClose={() => setConfirmBackOpen(false)}>
+        <DialogTitle>Unsaved Changes</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes. Are you sure you want to go back? All changes will be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmBackOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={onBack}>Discard Changes</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar
