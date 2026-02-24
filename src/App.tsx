@@ -31,6 +31,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import SaveIcon from '@mui/icons-material/Save';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { WelcomePage } from './components/WelcomePage';
@@ -91,6 +93,7 @@ import {
   getDefaultFileName,
   type WarshipState 
 } from './services/saveService';
+import { useUndoHistory } from './hooks/useUndoHistory';
 
 type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
 
@@ -299,7 +302,52 @@ function App() {
   // About dialog state
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
 
-  // Track design state changes to detect unsaved modifications
+  // Undo/redo history (snapshot-based, debounced, max 50 entries)
+  const undoHistory = useUndoHistory<WarshipState>(50);
+
+  const restoreSnapshot = useCallback((state: WarshipState) => {
+    setDesignType(state.designType);
+    setStationType(state.stationType);
+    setSurfaceProvidesLifeSupport(state.surfaceProvidesLifeSupport);
+    setSurfaceProvidesGravity(state.surfaceProvidesGravity);
+    setSelectedHull(state.hull);
+    setArmorLayers(state.armorLayers);
+    setInstalledPowerPlants(state.powerPlants);
+    setInstalledFuelTanks(state.fuelTanks);
+    setInstalledEngines(state.engines);
+    setInstalledEngineFuelTanks(state.engineFuelTanks);
+    setInstalledFTLDrive(state.ftlDrive);
+    setInstalledFTLFuelTanks(state.ftlFuelTanks);
+    setInstalledLifeSupport(state.lifeSupport);
+    setInstalledAccommodations(state.accommodations);
+    setInstalledStoreSystems(state.storeSystems);
+    setInstalledGravitySystems(state.gravitySystems);
+    setInstalledWeapons(state.weapons);
+    setOrdnanceDesigns(state.ordnanceDesigns);
+    setInstalledLaunchSystems(state.launchSystems);
+    setInstalledDefenses(state.defenses);
+    setInstalledCommandControl(state.commandControl);
+    setInstalledSensors(state.sensors);
+    setInstalledHangarMisc(state.hangarMisc);
+    setDamageDiagramZones(state.damageDiagramZones);
+    setHitLocationChart(state.hitLocationChart);
+    setShipDescription(state.shipDescription);
+    setWarshipName(state.name);
+    setDesignProgressLevel(state.designProgressLevel);
+    setDesignTechTracks(state.designTechTracks);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    const state = undoHistory.undo();
+    if (state) restoreSnapshot(state);
+  }, [undoHistory.undo, restoreSnapshot]);
+
+  const handleRedo = useCallback(() => {
+    const state = undoHistory.redo();
+    if (state) restoreSnapshot(state);
+  }, [undoHistory.redo, restoreSnapshot]);
+
+  // Track design state changes to detect unsaved modifications + push to undo history
   useEffect(() => {
     if (skipDirtyCheck.current) {
       skipDirtyCheck.current = false;
@@ -307,6 +355,42 @@ function App() {
     }
     if (mode === 'builder') {
       setHasUnsavedChanges(true);
+      // Push to undo history (debounced; skipped during undo/redo restore)
+      if (!undoHistory.isRestoring.current) {
+        undoHistory.pushState({
+          name: warshipName,
+          shipDescription,
+          designType,
+          stationType,
+          surfaceProvidesLifeSupport,
+          surfaceProvidesGravity,
+          hull: selectedHull,
+          armorLayers,
+          powerPlants: installedPowerPlants,
+          fuelTanks: installedFuelTanks,
+          engines: installedEngines,
+          engineFuelTanks: installedEngineFuelTanks,
+          ftlDrive: installedFTLDrive,
+          ftlFuelTanks: installedFTLFuelTanks,
+          lifeSupport: installedLifeSupport,
+          accommodations: installedAccommodations,
+          storeSystems: installedStoreSystems,
+          gravitySystems: installedGravitySystems,
+          defenses: installedDefenses,
+          commandControl: installedCommandControl,
+          sensors: installedSensors,
+          hangarMisc: installedHangarMisc,
+          weapons: installedWeapons,
+          ordnanceDesigns,
+          launchSystems: installedLaunchSystems,
+          damageDiagramZones,
+          hitLocationChart,
+          designProgressLevel,
+          designTechTracks,
+        });
+      } else {
+        undoHistory.isRestoring.current = false;
+      }
     }
   }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,
     installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
@@ -393,16 +477,48 @@ function App() {
     setDamageDiagramZones([]);
     setHitLocationChart(null);
     setShipDescription({ lore: '', imageData: null, imageMimeType: null });
-    setWarshipName(
-      newDesignType === 'warship' ? 'New Ship'
-        : newStationType === 'ground-base' ? 'New Base'
-        : newStationType === 'outpost' ? 'New Outpost'
-        : 'New Station'
-    );
+    const defaultName = newDesignType === 'warship' ? 'New Ship'
+      : newStationType === 'ground-base' ? 'New Base'
+      : newStationType === 'outpost' ? 'New Outpost'
+      : 'New Station';
+    setWarshipName(defaultName);
     setCurrentFilePath(null);
     setDesignProgressLevel(9);
     setDesignTechTracks([]);
     setDesignActiveMods(selectedMods);
+    // Initialize undo history with the fresh design state
+    undoHistory.clear();
+    undoHistory.pushImmediate({
+      name: defaultName,
+      shipDescription: { lore: '', imageData: null, imageMimeType: null },
+      designType: newDesignType,
+      stationType: newStationType,
+      surfaceProvidesLifeSupport: newSurfaceProvidesLifeSupport,
+      surfaceProvidesGravity: newSurfaceProvidesGravity,
+      hull: null,
+      armorLayers: [],
+      powerPlants: [],
+      fuelTanks: [],
+      engines: [],
+      engineFuelTanks: [],
+      ftlDrive: null,
+      ftlFuelTanks: [],
+      lifeSupport: [],
+      accommodations: [],
+      storeSystems: [],
+      gravitySystems: [],
+      defenses: [],
+      commandControl: [],
+      sensors: [],
+      hangarMisc: [],
+      weapons: [],
+      ordnanceDesigns: [],
+      launchSystems: [],
+      damageDiagramZones: [],
+      hitLocationChart: null,
+      designProgressLevel: 9,
+      designTechTracks: [],
+    });
     setHasUnsavedChanges(false);
     setMode('builder');
   }, []);
@@ -521,6 +637,9 @@ function App() {
       window.electronAPI.addRecentFile(filePath);
       setHasUnsavedChanges(false);
       setActiveStep(0);
+      // Initialize undo history with the loaded state
+      undoHistory.clear();
+      undoHistory.pushImmediate(loadResult.state);
       setMode('builder');
 
       if (loadResult.warnings && loadResult.warnings.length > 0) {
@@ -732,6 +851,29 @@ function App() {
       };
     }
   }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart]);
+
+  // Keyboard shortcuts for undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z)
+  useEffect(() => {
+    if (mode !== 'builder') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if focus is on a text input — let native text undo handle it
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        handleUndo();
+      } else if (isCtrl && (e.key === 'y' || e.key === 'Y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mode, handleUndo, handleRedo]);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
@@ -1468,6 +1610,29 @@ function App() {
           </Popover>
           
           <Box sx={{ flexGrow: 1 }} />
+          <Tooltip title="Undo (Ctrl+Z)">
+            <span>
+              <IconButton
+                onClick={handleUndo}
+                disabled={!undoHistory.canUndo}
+                size="small"
+              >
+                <UndoIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo (Ctrl+Y)">
+            <span>
+              <IconButton
+                onClick={handleRedo}
+                disabled={!undoHistory.canRedo}
+                size="small"
+              >
+                <RedoIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title={hasUnsavedChanges ? 'Save Warship (Ctrl+S) \u2022 Unsaved changes' : 'Save Warship (Ctrl+S)'}>
             <IconButton
               color="primary"
