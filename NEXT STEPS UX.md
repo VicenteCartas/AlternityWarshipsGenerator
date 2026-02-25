@@ -12,25 +12,19 @@ The biggest weaknesses are **discoverability** (powerful features hidden behind 
 
 ## Critical — Accessibility
 
-### U1. Focus Outlines Suppressed on Stepper
+### U1. Focus Outlines Suppressed on Stepper ✅ DONE
 
 > **User Review:** Yes, do it
 
-Stepper buttons have explicit `outline: 'none'` on both `:focus` and `:focus-visible`. Keyboard users cannot see which step is focused. This is a WCAG violation.
+**Completed:** Replaced blanket `outline: 'none'` with a `:focus-visible` ring (2px solid primary color, 2px offset, border-radius).
 
-**Fix:** Remove the outline suppression. Style `:focus-visible` with a visible ring instead.
+Stepper buttons had explicit `outline: 'none'` on both `:focus` and `:focus-visible`. Keyboard users could not see which step was focused. This was a WCAG violation.
 
-### U2. Missing ARIA Labels Across the App
+### U2. Missing ARIA Labels Across the App ✅ DONE
 
 > **User Review:** Yes, do it
 
-Almost no ARIA attributes outside of TabPanel. Missing on:
-- All IconButtons (Edit, Delete, Duplicate, scroll arrows, sort toggles)
-- Filter ToggleButtonGroups
-- Clickable Chips in the app bar
-- Stepper scroll arrows (ChevronLeft/ChevronRight)
-
-**Fix:** Add `aria-label` to every IconButton and interactive element.
+**Completed:** Added ~65 `aria-label` attributes across 20 component files. Coverage includes all IconButtons (Edit, Delete, Duplicate, Remove, navigation), all ToggleButtonGroups (filters, mount types, gun configs, design types), clickable Chips in the app bar (HP/Power/Cost breakdown popovers), Switches, and SVG interactive elements (ArcRadarSelector with `role="checkbox"` + `aria-checked`/`aria-disabled`).
 
 ### U3. ArcRadarSelector Not Keyboard Accessible
 
@@ -223,21 +217,21 @@ Users can't see what the PDF will look like before exporting. PDF generation (ht
 
 **Fix:** Add a loading spinner during PDF generation. Consider a preview thumbnail or at least a description of what each section includes.
 
-### U23. No Step Label Tooltips
+### U23. No Step Label Tooltips ✅ DONE
 
 > **User Review:** Yes, do it
 
-Stepper step labels are truncated at small widths ("C4" for "Command & Control", "Misc" for "Hangars & Miscellaneous") but there's no tooltip showing the full name on hover.
+**Completed:** Wrapped each `StepButton` in `<Tooltip title={STEP_FULL_NAMES[step.id]} enterDelay={400} arrow>`.
 
-**Fix:** Add `Tooltip title={STEP_FULL_NAMES[step.id]}` around each step label.
+Stepper step labels are truncated at small widths ("C4" for "Command & Control", "Misc" for "Hangars & Miscellaneous") but there was no tooltip showing the full name on hover.
 
-### U24. Stepper Scroll Arrows Missing ARIA Labels
+### U24. Stepper Scroll Arrows Missing ARIA Labels ✅ DONE
 
 > **User Review:** Yes, do it
 
-The ChevronLeft/ChevronRight IconButtons controlling stepper scroll have no accessible names.
+**Completed:** Added `role="button"`, `aria-label`, `tabIndex`, and `onKeyDown` (Enter/Space) handlers to both scroll arrows.
 
-**Fix:** Add `aria-label="Scroll steps left"` and `aria-label="Scroll steps right"`.
+The ChevronLeft/ChevronRight boxes controlling stepper scroll had no accessible names or keyboard support.
 
 ### U25. Fixed Width Elements Don't Adapt
 
@@ -268,7 +262,7 @@ Several UI elements use fixed pixel widths:
 
 ## Recommended Priority Order
 
-1. **U1** (focus outlines) — Trivial fix, accessibility critical
+1. ~~**U1** (focus outlines)~~ ✅ Done
 2. **U2** (ARIA labels) — Moderate effort, accessibility critical
 3. **U5** (popover affordance) — Low effort, high discoverability impact
 4. **U11** (empty states) — Low effort per step, consistency improvement
@@ -276,7 +270,8 @@ Several UI elements use fixed pixel widths:
 6. **U16** (fixed summary tabs) — Low effort, consistency fix
 7. **U17** (progress indicator) — Low effort, information architecture
 8. **U15** (weapon empty messages) — Trivial, consistency
-9. **U23** (step label tooltips) — Trivial, polish
-10. **U3** (arc selector keyboard) — Medium effort, accessibility
-11. **U5–U9** (discoverability cluster) — Work through as a group
-12. Everything else in severity order
+9. ~~**U23** (step label tooltips)~~ ✅ Done
+10. ~~**U24** (ARIA labels on scroll arrows)~~ ✅ Done
+11. **U3** (arc selector keyboard) — Medium effort, accessibility
+12. **U5–U9** (discoverability cluster) — Work through as a group
+13. Everything else in severity order

@@ -342,16 +342,16 @@ export function HangarMiscSelection({
                   <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
                   {/* Hide edit/duplicate buttons for toggle systems (single-quantity percentage-based) */}
                   {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
-                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                    <IconButton size="small" aria-label="Edit system" onClick={() => handleEditSystem(system)} color="primary">
                       <EditIcon fontSize="small" />
                     </IconButton>
                   )}
                   {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
-                    <IconButton size="small" onClick={() => handleDuplicateSystem(system)}>
+                    <IconButton size="small" aria-label="Duplicate system" onClick={() => handleDuplicateSystem(system)}>
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   )}
-                  <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
+                  <IconButton size="small" aria-label="Remove system" onClick={() => handleRemoveSystem(system.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>

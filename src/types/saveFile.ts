@@ -439,4 +439,4 @@ export interface WarshipSaveFile {
 }
 
 /** Current save file version */
-export const SAVE_FILE_VERSION = '1.4';
+export const SAVE_FILE_VERSION = '1.2';

@@ -443,15 +443,15 @@ export function WeaponSelection({
                       />
                     </Tooltip>
                   )}
-                  <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary">
+                  <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary" aria-label="Edit weapon">
                     <EditIcon fontSize="small" />
                   </IconButton>
                   <Tooltip title="Duplicate">
-                    <IconButton size="small" onClick={() => handleDuplicateWeapon(weapon)}>
+                    <IconButton size="small" onClick={() => handleDuplicateWeapon(weapon)} aria-label="Duplicate weapon">
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error">
+                  <IconButton size="small" onClick={() => handleRemoveWeapon(weapon.id)} color="error" aria-label="Remove weapon">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -518,6 +518,7 @@ export function WeaponSelection({
               onChange={(_, value) => value && handleMountTypeChange(value as MountType)}
               size="small"
               sx={{ flexWrap: 'wrap', mb: 2 }}
+              aria-label="Mount type"
             >
               {Object.entries(mountModifiers).map(([key, mod]) => {
                 const isAvailable = selectedWeapon ? (
@@ -549,6 +550,7 @@ export function WeaponSelection({
               onChange={(_, value) => value && setGunConfiguration(value as GunConfiguration)}
               size="small"
               sx={{ flexWrap: 'wrap', mb: 2 }}
+              aria-label="Gun configuration"
             >
               {Object.entries(gunConfigurations).map(([key, config]) => (
                 <Tooltip key={key} title={`${config.effectiveGunCount}× cost, ${config.effectiveGunCount}× HP`}>

@@ -264,6 +264,7 @@ export function LaunchSystemEditForm({
                           size="small"
                           color="error"
                           onClick={() => handleUnloadOrdnance(item.designId)}
+                          aria-label="Unload ordnance"
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>

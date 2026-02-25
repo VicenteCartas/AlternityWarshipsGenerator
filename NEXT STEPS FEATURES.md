@@ -8,7 +8,7 @@ Source of truth for planned features and improvements.
 
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
-| A1 | Clone/Duplicate Design | Duplicate the current design to create variants without rebuilding from scratch. | Low | High | Yes, do it |
+| A1 | Clone/Duplicate Design | Duplicate the current design to create variants without rebuilding from scratch. | Low | High | ✅ Done |
 | A2 | Ship Templates / Presets | Start from pre-filled templates (e.g. "Light Corvette"). Bundled or user-created. | Medium | Medium | Nice to have |
 | A3 | Design Comparison | Side-by-side stat comparison of two saved designs. | Medium | Medium | Nice to have |
 | A4 | Ship Library / Gallery | Browse and search all saved designs with thumbnail cards showing key stats. | High | Low | Yes, do it |
@@ -56,18 +56,18 @@ Source of truth for planned features and improvements.
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
 | F23 | Interactive Tutorial / First-Run Wizard | Walk new users through building their first ship. | High | Low | Nice to have |
-| F24 | Keyboard Shortcuts Reference | Dialog listing all available shortcuts (Ctrl+S, Ctrl+Z/Y, Damage Zones keys). | Low | High | Yes, do it |
+| F24 | Keyboard Shortcuts Reference | Dialog listing all available shortcuts (Ctrl+S, Ctrl+Z/Y, Damage Zones keys). | Low | High | ✅ Done |
 | F25 | Contextual Rule Tooltips | Hover over a system to see relevant rule excerpt from the rules/ folder. | High | Low | Nice to have |
 
 ## Recommended Priority Bundles (User-Reviewed)
 
 ### Approved — Quick Wins (low effort, user said "Yes")
-- A1: Clone/Duplicate Design
+- ~~A1: Clone/Duplicate Design~~ ✅
 - A5: Auto-save / Crash Recovery
 - C12: Copy Stats to Clipboard
 - E19: Structured Ship Description Fields
 - E22: Light/Dark Theme Toggle
-- F24: Keyboard Shortcuts Reference
+- ~~F24: Keyboard Shortcuts Reference~~ ✅
 
 ### Approved — Medium Effort (user said "Yes")
 - B6: Budget Visualization

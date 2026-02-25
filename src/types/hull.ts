@@ -96,16 +96,3 @@ export interface HullStats {
   /** Hull points for super-heavy armor (20%) */
   superHeavyArmorCost: number;
 }
-
-/**
- * Calculate derived hull statistics
- */
-export function calculateHullStats(hull: Hull): HullStats {
-  return {
-    totalHullPoints: hull.hullPoints + hull.bonusHullPoints,
-    lightArmorCost: 0,
-    mediumArmorCost: Math.ceil(hull.hullPoints * 0.05),
-    heavyArmorCost: Math.ceil(hull.hullPoints * 0.1),
-    superHeavyArmorCost: Math.ceil(hull.hullPoints * 0.2),
-  };
-}

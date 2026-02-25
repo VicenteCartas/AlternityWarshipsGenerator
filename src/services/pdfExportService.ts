@@ -28,6 +28,7 @@ import { calculateCommandControlStats } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
 import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
+import { capitalize } from './utilities';
 
 // ============ INTERFACES ============
 
@@ -76,8 +77,6 @@ export const defaultExportOptions: PdfExportOptions = {
 };
 
 // ============ CONSTANTS ============
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Spatial zone grid layouts per zone count (fore at top, aft at bottom) */
 const ZONE_GRID_LAYOUTS: Record<number, (ZoneCode | null)[][]> = {

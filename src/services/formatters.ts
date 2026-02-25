@@ -1,5 +1,5 @@
 import type { ShipClass } from '../types/hull';
-import type { TechTrack, DesignType, StationType } from '../types/common';
+import type { TechTrack, DesignType, StationType, ProgressLevel } from '../types/common';
 import type { AreaEffect } from '../types/weapon';
 
 /**
@@ -253,3 +253,23 @@ const FRIENDLY_FILE_NAMES: Record<string, string> = {
 export function getFriendlyFileName(fileName: string): string {
   return FRIENDLY_FILE_NAMES[fileName] ?? fileName.replace('.json', '');
 }
+
+/**
+ * Format FTL rating for display
+ */
+export function formatFTLRating(rating: number | null, unit: string): string {
+  if (rating === null) return 'Variable';
+  // Round to 1 decimal place if needed
+  const displayRating = Number.isInteger(rating) ? rating : rating.toFixed(1);
+  return `${displayRating} ${unit}`;
+}
+
+/**
+ * Progress level display names
+ */
+export const PL_NAMES: Record<ProgressLevel, string> = {
+  6: 'PL6 - Fusion Age',
+  7: 'PL7 - Gravity Age',
+  8: 'PL8 - Energy Age',
+  9: 'PL9 - Matter Age',
+};

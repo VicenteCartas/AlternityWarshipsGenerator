@@ -131,6 +131,7 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
           exclusive
           onChange={handleShipClassChange}
           size="small"
+          aria-label="Filter by ship class"
         >
           <ToggleButton value="all">All ({shipClassCounts.all})</ToggleButton>
           {getShipClasses().map((sc) => (
@@ -146,6 +147,7 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
             exclusive
             onChange={handleCategoryChange}
             size="small"
+            aria-label="Filter by hull category"
           >
             <ToggleButton value="all">All ({categoryCounts.all})</ToggleButton>
             <ToggleButton value="military">Military ({categoryCounts.military})</ToggleButton>

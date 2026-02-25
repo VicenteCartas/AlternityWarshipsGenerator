@@ -180,3 +180,14 @@ export function filterByDesignConstraints<T extends DesignConstrainedItem>(
   
   return filtered;
 }
+
+// ============== String Utilities ==============
+
+/**
+ * Capitalize the first letter of a string.
+ * @param s - The string to capitalize
+ * @returns The string with the first character uppercased
+ */
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

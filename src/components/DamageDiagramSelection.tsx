@@ -962,6 +962,7 @@ export function DamageDiagramSelection({
                     color={poolSortMode === mode ? 'primary' : 'default'}
                     onClick={() => setPoolSortMode(mode)}
                     sx={{ height: 20, fontSize: '0.65rem', cursor: 'pointer' }}
+                    aria-label={`Sort by ${mode === 'hp' ? 'hull points' : mode}`}
                   />
                 ))}
               </Box>
@@ -1230,6 +1231,7 @@ export function DamageDiagramSelection({
                             size="small"
                             onClick={(e) => { e.stopPropagation(); handleRemoveFromZone(zone.code, sys.id); }}
                             sx={{ p: 0.125, color: 'inherit', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                            aria-label="Remove from zone"
                           >
                             <CloseIcon sx={{ fontSize: 12 }} />
                           </IconButton>

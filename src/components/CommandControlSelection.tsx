@@ -578,18 +578,18 @@ export function CommandControlSelection({
                     />
                   )}
                   {!system.type.isCore && system.type.maxQuantity !== 1 && (
-                    <IconButton size="small" onClick={() => handleEditSystem(system)} color="primary">
+                    <IconButton size="small" aria-label="Edit system" onClick={() => handleEditSystem(system)} color="primary">
                       <EditIcon fontSize="small" />
                     </IconButton>
                   )}
                   {!system.type.isCore && system.type.id !== 'cockpit' && !system.type.linkedSystemType && (
                     <Tooltip title="Duplicate">
-                      <IconButton size="small" onClick={() => handleDuplicateSystem(system)}>
+                      <IconButton size="small" aria-label="Duplicate system" onClick={() => handleDuplicateSystem(system)}>
                         <ContentCopyIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}
-                  <IconButton size="small" onClick={() => handleRemoveSystem(system.id)} color="error">
+                  <IconButton size="small" aria-label="Remove system" onClick={() => handleRemoveSystem(system.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>

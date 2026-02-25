@@ -90,6 +90,8 @@ export function ArcRadarSelector({
       
       <Box
         component="svg"
+        role="group"
+        aria-label="Firing arc selector"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -126,6 +128,9 @@ export function ArcRadarSelector({
                 fill={selected ? standardSelectedColor : unselectedColor}
                 stroke={borderColor}
                 strokeWidth={2}
+                role="checkbox"
+                aria-checked={selected}
+                aria-label={`${label} arc`}
                 onClick={() => onArcToggle(arc, false)}
               />
               <text
@@ -168,6 +173,10 @@ export function ArcRadarSelector({
               fill={fillColor}
               stroke={borderColor}
               strokeWidth={1.5}
+              role="checkbox"
+              aria-checked={selected}
+              aria-label={`Zero-range ${arc.replace('zero-', '')} arc`}
+              aria-disabled={disabled}
               onClick={() => !disabled && onArcToggle(arc, true)}
               style={{ 
                 cursor: disabled ? 'default' : 'pointer',

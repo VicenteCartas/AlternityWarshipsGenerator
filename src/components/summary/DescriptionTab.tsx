@@ -116,6 +116,7 @@ export function DescriptionTab({
                 size="small"
                 color="error"
                 onClick={handleRemoveImage}
+                aria-label="Remove image"
               >
                 <DeleteIcon />
               </IconButton>

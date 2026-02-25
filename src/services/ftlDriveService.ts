@@ -135,16 +135,6 @@ export function generateFTLInstallationId(): string {
   return generateId('ftl');
 }
 
-/**
- * Format FTL rating for display
- */
-export function formatFTLRating(rating: number | null, unit: string): string {
-  if (rating === null) return 'Variable';
-  // Round to 1 decimal place if needed
-  const displayRating = Number.isInteger(rating) ? rating : rating.toFixed(1);
-  return `${displayRating} ${unit}`;
-}
-
 // ============== FTL Fuel Tank Functions ==============
 
 /**

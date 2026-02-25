@@ -527,6 +527,7 @@ export function EngineSelection({
                       </Tooltip>
                     )}
                     <IconButton
+                      aria-label="Edit engine"
                       size="small"
                       color="primary"
                       onClick={() => handleEditEngine(installation)}
@@ -534,12 +535,14 @@ export function EngineSelection({
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Duplicate engine"
                       size="small"
                       onClick={() => handleDuplicateEngine(installation)}
                     >
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Remove engine"
                       size="small"
                       color="error"
                       onClick={() => handleRemoveEngine(installation.id)}
@@ -656,6 +659,7 @@ export function EngineSelection({
                       variant="outlined"
                     />
                     <IconButton
+                      aria-label="Edit fuel tank"
                       size="small"
                       color="primary"
                       onClick={() => handleEditFuelTank(fuelTank)}
@@ -663,12 +667,14 @@ export function EngineSelection({
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Duplicate fuel tank"
                       size="small"
                       onClick={() => handleDuplicateFuelTank(fuelTank)}
                     >
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Remove fuel tank"
                       size="small"
                       color="error"
                       onClick={() => handleRemoveFuelTank(fuelTank.id)}

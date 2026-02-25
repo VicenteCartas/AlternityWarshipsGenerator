@@ -1,4 +1,4 @@
-import type { Hull, ShipClass, HullCategory } from '../types/hull';
+import type { Hull, HullStats, ShipClass, HullCategory } from '../types/hull';
 import { SHIP_CLASS_ORDER } from '../types/common';
 import { getHullsData, getStationHullsData } from './dataLoader';
 
@@ -54,4 +54,17 @@ export function getHullById(id: string): Hull | undefined {
  */
 export function getShipClasses(): readonly ShipClass[] {
   return [...SHIP_CLASS_ORDER];
+}
+
+/**
+ * Calculate derived hull statistics
+ */
+export function calculateHullStats(hull: Hull): HullStats {
+  return {
+    totalHullPoints: hull.hullPoints + hull.bonusHullPoints,
+    lightArmorCost: 0,
+    mediumArmorCost: Math.ceil(hull.hullPoints * 0.05),
+    heavyArmorCost: Math.ceil(hull.hullPoints * 0.1),
+    superHeavyArmorCost: Math.ceil(hull.hullPoints * 0.2),
+  };
 }

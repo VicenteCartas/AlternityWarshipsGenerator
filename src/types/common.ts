@@ -165,3 +165,24 @@ export interface InstalledItemWithCalcs extends InstalledItemBase {
  * Combines type, quantity, and calculated values
  */
 export interface InstalledSystemBase<T> extends InstalledQuantityItem<T>, InstalledItemWithCalcs {}
+
+// ============== App Mode & Step Types ==============
+
+/**
+ * Application mode for the main view
+ */
+export type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
+
+/**
+ * Identifier for each wizard step
+ */
+export type StepId = 'hull' | 'armor' | 'power' | 'engines' | 'ftl' | 'support' | 'weapons' | 'defenses' | 'sensors' | 'c4' | 'hangars' | 'damage' | 'summary';
+
+/**
+ * Definition of a wizard step
+ */
+export interface StepDef {
+  id: StepId;
+  label: string;
+  required: boolean;
+}

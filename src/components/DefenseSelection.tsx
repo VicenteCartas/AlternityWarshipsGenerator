@@ -366,6 +366,7 @@ export function DefenseSelection({
               {/* Edit button - not shown for percentage-based or fixed coverage systems */}
               {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
                 <IconButton
+                  aria-label="Edit defense"
                   size="small"
                   onClick={() => handleEditDefense(defense)}
                   color="primary"
@@ -376,6 +377,7 @@ export function DefenseSelection({
               {/* Duplicate button - not shown for percentage-based or fixed coverage systems */}
               {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
                 <IconButton
+                  aria-label="Duplicate defense"
                   size="small"
                   onClick={() => handleDuplicateDefense(defense)}
                 >
@@ -383,6 +385,7 @@ export function DefenseSelection({
                 </IconButton>
               )}
               <IconButton
+                aria-label="Remove defense"
                 size="small"
                 onClick={() => handleRemoveDefense(defense.id)}
                 color="error"

@@ -166,17 +166,17 @@ export function InstalledLaunchSystems({
                     />
                   </Tooltip>
                 )}
-                <IconButton size="small" onClick={() => onEdit(ls)} color="primary">
+                <IconButton size="small" onClick={() => onEdit(ls)} color="primary" aria-label="Edit launch system">
                   <EditIcon fontSize="small" />
                 </IconButton>
                 {onLaunchSystemsChange && (
                   <Tooltip title="Duplicate">
-                    <IconButton size="small" onClick={() => handleDuplicateLaunchSystem(ls)}>
+                    <IconButton size="small" onClick={() => handleDuplicateLaunchSystem(ls)} aria-label="Duplicate launch system">
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 )}
-                <IconButton size="small" onClick={() => onRemove(ls.id)} color="error">
+                <IconButton size="small" onClick={() => onRemove(ls.id)} color="error" aria-label="Remove launch system">
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Box>
@@ -513,6 +513,7 @@ export function OrdnanceSelection({
                               size="small"
                               color="error"
                               onClick={() => handleUnloadOrdnance(item.designId)}
+                              aria-label="Unload ordnance"
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -708,10 +709,10 @@ export function OrdnanceSelection({
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatCost(design.totalCost)}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.5}>
-                      <IconButton size="small" onClick={() => openEditDesignDialog(design)}>
+                      <IconButton size="small" onClick={() => openEditDesignDialog(design)} aria-label="Edit ordnance design">
                         <EditIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDeleteDesign(design.id)}>
+                      <IconButton size="small" color="error" onClick={() => handleDeleteDesign(design.id)} aria-label="Delete ordnance design">
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Stack>

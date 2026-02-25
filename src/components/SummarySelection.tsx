@@ -738,6 +738,7 @@ export function SummarySelection({
                     size="small"
                     color="error"
                     onClick={handleRemoveImage}
+                    aria-label="Remove image"
                   >
                     <DeleteIcon />
                   </IconButton>

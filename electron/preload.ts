@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onShowAbout: (callback: () => void) => {
     ipcRenderer.on('menu-show-about', callback);
   },
+  onShowShortcuts: (callback: () => void) => {
+    ipcRenderer.on('menu-show-shortcuts', callback);
+  },
+  onDuplicateDesign: (callback: () => void) => {
+    ipcRenderer.on('menu-duplicate-design', callback);
+  },
   onReturnToStart: (callback: () => void) => {
     ipcRenderer.on('menu-return-to-start', callback);
   },

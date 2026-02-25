@@ -12,51 +12,51 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 ---
 
-## Phase 1: Testing Foundation + Trivial Fixes
+## Phase 1: Testing Foundation + Trivial Fixes ✅ COMPLETE
 *Goal: Establish test infrastructure, knock out trivial improvements*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 1 | Vitest setup + config + setup.ts + npm scripts | TESTS | Low | Everything else depends on this |
-| 2 | T10: formatters.ts tests | TESTS | Low | Easiest service, builds testing patterns |
-| 3 | T5: utilities.ts tests | TESTS | Low | Core math — validates interpolation before engines/FTL |
-| 4 | U1: Fix focus outlines on stepper | UX | Trivial | One-line CSS fix, accessibility critical |
-| 5 | U24: ARIA labels on scroll arrows | UX | Trivial | Two `aria-label` props |
-| 6 | U23: Step label tooltips | UX | Trivial | Wrap in `<Tooltip>` |
-| 7 | C3: Memoize breakdowns (useMemo) | CODE | Low | Immediate perf gain, low risk, no API changes |
-| 8 | L4: Promote `capitalize` to utilities.ts | CODE | Trivial | Used in 20+ places, unblocks other cleanup |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 1 | Vitest setup + config + setup.ts + npm scripts | TESTS | Low | ✅ Done |
+| 2 | T10: formatters.ts tests (44 tests) | TESTS | Low | ✅ Done |
+| 3 | T5: utilities.ts tests (35 tests) | TESTS | Low | ✅ Done |
+| 4 | U1: Fix focus outlines on stepper | UX | Trivial | ✅ Done |
+| 5 | U24: ARIA labels on scroll arrows | UX | Trivial | ✅ Done |
+| 6 | U23: Step label tooltips | UX | Trivial | ✅ Done |
+| 7 | C3: Memoize breakdowns (useMemo) | CODE | Low | ✅ Done |
+| 8 | L4: Promote `capitalize` to utilities.ts | CODE | Trivial | ✅ Done |
 
 ---
 
-## Phase 2: State Consolidation + Quick Features
+## Phase 2: State Consolidation + Quick Features ✅ COMPLETE
 *Goal: Eliminate the 6-place state duplication, ship quick-win features*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 9 | C2: buildCurrentState/applyState helpers | CODE | Low | Prerequisite for C1; removes 4 duplication sites |
-| 10 | M5: Eliminate pass-through handlers | CODE | Trivial | Consistent prop passing |
-| 11 | M6: Move calculateHullStats to hullService | CODE | Trivial | Correct placement |
-| 12 | M7: Move formatFTLRating to formatters | CODE | Trivial | Correct placement |
-| 13 | L3: Extract StepId/StepDef/ALL_STEPS from App.tsx | CODE | Low | Reduces App.tsx, needed before C1 |
-| 14 | L2: Replace empty interfaces with type aliases | CODE | Trivial | Remove eslint-disable comments |
-| 15 | F24: Keyboard shortcuts dialog | FEATURES | Low | High user value, standalone |
-| 16 | A1: Clone/duplicate design | FEATURES | Low | High user value, uses C2's buildCurrentState |
-| 17 | T23: calculateHullStats tests | TESTS | Low | Test before/after the M6 move |
-| 18 | T13: armorService tests | TESTS | Low | Small file, quick coverage |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 9 | C2: buildCurrentState/applyState helpers | CODE | Low | ✅ Done |
+| 10 | M5: Eliminate pass-through handlers | CODE | Trivial | ✅ Done |
+| 11 | M6: Move calculateHullStats to hullService | CODE | Trivial | ✅ Done |
+| 12 | M7: Move formatFTLRating to formatters | CODE | Trivial | ✅ Done |
+| 13 | L3: Extract StepId/StepDef/ALL_STEPS from App.tsx | CODE | Low | ✅ Done |
+| 14 | L2: Replace empty interfaces with type aliases | CODE | Trivial | ✅ Done |
+| 15 | F24: Keyboard shortcuts dialog | FEATURES | Low | ✅ Done |
+| 16 | A1: Clone/duplicate design | FEATURES | Low | ✅ Done |
+| 17 | T23: calculateHullStats tests (10 tests) | TESTS | Low | ✅ Done |
+| 18 | T13: armorService tests (35 tests) | TESTS | Low | ✅ Done |
 
 ---
 
-## Phase 3: App.tsx Decomposition + Critical Tests
+## Phase 3: App.tsx Decomposition + Critical Tests ✅ COMPLETE
 *Goal: Break the god component, test the most dangerous code paths*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 19 | H4: Fix stale closure dependency arrays | CODE | Low | Bug prevention before major refactoring |
-| 20 | C1: Extract hooks (useWarshipState, useDesignCalculations, useSaveLoad, etc.) | CODE | High | Biggest maintainability payoff |
-| 21 | T1: saveService tests (deserialize + migration) | TESTS | High | Most critical — data loss prevention |
-| 22 | T2: weaponService tests | TESTS | High | Compound multiplier rounding |
-| 23 | T22: useUndoHistory hook tests | TESTS | Medium | Debounce + state management validation |
-| 24 | U2: ARIA labels across app | UX | Medium | Accessibility — touch every interactive element |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 19 | H4: Fix stale closure dependency arrays | CODE | Low | ✅ Done |
+| 20 | C1: Extract hooks (useWarshipState, useDesignCalculations, useSaveLoad, etc.) | CODE | High | ✅ Done |
+| 21 | T1: saveService tests (deserialize + migration, 72 tests) | TESTS | High | ✅ Done |
+| 22 | T2: weaponService tests (117 tests) | TESTS | High | ✅ Done |
+| 23 | T22: useUndoHistory hook tests (29 tests) | TESTS | Medium | ✅ Done |
+| 24 | U2: ARIA labels across app (~65 elements, 20 files) | UX | Medium | ✅ Done |
 
 ---
 
@@ -171,8 +171,8 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 | Phase | Focus | Items | Est. Effort |
 |-------|-------|------:|-------------|
-| 1 | Test foundation + trivial fixes | 8 | 1–2 days |
-| 2 | State consolidation + quick features | 10 | 2–3 days |
+| 1 | Test foundation + trivial fixes | 8 | ✅ Complete |
+| 2 | State consolidation + quick features | 10 | ✅ Complete |
 | 3 | App.tsx decomposition + critical tests | 6 | 4–5 days |
 | 4 | UX quick wins sprint | 7 | 1–2 days |
 | 5 | Feature sprint (auto-save, clipboard, validation) | 6 | 3–4 days |

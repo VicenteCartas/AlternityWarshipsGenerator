@@ -152,6 +152,7 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
           exclusive
           onChange={handleDesignTypeChange}
           fullWidth
+          aria-label="Design type"
           sx={{ mb: 2 }}
         >
           <ToggleButton value="warship">
@@ -186,6 +187,7 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
             onChange={handleStationTypeChange}
             fullWidth
             size="small"
+            aria-label="Station type"
             sx={{ mb: 1 }}
           >
             <ToggleButton value="ground-base">Ground Base</ToggleButton>

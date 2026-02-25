@@ -17,8 +17,7 @@ export interface LifeSupportType extends ExpandableFields {
   description: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InstalledLifeSupport extends InstalledQuantityItem<LifeSupportType> {}
+export type InstalledLifeSupport = InstalledQuantityItem<LifeSupportType>;
 
 // ============== Accommodation Types ==============
 
@@ -43,8 +42,7 @@ export interface AccommodationType extends ExpandableFields {
   description: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InstalledAccommodation extends InstalledQuantityItem<AccommodationType> {}
+export type InstalledAccommodation = InstalledQuantityItem<AccommodationType>;
 
 // ============== Stores Types ==============
 
@@ -67,8 +65,7 @@ export interface StoreSystemType extends ExpandableFields {
   description: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InstalledStoreSystem extends InstalledQuantityItem<StoreSystemType> {}
+export type InstalledStoreSystem = InstalledQuantityItem<StoreSystemType>;
 
 // ============== Gravity Systems Types ==============
 

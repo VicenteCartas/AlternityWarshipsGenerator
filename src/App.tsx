@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -33,6 +33,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import SaveIcon from '@mui/icons-material/Save';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { WelcomePage } from './components/WelcomePage';
@@ -50,237 +51,96 @@ import { HangarMiscSelection } from './components/HangarMiscSelection';
 import { DamageDiagramSelection } from './components/DamageDiagramSelection';
 import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
+import { KeyboardShortcutsDialog } from './components/KeyboardShortcutsDialog';
 import { ModManager } from './components/ModManager';
 import { DesignTypeDialog } from './components/DesignTypeDialog';
 import type { Mod } from './types/mod';
 import { StepHeader } from './components/shared/StepHeader';
 import type { Hull } from './types/hull';
-import type { ArmorType, ArmorWeight, ShipArmor } from './types/armor';
-import type { InstalledPowerPlant, InstalledFuelTank } from './types/powerPlant';
-import type { InstalledEngine, InstalledEngineFuelTank } from './types/engine';
-import type { InstalledFTLDrive, InstalledFTLFuelTank } from './types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from './types/supportSystem';
-import type { InstalledWeapon } from './types/weapon';
-import type { InstalledDefenseSystem } from './types/defense';
-import type { InstalledCommandControlSystem } from './types/commandControl';
-import type { InstalledSensor } from './types/sensor';
-import type { InstalledHangarMiscSystem } from './types/hangarMisc';
-import type { OrdnanceDesign, InstalledLaunchSystem } from './types/ordnance';
-import type { ProgressLevel, TechTrack, DesignType, StationType } from './types/common';
-import type { DamageZone, HitLocationChart } from './types/damageDiagram';
-import type { ShipDescription } from './types/summary';
+import type { ArmorType, ArmorWeight } from './types/armor';
+import type { ProgressLevel, DesignType, StationType, AppMode } from './types/common';
 import './types/electron.d.ts';
-import { calculateHullStats } from './types/hull';
-import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost, buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from './services/armorService';
-import { calculateTotalPowerPlantStats } from './services/powerPlantService';
-import { calculateTotalEngineStats } from './services/engineService';
-import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from './services/ftlDriveService';
-import { calculateSupportSystemsStats } from './services/supportSystemService';
-import { calculateWeaponStats } from './services/weaponService';
-import { calculateOrdnanceStats } from './services/ordnanceService';
-import { calculateDefenseStats } from './services/defenseService';
-import { calculateCommandControlStats } from './services/commandControlService';
-import { calculateSensorStats } from './services/sensorService';
-import { calculateHangarMiscStats } from './services/hangarMiscService';
-import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES } from './services/formatters';
+import { buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from './services/armorService';
+import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES, PL_NAMES } from './services/formatters';
 import { loadAllGameData, reloadAllGameData, reloadWithSpecificMods, type DataLoadResult } from './services/dataLoader';
-import { getInstalledMods } from './services/modService';
-import { 
-  serializeWarship, 
-  saveFileToJson, 
-  jsonToSaveFile, 
-  deserializeWarship, 
-  getDefaultFileName,
-  type WarshipState 
-} from './services/saveService';
-import { useUndoHistory } from './hooks/useUndoHistory';
-
-type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
-
-type StepId = 'hull' | 'armor' | 'power' | 'engines' | 'ftl' | 'support' | 'weapons' | 'defenses' | 'sensors' | 'c4' | 'hangars' | 'damage' | 'summary';
-
-const STEP_FULL_NAMES: Record<StepId, string> = {
-  hull: 'Hull',
-  armor: 'Armor',
-  power: 'Power Plant',
-  engines: 'Engines',
-  ftl: 'FTL Drive',
-  support: 'Support Systems',
-  weapons: 'Weapons',
-  defenses: 'Defenses',
-  sensors: 'Sensors',
-  c4: 'Command & Control',
-  hangars: 'Hangars & Miscellaneous',
-  damage: 'Damage Zones',
-  summary: 'Summary',
-};
-
-interface StepDef {
-  id: StepId;
-  label: string;
-  required: boolean;
-}
-
-const ALL_STEPS: StepDef[] = [
-  { id: 'hull', label: 'Hull', required: true },
-  { id: 'armor', label: 'Armor', required: false },
-  { id: 'power', label: 'Power', required: true },
-  { id: 'engines', label: 'Engines', required: true },
-  { id: 'ftl', label: 'FTL', required: false },
-  { id: 'support', label: 'Support', required: false },
-  { id: 'weapons', label: 'Weapons', required: false },
-  { id: 'defenses', label: 'Defenses', required: false },
-  { id: 'sensors', label: 'Sensors', required: true },
-  { id: 'c4', label: 'C4', required: true },
-  { id: 'hangars', label: 'Misc', required: false },
-  { id: 'damage', label: 'Zones', required: true },
-  { id: 'summary', label: 'Summary', required: false },
-];
-
-/**
- * Get the visible steps based on design type and station type.
- * - Ground bases: no Engines, no FTL
- * - Outposts: no Engines, no FTL
- * - Space stations: Engines and FTL become optional
- * - Warships: all steps shown (Engines required, FTL optional)
- */
-function getStepsForDesign(designType: DesignType, stationType: StationType | null): StepDef[] {
-  if (designType === 'warship') return ALL_STEPS;
-
-  // Station types
-  if (stationType === 'ground-base' || stationType === 'outpost') {
-    // No engines, no FTL for ground installations
-    return ALL_STEPS.filter(s => s.id !== 'engines' && s.id !== 'ftl');
-  }
-
-  // Space station: engines and FTL are optional
-  return ALL_STEPS.map(s => {
-    if (s.id === 'engines') return { ...s, required: false };
-    return s;
-  });
-}
-
-// Progress level display names
-const PL_NAMES: Record<ProgressLevel, string> = {
-  6: 'PL6 - Fusion Age',
-  7: 'PL7 - Gravity Age',
-  8: 'PL8 - Energy Age',
-  9: 'PL9 - Matter Age',
-};
+import type { WarshipState } from './services/saveService';
+import { STEP_FULL_NAMES, getStepsForDesign } from './constants/steps';
+import { useNotification } from './hooks/useNotification';
+import { useStepperScroll } from './hooks/useStepperScroll';
+import { useElectronMenuHandlers } from './hooks/useElectronMenuHandlers';
+import { useDesignCalculations, type PowerScenario } from './hooks/useDesignCalculations';
+import { useSaveLoad } from './hooks/useSaveLoad';
+import { useWarshipState } from './hooks/useWarshipState';
 
 function App() {
+  // Local routing/UI state
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
-  
-  // Stepper scroll state
-  const stepperRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const updateScrollArrows = useCallback(() => {
-    const el = stepperRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  }, []);
+  // All warship design state (27 variables + setters, undo/redo, dirty tracking)
+  const {
+    designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity,
+    selectedHull, armorLayers,
+    installedPowerPlants, installedFuelTanks,
+    installedEngines, installedEngineFuelTanks,
+    installedFTLDrive, installedFTLFuelTanks,
+    installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
+    installedWeapons, ordnanceDesigns, installedLaunchSystems,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    damageDiagramZones,
+    shipDescription, warshipName,
+    designProgressLevel, designTechTracks,
+    setSelectedHull, setArmorLayers,
+    setInstalledPowerPlants, setInstalledFuelTanks,
+    setInstalledEngines, setInstalledEngineFuelTanks,
+    setInstalledFTLDrive, setInstalledFTLFuelTanks,
+    setInstalledLifeSupport, setInstalledAccommodations, setInstalledStoreSystems, setInstalledGravitySystems,
+    setInstalledWeapons, setOrdnanceDesigns, setInstalledLaunchSystems,
+    setInstalledDefenses, setInstalledCommandControl, setInstalledSensors, setInstalledHangarMisc,
+    setDamageDiagramZones,
+    setShipDescription, setWarshipName,
+    setDesignProgressLevel, setDesignTechTracks,
+    buildCurrentState, applyState,
+    handleUndo, handleRedo, undoHistory,
+    hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheck,
+  } = useWarshipState(mode);
 
-  useEffect(() => {
-    updateScrollArrows();
-    window.addEventListener('resize', updateScrollArrows);
-    return () => window.removeEventListener('resize', updateScrollArrows);
-  }, [updateScrollArrows]);
-
-  // Design type state
-  const [designType, setDesignType] = useState<DesignType>('warship');
-  const [stationType, setStationType] = useState<StationType | null>(null);
-  const [surfaceProvidesLifeSupport, setSurfaceProvidesLifeSupport] = useState(false);
-  const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(false);
-  const [showDesignTypeDialog, setShowDesignTypeDialog] = useState(false);
-  
   // Compute visible steps based on design type
   const steps = getStepsForDesign(designType, stationType);
 
-  // Re-check stepper scroll arrows when steps change (design type switch)
-  useEffect(() => {
-    const timer = setTimeout(updateScrollArrows, 50);
-    return () => clearTimeout(timer);
-  }, [designType, stationType, updateScrollArrows]);
-
-  // Auto-scroll the active step into view within the stepper
-  useEffect(() => {
-    const container = stepperRef.current;
-    if (!container) return;
-    const buttons = container.querySelectorAll('.MuiStepButton-root');
-    const activeButton = buttons[activeStep] as HTMLElement | undefined;
-    if (!activeButton) return;
-    const containerRect = container.getBoundingClientRect();
-    const buttonRect = activeButton.getBoundingClientRect();
-    if (buttonRect.left < containerRect.left) {
-      container.scrollBy({ left: buttonRect.left - containerRect.left - 16, behavior: 'smooth' });
-    } else if (buttonRect.right > containerRect.right) {
-      container.scrollBy({ left: buttonRect.right - containerRect.right + 16, behavior: 'smooth' });
-    }
-  }, [activeStep]);
-  
   // Get the step ID for the current active index
   const activeStepId = steps[activeStep]?.id;
-  
-  const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
-  const [armorLayers, setArmorLayers] = useState<ShipArmor[]>([]);
-  const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
-  const [installedFuelTanks, setInstalledFuelTanks] = useState<InstalledFuelTank[]>([]);
-  const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
-  const [installedEngineFuelTanks, setInstalledEngineFuelTanks] = useState<InstalledEngineFuelTank[]>([]);
-  const [installedFTLDrive, setInstalledFTLDrive] = useState<InstalledFTLDrive | null>(null);
-  const [installedFTLFuelTanks, setInstalledFTLFuelTanks] = useState<InstalledFTLFuelTank[]>([]);
-  const [installedLifeSupport, setInstalledLifeSupport] = useState<InstalledLifeSupport[]>([]);
-  const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
-  const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
-  const [installedGravitySystems, setInstalledGravitySystems] = useState<InstalledGravitySystem[]>([]);
-  const [installedWeapons, setInstalledWeapons] = useState<InstalledWeapon[]>([]);
-  const [ordnanceDesigns, setOrdnanceDesigns] = useState<OrdnanceDesign[]>([]);
-  const [installedLaunchSystems, setInstalledLaunchSystems] = useState<InstalledLaunchSystem[]>([]);
-  const [installedDefenses, setInstalledDefenses] = useState<InstalledDefenseSystem[]>([]);
-  const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
-  const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
-  const [installedHangarMisc, setInstalledHangarMisc] = useState<InstalledHangarMiscSystem[]>([]);
-  
-  // Damage diagram state
-  const [damageDiagramZones, setDamageDiagramZones] = useState<DamageZone[]>([]);
-  const [hitLocationChart, setHitLocationChart] = useState<HitLocationChart | null>(null);
-  
-  // Ship description (lore and image)
-  const [shipDescription, setShipDescription] = useState<ShipDescription>({
-    lore: '',
-    imageData: null,
-    imageMimeType: null,
-  });
-  
-  const [warshipName, setWarshipName] = useState<string>('New Ship');
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
-  
-  // Unsaved changes tracking
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const skipDirtyCheck = useRef(true);
-  
-  // Design constraints - filter available components
-  const [designProgressLevel, setDesignProgressLevel] = useState<ProgressLevel>(9);
-  const [designTechTracks, setDesignTechTracks] = useState<TechTrack[]>([]);
-  
+
+  // Snackbar notification state
+  const { snackbar, showNotification, handleCloseSnackbar } = useNotification();
+
+  // Stepper scroll state
+  const { stepperRef, canScrollLeft, canScrollRight, updateScrollArrows } = useStepperScroll(activeStep, designType, stationType);
+
+  // Design type dialog
+  const [showDesignTypeDialog, setShowDesignTypeDialog] = useState(false);
+
+  // About dialog state
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+
+  // Track the mode to return to when leaving the mod manager
+  const [preModeForMods, setPreModeForMods] = useState<AppMode>('welcome');
+
   // Per-design active mods (set at creation time or on load, locked during design)
   const [designActiveMods, setDesignActiveMods] = useState<Mod[]>([]);
-  
+
   // Tech track popover anchor
   const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
-  
+
   // Power scenario popover and toggles
   const [powerAnchorEl, setPowerAnchorEl] = useState<HTMLElement | null>(null);
-  
+
   // HP and Cost breakdown popover anchors
   const [hpAnchorEl, setHpAnchorEl] = useState<HTMLElement | null>(null);
   const [costAnchorEl, setCostAnchorEl] = useState<HTMLElement | null>(null);
-  
-  const [powerScenario, setPowerScenario] = useState({
+
+  const [powerScenario, setPowerScenario] = useState<PowerScenario>({
     engines: true,
     ftlDrive: true,
     supportSystems: true,
@@ -290,149 +150,70 @@ function App() {
     sensors: true,
     hangarMisc: true,
   });
-  
-  // Snackbar state for notifications
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'warning' | 'info';
-    action?: { label: string; onClick: () => void };
-  }>({ open: false, message: '', severity: 'info' });
 
-  // About dialog state
-  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  // All derived design calculations (HP, power, cost breakdowns, validation, tech tracks)
+  const {
+    usedHullPointsBeforePowerPlants,
+    usedHullPointsBeforeEngines,
+    remainingHullPoints,
+    totalHullPoints,
+    totalPower,
+    totalPowerConsumed,
+    totalCost,
+    powerBreakdown,
+    hpBreakdown,
+    costBreakdown,
+    summaryValidationState,
+    uniqueTechTracks,
+    totalPassengersAndSuspended,
+  } = useDesignCalculations({
+    selectedHull,
+    armorLayers,
+    installedPowerPlants,
+    installedFuelTanks,
+    installedEngines,
+    installedEngineFuelTanks,
+    installedFTLDrive,
+    installedFTLFuelTanks,
+    installedLifeSupport,
+    installedAccommodations,
+    installedStoreSystems,
+    installedGravitySystems,
+    installedWeapons,
+    ordnanceDesigns,
+    installedLaunchSystems,
+    installedDefenses,
+    installedCommandControl,
+    installedSensors,
+    installedHangarMisc,
+    designProgressLevel,
+    designTechTracks,
+    powerScenario,
+    steps,
+    surfaceProvidesLifeSupport,
+  });
 
-  // Undo/redo history (snapshot-based, debounced, max 50 entries)
-  const undoHistory = useUndoHistory<WarshipState>(50);
-
-  const restoreSnapshot = useCallback((state: WarshipState) => {
-    setDesignType(state.designType);
-    setStationType(state.stationType);
-    setSurfaceProvidesLifeSupport(state.surfaceProvidesLifeSupport);
-    setSurfaceProvidesGravity(state.surfaceProvidesGravity);
-    setSelectedHull(state.hull);
-    setArmorLayers(state.armorLayers);
-    setInstalledPowerPlants(state.powerPlants);
-    setInstalledFuelTanks(state.fuelTanks);
-    setInstalledEngines(state.engines);
-    setInstalledEngineFuelTanks(state.engineFuelTanks);
-    setInstalledFTLDrive(state.ftlDrive);
-    setInstalledFTLFuelTanks(state.ftlFuelTanks);
-    setInstalledLifeSupport(state.lifeSupport);
-    setInstalledAccommodations(state.accommodations);
-    setInstalledStoreSystems(state.storeSystems);
-    setInstalledGravitySystems(state.gravitySystems);
-    setInstalledWeapons(state.weapons);
-    setOrdnanceDesigns(state.ordnanceDesigns);
-    setInstalledLaunchSystems(state.launchSystems);
-    setInstalledDefenses(state.defenses);
-    setInstalledCommandControl(state.commandControl);
-    setInstalledSensors(state.sensors);
-    setInstalledHangarMisc(state.hangarMisc);
-    setDamageDiagramZones(state.damageDiagramZones);
-    setHitLocationChart(state.hitLocationChart);
-    setShipDescription(state.shipDescription);
-    setWarshipName(state.name);
-    setDesignProgressLevel(state.designProgressLevel);
-    setDesignTechTracks(state.designTechTracks);
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    const state = undoHistory.undo();
-    if (state) restoreSnapshot(state);
-  }, [undoHistory.undo, restoreSnapshot]);
-
-  const handleRedo = useCallback(() => {
-    const state = undoHistory.redo();
-    if (state) restoreSnapshot(state);
-  }, [undoHistory.redo, restoreSnapshot]);
-
-  // Track design state changes to detect unsaved modifications + push to undo history
-  useEffect(() => {
-    if (skipDirtyCheck.current) {
-      skipDirtyCheck.current = false;
-      return;
-    }
-    if (mode === 'builder') {
-      setHasUnsavedChanges(true);
-      // Push to undo history (debounced; skipped during undo/redo restore)
-      if (!undoHistory.isRestoring.current) {
-        undoHistory.pushState({
-          name: warshipName,
-          shipDescription,
-          designType,
-          stationType,
-          surfaceProvidesLifeSupport,
-          surfaceProvidesGravity,
-          hull: selectedHull,
-          armorLayers,
-          powerPlants: installedPowerPlants,
-          fuelTanks: installedFuelTanks,
-          engines: installedEngines,
-          engineFuelTanks: installedEngineFuelTanks,
-          ftlDrive: installedFTLDrive,
-          ftlFuelTanks: installedFTLFuelTanks,
-          lifeSupport: installedLifeSupport,
-          accommodations: installedAccommodations,
-          storeSystems: installedStoreSystems,
-          gravitySystems: installedGravitySystems,
-          defenses: installedDefenses,
-          commandControl: installedCommandControl,
-          sensors: installedSensors,
-          hangarMisc: installedHangarMisc,
-          weapons: installedWeapons,
-          ordnanceDesigns,
-          launchSystems: installedLaunchSystems,
-          damageDiagramZones,
-          hitLocationChart,
-          designProgressLevel,
-          designTechTracks,
-        });
-      } else {
-        undoHistory.isRestoring.current = false;
-      }
-    }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,
-    installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
-    installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
-    installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
-    damageDiagramZones, hitLocationChart, warshipName, shipDescription,
-    designProgressLevel, designTechTracks]);
-
-  // Sync app mode with Electron to enable/disable menu items
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.setBuilderMode(mode);
-    }
-  }, [mode]);
-
-  // Load game data on startup
-  useEffect(() => {
-    async function initializeApp() {
-      const result: DataLoadResult = await loadAllGameData();
-      setMode('welcome');
-      
-      // Notify user if any data files failed to load from external sources
-      if (result.isElectron && result.failedFiles.length > 0) {
-        const fileList = result.failedFiles.map(f => f.fileName).join(', ');
-        setSnackbar({
-          open: true,
-          message: `Some data files could not be loaded from external sources and are using bundled defaults: ${fileList}. Check the resources/data folder to restore customized files.`,
-          severity: 'warning'
-        });
-      }
-    }
-    initializeApp();
-  }, []);
-
-  const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info', action?: { label: string; onClick: () => void }) => {
-    setSnackbar({ open: true, message, severity, action });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+  // File save/load operations
+  const {
+    currentFilePath,
+    setCurrentFilePath,
+    loadFromFile,
+    handleLoadWarship,
+    handleSaveWarship,
+    handleSaveWarshipAs,
+    handleDuplicateDesign,
+  } = useSaveLoad({
+    showNotification,
+    buildCurrentState,
+    applyState,
+    undoHistory,
+    selectedHull,
+    setMode,
+    setActiveStep,
+    skipDirtyCheck,
+    setDesignActiveMods,
+    setHasUnsavedChanges,
+  });
 
   const handleNewWarship = useCallback(() => {
     setShowDesignTypeDialog(true);
@@ -451,44 +232,11 @@ function App() {
     // Reset all state for a new design
     skipDirtyCheck.current = true;
     setActiveStep(0);
-    setDesignType(newDesignType);
-    setStationType(newStationType);
-    setSurfaceProvidesLifeSupport(newSurfaceProvidesLifeSupport);
-    setSurfaceProvidesGravity(newSurfaceProvidesGravity);
-    setSelectedHull(null);
-    setArmorLayers([]);
-    setInstalledPowerPlants([]);
-    setInstalledFuelTanks([]);
-    setInstalledEngines([]);
-    setInstalledEngineFuelTanks([]);
-    setInstalledFTLDrive(null);
-    setInstalledFTLFuelTanks([]);
-    setInstalledLifeSupport([]);
-    setInstalledAccommodations([]);
-    setInstalledStoreSystems([]);
-    setInstalledGravitySystems([]);
-    setInstalledWeapons([]);
-    setOrdnanceDesigns([]);
-    setInstalledLaunchSystems([]);
-    setInstalledDefenses([]);
-    setInstalledCommandControl([]);
-    setInstalledSensors([]);
-    setInstalledHangarMisc([]);
-    setDamageDiagramZones([]);
-    setHitLocationChart(null);
-    setShipDescription({ lore: '', imageData: null, imageMimeType: null });
     const defaultName = newDesignType === 'warship' ? 'New Ship'
       : newStationType === 'ground-base' ? 'New Base'
       : newStationType === 'outpost' ? 'New Outpost'
       : 'New Station';
-    setWarshipName(defaultName);
-    setCurrentFilePath(null);
-    setDesignProgressLevel(9);
-    setDesignTechTracks([]);
-    setDesignActiveMods(selectedMods);
-    // Initialize undo history with the fresh design state
-    undoHistory.clear();
-    undoHistory.pushImmediate({
+    const freshState: WarshipState = {
       name: defaultName,
       shipDescription: { lore: '', imageData: null, imageMimeType: null },
       designType: newDesignType,
@@ -518,13 +266,16 @@ function App() {
       hitLocationChart: null,
       designProgressLevel: 9,
       designTechTracks: [],
-    });
+    };
+    applyState(freshState);
+    setCurrentFilePath(null);
+    setDesignActiveMods(selectedMods);
+    // Initialize undo history with the fresh design state
+    undoHistory.clear();
+    undoHistory.pushImmediate(freshState);
     setHasUnsavedChanges(false);
     setMode('builder');
-  }, []);
-
-  // Track the mode to return to when leaving the mod manager
-  const [preModeForMods, setPreModeForMods] = useState<AppMode>('welcome');
+  }, [applyState, showNotification]);
 
   const handleManageMods = useCallback(() => {
     setPreModeForMods(mode === 'mods' ? 'welcome' : mode);
@@ -547,310 +298,18 @@ function App() {
     setMode('welcome');
   }, []);
 
-  // Helper function to load a warship from a file path
-  const loadFromFile = useCallback(async (filePath: string): Promise<boolean> => {
-    if (!window.electronAPI) {
-      showNotification('Load functionality requires Electron', 'error');
-      return false;
-    }
-
-    try {
-      const readResult = await window.electronAPI.readFile(filePath);
-      
-      if (!readResult.success || !readResult.content) {
-        showNotification(`Failed to read file: ${readResult.error}`, 'error');
-        return false;
-      }
-
-      const saveFile = jsonToSaveFile(readResult.content);
-      if (!saveFile) {
-        showNotification('Invalid warship file format', 'error');
-        return false;
-      }
-
-      // Match saved mods against installed mods and apply them before deserializing
-      const savedModRefs = saveFile.activeMods || [];
-      const modWarnings: string[] = [];
-      if (savedModRefs.length > 0) {
-        const installed = await getInstalledMods();
-        const matchedMods: Mod[] = [];
-        for (const ref of savedModRefs) {
-          const match = installed.find(m => m.manifest.name === ref.name);
-          if (!match) {
-            modWarnings.push(`Mod "${ref.name}" (v${ref.version}) was active when saved but is not installed. Some items may be missing.`);
-          } else {
-            if (match.manifest.version !== ref.version) {
-              modWarnings.push(`Mod "${ref.name}" version differs: saved with v${ref.version}, currently v${match.manifest.version}.`);
-            }
-            matchedMods.push(match);
-          }
-        }
-        // Sort matched mods by priority
-        matchedMods.sort((a, b) => a.priority - b.priority);
-        await reloadWithSpecificMods(matchedMods);
-        setDesignActiveMods(matchedMods);
-      } else {
-        // No mods in save — apply empty mod set (base data only)
-        await reloadWithSpecificMods([]);
-        setDesignActiveMods([]);
-      }
-
-      const loadResult = deserializeWarship(saveFile);
-      if (!loadResult.success || !loadResult.state) {
-        showNotification(`Failed to load warship: ${loadResult.errors?.join(', ')}`, 'error');
-        return false;
-      }
-
-      // Apply loaded state
-      skipDirtyCheck.current = true;
-      setDesignType(loadResult.state.designType || 'warship');
-      setStationType(loadResult.state.stationType || null);
-      setSurfaceProvidesLifeSupport(loadResult.state.surfaceProvidesLifeSupport || false);
-      setSurfaceProvidesGravity(loadResult.state.surfaceProvidesGravity || false);
-      setSelectedHull(loadResult.state.hull);
-      setArmorLayers(loadResult.state.armorLayers || []);
-      setInstalledPowerPlants(loadResult.state.powerPlants || []);
-      setInstalledFuelTanks(loadResult.state.fuelTanks || []);
-      setInstalledEngines(loadResult.state.engines || []);
-      setInstalledEngineFuelTanks(loadResult.state.engineFuelTanks || []);
-      setInstalledFTLDrive(loadResult.state.ftlDrive || null);
-      setInstalledFTLFuelTanks(loadResult.state.ftlFuelTanks || []);
-      setInstalledLifeSupport(loadResult.state.lifeSupport || []);
-      setInstalledAccommodations(loadResult.state.accommodations || []);
-      setInstalledStoreSystems(loadResult.state.storeSystems || []);
-      setInstalledGravitySystems(loadResult.state.gravitySystems || []);
-      setInstalledDefenses(loadResult.state.defenses || []);
-      setInstalledCommandControl(loadResult.state.commandControl || []);
-      setInstalledSensors(loadResult.state.sensors || []);
-      setInstalledHangarMisc(loadResult.state.hangarMisc || []);
-      setInstalledWeapons(loadResult.state.weapons || []);
-      setOrdnanceDesigns(loadResult.state.ordnanceDesigns || []);
-      setInstalledLaunchSystems(loadResult.state.launchSystems || []);
-      setDamageDiagramZones(loadResult.state.damageDiagramZones || []);
-      setHitLocationChart(loadResult.state.hitLocationChart || null);
-      setShipDescription(loadResult.state.shipDescription || { lore: '', imageData: null, imageMimeType: null });
-      setWarshipName(loadResult.state.name);
-      setDesignProgressLevel(loadResult.state.designProgressLevel);
-      setDesignTechTracks(loadResult.state.designTechTracks);
-      setCurrentFilePath(filePath);
-      // Add to recent files list
-      window.electronAPI.addRecentFile(filePath);
-      setHasUnsavedChanges(false);
-      setActiveStep(0);
-      // Initialize undo history with the loaded state
-      undoHistory.clear();
-      undoHistory.pushImmediate(loadResult.state);
-      setMode('builder');
-
-      if (loadResult.warnings && loadResult.warnings.length > 0) {
-        // Combine mod match warnings with deserialize warnings, dedup
-        const allWarnings = [...modWarnings, ...loadResult.warnings];
-        const uniqueWarnings = [...new Set(allWarnings)];
-        showNotification(`Loaded with warnings: ${uniqueWarnings.join(', ')}`, 'warning');
-      } else if (modWarnings.length > 0) {
-        showNotification(`Loaded with warnings: ${modWarnings.join(', ')}`, 'warning');
-      } else {
-        showNotification(`Loaded: ${loadResult.state.name}`, 'success');
-      }
-      return true;
-    } catch (error) {
-      showNotification(`Error loading file: ${error}`, 'error');
-      return false;
-    }
-  }, []);
-
-  const handleLoadWarship = useCallback(async () => {
-    if (!window.electronAPI) {
-      showNotification('Load functionality requires Electron', 'error');
-      return;
-    }
-
-    try {
-      const dialogResult = await window.electronAPI.showOpenDialog();
-      if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
-        return;
-      }
-
-      await loadFromFile(dialogResult.filePaths[0]);
-    } catch (error) {
-      showNotification(`Error loading file: ${error}`, 'error');
-    }
-  }, [loadFromFile]);
-
-  // Helper function to perform the actual save to a file path
-  const saveToFile = useCallback(async (filePath: string): Promise<boolean> => {
-    if (!window.electronAPI || !selectedHull) return false;
-
-    const state: WarshipState = {
-      name: warshipName,
-      shipDescription,
-      hull: selectedHull,
-      armorLayers,
-      powerPlants: installedPowerPlants,
-      fuelTanks: installedFuelTanks,
-      engines: installedEngines,
-      engineFuelTanks: installedEngineFuelTanks,
-      ftlDrive: installedFTLDrive,
-      ftlFuelTanks: installedFTLFuelTanks,
-      lifeSupport: installedLifeSupport,
-      accommodations: installedAccommodations,
-      storeSystems: installedStoreSystems,
-      gravitySystems: installedGravitySystems,
-      defenses: installedDefenses,
-      commandControl: installedCommandControl,
-      sensors: installedSensors,
-      hangarMisc: installedHangarMisc,
-      weapons: installedWeapons,
-      ordnanceDesigns: ordnanceDesigns,
-      launchSystems: installedLaunchSystems,
-      damageDiagramZones: damageDiagramZones,
-      hitLocationChart: hitLocationChart,
-      designProgressLevel,
-      designTechTracks,
-      designType,
-      stationType,
-      surfaceProvidesLifeSupport,
-      surfaceProvidesGravity,
-    };
-
-    try {
-      const saveFile = serializeWarship(state);
-      const json = saveFileToJson(saveFile);
-      const saveResult = await window.electronAPI.saveFile(filePath, json);
-
-      if (saveResult.success) {
-        setCurrentFilePath(filePath);
-        // Add to recent files list
-        window.electronAPI.addRecentFile(filePath);
-        setHasUnsavedChanges(false);
-        showNotification('Warship saved successfully', 'success');
-        return true;
-      } else {
-        showNotification(`Failed to save: ${saveResult.error}`, 'error');
-        return false;
-      }
-    } catch (error) {
-      showNotification(`Error saving file: ${error}`, 'error');
-      return false;
-    }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity]);
-
-  // Save As - always prompts for file location
-  const handleSaveWarshipAs = useCallback(async () => {
-    if (!window.electronAPI) {
-      showNotification('Save functionality requires Electron', 'error');
-      return;
-    }
-
-    if (!selectedHull) {
-      showNotification('Please select a hull before saving', 'warning');
-      return;
-    }
-
-    const state: WarshipState = {
-      name: warshipName,
-      shipDescription,
-      hull: selectedHull,
-      armorLayers,
-      powerPlants: installedPowerPlants,
-      fuelTanks: installedFuelTanks,
-      engines: installedEngines,
-      engineFuelTanks: installedEngineFuelTanks,
-      ftlDrive: installedFTLDrive,
-      ftlFuelTanks: installedFTLFuelTanks,
-      lifeSupport: installedLifeSupport,
-      accommodations: installedAccommodations,
-      storeSystems: installedStoreSystems,
-      gravitySystems: installedGravitySystems,
-      defenses: installedDefenses,
-      commandControl: installedCommandControl,
-      sensors: installedSensors,
-      hangarMisc: installedHangarMisc,
-      weapons: installedWeapons,
-      ordnanceDesigns: ordnanceDesigns,
-      launchSystems: installedLaunchSystems,
-      damageDiagramZones: damageDiagramZones,
-      hitLocationChart: hitLocationChart,
-      designProgressLevel,
-      designTechTracks,
-      designType,
-      stationType,
-      surfaceProvidesLifeSupport,
-      surfaceProvidesGravity,
-    };
-
-    try {
-      const defaultFileName = getDefaultFileName(state);
-      const dialogResult = await window.electronAPI.showSaveDialog(defaultFileName);
-      
-      if (dialogResult.canceled || !dialogResult.filePath) {
-        return;
-      }
-
-      await saveToFile(dialogResult.filePath);
-    } catch (error) {
-      showNotification(`Error saving file: ${error}`, 'error');
-    }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, warshipName, shipDescription, designProgressLevel, designTechTracks, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, saveToFile]);
-
-  // Save - saves to current file or prompts if no file yet
-  const handleSaveWarship = useCallback(async () => {
-    if (!window.electronAPI) {
-      showNotification('Save functionality requires Electron', 'error');
-      return;
-    }
-
-    if (!selectedHull) {
-      showNotification('Please select a hull before saving', 'warning');
-      return;
-    }
-
-    // If we have a current file path, save directly to it
-    if (currentFilePath) {
-      await saveToFile(currentFilePath);
-      return;
-    }
-
-    // Otherwise, behave like Save As
-    await handleSaveWarshipAs();
-  }, [selectedHull, currentFilePath, saveToFile, handleSaveWarshipAs]);
-
-  // Listen for Electron menu events
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.onNewWarship(() => {
-        handleNewWarship();
-      });
-      window.electronAPI.onLoadWarship(() => {
-        handleLoadWarship();
-      });
-      window.electronAPI.onSaveWarship(() => {
-        handleSaveWarship();
-      });
-      window.electronAPI.onSaveWarshipAs(() => {
-        handleSaveWarshipAs();
-      });
-      window.electronAPI.onOpenRecent((filePath: string) => {
-        loadFromFile(filePath);
-      });
-      window.electronAPI.onShowAbout(() => {
-        setAboutDialogOpen(true);
-      });
-      window.electronAPI.onReturnToStart(() => {
-        handleReturnToStart();
-      });
-
-      return () => {
-        window.electronAPI?.removeAllListeners('menu-new-warship');
-        window.electronAPI?.removeAllListeners('menu-load-warship');
-        window.electronAPI?.removeAllListeners('menu-save-warship');
-        window.electronAPI?.removeAllListeners('menu-save-warship-as');
-        window.electronAPI?.removeAllListeners('menu-open-recent');
-        window.electronAPI?.removeAllListeners('menu-show-about');
-        window.electronAPI?.removeAllListeners('menu-return-to-start');
-      };
-    }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart]);
+  // Register Electron menu event handlers
+  useElectronMenuHandlers({
+    handleNewWarship,
+    handleLoadWarship,
+    handleSaveWarship,
+    handleSaveWarshipAs,
+    loadFromFile,
+    handleReturnToStart,
+    handleDuplicateDesign,
+    setAboutDialogOpen,
+    setShortcutsDialogOpen,
+  });
 
   // Keyboard shortcuts for undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z)
   useEffect(() => {
@@ -874,6 +333,31 @@ function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mode, handleUndo, handleRedo]);
+
+  // Sync app mode with Electron to enable/disable menu items
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.setBuilderMode(mode);
+    }
+  }, [mode]);
+
+  // Load game data on startup
+  useEffect(() => {
+    async function initializeApp() {
+      const result: DataLoadResult = await loadAllGameData();
+      setMode('welcome');
+      
+      // Notify user if any data files failed to load from external sources
+      if (result.isElectron && result.failedFiles.length > 0) {
+        const fileList = result.failedFiles.map(f => f.fileName).join(', ');
+        showNotification(
+          `Some data files could not be loaded from external sources and are using bundled defaults: ${fileList}. Check the resources/data folder to restore customized files.`,
+          'warning'
+        );
+      }
+    }
+    initializeApp();
+  }, []);
 
   const handleHullSelect = (hull: Hull) => {
     setSelectedHull(hull);
@@ -905,54 +389,6 @@ function App() {
     setArmorLayers(prev => prev.filter(l => l.weight !== weight));
   };
 
-  const handlePowerPlantsChange = (powerPlants: InstalledPowerPlant[]) => {
-    setInstalledPowerPlants(powerPlants);
-  };
-
-  const handleEnginesChange = (engines: InstalledEngine[]) => {
-    setInstalledEngines(engines);
-  };
-
-  const handleFTLDriveChange = (drive: InstalledFTLDrive | null) => {
-    setInstalledFTLDrive(drive);
-  };
-
-  const handleLifeSupportChange = (lifeSupport: InstalledLifeSupport[]) => {
-    setInstalledLifeSupport(lifeSupport);
-  };
-
-  const handleAccommodationsChange = (accommodations: InstalledAccommodation[]) => {
-    setInstalledAccommodations(accommodations);
-  };
-
-  const handleStoreSystemsChange = (storeSystems: InstalledStoreSystem[]) => {
-    setInstalledStoreSystems(storeSystems);
-  };
-
-  const handleGravitySystemsChange = (gravitySystems: InstalledGravitySystem[]) => {
-    setInstalledGravitySystems(gravitySystems);
-  };
-
-  const handleWeaponsChange = (weapons: InstalledWeapon[]) => {
-    setInstalledWeapons(weapons);
-  };
-
-  const handleDefensesChange = (defenses: InstalledDefenseSystem[]) => {
-    setInstalledDefenses(defenses);
-  };
-
-  const handleCommandControlChange = (systems: InstalledCommandControlSystem[]) => {
-    setInstalledCommandControl(systems);
-  };
-
-  const handleSensorsChange = (sensors: InstalledSensor[]) => {
-    setInstalledSensors(sensors);
-  };
-
-  const handleHangarMiscChange = (systems: InstalledHangarMiscSystem[]) => {
-    setInstalledHangarMisc(systems);
-  };
-
   const handleStepClick = (step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
@@ -967,273 +403,6 @@ function App() {
   const handleBack = () => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Calculate used hull points (armor + power plants)
-  const getUsedHullPointsBeforePowerPlants = () => {
-    if (!selectedHull) return 0;
-    return calculateMultiLayerArmorHP(selectedHull, armorLayers);
-  };
-
-  // Calculate used hull points before engines (armor + power plants)
-  const getUsedHullPointsBeforeEngines = () => {
-    if (!selectedHull) return 0;
-    let used = getUsedHullPointsBeforePowerPlants();
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    used += powerPlantStats.totalHullPoints;
-    return used;
-  };
-
-  // Calculate remaining hull points
-  const getRemainingHullPoints = () => {
-    if (!selectedHull) return 0;
-    let remaining = selectedHull.hullPoints + selectedHull.bonusHullPoints;
-    remaining -= calculateMultiLayerArmorHP(selectedHull, armorLayers);
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    remaining -= powerPlantStats.totalHullPoints;
-    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull);
-    remaining -= engineStats.totalHullPoints;
-    if (installedFTLDrive) {
-      const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
-      remaining -= ftlStats.totalHullPoints;
-    }
-    // FTL fuel tanks
-    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
-    remaining -= ftlFuelStats.totalHullPoints;
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-    remaining -= supportStats.totalHullPoints;
-    const weaponStats = calculateWeaponStats(installedWeapons);
-    remaining -= weaponStats.totalHullPoints;
-    const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
-    remaining -= ordnanceStats.totalLauncherHullPoints;
-    const defenseStats = calculateDefenseStats(installedDefenses);
-    remaining -= defenseStats.totalHullPoints;
-    const ccStats = calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints);
-    remaining -= ccStats.totalHullPoints;
-    const sensorStats = calculateSensorStats(installedSensors);
-    remaining -= sensorStats.totalHullPoints;
-    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    remaining -= hangarMiscStats.totalHullPoints;
-    return remaining;
-  };
-
-  // Calculate total power generated
-  const getTotalPower = () => {
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    return powerPlantStats.totalPowerGenerated;
-  };
-
-  // Calculate total power consumed by selected systems (based on scenario)
-  const getTotalPowerConsumed = () => {
-    if (!selectedHull) return 0;
-    let consumed = 0;
-    // Engines
-    if (powerScenario.engines) {
-      consumed += calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired;
-    }
-    // FTL Drive
-    if (powerScenario.ftlDrive && installedFTLDrive) {
-      consumed += calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired;
-    }
-    // Support Systems
-    if (powerScenario.supportSystems) {
-      consumed += calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired;
-    }
-    // Weapons
-    if (powerScenario.weapons) {
-      consumed += calculateWeaponStats(installedWeapons).totalPowerRequired;
-      consumed += calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns).totalLauncherPower;
-    }
-    // Defenses
-    if (powerScenario.defenses) {
-      consumed += calculateDefenseStats(installedDefenses).totalPowerRequired;
-    }
-    // Command & Control
-    if (powerScenario.commandControl) {
-      consumed += calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalPowerRequired;
-    }
-    // Sensors
-    if (powerScenario.sensors) {
-      consumed += calculateSensorStats(installedSensors).totalPowerRequired;
-    }
-    // Hangars & Misc
-    if (powerScenario.hangarMisc) {
-      consumed += calculateHangarMiscStats(installedHangarMisc).totalPowerRequired;
-    }
-    return consumed;
-  };
-
-  // Get individual power consumption values for display
-  const getPowerBreakdown = () => {
-    if (!selectedHull) return { engines: 0, ftlDrive: 0, supportSystems: 0, weapons: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
-    return {
-      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalPowerRequired,
-      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0,
-      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalPowerRequired,
-      weapons: calculateWeaponStats(installedWeapons).totalPowerRequired + calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns).totalLauncherPower,
-      defenses: calculateDefenseStats(installedDefenses).totalPowerRequired,
-      commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalPowerRequired,
-      sensors: calculateSensorStats(installedSensors).totalPowerRequired,
-      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalPowerRequired,
-    };
-  };
-
-  // Get individual HP usage values for display
-  const getHPBreakdown = () => {
-    if (!selectedHull) return { armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, weapons: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
-    return {
-      armor: calculateMultiLayerArmorHP(selectedHull, armorLayers),
-      powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalHullPoints,
-      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalHullPoints,
-      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalHullPoints + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalHullPoints : 0,
-      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalHullPoints,
-      weapons: calculateWeaponStats(installedWeapons).totalHullPoints + calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns).totalLauncherHullPoints,
-      defenses: calculateDefenseStats(installedDefenses).totalHullPoints,
-      commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalHullPoints,
-      sensors: calculateSensorStats(installedSensors).totalHullPoints,
-      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalHullPoints,
-    };
-  };
-
-  // Get individual cost values for display
-  const getCostBreakdown = () => {
-    if (!selectedHull) return { hull: 0, armor: 0, powerPlants: 0, engines: 0, ftlDrive: 0, supportSystems: 0, weapons: 0, defenses: 0, commandControl: 0, sensors: 0, hangarMisc: 0 };
-    return {
-      hull: selectedHull.cost,
-      armor: calculateMultiLayerArmorCost(selectedHull, armorLayers),
-      powerPlants: calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks).totalCost,
-      engines: calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull).totalCost,
-      ftlDrive: installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalCost + calculateTotalFTLFuelTankStats(installedFTLFuelTanks).totalCost : 0,
-      supportSystems: calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks).totalCost,
-      weapons: calculateWeaponStats(installedWeapons).totalCost + calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns).totalCost,
-      defenses: calculateDefenseStats(installedDefenses).totalCost,
-      commandControl: calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints).totalCost,
-      sensors: calculateSensorStats(installedSensors).totalCost,
-      hangarMisc: calculateHangarMiscStats(installedHangarMisc).totalCost,
-    };
-  };
-
-  // Calculate total cost
-  const getTotalCost = () => {
-    if (!selectedHull) return 0;
-    let cost = selectedHull.cost;
-    if (armorLayers.length > 0) {
-      cost += calculateMultiLayerArmorCost(selectedHull, armorLayers);
-    }
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    cost += powerPlantStats.totalCost;
-    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, selectedHull);
-    cost += engineStats.totalCost;
-    if (installedFTLDrive) {
-      const ftlStats = calculateTotalFTLStats(installedFTLDrive, selectedHull);
-      cost += ftlStats.totalCost;
-    }
-    // FTL fuel tanks
-    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
-    cost += ftlFuelStats.totalCost;
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-    cost += supportStats.totalCost;
-    const weaponStats = calculateWeaponStats(installedWeapons);
-    cost += weaponStats.totalCost;
-    const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
-    cost += ordnanceStats.totalCost;
-    const defenseStats = calculateDefenseStats(installedDefenses);
-    cost += defenseStats.totalCost;
-    const ccStats = calculateCommandControlStats(installedCommandControl, selectedHull.hullPoints);
-    cost += ccStats.totalCost;
-    const sensorStats = calculateSensorStats(installedSensors);
-    cost += sensorStats.totalCost;
-    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    cost += hangarMiscStats.totalCost;
-    return cost;
-  };
-
-  // Calculate summary validation state for stepper icon
-  const getSummaryValidationState = (): 'valid' | 'error' | 'warning' => {
-    if (!selectedHull) return 'error';
-    
-    // Check for errors
-    const remainingHP = getRemainingHullPoints();
-    if (remainingHP < 0) return 'error'; // HP exceeded
-    if (installedPowerPlants.length === 0) return 'error'; // Power plants always mandatory
-    
-    // Engines are mandatory for warships, optional/absent for stations
-    const enginesRequired = steps.some(s => s.id === 'engines' && s.required);
-    if (enginesRequired && installedEngines.length === 0) return 'error';
-    
-    // Check for warnings
-    const powerGenerated = getTotalPower();
-    const ftlPower = installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, selectedHull).totalPowerRequired : 0;
-    const totalPowerConsumed = getTotalPowerConsumed();
-    const powerConsumedWithoutFTL = totalPowerConsumed - ftlPower;
-    if (powerConsumedWithoutFTL > powerGenerated) return 'warning'; // Power issue
-    
-    // Check support systems
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
-    if (supportStats.crewCapacity < selectedHull.crew) return 'warning'; // Crew accommodations
-    if (!surfaceProvidesLifeSupport && supportStats.totalCoverage < selectedHull.hullPoints) return 'warning'; // Life support
-    
-    // Check escape systems
-    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    if (hangarMiscStats.totalEvacCapacity < selectedHull.crew + supportStats.troopCapacity) return 'warning'; // Evacuation
-    
-    // Check launchers without ordnance
-    const launchersWithoutOrdnance = installedLaunchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length;
-    if (launchersWithoutOrdnance > 0) return 'warning';
-    
-    // Check active sensors
-    const sensorStats = calculateSensorStats(installedSensors);
-    if (!sensorStats.hasBasicSensors && installedSensors.length > 0) return 'warning'; // Has sensors but no active
-    
-    // Check optional steps (only warn about steps that exist in current design)
-    const hasFtlStep = steps.some(s => s.id === 'ftl');
-    if (armorLayers.length === 0 || (hasFtlStep && !installedFTLDrive) || installedDefenses.length === 0 || 
-        installedCommandControl.length === 0 || installedSensors.length === 0 ||
-        (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
-        (!surfaceProvidesLifeSupport && installedLifeSupport.length === 0 && installedAccommodations.length === 0)) {
-      return 'warning';
-    }
-    
-    return 'valid';
-  };
-
-  // Get unique tech tracks required by all selected components
-  const getUniqueTechTracks = (): TechTrack[] => {
-    const tracks = new Set<TechTrack>();
-    armorLayers.forEach((layer) => {
-      layer.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedPowerPlants.forEach((pp) => {
-      pp.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedEngines.forEach((eng) => {
-      eng.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    if (installedFTLDrive) {
-      installedFTLDrive.type.techTracks.forEach((t) => tracks.add(t));
-    }
-    installedLifeSupport.forEach((ls) => {
-      ls.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedAccommodations.forEach((acc) => {
-      acc.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedStoreSystems.forEach((ss) => {
-      ss.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedDefenses.forEach((def) => {
-      def.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedCommandControl.forEach((cc) => {
-      cc.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedSensors.forEach((sensor) => {
-      sensor.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    installedHangarMisc.forEach((hm) => {
-      hm.type.techTracks.forEach((t) => tracks.add(t));
-    });
-    return Array.from(tracks).sort();
   };
 
   const renderStepContent = () => {
@@ -1274,10 +443,10 @@ function App() {
             hull={selectedHull!}
             installedPowerPlants={installedPowerPlants}
             installedFuelTanks={installedFuelTanks}
-            usedHullPoints={getUsedHullPointsBeforePowerPlants()}
+            usedHullPoints={usedHullPointsBeforePowerPlants}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onPowerPlantsChange={handlePowerPlantsChange}
+            onPowerPlantsChange={setInstalledPowerPlants}
             onFuelTanksChange={setInstalledFuelTanks}
           />
         );
@@ -1287,11 +456,11 @@ function App() {
             hull={selectedHull!}
             installedEngines={installedEngines}
             installedFuelTanks={installedEngineFuelTanks}
-            usedHullPoints={getUsedHullPointsBeforeEngines()}
+            usedHullPoints={usedHullPointsBeforeEngines}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             isRequired={steps.find(s => s.id === 'engines')?.required ?? true}
-            onEnginesChange={handleEnginesChange}
+            onEnginesChange={setInstalledEngines}
             onFuelTanksChange={setInstalledEngineFuelTanks}
           />
         );
@@ -1302,10 +471,10 @@ function App() {
             installedFTLDrive={installedFTLDrive}
             installedFTLFuelTanks={installedFTLFuelTanks}
             installedPowerPlants={installedPowerPlants}
-            availablePower={getTotalPower()}
+            availablePower={totalPower}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onFTLDriveChange={handleFTLDriveChange}
+            onFTLDriveChange={setInstalledFTLDrive}
             onFTLFuelTanksChange={setInstalledFTLFuelTanks}
           />
         );
@@ -1321,10 +490,10 @@ function App() {
             designTechTracks={designTechTracks}
             surfaceProvidesLifeSupport={surfaceProvidesLifeSupport}
             surfaceProvidesGravity={surfaceProvidesGravity}
-            onLifeSupportChange={handleLifeSupportChange}
-            onAccommodationsChange={handleAccommodationsChange}
-            onStoreSystemsChange={handleStoreSystemsChange}
-            onGravitySystemsChange={handleGravitySystemsChange}
+            onLifeSupportChange={setInstalledLifeSupport}
+            onAccommodationsChange={setInstalledAccommodations}
+            onStoreSystemsChange={setInstalledStoreSystems}
+            onGravitySystemsChange={setInstalledGravitySystems}
           />
         );
       case 'weapons':
@@ -1337,7 +506,7 @@ function App() {
             launchSystems={installedLaunchSystems}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onWeaponsChange={handleWeaponsChange}
+            onWeaponsChange={setInstalledWeapons}
             onOrdnanceDesignsChange={setOrdnanceDesigns}
             onLaunchSystemsChange={setInstalledLaunchSystems}
           />
@@ -1349,7 +518,7 @@ function App() {
             installedDefenses={installedDefenses}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onDefensesChange={handleDefensesChange}
+            onDefensesChange={setInstalledDefenses}
           />
         );
       case 'sensors':
@@ -1359,7 +528,7 @@ function App() {
             installedCommandControl={installedCommandControl}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onSensorsChange={handleSensorsChange}
+            onSensorsChange={setInstalledSensors}
           />
         );
       case 'c4':
@@ -1372,22 +541,20 @@ function App() {
             installedLaunchSystems={installedLaunchSystems}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            onSystemsChange={handleCommandControlChange}
+            onSystemsChange={setInstalledCommandControl}
           />
         );
-      case 'hangars': {
-        const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks);
+      case 'hangars':
         return (
           <HangarMiscSelection
             hull={selectedHull!}
             installedSystems={installedHangarMisc}
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
-            totalPassengersAndSuspended={supportStats.passengerCapacity + supportStats.suspendedCapacity + supportStats.troopCapacity}
-            onSystemsChange={handleHangarMiscChange}
+            totalPassengersAndSuspended={totalPassengersAndSuspended}
+            onSystemsChange={setInstalledHangarMisc}
           />
         );
-      }
       case 'damage':
         return (
           <DamageDiagramSelection
@@ -1492,6 +659,7 @@ function App() {
           onConfirm={handleDesignTypeConfirm}
         />
         <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
+        <KeyboardShortcutsDialog open={shortcutsDialogOpen} onClose={() => setShortcutsDialogOpen(false)} />
       </>
     );
   }
@@ -1505,6 +673,7 @@ function App() {
           onModsChanged={handleModsChanged}
         />
         <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
+        <KeyboardShortcutsDialog open={shortcutsDialogOpen} onClose={() => setShortcutsDialogOpen(false)} />
       </>
     );
   }
@@ -1647,6 +816,14 @@ function App() {
               </Badge>
             </IconButton>
           </Tooltip>
+          <Tooltip title="Duplicate Design (Ctrl+Shift+D)">
+            <IconButton
+              onClick={handleDuplicateDesign}
+              size="small"
+            >
+              <ContentCopyIcon />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
         {selectedHull && (
           <Toolbar variant="dense" sx={{ minHeight: 40, gap: 1, borderTop: 1, borderColor: 'divider' }}>
@@ -1664,11 +841,12 @@ function App() {
               size="small"
             />
             <Chip
-              label={`HP: ${getRemainingHullPoints()} / ${calculateHullStats(selectedHull).totalHullPoints}`}
-              color={getRemainingHullPoints() < 0 ? 'error' : 'success'}
+              label={`HP: ${remainingHullPoints} / ${totalHullPoints}`}
+              color={remainingHullPoints < 0 ? 'error' : 'success'}
               variant="outlined"
               size="small"
               onClick={(e) => setHpAnchorEl(e.currentTarget)}
+              aria-label="Show hull points breakdown"
               sx={{ cursor: 'pointer' }}
             />
             <Popover
@@ -1682,47 +860,48 @@ function App() {
                   Hull Points Breakdown
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Armor</span><span>{getHPBreakdown().armor} HP</span>
+                  <span>Armor</span><span>{hpBreakdown.armor} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Power Plants</span><span>{getHPBreakdown().powerPlants} HP</span>
+                  <span>Power Plants</span><span>{hpBreakdown.powerPlants} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Engines</span><span>{getHPBreakdown().engines} HP</span>
+                  <span>Engines</span><span>{hpBreakdown.engines} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>FTL Drive</span><span>{getHPBreakdown().ftlDrive} HP</span>
+                  <span>FTL Drive</span><span>{hpBreakdown.ftlDrive} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Support Systems</span><span>{getHPBreakdown().supportSystems} HP</span>
+                  <span>Support Systems</span><span>{hpBreakdown.supportSystems} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Weapons</span><span>{getHPBreakdown().weapons} HP</span>
+                  <span>Weapons</span><span>{hpBreakdown.weapons} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Defenses</span><span>{getHPBreakdown().defenses} HP</span>
+                  <span>Defenses</span><span>{hpBreakdown.defenses} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>C4</span><span>{getHPBreakdown().commandControl} HP</span>
+                  <span>C4</span><span>{hpBreakdown.commandControl} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Sensors</span><span>{getHPBreakdown().sensors} HP</span>
+                  <span>Sensors</span><span>{hpBreakdown.sensors} HP</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hangars & Misc</span><span>{getHPBreakdown().hangarMisc} HP</span>
+                  <span>Hangars & Misc</span><span>{hpBreakdown.hangarMisc} HP</span>
                 </Typography>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <span>Total Used</span><span>{calculateHullStats(selectedHull).totalHullPoints - getRemainingHullPoints()} HP</span>
+                  <span>Total Used</span><span>{totalHullPoints - remainingHullPoints} HP</span>
                 </Typography>
               </Box>
             </Popover>
             <Chip
-              label={`Power: ${getTotalPower() - getTotalPowerConsumed()} / ${getTotalPower()}`}
-              color={getTotalPowerConsumed() > getTotalPower() ? 'warning' : 'success'}
+              label={`Power: ${totalPower - totalPowerConsumed} / ${totalPower}`}
+              color={totalPowerConsumed > totalPower ? 'warning' : 'success'}
               variant="outlined"
               size="small"
               onClick={(e) => setPowerAnchorEl(e.currentTarget)}
+              aria-label="Show power breakdown"
               sx={{ cursor: 'pointer' }}
             />
             <Popover
@@ -1746,7 +925,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, engines: e.target.checked })}
                     />
                   }
-                  label={`Engines (${getPowerBreakdown().engines} PP)`}
+                  label={`Engines (${powerBreakdown.engines} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1757,7 +936,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, ftlDrive: e.target.checked })}
                     />
                   }
-                  label={`FTL Drive (${getPowerBreakdown().ftlDrive} PP)`}
+                  label={`FTL Drive (${powerBreakdown.ftlDrive} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1768,7 +947,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, supportSystems: e.target.checked })}
                     />
                   }
-                  label={`Support Systems (${getPowerBreakdown().supportSystems} PP)`}
+                  label={`Support Systems (${powerBreakdown.supportSystems} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1779,7 +958,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, weapons: e.target.checked })}
                     />
                   }
-                  label={`Weapons (${getPowerBreakdown().weapons} PP)`}
+                  label={`Weapons (${powerBreakdown.weapons} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1790,7 +969,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, defenses: e.target.checked })}
                     />
                   }
-                  label={`Defenses (${getPowerBreakdown().defenses} PP)`}
+                  label={`Defenses (${powerBreakdown.defenses} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1801,7 +980,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, commandControl: e.target.checked })}
                     />
                   }
-                  label={`C4 (${getPowerBreakdown().commandControl} PP)`}
+                  label={`C4 (${powerBreakdown.commandControl} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1812,7 +991,7 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, sensors: e.target.checked })}
                     />
                   }
-                  label={`Sensors (${getPowerBreakdown().sensors} PP)`}
+                  label={`Sensors (${powerBreakdown.sensors} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
                 <FormControlLabel
@@ -1823,17 +1002,18 @@ function App() {
                       onChange={(e) => setPowerScenario({ ...powerScenario, hangarMisc: e.target.checked })}
                     />
                   }
-                  label={`Hangars & Misc (${getPowerBreakdown().hangarMisc} PP)`}
+                  label={`Hangars & Misc (${powerBreakdown.hangarMisc} PP)`}
                   sx={{ display: 'block', m: 0 }}
                 />
               </Box>
             </Popover>
             <Chip
-              label={`Cost: ${formatCost(getTotalCost())}`}
+              label={`Cost: ${formatCost(totalCost)}`}
               color="default"
               variant="outlined"
               size="small"
               onClick={(e) => setCostAnchorEl(e.currentTarget)}
+              aria-label="Show cost breakdown"
               sx={{ cursor: 'pointer' }}
             />
             <Popover
@@ -1847,47 +1027,47 @@ function App() {
                   Cost Breakdown
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hull</span><span>{formatCost(getCostBreakdown().hull)}</span>
+                  <span>Hull</span><span>{formatCost(costBreakdown.hull)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Armor</span><span>{formatCost(getCostBreakdown().armor)}</span>
+                  <span>Armor</span><span>{formatCost(costBreakdown.armor)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Power Plants</span><span>{formatCost(getCostBreakdown().powerPlants)}</span>
+                  <span>Power Plants</span><span>{formatCost(costBreakdown.powerPlants)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Engines</span><span>{formatCost(getCostBreakdown().engines)}</span>
+                  <span>Engines</span><span>{formatCost(costBreakdown.engines)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>FTL Drive</span><span>{formatCost(getCostBreakdown().ftlDrive)}</span>
+                  <span>FTL Drive</span><span>{formatCost(costBreakdown.ftlDrive)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Support Systems</span><span>{formatCost(getCostBreakdown().supportSystems)}</span>
+                  <span>Support Systems</span><span>{formatCost(costBreakdown.supportSystems)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Weapons</span><span>{formatCost(getCostBreakdown().weapons)}</span>
+                  <span>Weapons</span><span>{formatCost(costBreakdown.weapons)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Defenses</span><span>{formatCost(getCostBreakdown().defenses)}</span>
+                  <span>Defenses</span><span>{formatCost(costBreakdown.defenses)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>C4</span><span>{formatCost(getCostBreakdown().commandControl)}</span>
+                  <span>C4</span><span>{formatCost(costBreakdown.commandControl)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Sensors</span><span>{formatCost(getCostBreakdown().sensors)}</span>
+                  <span>Sensors</span><span>{formatCost(costBreakdown.sensors)}</span>
                 </Typography>
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hangars & Misc</span><span>{formatCost(getCostBreakdown().hangarMisc)}</span>
+                  <span>Hangars & Misc</span><span>{formatCost(costBreakdown.hangarMisc)}</span>
                 </Typography>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <span>Total</span><span>{formatCost(getTotalCost())}</span>
+                  <span>Total</span><span>{formatCost(totalCost)}</span>
                 </Typography>
               </Box>
             </Popover>
-            {getUniqueTechTracks().length > 0 && (
+            {uniqueTechTracks.length > 0 && (
               <Chip
-                label={`Tech: ${getUniqueTechTracks().join(', ')}`}
+                label={`Tech: ${uniqueTechTracks.join(', ')}`}
                 color="default"
                 variant="outlined"
                 size="small"
@@ -1901,8 +1081,17 @@ function App() {
       <Paper sx={{ position: 'sticky', top: selectedHull ? 105 : 63, zIndex: 1100, borderRadius: 0, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }} elevation={0}>
         {/* Left scroll arrow */}
         <Box
+          role="button"
+          aria-label="Scroll steps left"
+          tabIndex={canScrollLeft ? 0 : -1}
           onClick={() => {
             stepperRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              stepperRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+            }
           }}
           sx={{
             minWidth: 32,
@@ -1949,7 +1138,12 @@ function App() {
               '& .MuiStepButton-root': { 
                 outline: 'none', 
                 '&:focus': { outline: 'none' }, 
-                '&:focus-visible': { outline: 'none' } 
+                '&:focus-visible': { 
+                  outline: '2px solid',
+                  outlineColor: 'primary.main',
+                  outlineOffset: 2,
+                  borderRadius: 1,
+                },
               },
               '& .MuiStepLabel-label': {
                 whiteSpace: 'nowrap',
@@ -1984,13 +1178,13 @@ function App() {
                     installedSensors.length + installedHangarMisc.length;
                   return totalAssigned >= totalSystems && totalSystems > 0;
                 }
-                case 'summary': return getSummaryValidationState() === 'valid';
+                case 'summary': return summaryValidationState === 'valid';
                 default: return false;
               }
             })();
 
             // Get summary validation state for special handling
-            const summaryState = step.id === 'summary' ? getSummaryValidationState() : null;
+            const summaryState = step.id === 'summary' ? summaryValidationState : null;
 
             // Determine icon based on required status and completion
             const getStepIcon = () => {
@@ -2020,11 +1214,13 @@ function App() {
 
             return (
               <Step key={step.id} completed={isStepCompleted}>
-                <StepButton onClick={() => handleStepClick(index)}>
-                  <StepLabel StepIconComponent={getStepIcon}>
-                    {step.label}
-                  </StepLabel>
-                </StepButton>
+                <Tooltip title={STEP_FULL_NAMES[step.id]} enterDelay={400} arrow>
+                  <StepButton onClick={() => handleStepClick(index)}>
+                    <StepLabel StepIconComponent={getStepIcon}>
+                      {step.label}
+                    </StepLabel>
+                  </StepButton>
+                </Tooltip>
               </Step>
             );
           })}
@@ -2032,8 +1228,17 @@ function App() {
         </Box>
         {/* Right scroll arrow */}
         <Box
+          role="button"
+          aria-label="Scroll steps right"
+          tabIndex={canScrollRight ? 0 : -1}
           onClick={() => {
             stepperRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              stepperRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+            }
           }}
           sx={{
             minWidth: 32,
@@ -2121,6 +1326,12 @@ function App() {
       <AboutDialog 
         open={aboutDialogOpen} 
         onClose={() => setAboutDialogOpen(false)} 
+      />
+
+      {/* Keyboard Shortcuts Dialog */}
+      <KeyboardShortcutsDialog
+        open={shortcutsDialogOpen}
+        onClose={() => setShortcutsDialogOpen(false)}
       />
 
       {/* Design Type Dialog */}

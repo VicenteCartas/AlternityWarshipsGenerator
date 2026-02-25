@@ -52,6 +52,8 @@ export interface ElectronAPI {
   onSaveWarshipAs: (callback: () => void) => void;
   onOpenRecent: (callback: (filePath: string) => void) => void;
   onShowAbout: (callback: () => void) => void;
+  onShowShortcuts: (callback: () => void) => void;
+  onDuplicateDesign: (callback: () => void) => void;
   onReturnToStart: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   

@@ -50,8 +50,7 @@ export interface DefenseSystemType {
   coverageMultiples?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InstalledDefenseSystem extends InstalledSystemBase<DefenseSystemType> {}
+export type InstalledDefenseSystem = InstalledSystemBase<DefenseSystemType>;
 
 // ============== Stats ==============
 

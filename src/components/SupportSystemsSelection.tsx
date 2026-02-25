@@ -364,13 +364,13 @@ export function SupportSystemsSelection({
                     size="small"
                     variant="outlined"
                   />
-                  <IconButton size="small" color="primary" onClick={() => handleEditLifeSupport(installed)}>
+                  <IconButton size="small" color="primary" onClick={() => handleEditLifeSupport(installed)} aria-label="Edit life support">
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateLifeSupport(installed)}>
+                  <IconButton size="small" onClick={() => handleDuplicateLifeSupport(installed)} aria-label="Duplicate life support">
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveLifeSupport(installed.id)}>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveLifeSupport(installed.id)} aria-label="Remove life support">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -616,13 +616,13 @@ export function SupportSystemsSelection({
                     size="small"
                     variant="outlined"
                   />
-                  <IconButton size="small" color="primary" onClick={() => handleEditAccommodation(installed)}>
+                  <IconButton size="small" color="primary" onClick={() => handleEditAccommodation(installed)} aria-label="Edit accommodation">
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateAccommodation(installed)}>
+                  <IconButton size="small" onClick={() => handleDuplicateAccommodation(installed)} aria-label="Duplicate accommodation">
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveAccommodation(installed.id)}>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveAccommodation(installed.id)} aria-label="Remove accommodation">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -903,13 +903,13 @@ export function SupportSystemsSelection({
                     size="small"
                     variant="outlined"
                   />
-                  <IconButton size="small" color="primary" onClick={() => handleEditStoreSystem(installed)}>
+                  <IconButton size="small" color="primary" onClick={() => handleEditStoreSystem(installed)} aria-label="Edit store system">
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateStoreSystem(installed)}>
+                  <IconButton size="small" onClick={() => handleDuplicateStoreSystem(installed)} aria-label="Duplicate store system">
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveStoreSystem(installed.id)}>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveStoreSystem(installed.id)} aria-label="Remove store system">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -1209,6 +1209,7 @@ export function SupportSystemsSelection({
                           size="small"
                           onClick={() => handleRemoveGravitySystem(gs.id)}
                           color="error"
+                          aria-label="Remove gravity system"
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -1258,6 +1259,7 @@ export function SupportSystemsSelection({
                             size="small"
                             onClick={() => handleAddGravitySystem(gt)}
                             color="primary"
+                            aria-label="Add gravity system"
                           >
                             <AddIcon fontSize="small" />
                           </IconButton>

@@ -224,13 +224,13 @@ export function SensorSelection({
                       />
                     </Tooltip>
                   )}
-                  <IconButton size="small" onClick={() => handleEditSensor(sensor)} color="primary">
+                  <IconButton size="small" aria-label="Edit sensor" onClick={() => handleEditSensor(sensor)} color="primary">
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateSensor(sensor)}>
+                  <IconButton size="small" aria-label="Duplicate sensor" onClick={() => handleDuplicateSensor(sensor)}>
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleRemoveSensor(sensor.id)} color="error">
+                  <IconButton size="small" aria-label="Remove sensor" onClick={() => handleRemoveSensor(sensor.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>

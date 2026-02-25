@@ -183,7 +183,7 @@ export function ArmorSelection({
                   <TableCell align="right">{layer.hullPointsUsed}</TableCell>
                   <TableCell align="right">{formatCost(layer.cost)}</TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" onClick={() => onArmorRemoveLayer(layer.weight)}>
+                    <IconButton size="small" onClick={() => onArmorRemoveLayer(layer.weight)} aria-label="Remove armor layer">
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
@@ -201,6 +201,7 @@ export function ArmorSelection({
           exclusive
           onChange={handleWeightFilterChange}
           size="small"
+          aria-label="Filter by armor weight"
         >
           <ToggleButton value="all">All ({weightCounts.all})</ToggleButton>
           {availableWeights.map((w) => (

@@ -150,6 +150,14 @@ function createMenu() {
             mainWindow?.webContents.send('menu-save-warship-as');
           },
         },
+        {
+          label: 'Duplicate Design',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          enabled: isInBuilder,
+          click: () => {
+            mainWindow?.webContents.send('menu-duplicate-design');
+          },
+        },
         { type: 'separator' },
         {
           label: 'Return to Start Screen',
@@ -218,6 +226,14 @@ function createMenu() {
     {
       label: 'Help',
       submenu: [
+        {
+          label: 'Keyboard Shortcuts',
+          accelerator: 'CmdOrCtrl+/',
+          click: () => {
+            mainWindow?.webContents.send('menu-show-shortcuts');
+          },
+        },
+        { type: 'separator' as const },
         {
           label: 'About',
           click: () => {

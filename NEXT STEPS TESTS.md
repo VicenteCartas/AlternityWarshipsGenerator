@@ -15,9 +15,11 @@ The codebase is **exceptionally well-suited for testing**:
 
 ---
 
-## Framework Recommendation
+## Framework Recommendation ✅ DONE
 
 ### Vitest + React Testing Library
+
+**Completed:** Installed all dependencies, created `vitest.config.ts` and `src/test/setup.ts`, added npm scripts (`test`, `test:watch`, `test:coverage`, `test:ui`).
 
 | Tool | Purpose |
 |---|---|
@@ -91,11 +93,11 @@ vi.mock('../services/dataLoader', () => ({
 
 | # | File | Lines | Exports | Est. Tests | Why Critical | User Review |
 |---|------|------:|--------:|-----------:|---|---|
-| T1 | saveService.ts | 990 | 5 | 80–100 | Deserialize/migrate user save files. A bug here = data loss. Must test every version migration path. | Yes, do it |
-| T2 | weaponService.ts | 466 | 24 | 70–85 | Compound multiplier logic (mount × config × concealed × quantity). Rounding errors accumulate across all weapons. | Yes, do it |
+| T1 | saveService.ts | 990 | 5 | 80–100 | Deserialize/migrate user save files. A bug here = data loss. Must test every version migration path. | ✅ Done (72 tests) |
+| T2 | weaponService.ts | 466 | 24 | 70–85 | Compound multiplier logic (mount × config × concealed × quantity). Rounding errors accumulate across all weapons. | ✅ Done (117 tests) |
 | T3 | damageDiagramService.ts | 429 | 15 | 60–75 | Zone validation, capacity enforcement, weapon-arc compatibility, hit location chart. Complex rules with many edge cases. | Yes, do it |
 | T4 | ordnanceService.ts | 428 | 28 | 65–80 | 3 design calculators (missile/bomb/mine), loadout management, launch system stats. Multi-step formulas. | Yes, do it |
-| T5 | utilities.ts | 166 | 5 | 25–30 | `interpolateByPercentage` is used by every engine/FTL calculation. `filterByDesignConstraints` gates every selection table. | Yes, do it |
+| T5 | utilities.ts | 183 | 6 | 35 | `interpolateByPercentage` is used by every engine/FTL calculation. `filterByDesignConstraints` gates every selection table. `capitalize` promoted from pdfExportService. | ✅ Done (35 tests) |
 
 #### Tier 2 — High Value
 
@@ -105,7 +107,7 @@ vi.mock('../services/dataLoader', () => ({
 | T7 | engineService.ts | 251 | 23 | 45–55 | Acceleration interpolation, fuel endurance, percentage bracket allocation, HP validation. | Yes, do it |
 | T8 | powerPlantService.ts | 201 | 20 | 40–50 | Power generation, fuel endurance, HP allocation validation. Foundation for all power budgeting. | Yes, do it |
 | T9 | defenseService.ts | 196 | 12 | 35–40 | Screen conflict detection, coverage calculation, units-for-full-coverage math. | Yes, do it |
-| T10 | formatters.ts | 238 | 15 | 40–50 | 15 pure formatting functions used across every component. High leverage, trivial to test. | Yes, do it |
+| T10 | formatters.ts | 238 | 15 | 44 | 15 pure formatting functions used across every component. High leverage, trivial to test. | ✅ Done (44 tests) |
 
 #### Tier 3 — Medium Value
 
@@ -113,7 +115,7 @@ vi.mock('../services/dataLoader', () => ({
 |---|------|------:|--------:|-----------:|---|---|
 | T11 | ftlDriveService.ts | 203 | 18 | 35–45 | Jump distance calculation, hull percentage validation, fuel stats. | Yes, do it |
 | T12 | sensorService.ts | 188 | 12 | 30–35 | Tracking capability, coverage calculation, arc coverage. | Yes, do it |
-| T13 | armorService.ts | 122 | 13 | 25–30 | Multi-layer armor HP/cost, layer sorting, hull point allocation. | Yes, do it |
+| T13 | armorService.ts | 122 | 13 | 35 | Multi-layer armor HP/cost, layer sorting, hull point allocation. | ✅ Done |
 | T14 | supportSystemService.ts | 238 | 15 | 30–35 | Gravity/life support/stores calculations, surface environment awareness. | Yes, do it |
 | T15 | hangarMiscService.ts | 224 | 9 | 20–25 | Hangar capacity, misc system HP/cost. | Yes, do it |
 | T16 | modValidationService.ts | 105 | 3 | 15–20 | Field validation, row validation, cell error detection. | Yes, do it |
@@ -132,19 +134,19 @@ vi.mock('../services/dataLoader', () => ({
 
 | # | File | Exports | Est. Tests | Notes | User Review |
 |---|------|--------:|-----------:|---|---|
-| T22 | useUndoHistory.ts (hook) | 1 | 15–20 | Debounce timing (fake timers), max history cap, undo/redo sequencing, clear, isRestoring flag. | Yes, do it |
-| T23 | types/hull.ts (`calculateHullStats`) | 1 | 8–10 | Pure function in wrong location (should be in service per M6). Test as-is. | Yes, do it |
+| T22 | useUndoHistory.ts (hook) | 1 | 15–20 | Debounce timing (fake timers), max history cap, undo/redo sequencing, clear, isRestoring flag. | ✅ Done (29 tests) |
+| T23 | hullService.ts (`calculateHullStats`) | 1 | 10 | Pure function, moved to hullService per M6. | ✅ Done |
 
 ### Service Test Totals
 
-| Tier | Files | Est. Tests | User Review |
+| Tier | Files | Est. Tests | Status |
 |------|------:|-----------:|---|
-| Critical | 5 | 300–370 | All approved |
-| High | 5 | 220–270 | All approved |
-| Medium | 6 | 155–190 | All approved |
+| Critical | 5 | 300–370 | T1 ✅ (72), T2 ✅ (117), T5 ✅ (35) |
+| High | 5 | 220–270 | T10 ✅ (44 tests) |
+| Medium | 6 | 155–190 | T13 ✅ (35 tests) |
 | Low | 3 (of 5) | 33–42 | T20 + T21 skipped |
-| Other | 2 | 23–30 | All approved |
-| **Total** | **21** | **~730–900** | |
+| Other | 2 | 23–30 | T22 ✅ (29), T23 ✅ (10) |
+| **Total** | **21** | **~730–900** | **342 tests done so far** |
 
 ---
 

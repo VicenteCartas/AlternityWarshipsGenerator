@@ -499,7 +499,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', p: 2, pb: 1, gap: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <IconButton onClick={() => hasUnsavedChanges ? setConfirmBackOpen(true) : onBack()} sx={{ mt: 0.5 }}>
+        <IconButton onClick={() => hasUnsavedChanges ? setConfirmBackOpen(true) : onBack()} aria-label="Back to mod manager" sx={{ mt: 0.5 }}>
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -585,7 +585,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                   ),
                   endAdornment: sidebarFilter ? (
                     <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => setSidebarFilter('')} edge="end">
+                      <IconButton size="small" onClick={() => setSidebarFilter('')} edge="end" aria-label="Clear filter">
                         <ClearIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
@@ -697,6 +697,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                         const mapped = val === 'notset' ? null : val === 'enabled';
                         handleHouseRuleChange(rule, mapped);
                       }}
+                      aria-label={`${rule.label} setting`}
                     >
                       <ToggleButton value="notset" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Not Set</ToggleButton>
                       <ToggleButton value="enabled" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Enabled</ToggleButton>
@@ -722,6 +723,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                   value={getSectionMode(activeSection.rootKey)}
                   onChange={(_e, val) => { if (val) handleSectionModeChange(activeSection.rootKey, val); }}
                   disabled={previewMerged}
+                  aria-label="Data merge mode"
                 >
                   <ToggleButton value="add" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Add to Base</ToggleButton>
                   <ToggleButton value="replace" sx={{ textTransform: 'none', px: 1.5, py: 0.25 }}>Replace Base</ToggleButton>

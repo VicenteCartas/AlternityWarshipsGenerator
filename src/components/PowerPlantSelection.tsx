@@ -470,6 +470,7 @@ export function PowerPlantSelection({
                       </Tooltip>
                     )}
                     <IconButton
+                      aria-label="Edit power plant"
                       size="small"
                       color="primary"
                       onClick={() => handleEditPowerPlant(installation)}
@@ -477,12 +478,14 @@ export function PowerPlantSelection({
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Duplicate power plant"
                       size="small"
                       onClick={() => handleDuplicatePowerPlant(installation)}
                     >
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Remove power plant"
                       size="small"
                       color="error"
                       onClick={() => handleRemovePowerPlant(installation.id)}
@@ -600,6 +603,7 @@ export function PowerPlantSelection({
                       variant="outlined"
                     />
                     <IconButton
+                      aria-label="Edit fuel tank"
                       size="small"
                       color="primary"
                       onClick={() => handleEditFuelTank(fuelTank)}
@@ -607,12 +611,14 @@ export function PowerPlantSelection({
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Duplicate fuel tank"
                       size="small"
                       onClick={() => handleDuplicateFuelTank(fuelTank)}
                     >
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                     <IconButton
+                      aria-label="Remove fuel tank"
                       size="small"
                       color="error"
                       onClick={() => handleRemoveFuelTank(fuelTank.id)}

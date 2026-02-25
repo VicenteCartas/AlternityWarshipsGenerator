@@ -218,7 +218,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-        <IconButton onClick={onBack} size="large">
+        <IconButton onClick={onBack} size="large" aria-label="Back to main menu">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
@@ -300,6 +300,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                         checked={mod.enabled}
                         onChange={() => handleToggleEnabled(mod)}
                         disabled={saving}
+                        inputProps={{ 'aria-label': 'Enable mod' }}
                       />
                     </TableCell>
                     <TableCell sx={{ pt: 1.5 }}>
@@ -311,6 +312,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                           size="small"
                           onClick={() => handleMovePriority(mod, 'up')}
                           disabled={idx === 0 || saving}
+                          aria-label="Move priority up"
                         >
                           <ArrowUpwardIcon fontSize="small" />
                         </IconButton>
@@ -318,6 +320,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                           size="small"
                           onClick={() => handleMovePriority(mod, 'down')}
                           disabled={idx === mods.length - 1 || saving}
+                          aria-label="Move priority down"
                         >
                           <ArrowDownwardIcon fontSize="small" />
                         </IconButton>

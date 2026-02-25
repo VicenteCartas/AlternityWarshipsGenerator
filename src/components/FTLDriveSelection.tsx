@@ -39,7 +39,6 @@ import {
   calculateTotalFTLStats,
   validateFTLInstallation,
   generateFTLInstallationId,
-  formatFTLRating,
   generateFTLFuelTankId,
   calculateFTLFuelTankCost,
   getTotalFTLFuelTankHP,
@@ -50,7 +49,7 @@ import {
   calculateMinFuelTankHP,
 } from '../services/ftlDriveService';
 import { filterByDesignConstraints } from '../services/utilities';
-import { formatCost, getTechTrackName } from '../services/formatters';
+import { formatCost, getTechTrackName, formatFTLRating } from '../services/formatters';
 import { getPowerPlantTypeById } from '../services/powerPlantService';
 
 interface FTLDriveSelectionProps {
@@ -459,6 +458,7 @@ export function FTLDriveSelection({
             {/* Only show edit button for variable-size drives */}
             {!isFixedSizeDrive(installedFTLDrive.type) && (
               <IconButton
+                aria-label="Edit FTL drive"
                 size="small"
                 color="primary"
                 onClick={handleEditFTLDrive}
@@ -467,6 +467,7 @@ export function FTLDriveSelection({
               </IconButton>
             )}
             <IconButton
+              aria-label="Remove FTL drive"
               size="small"
               color="error"
               onClick={handleRemoveFTLDrive}
@@ -528,6 +529,7 @@ export function FTLDriveSelection({
                     variant="outlined"
                   />
                   <IconButton
+                    aria-label="Edit FTL fuel tank"
                     size="small"
                     color="primary"
                     onClick={() => handleEditFuelTank(fuelTank)}
@@ -535,6 +537,7 @@ export function FTLDriveSelection({
                     <EditIcon fontSize="small" />
                   </IconButton>
                   <IconButton
+                    aria-label="Remove FTL fuel tank"
                     size="small"
                     color="error"
                     onClick={() => handleRemoveFuelTank(fuelTank.id)}
