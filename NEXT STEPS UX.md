@@ -14,11 +14,15 @@ The biggest weaknesses are **discoverability** (powerful features hidden behind 
 
 ### U1. Focus Outlines Suppressed on Stepper
 
+> **User Review:** Yes, do it
+
 Stepper buttons have explicit `outline: 'none'` on both `:focus` and `:focus-visible`. Keyboard users cannot see which step is focused. This is a WCAG violation.
 
 **Fix:** Remove the outline suppression. Style `:focus-visible` with a visible ring instead.
 
 ### U2. Missing ARIA Labels Across the App
+
+> **User Review:** Yes, do it
 
 Almost no ARIA attributes outside of TabPanel. Missing on:
 - All IconButtons (Edit, Delete, Duplicate, scroll arrows, sort toggles)
@@ -30,11 +34,15 @@ Almost no ARIA attributes outside of TabPanel. Missing on:
 
 ### U3. ArcRadarSelector Not Keyboard Accessible
 
+> **User Review:** Nice to have, not priority
+
 Weapon firing arcs can only be toggled by mouse click on SVG pie-wedge paths. No keyboard event handlers exist. Keyboard and screen-reader users cannot configure weapon arcs.
 
 **Fix:** Add `tabIndex`, `role="checkbox"`, `aria-label`, and `onKeyDown` (Enter/Space) to each arc path.
 
 ### U4. Color as Sole Indicator
+
+> **User Review:** Yes, do it
 
 Zone fill states, system category colors, and chip status rely on color alone. No shape, icon, or text alternative for color-blind users.
 
@@ -46,6 +54,8 @@ Zone fill states, system category colors, and chip status rely on color alone. N
 
 ### U5. App Bar Popover Chips Have No Visual Affordance
 
+> **User Review:** Yes, do it
+
 The HP, Power, and Cost chips are actually interactive buttons that reveal detailed breakdowns and power scenario planning. There is **zero visual hint** they're clickable — no hover cursor, no expand icon, no "click for details" tooltip.
 
 This is the most powerful analysis tool in the app and most users will never discover it.
@@ -54,11 +64,15 @@ This is the most powerful analysis tool in the app and most users will never dis
 
 ### U6. Power Scenario Planning is Buried
 
+> **User Review:** Yes, do it
+
 The power scenario toggle (combat vs. cruise configuration) is hidden inside the Power chip popover. This is essential for power planning but effectively invisible.
 
 **Fix:** Surface as a visible toggle or mode switch in the AppBar, or at minimum add a hint on the Power chip.
 
 ### U7. Damage Diagram Keyboard Shortcuts Hidden
+
+> **User Review:** Yes, do it
 
 Keyboard shortcuts (1-9 for zones, A for auto-assign, Ctrl+A select all, Esc deselect) are hidden behind a tiny 18px keyboard icon that users must discover first.
 
@@ -66,11 +80,15 @@ Keyboard shortcuts (1-9 for zones, A for auto-assign, Ctrl+A select all, Esc des
 
 ### U8. Fuel Tank Sub-Items Not Explained
 
+> **User Review:** Yes, do it
+
 Fuel tanks are sub-items of specific power plant/engine installations. The mental model isn't explained anywhere — users must discover that clicking a fuel row under a parent installation is how to add fuel.
 
 **Fix:** Add a small help tooltip or info icon next to fuel sections explaining the relationship.
 
 ### U9. Computer Core Prerequisite Not Explained
+
+> **User Review:** Yes, do it
 
 Control computers, fire controls, and sensor controls don't appear until a computer core is installed. The empty state just says "No core installed" without explaining what to do.
 
@@ -82,11 +100,15 @@ Control computers, fire controls, and sensor controls don't appear until a compu
 
 ### U10. No Confirmation for Destructive Bulk Operations
 
+> **User Review:** Yes, do it
+
 "Clear All", "Unassign All", and "Remove" operations are immediate and irreversible at the component level. While global Undo exists, users may not know about it.
 
 **Fix:** Add a confirmation dialog for bulk destructive actions, or at minimum show a Snackbar with an "Undo" action button.
 
 ### U11. Missing Empty States in Installed Items
+
+> **User Review:** Yes, do it
 
 When no items of a type are installed, most steps render nothing (return null) in the installed-items area. Users see the selection table but no guidance.
 
@@ -96,11 +118,15 @@ Gold standard already exists in SensorSelection: "No {category} sensors availabl
 
 ### U12. No Warning When Hull Change Invalidates Build
 
+> **User Review:** Yes, do it
+
 Changing the hull after significant build progress resets armor and power plants silently. Other installed systems may become invalid (HP overflow, incompatible tech).
 
 **Fix:** Show a confirmation dialog when changing hull: "Changing hull will reset armor and power plants. X other systems may exceed new HP limits."
 
 ### U13. No Warning When Removing Systems With Dependencies
+
+> **User Review:** Yes, do it
 
 Removing a power plant doesn't warn about power deficit. Removing a computer core doesn't warn about orphaned controls.
 
@@ -112,6 +138,8 @@ Removing a power plant doesn't warn about power deficit. Removing a computer cor
 
 ### U14. Three Different "Add" Interaction Models
 
+> **User Review:** Yes, do it
+
 Steps use three different interaction patterns for adding items:
 1. **Click-to-select → Configure form → Add button** (Power Plants, Engines, Weapons, Sensors, C4, etc.) — the dominant pattern
 2. **Click-to-toggle** (Armor — clicking a table row directly adds/removes it)
@@ -121,11 +149,15 @@ Steps use three different interaction patterns for adding items:
 
 ### U15. Weapon Tabs Missing Empty Messages
 
+> **User Review:** Yes, do it
+
 Weapon tabs show empty table bodies with headers but no friendly message when no weapons of that type are available at current design constraints. Other steps (Sensors) handle this well.
 
 **Fix:** Add "No {category} weapons available at current design constraints" to empty weapon tables.
 
 ### U16. Summary Tab Order Shifts
+
+> **User Review:** Yes, do it
 
 The Issues tab only appears conditionally (when issues exist). This shifts other tab indices — "Systems" can be tab 1 or tab 2 depending on whether issues exist. Users who learn tab positions get confused.
 
@@ -137,17 +169,23 @@ The Issues tab only appears conditionally (when issues exist). This shifts other
 
 ### U17. No Overall Progress Indicator
 
+> **User Review:** Yes, do it
+
 Step icons show individual completion state (check/error/circle) but there's no overall progress indicator. Users can't quickly see "I'm 7/13 steps done."
 
 **Fix:** Add a progress fraction or thin progress bar to the stepper area: "7 of 13 complete" or a colored fill on the stepper track.
 
 ### U18. Wide Tables Require Excessive Horizontal Scroll
 
+> **User Review:** Nice to have, not priority
+
 Weapon and sensor tables have 12-13 columns, requiring significant horizontal scrolling on non-ultrawide monitors. The sticky first column helps but several columns may be less critical.
 
 **Fix:** Consider collapsible column groups, or a compact/expanded toggle, or moving less-critical columns (description, tech track notes) to a tooltip/expandable row detail.
 
 ### U19. Configuration Forms Blend into Selection Tables
+
+> **User Review:** Yes, do it
 
 When a weapon is selected and the configuration form appears, it's in a `Paper variant="outlined"` that looks similar to the selection table just below it. The three content layers (installed items → form → table) within each tab can be hard to parse.
 
@@ -159,6 +197,8 @@ When a weapon is selected and the configuration form appears, it's in a `Paper v
 
 ### U20. Minimal Theme — No Domain Color Tokens
 
+> **User Review:** Yes, do it
+
 The theme is extremely minimal (dark mode, default MUI palette, single CssBaseline override). Domain-specific colors are hardcoded throughout:
 - 14 category colors in DamageDiagramSelection
 - Fire arc intensity scales in FireDiagram
@@ -169,11 +209,15 @@ The theme is extremely minimal (dark mode, default MUI palette, single CssBaseli
 
 ### U21. Welcome Page Lacks Onboarding for New Users
 
+> **User Review:** Yes, do it
+
 First-time users see only "New Warship/Station" and "Load" buttons with no explanation of what the app does, what the 13 steps are, or how to get started.
 
 **Fix:** Add a brief description: "Design warships and stations for the Alternity RPG using the Warships sourcebook rules." Optionally, a quick-start guide or link to documentation.
 
 ### U22. No PDF Export Preview or Progress
+
+> **User Review:** Yes, do it
 
 Users can't see what the PDF will look like before exporting. PDF generation (html2canvas + jsPDF) can be slow with no loading indicator.
 
@@ -181,17 +225,23 @@ Users can't see what the PDF will look like before exporting. PDF generation (ht
 
 ### U23. No Step Label Tooltips
 
+> **User Review:** Yes, do it
+
 Stepper step labels are truncated at small widths ("C4" for "Command & Control", "Misc" for "Hangars & Miscellaneous") but there's no tooltip showing the full name on hover.
 
 **Fix:** Add `Tooltip title={STEP_FULL_NAMES[step.id]}` around each step label.
 
 ### U24. Stepper Scroll Arrows Missing ARIA Labels
 
+> **User Review:** Yes, do it
+
 The ChevronLeft/ChevronRight IconButtons controlling stepper scroll have no accessible names.
 
 **Fix:** Add `aria-label="Scroll steps left"` and `aria-label="Scroll steps right"`.
 
 ### U25. Fixed Width Elements Don't Adapt
+
+> **User Review:** Nice to have, not priority
 
 Several UI elements use fixed pixel widths:
 - Damage Diagram pool sidebar: 280px

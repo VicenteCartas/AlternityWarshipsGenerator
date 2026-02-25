@@ -12,6 +12,8 @@ The codebase is architecturally sound with clean data flow (JSON → dataLoader 
 
 ### C1. App.tsx God Component (2,137 lines, 45 useState hooks)
 
+> **User Review:** Yes, do it
+
 `App.tsx` is simultaneously a state manager, business-logic engine, and UI renderer. Every state change re-runs the entire component. The file contains ~1,083 lines of logic and ~887 lines of JSX.
 
 **Proposed decomposition into custom hooks:**
@@ -29,6 +31,8 @@ This would reduce App.tsx to ~800 lines (render + hook wiring).
 
 ### C2. WarshipState Assembled/Destructured in 6 Places
 
+> **User Review:** Yes, do it
+
 The same 28-field state object is manually assembled or destructured in:
 
 | Location | Purpose |
@@ -43,6 +47,8 @@ The same 28-field state object is manually assembled or destructured in:
 Adding a new system type requires updating all 6 places. A single `buildCurrentState()` helper and `applyState(state)` helper would centralize this.
 
 ### C3. Missing Memoization — Redundant Calculations per Render
+
+> **User Review:** Yes, do it
 
 Every breakdown/total function is a plain closure called during render, recalculating from scratch on every call. Worst offenders in the app bar area:
 
@@ -62,17 +68,25 @@ Estimated: **~100+ redundant service function calls per render** from `getHPBrea
 
 ### H1. SupportSystemsSelection.tsx — 3× Tab Duplication (1,446 lines)
 
+> **User Review:** Yes, do it
+
 Life Support, Accommodations, and Store Systems tabs each duplicate ~400 lines of nearly identical code: state variables, CRUD handlers, inline edit forms, and available-types tables. A generic `SubsystemTab<T>` component parameterized by system type would cut this file by ~60% (~800 lines reducible).
 
 ### H2. saveService.ts — `deserializeWarship` is ~500 Lines
+
+> **User Review:** Yes, do it
 
 The deserialization function follows the same loop-find-build-push pattern for every system type, repeated ~15 times. Four weapon category branches (beam, projectile, torpedo, special) are particularly identical. A generic `deserializeSystemArray<TSaved, TInstalled>()` helper would eliminate most repetition (~250 lines reducible).
 
 ### H3. dataLoader.ts — 30+ Identical Getter Functions
 
+> **User Review:** Yes, do it
+
 Every data getter checks `dataLoaded`, warns if not, and returns from cache. The cache reset in `reloadAllGameData()` manually nulls ~30 properties. The three parallel caches (`cache`, `pureBaseCache`, `rawBaseData`) with identical structures amplify the problem. A generic getter factory or Proxy-based cache would centralize this (~200 lines reducible).
 
 ### H4. Stale Closure Risks in Dependency Arrays
+
+> **User Review:** Yes, do it
 
 | Hook | Issue |
 |---|---|
@@ -88,9 +102,13 @@ These work accidentally due to React re-render behavior but are latent bugs.
 
 ### M1. WeaponSelection.tsx — 4× Identical Grid Render Functions (1,040 lines)
 
+> **User Review:** Yes, do it
+
 `renderBeamWeaponsGrid`, `renderProjectileWeaponsGrid`, `renderTorpedoWeaponsGrid`, and `renderSpecialWeaponsGrid` are 90%+ identical. Same for the 4 tab content functions. A single `renderWeaponGrid(weapons, extraColumns?)` would eliminate ~300 lines.
 
 ### M2. DamageDiagramSelection.tsx — Repetitive System Collection
+
+> **User Review:** Yes, do it
 
 `buildUnassignedSystemsList` contains 17 nearly identical `for` loops building `UnassignedSystem` objects from different installed arrays. A data-driven approach mapping system arrays to config objects (category, name formatter, id prefix) would be cleaner (~80 lines reducible).
 
@@ -98,15 +116,21 @@ These work accidentally due to React re-render behavior but are latent bugs.
 
 ### M3. pdfExportService.ts — Largest File (1,568 lines)
 
+> **User Review:** Yes, do it
+
 The main `exportShipToPDF` does layout, data gathering, and rendering in one monolithic function. Splitting into sub-functions per PDF section would improve maintainability.
 
 Contains a private `capitalize` helper that should be promoted to shared utilities.
 
 ### M4. ordnanceService.ts — 3 Near-Identical Create Functions
 
+> **User Review:** Yes, do it
+
 `createMissileDesign`, `createBombDesign`, `createMineDesign` share ~80% logic. A single factory with a category parameter would reduce repetition.
 
 ### M5. 12 Pass-Through Handler Functions in App.tsx
+
+> **User Review:** Yes, do it
 
 These handlers add no logic — they just forward to a setter:
 
@@ -120,9 +144,13 @@ Inconsistently, some setters ARE passed directly as props (e.g., `onFuelTanksCha
 
 ### M6. `calculateHullStats()` Lives in Type File
 
+> **User Review:** Yes, do it
+
 `src/types/hull.ts` contains a calculation function. Per project conventions, calculations belong in services. Should move to `hullService.ts`.
 
 ### M7. `formatFTLRating()` Misplaced
+
+> **User Review:** Yes, do it
 
 Lives in `ftlDriveService.ts` but is a display formatter. Should be in `formatters.ts` per project conventions.
 
@@ -131,6 +159,8 @@ Lives in `ftlDriveService.ts` but is a display formatter. Should be in `formatte
 ## Low
 
 ### L1. Loose String Types
+
+> **User Review:** Skip — these are strings intentionally for mod extensibility (mods can introduce new armor weights, mount types, etc. via JSON)
 
 Several types use `string` where a union type would add compile-time safety:
 
@@ -142,9 +172,13 @@ Several types use `string` where a union type would add compile-time safety:
 
 ### L2. Empty Interfaces with eslint-disable
 
+> **User Review:** Yes, do it
+
 7 empty interfaces (weapon.ts, defense.ts, supportSystem.ts) extend base types with no additions. They exist for semantic naming but could be `type` aliases instead, avoiding the need for `eslint-disable` comments.
 
 ### L3. Constants Defined Inside App.tsx
+
+> **User Review:** Yes, do it
 
 These should be extracted to dedicated files:
 
@@ -158,22 +192,32 @@ These should be extracted to dedicated files:
 
 ### L4. Inline `capitalize` Pattern (20+ locations)
 
+> **User Review:** Yes, do it
+
 `.charAt(0).toUpperCase() + .slice(1)` appears across components and services. The `capitalize` helper in pdfExportService should be promoted to `src/services/utilities.ts` and reused.
 
 ### L5. Duplicated SVG Path Generation
+
+> **User Review:** Yes, do it
 
 `createSectorPath` in ArcRadarSelector.tsx and `createArcPath` in FireDiagram.tsx are identical arc-drawing functions with different names. Should be a shared utility.
 
 ### L6. Console Logging in Production Code
 
+> **User Review:** Yes, do it
+
 ~20 `console.log`/`console.warn`/`console.error` calls in `dataLoader.ts` and `modService.ts`. Should be gated behind a debug flag or use a minimal logger.
 
 ### L7. Naming Inconsistencies
+
+> **User Review:** Yes, do it
 
 - `editingid` (lowercase) vs `editingInstallationId` (camelCase) across components
 - `generateEngineInstallationId` (long) vs `generateWeaponId` / `generateDefenseId` (short) — inconsistent ID generator naming
 
 ### L8. Hardcoded Fallback Defaults in Services
+
+> **User Review:** Yes, do it
 
 `weaponService.ts` and `sensorService.ts` contain inline fallback data objects that duplicate JSON values. If JSON fails to load, these silently mask the error rather than failing visibly.
 
