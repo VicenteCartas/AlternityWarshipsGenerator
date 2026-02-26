@@ -11,16 +11,16 @@ Source of truth for planned features and improvements.
 | A1 | Clone/Duplicate Design | Duplicate the current design to create variants without rebuilding from scratch. | Low | High | ✅ Done |
 | A2 | Ship Templates / Presets | Start from pre-filled templates (e.g. "Light Corvette"). Bundled or user-created. | Medium | Medium | Nice to have |
 | A3 | Design Comparison | Side-by-side stat comparison of two saved designs. | Medium | Medium | Nice to have |
-| A4 | Ship Library / Gallery | Browse and search all saved designs with thumbnail cards showing key stats. | High | Low | Yes, do it |
+| A4 | Ship Library / Gallery | Browse and search all saved designs with thumbnail cards showing key stats. | High | Low | ✅ Done |
 | A5 | Auto-save / Crash Recovery | Periodic auto-save to temp location. Offer recovery on relaunch after crash. | Low | High | ✅ Done |
 
 ### B. In-Builder Helpers
 
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
-| B6 | Budget Visualization | Persistent mini chart (bar/donut) showing HP and Power allocation by category. | Medium | High | Yes, do it |
+| B6 | Budget Visualization | Persistent mini chart (bar/donut) showing HP and Power allocation by category. | Medium | High | ✅ Done |
 | B7 | "What Fits?" Filter | Toggle on step tables that grays out items exceeding remaining HP or Power. | Medium | High | Skip |
-| B8 | Clickable Alert Chips | Clicking the HP/Power chip in the app bar navigates to the relevant step. | Low | High | Nice to have |
+| B8 | Clickable Alert Chips | Clicking the HP/Power chip in the app bar navigates to the relevant step. | Low | High | Won't Do |
 | B9 | Per-Step Notes | Small text field on each step for design rationale. Exported in PDF. | Low | Medium | Nice to have |
 | B10 | Cost Breakdown Chart | Pie or bar chart of cost by category for campaign budgeting. | Medium | Medium | Nice to have |
 
@@ -28,7 +28,7 @@ Source of truth for planned features and improvements.
 
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
-| C11 | Compact Combat Reference Sheet | 1-page PDF optimized for the game table: weapons, defenses, damage track, fire arcs, key stats. | Medium | High | Yes, do it |
+| C11 | Compact Combat Reference Sheet | 1-page PDF optimized for the game table: weapons, defenses, damage track, fire arcs, key stats. | Medium | High | ✅ Done |
 | C12 | Copy Stats to Clipboard | One-click formatted text (Markdown/BBCode) for forums, Discord, campaign docs. | Low | High | ✅ Done |
 | C13 | Fleet Roster PDF | Select multiple .warship.json files → combined PDF with one page per ship. | High | Low | Nice to have |
 | C14 | Export Fire Diagram as Image | Save the fire arc SVG/PNG separately for campaign docs or VTTs. | Low | Medium | Nice to have |
@@ -48,16 +48,16 @@ Source of truth for planned features and improvements.
 | E18 | Fleet Cost Calculator | Define fleet composition with quantities → total cost and crew requirements. | Medium | Low | Nice to have |
 | E19 | Structured Ship Description Fields | Optional metadata: faction, role, commissioning date, classification, manufacturer. Keep freeform lore too. | Low | Medium | ✅ Done |
 | E20 | Combat Quick-Reference Calculator | Input attack roll → look up which weapons hit at which range band per fire arc. | High | Low | Skip |
-| E21 | Ordnance Design Sharing | Export/import ordnance designs independently from ship files for reuse across ships. | Low | Medium | Nice to have |
+| E21 | Ordnance Design Sharing | Export/import ordnance designs independently from ship files for reuse across ships. | Low | Medium | ✅ Done |
 | E22 | Light/Dark Theme Toggle | Add light theme option with toggle or system preference detection. | Low | High | ✅ Done |
 
 ### F. Onboarding & Help
 
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
-| F23 | Interactive Tutorial / First-Run Wizard | Walk new users through building their first ship. | High | Low | Nice to have |
+| F23 | Interactive Tutorial / First-Run Wizard | Walk new users through building their first ship. | High | Low | Won't Do |
 | F24 | Keyboard Shortcuts Reference | Dialog listing all available shortcuts (Ctrl+S, Ctrl+Z/Y, Damage Zones keys). | Low | High | ✅ Done |
-| F25 | Contextual Rule Tooltips | Hover over a system to see relevant rule excerpt from the rules/ folder. | High | Low | Nice to have |
+| F25 | Contextual Rule Tooltips | Hover over a system to see relevant rule excerpt from the rules/ folder. | High | Low | Won't Do |
 
 ## Recommended Priority Bundles (User-Reviewed)
 
@@ -70,25 +70,23 @@ Source of truth for planned features and improvements.
 - ~~F24: Keyboard Shortcuts Reference~~ ✅
 
 ### Approved — Medium Effort (user said "Yes")
-- B6: Budget Visualization
-- C11: Compact Combat Reference Sheet
+- ~~B6: Budget Visualization~~ ✅
+- ~~C11: Compact Combat Reference Sheet~~ ✅
 - ~~D15: Fire Control ↔ Weapon Linking Validation~~ ✅
 - ~~D16: Sensor Control Validation~~ ✅
-- A4: Ship Library / Gallery
+- ~~A4: Ship Library / Gallery~~ ✅
 
 ### Nice to Have (user interested, not priority)
 - A2: Ship Templates / Presets
 - A3: Design Comparison
-- B8: Clickable Alert Chips
-- B9: Per-Step Notes
+- ~~B9: Per-Step Notes~~ — Won't Do
 - B10: Cost Breakdown Chart
 - C13: Fleet Roster PDF
 - C14: Export Fire Diagram as Image
 - D17: Design Efficiency Rating
 - E18: Fleet Cost Calculator
-- E21: Ordnance Design Sharing
-- F23: Interactive Tutorial / First-Run Wizard
-- F25: Contextual Rule Tooltips
+- ~~E21: Ordnance Design Sharing~~ ✅
+
 
 ### Skipped
 - B7: "What Fits?" Filter

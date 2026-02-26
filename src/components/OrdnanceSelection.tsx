@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,11 +15,15 @@ import {
   Stack,
   TextField,
   Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import BlurCircularIcon from '@mui/icons-material/BlurCircular';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
@@ -46,6 +50,8 @@ import {
   canLoadOrdnance,
   addOrdnanceToLoadout,
   removeOrdnanceFromLoadout,
+  serializeOrdnanceDesigns,
+  importOrdnanceDesigns,
 } from '../services/ordnanceService';
 import { formatCost, formatAccuracyModifier, getAreaEffectTooltip, formatAcceleration } from '../services/formatters';
 import { createWeaponBatteryKey, batteryHasFireControl, getFireControlsForBattery } from '../services/commandControlService';
@@ -396,6 +402,96 @@ export function OrdnanceSelection({
     onOrdnanceDesignsChange(ordnanceDesigns.filter(d => d.id !== designId));
   };
 
+  // Export/Import snackbar state
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({
+    open: false, message: '', severity: 'info',
+  });
+
+  const handleExportDesigns = useCallback(async () => {
+    if (ordnanceDesigns.length === 0) return;
+
+    if (!window.electronAPI) {
+      // Web fallback: download as file
+      const json = serializeOrdnanceDesigns(ordnanceDesigns);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ordnance-designs.ordnance.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: `Exported ${ordnanceDesigns.length} design(s)`, severity: 'success' });
+      return;
+    }
+
+    try {
+      const dialogResult = await window.electronAPI.showOrdnanceSaveDialog('ordnance-designs.ordnance.json');
+      if (dialogResult.canceled || !dialogResult.filePath) return;
+
+      const json = serializeOrdnanceDesigns(ordnanceDesigns);
+      const saveResult = await window.electronAPI.saveFile(dialogResult.filePath, json);
+      if (saveResult.success) {
+        setSnackbar({ open: true, message: `Exported ${ordnanceDesigns.length} design(s)`, severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: `Export failed: ${saveResult.error}`, severity: 'error' });
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: `Export failed: ${error}`, severity: 'error' });
+    }
+  }, [ordnanceDesigns]);
+
+  const handleImportDesigns = useCallback(async () => {
+    if (!window.electronAPI) {
+      // Web fallback: file input
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,.ordnance.json';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const text = await file.text();
+        const result = importOrdnanceDesigns(text, ordnanceDesigns);
+        if (result.designs.length > 0) {
+          onOrdnanceDesignsChange([...ordnanceDesigns, ...result.designs]);
+        }
+        if (result.warnings.length > 0) {
+          setSnackbar({ open: true, message: `Imported ${result.designs.length} design(s). Warnings: ${result.warnings.join('; ')}`, severity: 'warning' });
+        } else if (result.designs.length > 0) {
+          setSnackbar({ open: true, message: `Imported ${result.designs.length} design(s)`, severity: 'success' });
+        } else {
+          setSnackbar({ open: true, message: 'No designs were imported', severity: 'info' });
+        }
+      };
+      input.click();
+      return;
+    }
+
+    try {
+      const dialogResult = await window.electronAPI.showOrdnanceOpenDialog();
+      if (dialogResult.canceled || dialogResult.filePaths.length === 0) return;
+
+      const readResult = await window.electronAPI.readFile(dialogResult.filePaths[0]);
+      if (!readResult.success || !readResult.content) {
+        setSnackbar({ open: true, message: `Failed to read file: ${readResult.error}`, severity: 'error' });
+        return;
+      }
+
+      const result = importOrdnanceDesigns(readResult.content, ordnanceDesigns);
+      if (result.designs.length > 0) {
+        onOrdnanceDesignsChange([...ordnanceDesigns, ...result.designs]);
+      }
+      if (result.warnings.length > 0) {
+        setSnackbar({ open: true, message: `Imported ${result.designs.length} design(s). Warnings: ${result.warnings.join('; ')}`, severity: 'warning' });
+      } else if (result.designs.length > 0) {
+        setSnackbar({ open: true, message: `Imported ${result.designs.length} design(s)`, severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: 'No designs were imported', severity: 'info' });
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: `Import failed: ${error}`, severity: 'error' });
+    }
+  }, [ordnanceDesigns, onOrdnanceDesignsChange]);
+
   // Helper functions
   const getWarheadInfo = (warheadId: string) => allWarheads.find(w => w.id === warheadId);
   const getPropulsionInfo = (propulsionId: string) => allPropulsion.find(p => p.id === propulsionId);
@@ -739,7 +835,7 @@ export function OrdnanceSelection({
     if (!hasMissile && !hasBomb && !hasMine) return null;
 
     return (
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', rowGap: 1 }}>
         {hasMissile && (
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => openNewDesignDialog('missile')}>
             New Missile Design
@@ -755,6 +851,24 @@ export function OrdnanceSelection({
             New Mine Design
           </Button>
         )}
+        <Box sx={{ flex: 1 }} />
+        <Button
+          variant="outlined"
+          startIcon={<FileDownloadIcon />}
+          onClick={handleImportDesigns}
+          aria-label="Import ordnance designs from file"
+        >
+          Import
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<FileUploadIcon />}
+          onClick={handleExportDesigns}
+          disabled={ordnanceDesigns.length === 0}
+          aria-label="Export ordnance designs to file"
+        >
+          Export
+        </Button>
       </Stack>
     );
   };
@@ -788,6 +902,22 @@ export function OrdnanceSelection({
         onSave={handleSaveDesign}
         onCancel={() => setDesignDialogOpen(false)}
       />
+
+      {/* Export/Import Notification */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -40,6 +40,11 @@ import type {
 } from '../types/damageDiagram';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import {
+  DAMAGE_CATEGORY_COLORS,
+  DAMAGE_CATEGORY_TEXT_COLORS,
+  FILL_LEVEL_COLORS,
+} from '../constants/domainColors';
+import {
   createEmptyZones,
   generateZoneSystemRefId,
   sortSystemsByDamagePriority,
@@ -101,38 +106,10 @@ const CATEGORY_FILTERS: { key: SystemDamageCategory | 'all'; label: string }[] =
   { key: 'communication', label: 'Comms' },
 ];
 
-// Color mapping for system categories
-const CATEGORY_COLORS: Record<SystemDamageCategory, string> = {
-  weapon: '#ef5350',
-  defense: '#42a5f5',
-  sensor: '#ab47bc',
-  communication: '#7e57c2',
-  fuel: '#8d6e63',
-  hangar: '#78909c',
-  accommodation: '#26a69a',
-  miscellaneous: '#bdbdbd',
-  support: '#66bb6a',
-  engine: '#ff7043',
-  powerPlant: '#ffa726',
-  ftlDrive: '#29b6f6',
-  command: '#ffee58',
-};
+// Color mapping for system categories — imported from domainColors
+const CATEGORY_COLORS = DAMAGE_CATEGORY_COLORS;
 
-const CATEGORY_TEXT_COLORS: Record<SystemDamageCategory, string> = {
-  weapon: '#fff',
-  defense: '#fff',
-  sensor: '#fff',
-  communication: '#fff',
-  fuel: '#fff',
-  hangar: '#fff',
-  accommodation: '#fff',
-  miscellaneous: '#333',
-  support: '#fff',
-  engine: '#fff',
-  powerPlant: '#fff',
-  ftlDrive: '#fff',
-  command: '#333',
-};
+const CATEGORY_TEXT_COLORS = DAMAGE_CATEGORY_TEXT_COLORS;
 
 // Format arcs in short mode (e.g., "FPSA" for forward-port-starboard-aft)
 function formatArcsShort(arcs: string[] | undefined): string {
@@ -1121,13 +1098,13 @@ export function DamageDiagramSelection({
               const remainingAfterDrop = projectedHp !== null ? zone.maxHullPoints - projectedHp : null;
               // Fill-based border color: green → yellow → orange → red
               const fillBorderColor = isOver
-                ? '#f44336'
+                ? FILL_LEVEL_COLORS.over
                 : fillPercent >= 90
-                  ? '#ff9800'
+                  ? FILL_LEVEL_COLORS.high
                   : fillPercent >= 50
-                    ? '#ffc107'
+                    ? FILL_LEVEL_COLORS.medium
                     : fillPercent > 0
-                      ? '#4caf50'
+                      ? FILL_LEVEL_COLORS.low
                       : undefined;
 
               return (
@@ -1145,7 +1122,7 @@ export function DamageDiagramSelection({
                     flexDirection: 'column',
                     overflow: 'hidden',
                     transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.15s',
-                    borderColor: isDragTarget ? (isIncompatible ? 'error.main' : wouldOverflow ? '#ff9800' : 'primary.main') : fillBorderColor ?? 'divider',
+                    borderColor: isDragTarget ? (isIncompatible ? 'error.main' : wouldOverflow ? FILL_LEVEL_COLORS.high : 'primary.main') : fillBorderColor ?? 'divider',
                     borderWidth: isDragTarget ? 2 : fillBorderColor ? 2 : 1,
                     boxShadow: isDragTarget ? (isIncompatible ? 0 : 4) : 0,
                     bgcolor: isDragTarget ? (isIncompatible ? 'rgba(244,67,54,0.05)' : 'action.hover') : 'background.paper',
@@ -1193,7 +1170,7 @@ export function DamageDiagramSelection({
                         sx={{
                           height: 4, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.2)',
                           '& .MuiLinearProgress-bar': {
-                            bgcolor: isOver ? '#f44336' : fillPercent >= 90 ? '#ff9800' : fillPercent >= 50 ? '#ffc107' : '#4caf50',
+                            bgcolor: isOver ? FILL_LEVEL_COLORS.over : fillPercent >= 90 ? FILL_LEVEL_COLORS.high : fillPercent >= 50 ? FILL_LEVEL_COLORS.medium : FILL_LEVEL_COLORS.low,
                           },
                         }}
                       />

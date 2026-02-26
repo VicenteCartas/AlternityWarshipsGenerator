@@ -41,6 +41,7 @@ import { EDITOR_SECTIONS, EDITOR_SECTION_GROUPS, HOUSE_RULES, type EditorSection
 import { validateRows, type ValidationError } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
 import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
+import { MOD_ROW_BORDER_COLOR } from '../constants/domainColors';
 
 interface ModEditorProps {
   mod: Mod;
@@ -330,7 +331,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
   /** Highlight function: mod-sourced rows get a primary color left border */
   const previewRowHighlight = useCallback((row: Record<string, unknown>) => {
-    return row._source === 'mod' ? '#1976d2' : undefined;
+    return row._source === 'mod' ? MOD_ROW_BORDER_COLOR : undefined;
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -754,7 +755,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               )}
               {previewMerged && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
-                  Showing the final merged data that players will see. <Box component="span" sx={{ borderLeft: '4px solid #1976d2', pl: 0.5 }}>Blue-bordered rows</Box> are from this mod.
+                  Showing the final merged data that players will see. <Box component="span" sx={{ borderLeft: `4px solid ${MOD_ROW_BORDER_COLOR}`, pl: 0.5 }}>Blue-bordered rows</Box> are from this mod.
                 </Typography>
               )}
               <EditableDataGrid

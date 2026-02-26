@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import type { InstalledWeapon } from '../../types/weapon';
 import { createSectorPath } from '../../services/utilities';
+import { FIRE_ARC_STANDARD, FIRE_ARC_ZERO } from '../../constants/domainColors';
 
 interface FireDiagramProps {
   weapons: InstalledWeapon[];
@@ -66,19 +67,19 @@ export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps
 
   // Colors for arcs based on weapon count
   const getArcColor = (count: number): string => {
-    if (count === 0) return '#e0e0e0'; // grey
-    if (count <= 4) return '#90caf9'; // light blue (1-4)
-    if (count <= 8) return '#42a5f5'; // blue (5-8)
-    if (count <= 12) return '#1976d2'; // darker blue (9-12)
-    return '#0d47a1'; // very dark blue for 13+
+    if (count === 0) return FIRE_ARC_STANDARD.empty;
+    if (count <= 4) return FIRE_ARC_STANDARD.low;
+    if (count <= 8) return FIRE_ARC_STANDARD.medium;
+    if (count <= 12) return FIRE_ARC_STANDARD.high;
+    return FIRE_ARC_STANDARD.max;
   };
 
   const getZeroArcColor = (count: number): string => {
-    if (count === 0) return '#e0e0e0'; // grey
-    if (count <= 2) return '#ffcc80'; // light orange (1-2)
-    if (count <= 4) return '#ffa726'; // orange (3-4)
-    if (count <= 6) return '#f57c00'; // darker orange (5-6)
-    return '#e65100'; // very dark orange for 7+
+    if (count === 0) return FIRE_ARC_ZERO.empty;
+    if (count <= 2) return FIRE_ARC_ZERO.low;
+    if (count <= 4) return FIRE_ARC_ZERO.medium;
+    if (count <= 6) return FIRE_ARC_ZERO.high;
+    return FIRE_ARC_ZERO.max;
   };
 
   const standardArcs: Array<{ key: string; label: string }> = [
@@ -263,23 +264,23 @@ export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps
           Standard arcs (range):
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Box sx={{ width: 16, height: 16, bgcolor: '#e0e0e0', border: '1px solid #666' }} />
+          <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_STANDARD.empty, border: '1px solid #666' }} />
           <Typography variant="caption">0</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Box sx={{ width: 16, height: 16, bgcolor: '#90caf9', border: '1px solid #666' }} />
+          <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_STANDARD.low, border: '1px solid #666' }} />
           <Typography variant="caption">1</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Box sx={{ width: 16, height: 16, bgcolor: '#42a5f5', border: '1px solid #666' }} />
+          <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_STANDARD.medium, border: '1px solid #666' }} />
           <Typography variant="caption">2</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Box sx={{ width: 16, height: 16, bgcolor: '#1976d2', border: '1px solid #666' }} />
+          <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_STANDARD.high, border: '1px solid #666' }} />
           <Typography variant="caption">3</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Box sx={{ width: 16, height: 16, bgcolor: '#0d47a1', border: '1px solid #666' }} />
+          <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_STANDARD.max, border: '1px solid #666' }} />
           <Typography variant="caption">4+</Typography>
         </Box>
         {hasZeroArcs && (
@@ -288,15 +289,15 @@ export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps
               Zero-range:
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#ffcc80', border: '1px solid #666' }} />
+              <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_ZERO.low, border: '1px solid #666' }} />
               <Typography variant="caption">1</Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#ffa726', border: '1px solid #666' }} />
+              <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_ZERO.medium, border: '1px solid #666' }} />
               <Typography variant="caption">2</Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#f57c00', border: '1px solid #666' }} />
+              <Box sx={{ width: 16, height: 16, bgcolor: FIRE_ARC_ZERO.high, border: '1px solid #666' }} />
               <Typography variant="caption">3+</Typography>
             </Box>
           </>

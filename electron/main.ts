@@ -15,7 +15,7 @@ const APP_NAME = 'Alternity Warship Generator';
 let mainWindow: BrowserWindow | null = null;
 
 // Track current app mode to enable/disable menu items contextually
-let currentAppMode: 'loading' | 'welcome' | 'builder' | 'mods' = 'loading';
+let currentAppMode: 'loading' | 'welcome' | 'builder' | 'mods' | 'library' = 'loading';
 
 // Recent files management
 const MAX_RECENT_FILES = 10;
@@ -346,6 +346,39 @@ ipcMain.handle('show-open-dialog', async () => {
   return result;
 });
 
+// IPC Handlers for Ordnance Export/Import Dialogs
+ipcMain.handle('show-ordnance-save-dialog', async (_event, defaultFileName: string) => {
+  if (!mainWindow) return { canceled: true };
+  
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Ordnance Designs',
+    defaultPath: defaultFileName,
+    filters: [
+      { name: 'Ordnance Files', extensions: ['ordnance.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  
+  return result;
+});
+
+ipcMain.handle('show-ordnance-open-dialog', async () => {
+  if (!mainWindow) return { canceled: true, filePaths: [] };
+  
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Import Ordnance Designs',
+    filters: [
+      { name: 'Ordnance Files', extensions: ['ordnance.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
+  
+  return result;
+});
+
 ipcMain.handle('save-file', async (_event, filePath: string, content: string) => {
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
@@ -440,9 +473,118 @@ ipcMain.handle('clear-recent-files', async () => {
 
 // App mode management - updates menu state
 ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
-  currentAppMode = mode as 'loading' | 'welcome' | 'builder' | 'mods';
+  currentAppMode = mode as 'loading' | 'welcome' | 'builder' | 'mods' | 'library';
   createMenu(); // Recreate menu with updated enabled state
   return { success: true };
+});
+
+// ============== Ship Library: Scan for .warship.json files ==============
+
+/**
+ * Recursively scan a directory for .warship.json files and return lightweight metadata.
+ * Reads only the top-level fields needed for library cards (no full deserialization).
+ */
+function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDepth: number = 0): Array<{
+  filePath: string;
+  name: string;
+  designType: string | null;
+  stationType: string | null;
+  hullId: string | null;
+  designProgressLevel: number | null;
+  imageData: string | null;
+  imageMimeType: string | null;
+  faction: string | null;
+  role: string | null;
+  classification: string | null;
+  manufacturer: string | null;
+  modifiedAt: string | null;
+  createdAt: string | null;
+  fileSizeBytes: number;
+}> {
+  const results: Array<{
+    filePath: string;
+    name: string;
+    designType: string | null;
+    stationType: string | null;
+    hullId: string | null;
+    designProgressLevel: number | null;
+    imageData: string | null;
+    imageMimeType: string | null;
+    faction: string | null;
+    role: string | null;
+    classification: string | null;
+    manufacturer: string | null;
+    modifiedAt: string | null;
+    createdAt: string | null;
+    fileSizeBytes: number;
+  }> = [];
+
+  if (currentDepth > maxDepth) return results;
+
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  } catch {
+    return results;
+  }
+
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...scanWarshipFilesSync(fullPath, maxDepth, currentDepth + 1));
+    } else if (entry.isFile() && entry.name.endsWith('.warship.json')) {
+      try {
+        const stat = fs.statSync(fullPath);
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        results.push({
+          filePath: fullPath,
+          name: parsed.name || entry.name.replace(/\.warship\.json$/i, ''),
+          designType: parsed.designType || 'warship',
+          stationType: parsed.stationType || null,
+          hullId: parsed.hull?.id || null,
+          designProgressLevel: parsed.designProgressLevel || null,
+          imageData: parsed.imageData || null,
+          imageMimeType: parsed.imageMimeType || null,
+          faction: parsed.faction || null,
+          role: parsed.role || null,
+          classification: parsed.classification || null,
+          manufacturer: parsed.manufacturer || null,
+          modifiedAt: parsed.modifiedAt || null,
+          createdAt: parsed.createdAt || null,
+          fileSizeBytes: stat.size,
+        });
+      } catch {
+        // Skip files that can't be read or parsed
+      }
+    }
+  }
+
+  return results;
+}
+
+ipcMain.handle('scan-warship-files', async (_event, directoryPath: string) => {
+  try {
+    if (!fs.existsSync(directoryPath)) {
+      return { success: true, files: [] };
+    }
+    const files = scanWarshipFilesSync(directoryPath);
+    return { success: true, files };
+  } catch (error) {
+    return { success: false, error: (error as Error).message, files: [] };
+  }
+});
+
+ipcMain.handle('select-directory', async () => {
+  if (!mainWindow) return { canceled: true };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select folder to scan for designs',
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true };
+  }
+  return { canceled: false, filePath: result.filePaths[0] };
 });
 
 // ============== Auto-save / Crash Recovery ==============

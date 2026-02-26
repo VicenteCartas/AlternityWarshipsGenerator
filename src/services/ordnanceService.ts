@@ -13,7 +13,10 @@ import type {
   OrdnanceCategory,
 } from '../types/ordnance';
 import type { ProgressLevel, TechTrack } from '../types/common';
+import type { SavedOrdnanceDesign } from '../types/saveFile';
+import type { OrdnanceExportFile } from '../types/ordnanceExport';
 import { ORDNANCE_SIZE_CAPACITY } from '../types/ordnance';
+import { ORDNANCE_EXPORT_VERSION } from '../types/ordnanceExport';
 import {
   getLaunchSystemsData,
   getPropulsionSystemsData,
@@ -490,4 +493,149 @@ export function getDesignSummary(design: OrdnanceDesign): string {
     );
     return `${design.size} mine / ${guidance?.name || '?'} / ${warhead?.name || '?'}`;
   }
+}
+
+// ============== Ordnance Export/Import ==============
+
+/**
+ * Serialize ordnance designs to the portable export format.
+ * Strips calculated fields, keeping only component IDs.
+ */
+export function serializeOrdnanceDesigns(designs: OrdnanceDesign[]): string {
+  const exportFile: OrdnanceExportFile = {
+    version: ORDNANCE_EXPORT_VERSION,
+    designs: designs.map((d): SavedOrdnanceDesign => {
+      const base: SavedOrdnanceDesign = {
+        id: d.id,
+        name: d.name,
+        category: d.category,
+        size: d.size,
+        warheadId: d.warheadId,
+      };
+      if (d.category === 'missile') {
+        return {
+          ...base,
+          propulsionId: (d as MissileDesign).propulsionId,
+          guidanceId: (d as MissileDesign).guidanceId,
+        };
+      } else if (d.category === 'mine') {
+        return {
+          ...base,
+          guidanceId: (d as MineDesign).guidanceId,
+        };
+      }
+      return base;
+    }),
+  };
+  return JSON.stringify(exportFile, null, 2);
+}
+
+/**
+ * Result of importing ordnance designs
+ */
+export interface OrdnanceImportResult {
+  /** Successfully imported designs (with recalculated stats and new IDs) */
+  designs: OrdnanceDesign[];
+  /** Warnings for skipped designs (missing components, etc.) */
+  warnings: string[];
+}
+
+/**
+ * Parse and validate an ordnance export file, resolving component IDs against
+ * current game data. Designs whose components aren't found are skipped with warnings.
+ * Imported designs get new IDs and are renamed if they conflict with existing names.
+ */
+export function importOrdnanceDesigns(
+  json: string,
+  existingDesigns: OrdnanceDesign[]
+): OrdnanceImportResult {
+  const warnings: string[] = [];
+  const importedDesigns: OrdnanceDesign[] = [];
+
+  // Parse JSON
+  let exportFile: OrdnanceExportFile;
+  try {
+    exportFile = JSON.parse(json);
+  } catch {
+    return { designs: [], warnings: ['Invalid JSON file'] };
+  }
+
+  // Validate structure
+  if (!exportFile || !Array.isArray(exportFile.designs)) {
+    return { designs: [], warnings: ['Invalid ordnance export file format'] };
+  }
+
+  const allPropulsion = getPropulsionSystems();
+  const allGuidance = getGuidanceSystems();
+  const allWarheads = getWarheads();
+  const existingNames = new Set(
+    existingDesigns.map(d => `${d.category}:${d.name.toLowerCase()}`)
+  );
+
+  for (const saved of exportFile.designs) {
+    // Validate required fields
+    if (!saved.name || !saved.category || !saved.size || !saved.warheadId) {
+      warnings.push(`Skipped design with missing required fields`);
+      continue;
+    }
+
+    // Validate category
+    if (!['missile', 'bomb', 'mine'].includes(saved.category)) {
+      warnings.push(`Skipped "${saved.name}": unknown category "${saved.category}"`);
+      continue;
+    }
+
+    // Resolve warhead
+    const warhead = allWarheads.find(w => w.id === saved.warheadId);
+    if (!warhead) {
+      warnings.push(`Skipped "${saved.name}": warhead not found (${saved.warheadId})`);
+      continue;
+    }
+
+    // Deduplicate name
+    let name = saved.name;
+    const nameKey = `${saved.category}:${name.toLowerCase()}`;
+    if (existingNames.has(nameKey)) {
+      name = `${name} (imported)`;
+      // If even the "(imported)" name exists, add a number
+      let counter = 2;
+      while (existingNames.has(`${saved.category}:${name.toLowerCase()}`)) {
+        name = `${saved.name} (imported ${counter})`;
+        counter++;
+      }
+    }
+    existingNames.add(`${saved.category}:${name.toLowerCase()}`);
+
+    // Use createOrdnanceDesign to resolve components and calculate stats
+    const design = createOrdnanceDesign(saved.category, name, saved.size, {
+      propulsionId: saved.propulsionId,
+      guidanceId: saved.guidanceId,
+      warheadId: saved.warheadId,
+    });
+
+    if (design) {
+      importedDesigns.push(design);
+    } else {
+      // Provide specific failure reason
+      if (saved.category === 'missile') {
+        if (!allPropulsion.find(p => p.id === saved.propulsionId)) {
+          warnings.push(`Skipped "${saved.name}": propulsion not found (${saved.propulsionId})`);
+        } else if (!allGuidance.find(g => g.id === saved.guidanceId)) {
+          warnings.push(`Skipped "${saved.name}": guidance not found (${saved.guidanceId})`);
+        } else {
+          warnings.push(`Skipped "${saved.name}": failed to create design`);
+        }
+      } else if (saved.category === 'mine') {
+        if (!allGuidance.find(g => g.id === saved.guidanceId)) {
+          warnings.push(`Skipped "${saved.name}": guidance not found (${saved.guidanceId})`);
+        } else {
+          warnings.push(`Skipped "${saved.name}": failed to create design`);
+        }
+      } else {
+        warnings.push(`Skipped "${saved.name}": failed to create design`);
+      }
+    }
+  }
+
+  return { designs: importedDesigns, warnings };
 }

@@ -46,6 +46,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) => 
     ipcRenderer.invoke('read-file', filePath),
   
+  // Ordnance export/import file dialogs
+  showOrdnanceSaveDialog: (defaultFileName: string) =>
+    ipcRenderer.invoke('show-ordnance-save-dialog', defaultFileName),
+  showOrdnanceOpenDialog: () =>
+    ipcRenderer.invoke('show-ordnance-open-dialog'),
+
   // Data file operations (for externally editable game data)
   readDataFile: (fileName: string) => 
     ipcRenderer.invoke('read-data-file', fileName),
@@ -71,6 +77,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // App mode management
   setBuilderMode: (mode: string) =>
     ipcRenderer.invoke('set-builder-mode', mode),
+  
+  // Ship Library operations
+  scanWarshipFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('scan-warship-files', directoryPath),
+  selectDirectory: () =>
+    ipcRenderer.invoke('select-directory'),
   
   // Auto-save / crash recovery
   getAutoSavePath: () =>

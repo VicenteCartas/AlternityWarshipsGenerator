@@ -171,7 +171,7 @@ export interface InstalledSystemBase<T> extends InstalledQuantityItem<T>, Instal
 /**
  * Application mode for the main view
  */
-export type AppMode = 'welcome' | 'builder' | 'loading' | 'mods';
+export type AppMode = 'welcome' | 'builder' | 'loading' | 'mods' | 'library';
 
 /**
  * Identifier for each wizard step

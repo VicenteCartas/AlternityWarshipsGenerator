@@ -44,6 +44,35 @@ export interface ImportModResult {
   folderName?: string;
 }
 
+export interface ScannedWarshipFile {
+  filePath: string;
+  name: string;
+  designType: string | null;
+  stationType: string | null;
+  hullId: string | null;
+  designProgressLevel: number | null;
+  imageData: string | null;
+  imageMimeType: string | null;
+  faction: string | null;
+  role: string | null;
+  classification: string | null;
+  manufacturer: string | null;
+  modifiedAt: string | null;
+  createdAt: string | null;
+  fileSizeBytes: number;
+}
+
+export interface ScanWarshipFilesResult {
+  success: boolean;
+  error?: string;
+  files: ScannedWarshipFile[];
+}
+
+export interface SelectDirectoryResult {
+  canceled: boolean;
+  filePath?: string;
+}
+
 export interface ElectronAPI {
   // Menu event listeners
   onNewWarship: (callback: () => void) => void;
@@ -80,12 +109,20 @@ export interface ElectronAPI {
   // App mode management
   setBuilderMode: (mode: string) => Promise<FileOperationResult>;
   
+  // Ship Library operations
+  scanWarshipFiles: (directoryPath: string) => Promise<ScanWarshipFilesResult>;
+  selectDirectory: () => Promise<SelectDirectoryResult>;
+  
   // Auto-save / crash recovery
   getAutoSavePath: () => Promise<string>;
   writeAutoSave: (content: string) => Promise<FileOperationResult>;
   readAutoSave: () => Promise<FileOperationResult>;
   deleteAutoSave: () => Promise<FileOperationResult>;
   
+  // Ordnance export/import file dialogs
+  showOrdnanceSaveDialog: (defaultFileName: string) => Promise<SaveDialogResult>;
+  showOrdnanceOpenDialog: () => Promise<OpenDialogResult>;
+
   // Mod system operations
   listMods: () => Promise<ListModsResult>;
   readModFile: (folderName: string, fileName: string) => Promise<FileOperationResult>;

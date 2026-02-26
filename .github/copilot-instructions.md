@@ -10,6 +10,7 @@ Desktop app for generating Warships and Stations/Bases for the **Alternity** sci
 - **UI Framework**: Material-UI (MUI) v7
 - **Build Tool**: Vite
 - **Desktop**: Electron (context isolation enabled)
+- **Testing**: Vitest + Testing Library (jsdom)
 - **PDF Generation**: jsPDF + html2canvas
 - **Package Manager**: npm
 
@@ -20,41 +21,64 @@ npm run dev:electron    # Run in development mode (Vite + Electron)
 npm run build           # TypeScript check + Vite build
 npm run build:electron  # Build React + Electron for production
 npm run lint            # ESLint (flat config)
+npm run test            # Run all tests (vitest run)
+npm run test:watch      # Run tests in watch mode
+npm run test:coverage   # Run tests with coverage report
 npm run dist:win        # Create Windows installer
 npm run dist:mac        # Create macOS installer
 npm run dist:linux      # Create Linux AppImage
 ```
 
-There is no test framework configured.
-
 ## Architecture
 
 ### Data Flow
 
-**JSON data files** → `dataLoader.ts` (runtime load via Electron IPC) → **Services** (calculate) → **Components** (display)
+**JSON data files** → `dataLoader.ts` (runtime load via Electron IPC) → **Services** (calculate) → **Hooks** (state + derived) → **Components** (display)
 
 - `src/data/` contains JSON game data files loaded at runtime (not bundled imports)
 - `dataLoader.ts` loads data via Electron IPC in production, falls back to bundled imports in dev/web mode
 - In production, JSON files are copied to `resources/data/` and are user-editable
 - After base data loads, the **mod system** merges enabled mods in priority order (`modService.ts`)
-- All app state lives in `App.tsx` and is passed down as props to step components
 - Save/Load uses Electron IPC for native file dialogs (`saveService.ts`)
+
+### State Management
+
+All design state is managed through custom hooks, not directly in `App.tsx`:
+
+- **`useWarshipState`** — All 27+ design variables, setters, undo/redo, dirty tracking, `buildCurrentState()` / `applyState()` helpers
+- **`useDesignCalculations`** — Memoized derived values (HP totals, PP balance, costs, stats) from all installed systems
+- **`useSaveLoad`** — Save/load logic via Electron IPC file dialogs
+- **`useAutoSave`** — Periodic auto-save to temp location with crash recovery
+- **`useUndoHistory`** — Generic undo/redo history stack (used by `useWarshipState`)
+- **`useNotification`** — Snackbar notification state management
+- **`useStepperScroll`** — Horizontal stepper scroll arrows
+- **`useElectronMenuHandlers`** — Electron menu IPC event listeners
+
+`App.tsx` orchestrates these hooks and passes state as props to step components. It manages UI-level state (`AppMode`, active step, dialogs) and renders the appropriate view.
+
+### App Modes
+
+`App.tsx` has five modes (`AppMode`): `'loading'` → `'welcome'` → `'builder'` | `'modManager'` | `'library'`. The welcome page is the entry point; builder is the main wizard; library browses saved designs; modManager edits mods.
 
 ### Key Directories
 
 - `src/components/` — One `*Selection.tsx` component per wizard step, plus dialogs and sub-directories:
-  - `shared/` — Reusable components: `EditableDataGrid`, `ArcRadarSelector`, `TechTrackCell`, `TruncatedDescription`, `TabPanel`
+  - `shared/` — Reusable components: `EditableDataGrid`, `ArcRadarSelector`, `TechTrackCell`, `TruncatedDescription`, `TabPanel`, `StepHeader`, `ResourceBarChip`, `BudgetChart`, `ConfirmDialog`
   - `summary/` — Summary sub-components: `SystemsTab`, `DescriptionTab`, `FireDiagram`, `DamageZonesOverview`
+  - `library/` — Ship Library: `ShipLibrary`, `ShipCard` (browse/search saved designs)
+- `src/hooks/` — Custom hooks for state management, save/load, undo/redo, auto-save, notifications
 - `src/services/` — Business logic: one `*Service.ts` per game subsystem, plus:
   - `formatters.ts` — All display formatting (costs, tech tracks, ship classes, design types, etc.)
   - `dataLoader.ts` — Dual-cache data loading (base + mod-merged) with Electron IPC
   - `saveService.ts` — Serialize/deserialize warship state, save file versioning & migration
+  - `ordnanceService.ts` — Ordnance design creation, launch system calculations, export/import
+  - `libraryService.ts` — Ship library scanning, filtering, sorting
   - `modService.ts` / `modValidationService.ts` / `modEditorSchemas.ts` — Mod system
-  - `pdfExportService.ts` — PDF export
+  - `pdfExportService.ts` — PDF export (full sheet + compact combat reference)
   - `utilities.ts` — Shared utility functions
-- `src/types/` — TypeScript interfaces mirroring Warships rulebook terminology; one file per subsystem, plus `common.ts` for shared types
-- `src/data/` — 14 JSON game data files (hulls, armor, weapons, etc.)
-- `src/constants/` — `tableStyles.ts` (shared table styling), `version.ts` (app version)
+- `src/types/` — TypeScript interfaces mirroring Warships rulebook terminology; one file per subsystem, plus `common.ts` for shared types, `electron.d.ts` for IPC API
+- `src/data/` — 14 JSON game data files (hulls, armor, weapons, ordnance, etc.)
+- `src/constants/` — `tableStyles.ts` (shared table styling), `version.ts` (app version), `steps.ts` (step definitions + `getStepsForDesign()`), `domainColors.ts` (centralized color tokens for budget charts, damage zones, fire arcs)
 - `electron/` — `main.ts` (main process), `preload.ts` (IPC bridge)
 
 ### Design Types & Dynamic Steps
@@ -66,7 +90,7 @@ When creating a new design, a `DesignTypeDialog` lets users choose the type. Sta
 - **Outpost** — Sealed structure on hostile surface. Must provide own life support and gravity. No Engines or FTL steps.
 - **Space Station** — Orbital/deep-space installation. Engines and FTL become optional steps.
 
-Steps are defined as `StepDef` objects with `StepId` identifiers (not numeric indices). The function `getStepsForDesign()` in `App.tsx` filters/adjusts steps based on design type. The `renderStepContent()` switch uses `activeStepId` string matching, and the stepper completion logic uses `step.id`. **Never use hardcoded numeric step indices.**
+Steps are defined as `StepDef` objects with `StepId` identifiers (not numeric indices). The function `getStepsForDesign()` in `src/constants/steps.ts` filters/adjusts steps based on design type. The `renderStepContent()` switch uses `activeStepId` string matching, and the stepper completion logic uses `step.id`. **Never use hardcoded numeric step indices.**
 
 Station hulls are stored in `hulls.json` under the `stationHulls` key (separate from `hulls` for ships) and loaded via `getStationHullsData()` / `getAllStationHulls()`.
 
@@ -75,6 +99,14 @@ Station hulls are stored in `hulls.json` under the `stationHulls` key (separate 
 1. Hull (required) → 2. Armor → 3. Power Plant (required) → 4. Engines (required) → 5. FTL Drive → 6. Support Systems → 7. Weapons → 8. Defenses → 9. Sensors (required) → 10. C4 (required) → 11. Hangars & Misc → 12. Damage Zones (required) → 13. Summary
 
 Station step lists vary: ground bases/outposts skip Engines & FTL; space stations keep all steps but Engines becomes optional.
+
+### Ordnance System
+
+The Weapons step includes an Ordnance tab for designing missiles, bombs, and mines:
+- `OrdnanceDesignDialog` — Multi-step dialog for creating ordnance (propulsion → warhead → guidance → summary)
+- `OrdnanceSelection` — Launch system CRUD + ordnance loading + export/import
+- Designs store component IDs only; calculated stats are derived at load time
+- Ordnance designs can be exported/imported independently via `.ordnance.json` files for reuse across ships
 
 ### Mod System
 
@@ -108,7 +140,7 @@ The app bar has global design constraints that filter available components acros
 - **Defensive array access**: Always use `|| []` for arrays that might be undefined/null
 - **Calculations in services, not components**: Components handle display only
 - **Functional React components** with hooks; no class components
-- Step headers use `Typography variant="h6"` with `sx={{ mb: 1 }}` and format `"Step N: Name (Required/Optional)"`
+- Step headers use the `StepHeader` shared component from `src/components/shared/`
 - **Step identification**: Always use `StepId` strings, never hardcoded numeric indices
 
 ### Avoiding Code Duplication

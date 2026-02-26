@@ -5,18 +5,18 @@ import {
   Button,
   Paper,
   Stack,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Divider,
   Alert,
+  Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ExtensionIcon from '@mui/icons-material/Extension';
-import DescriptionIcon from '@mui/icons-material/Description';
+import CollectionsIcon from '@mui/icons-material/Collections';
 import RestoreIcon from '@mui/icons-material/Restore';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { APP_VERSION } from '../constants/version';
 import { checkForAutoSave, clearAutoSave } from '../hooks/useAutoSave';
 
@@ -24,40 +24,20 @@ interface WelcomePageProps {
   onNewWarship: () => void;
   onLoadWarship: () => void;
   onManageMods: () => void;
-  onLoadFile?: (filePath: string) => void;
+  onOpenLibrary?: () => void;
   onRecoverAutoSave?: (content: string) => void;
 }
 
-export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadFile, onRecoverAutoSave }: WelcomePageProps) {
-  const [recentFiles, setRecentFiles] = useState<string[]>([]);
+export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onOpenLibrary, onRecoverAutoSave }: WelcomePageProps) {
   const [autoSaveContent, setAutoSaveContent] = useState<string | null>(null);
+  const [showGettingStarted, setShowGettingStarted] = useState(false);
 
   useEffect(() => {
-    if (window.electronAPI?.getRecentFiles) {
-      window.electronAPI.getRecentFiles().then((files) => {
-        setRecentFiles(files || []);
-      }).catch(() => {
-        setRecentFiles([]);
-      });
-    }
     // Check for auto-save recovery
     checkForAutoSave().then((content) => {
       if (content) setAutoSaveContent(content);
     });
   }, []);
-
-  const getFileName = (filePath: string) => {
-    const separator = filePath.includes('\\') ? '\\' : '/';
-    const name = filePath.split(separator).pop() || filePath;
-    return name.replace(/\.warship\.json$/i, '');
-  };
-
-  const getFileDirectory = (filePath: string) => {
-    const separator = filePath.includes('\\') ? '\\' : '/';
-    const parts = filePath.split(separator);
-    parts.pop();
-    return parts.slice(-2).join(separator);
-  };
 
   return (
     <Box
@@ -136,10 +116,51 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadF
           </Alert>
         )}
 
-        {/* Content: Actions + Recent Designs side by side */}
-        <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
-          {/* Actions */}
-          <Stack spacing={1.5} sx={{ minWidth: 220 }}>
+        {/* Getting Started */}
+        <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Button
+            size="small"
+            startIcon={<RocketLaunchIcon />}
+            endIcon={showGettingStarted ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            onClick={() => setShowGettingStarted((prev) => !prev)}
+            sx={{ mb: 0.5, textTransform: 'none' }}
+          >
+            Getting Started
+          </Button>
+          <Collapse in={showGettingStarted}>
+            <Paper variant="outlined" sx={{ p: 2, textAlign: 'left' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Build warships and stations step-by-step using the Alternity Warships sourcebook rules:
+              </Typography>
+              <Box component="ol" sx={{ m: 0, pl: 2.5, '& li': { mb: 0.5 } }}>
+                <Typography component="li" variant="body2" color="text.secondary">
+                  Click <strong>New Design</strong> and choose <em>Warship</em> or <em>Station</em>.
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary">
+                  Select a hull — this determines available hull points, toughness, and ship class.
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary">
+                  Work through each step (armor, power, engines, weapons…) to fill your hull point budget.
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary">
+                  Use the <strong>App Bar</strong> chips at the top to monitor HP, power, and cost at a glance.
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary">
+                  Assign systems to <strong>Damage Zones</strong>, then review your design in the <strong>Summary</strong>.
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                Tip: Set the <strong>Progress Level</strong> and <strong>Tech Tracks</strong> in the app bar to filter available components.
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Use <strong>Browse Library</strong> to browse all your saved designs, or <strong>Manage Mods</strong> to add custom game data.
+              </Typography>
+            </Paper>
+          </Collapse>
+        </Box>
+
+        {/* Actions */}
+        <Stack spacing={1.5} sx={{ maxWidth: 320, mx: 'auto' }}>
             <Button
               variant="contained"
               size="large"
@@ -166,6 +187,17 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadF
             <Button
               variant="outlined"
               size="large"
+              startIcon={<CollectionsIcon />}
+              onClick={onOpenLibrary}
+              fullWidth
+              sx={{ py: 1.25 }}
+            >
+              Browse Library
+            </Button>
+
+            <Button
+              variant="outlined"
+              size="large"
               startIcon={<ExtensionIcon />}
               onClick={onManageMods}
               fullWidth
@@ -173,39 +205,7 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadF
             >
               Manage Mods
             </Button>
-          </Stack>
-
-          {/* Recent Designs */}
-          {recentFiles.length > 0 && (
-            <>
-              <Divider orientation="vertical" flexItem />
-              <Box sx={{ flex: 1, textAlign: 'left' }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, px: 1 }}>
-                  Recent Designs
-                </Typography>
-                <List dense disablePadding sx={{ maxHeight: 200, overflowY: 'auto' }}>
-                  {recentFiles.slice(0, 10).map((filePath) => (
-                    <ListItemButton
-                      key={filePath}
-                      onClick={() => onLoadFile?.(filePath)}
-                      sx={{ borderRadius: 1, py: 0.5 }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        <DescriptionIcon fontSize="small" color="action" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={getFileName(filePath)}
-                        secondary={getFileDirectory(filePath)}
-                        primaryTypographyProps={{ variant: 'body2', noWrap: true }}
-                        secondaryTypographyProps={{ variant: 'caption', noWrap: true, color: 'text.secondary' }}
-                      />
-                    </ListItemButton>
-                  ))}
-                </List>
-              </Box>
-            </>
-          )}
-        </Box>
+        </Stack>
       </Paper>
     </Box>
   );

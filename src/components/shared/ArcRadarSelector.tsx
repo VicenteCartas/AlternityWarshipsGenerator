@@ -81,6 +81,17 @@ export function ArcRadarSelector({
           '& .arc-zero:not(.selected):not(.disabled):hover': {
             fill: zeroHoverColor,
           },
+          '& .arc-sector:focus': {
+            outline: `2px solid ${theme.palette.primary.main}`,
+            outlineOffset: -1,
+          },
+          '& .arc-sector:focus:not(:focus-visible)': {
+            outline: 'none',
+          },
+          '& .arc-sector:focus-visible': {
+            outline: `2px solid ${theme.palette.primary.main}`,
+            outlineOffset: -1,
+          },
         }}
       >
         {/* Standard arc sectors (outer ring) */}
@@ -103,10 +114,17 @@ export function ArcRadarSelector({
                 fill={selected ? standardSelectedColor : unselectedColor}
                 stroke={borderColor}
                 strokeWidth={2}
+                tabIndex={0}
                 role="checkbox"
                 aria-checked={selected}
                 aria-label={`${label} arc`}
                 onClick={() => onArcToggle(arc, false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onArcToggle(arc, false);
+                  }
+                }}
               />
               <text
                 x={labelX}
@@ -148,11 +166,18 @@ export function ArcRadarSelector({
               fill={fillColor}
               stroke={borderColor}
               strokeWidth={1.5}
+              tabIndex={disabled ? -1 : 0}
               role="checkbox"
               aria-checked={selected}
               aria-label={`Zero-range ${arc.replace('zero-', '')} arc`}
               aria-disabled={disabled}
               onClick={() => !disabled && onArcToggle(arc, true)}
+              onKeyDown={(e) => {
+                if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  onArcToggle(arc, true);
+                }
+              }}
               style={{ 
                 cursor: disabled ? 'default' : 'pointer',
                 opacity: disabled && !selected ? 0.5 : 1,

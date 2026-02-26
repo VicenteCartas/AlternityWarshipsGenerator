@@ -138,32 +138,59 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 ---
 
-## Phase 9: Component Tests + Final UX Polish
+## Phase 9: Component Tests + Final UX Polish ✅ COMPLETE
 *Goal: Comprehensive component test coverage, remaining polish*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 63 | CT1: EditableDataGrid tests | TESTS | High | Most reused component |
-| 64 | CT2: ArcRadarSelector tests | TESTS | Medium | SVG interaction |
-| 65 | CT3–CT8: Integration tests (Weapon, Damage, Ordnance, Summary, DesignType, Armor) | TESTS | High | Complex interaction flows |
-| 66 | CT9–CT12: Summary sub-component tests | TESTS | Medium | Fire diagram, zones overview |
-| 67 | CT13: PdfExportDialog tests | TESTS | Low | Checkbox + export callback |
-| 68 | T11–T16: Remaining service tests (FTL, sensor, armor, support, hangar, modValidation) | TESTS | Medium | Complete service coverage |
-| 69 | T17–T19: Low-priority service tests (hull, schemas, dataLoader) | TESTS | Low | Cache/merge logic |
-| 70 | U20: Domain color tokens in theme.ts | UX | Medium | Clean foundation for theming |
-| 71 | U21: Welcome page onboarding | UX | Low | Brief description + quick-start |
-| 72 | U22: PDF export progress indicator | UX | Low | Loading spinner |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 63 | CT1: EditableDataGrid tests (11 tests) | TESTS | High | ✅ Done |
+| 64 | CT2: ArcRadarSelector tests (15 tests) | TESTS | Medium | ✅ Done |
+| 65 | CT3–CT8: Integration tests (12 tests) | TESTS | High | ✅ Done |
+| 66 | CT9–CT12: Summary sub-component tests (22 tests: shared 15 + summary 7) | TESTS | Medium | ✅ Done |
+| 67 | CT13: PdfExportDialog tests (11 tests) | TESTS | Low | ✅ Done |
+| 68 | T11–T16: Remaining service tests (173 tests: FTL 44, sensor 30, support 32, hangar 38, modValidation 29) | TESTS | Medium | ✅ Done |
+| 69 | T17–T19: Low-priority service tests (modEditorSchemas 218 tests, dataLoader skipped — IPC-bound) | TESTS | Low | ✅ Done |
+| 70 | U20: Domain color tokens in `constants/domainColors.ts` | UX | Medium | ✅ Done |
+| 71 | U21: Welcome page onboarding (collapsible Getting Started section) | UX | Low | ✅ Done |
+| 72 | U22: PDF export progress indicator (LinearProgress + generating message) | UX | Low | ✅ Done |
+
+**Final test count: 1,109 tests across 25 files, all passing.**
 
 ---
 
 ## Phase 10: Long-Term / Nice-to-Have
 *Goal: Backlog items when core is solid*
 
-| # | Item | Source | Effort |
-|---|------|--------|--------|
-| 73 | A4: Ship Library / Gallery | FEATURES | High |
-| 74 | Nice-to-have features (A2, A3, B8, B9, B10, C13, C14, D17, E18, E21, F23, F25) | FEATURES | Varies |
-| 75 | Nice-to-have UX (U3, U18, U25) | UX | Varies |
+### Flagship Feature
+
+| # | Item | Description | Source | Effort |
+|---|------|-------------|--------|--------|
+| 73 | A4: Ship Library / Gallery | Browse and search all saved designs with thumbnail cards showing key stats. | FEATURES | High | ✅ Done (37 tests) |
+
+### Nice-to-Have Features
+
+| # | Code | Item | Description | Effort |
+|---|------|------|-------------|--------|
+| 74a | A2 | Ship Templates / Presets | Start from pre-filled templates (e.g. "Light Corvette"). Bundled or user-created. | Medium |
+| 74b | A3 | Design Comparison | Side-by-side stat comparison of two saved designs. | Medium |
+| 74c | B8 | ~~Clickable Alert Chips~~ | Won't Do | — |
+| 74d | B9 | ~~Per-Step Notes~~ | Won't Do | — |
+| 74e | B10 | Cost Breakdown Chart | Pie or bar chart of cost by category for campaign budgeting. | Medium |
+| 74f | C13 | Fleet Roster PDF | Select multiple .warship.json files → combined PDF with one page per ship. | High |
+| 74g | C14 | Export Fire Diagram as Image | Save the fire arc SVG/PNG separately for campaign docs or VTTs. | Low |
+| 74h | D17 | Design Efficiency Rating | Derived metrics: power utilization %, HP utilization %, weapon-to-hull ratio, defense coverage %. | Medium |
+| 74i | E18 | Fleet Cost Calculator | Define fleet composition with quantities → total cost and crew requirements. | Medium |
+| 74j | E21 | ~~Ordnance Design Sharing~~ | ✅ Done | — |
+| 74k | F23 | ~~Interactive Tutorial / First-Run Wizard~~ | Won't Do | — |
+| 74l | F25 | ~~Contextual Rule Tooltips~~ | Won't Do | — |
+
+### Nice-to-Have UX
+
+| # | Code | Item | Description | Effort |
+|---|------|------|-------------|--------|
+| 75a | U3 | ~~ArcRadarSelector Keyboard Accessible~~ | ✅ Done | — |
+| 75b | U18 | Wide Tables Horizontal Scroll | Improve wide table handling — responsive columns, collapsible columns, or sticky first column. | Medium |
+| 75c | U25 | ~~Fixed Width Elements Adaptability~~ | Won't Do | — |
 
 ---
 
@@ -176,9 +203,9 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 | 3 | App.tsx decomposition + critical tests | 6 | ✅ Complete |
 | 4 | UX quick wins sprint | 7 | ✅ Complete |
 | 5 | Feature sprint (auto-save, clipboard, validation) | 6 | ✅ Complete |
-| 6 | Major refactoring + tests | 8 | 5–6 days |
-| 7 | Error prevention + remaining UX | 8 | 3–4 days |
-| 8 | Medium features + remaining code | 9 | 4–5 days |
-| 9 | Component tests + final polish | 10 | 5–6 days |
+| 6 | Major refactoring + tests | 8 | ✅ Complete |
+| 7 | Error prevention + remaining UX | 8 | ✅ Complete |
+| 8 | Medium features + remaining code | 9 | ✅ Complete |
+| 9 | Component tests + final polish | 10 | ✅ Complete |
 | 10 | Long-term / nice-to-have | 3+ | Ongoing |
 | **Total** | | **~75** | **~28–37 days** |

@@ -36,8 +36,7 @@ import RedoIcon from '@mui/icons-material/Redo';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+
 import { WelcomePage } from './components/WelcomePage';
 import { HullSelection } from './components/HullSelection';
 import { ArmorSelection } from './components/ArmorSelection';
@@ -56,6 +55,9 @@ import { AboutDialog } from './components/AboutDialog';
 import { KeyboardShortcutsDialog } from './components/KeyboardShortcutsDialog';
 import { ModManager } from './components/ModManager';
 import { DesignTypeDialog } from './components/DesignTypeDialog';
+import { ShipLibrary } from './components/library';
+import { ResourceBarChip } from './components/shared/ResourceBarChip';
+import { BUDGET_CATEGORY_COLORS } from './constants/domainColors';
 import type { Mod } from './types/mod';
 import { StepHeader } from './components/shared/StepHeader';
 import { ConfirmDialog } from './components/shared';
@@ -150,13 +152,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
 
   // Tech track popover anchor
   const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
-
-  // Power scenario popover and toggles
-  const [powerAnchorEl, setPowerAnchorEl] = useState<HTMLElement | null>(null);
-
-  // HP and Cost breakdown popover anchors
-  const [hpAnchorEl, setHpAnchorEl] = useState<HTMLElement | null>(null);
-  const [costAnchorEl, setCostAnchorEl] = useState<HTMLElement | null>(null);
 
   const [powerScenario, setPowerScenario] = useState<PowerScenario>({
     engines: true,
@@ -363,6 +358,15 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   }, [preModeForMods, designActiveMods]);
 
   const handleReturnToStart = useCallback(() => {
+    setMode('welcome');
+  }, []);
+
+  // Ship Library navigation
+  const handleOpenLibrary = useCallback(() => {
+    setMode('library');
+  }, []);
+
+  const handleLibraryBack = useCallback(() => {
     setMode('welcome');
   }, []);
 
@@ -827,7 +831,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
           onNewWarship={handleNewWarship}
           onLoadWarship={handleLoadWarship}
           onManageMods={handleManageMods}
-          onLoadFile={loadFromFile}
+          onOpenLibrary={handleOpenLibrary}
           onRecoverAutoSave={handleRecoverAutoSave}
         />
         <DesignTypeDialog
@@ -848,6 +852,20 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
         <ModManager
           onBack={handleModsBack}
           onModsChanged={handleModsChanged}
+        />
+        <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
+        <KeyboardShortcutsDialog open={shortcutsDialogOpen} onClose={() => setShortcutsDialogOpen(false)} />
+      </>
+    );
+  }
+
+  // Show ship library
+  if (mode === 'library') {
+    return (
+      <>
+        <ShipLibrary
+          onBack={handleLibraryBack}
+          onOpenDesign={loadFromFile}
         />
         <AboutDialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} />
         <KeyboardShortcutsDialog open={shortcutsDialogOpen} onClose={() => setShortcutsDialogOpen(false)} />
@@ -1030,243 +1048,135 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
               variant="outlined"
               size="small"
             />
-            <Chip
+            <ResourceBarChip
               label={`HP: ${remainingHullPoints} / ${totalHullPoints}`}
-              color={remainingHullPoints < 0 ? 'error' : 'success'}
-              icon={remainingHullPoints < 0 ? <ErrorOutlineIcon /> : <CheckCircleIcon />}
-              variant="outlined"
-              size="small"
-              onClick={(e) => setHpAnchorEl(e.currentTarget)}
-              onDelete={(e) => setHpAnchorEl(e.currentTarget.closest('.MuiChip-root'))}
-              deleteIcon={<ArrowDropDownIcon />}
-              aria-label="Show hull points breakdown"
+              segments={[
+                { key: 'armor', label: 'Armor', value: hpBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
+                { key: 'powerPlants', label: 'Power Plants', value: hpBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
+                { key: 'engines', label: 'Engines', value: hpBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
+                { key: 'ftl', label: 'FTL Drive', value: hpBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
+                { key: 'support', label: 'Support Systems', value: hpBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
+                { key: 'weapons', label: 'Weapons', value: hpBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
+                { key: 'defenses', label: 'Defenses', value: hpBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
+                { key: 'commandControl', label: 'C4', value: hpBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
+                { key: 'sensors', label: 'Sensors', value: hpBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
+                { key: 'hangarMisc', label: 'Hangars & Misc', value: hpBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
+              ]}
+              capacity={totalHullPoints}
+              isOverBudget={remainingHullPoints < 0}
+              popoverTitle="Hull Points Breakdown"
+              unit="HP"
+              breakdownRows={[
+                { key: 'armor', label: 'Armor', value: hpBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
+                { key: 'powerPlants', label: 'Power Plants', value: hpBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
+                { key: 'engines', label: 'Engines', value: hpBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
+                { key: 'ftl', label: 'FTL Drive', value: hpBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
+                { key: 'support', label: 'Support Systems', value: hpBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
+                { key: 'weapons', label: 'Weapons', value: hpBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
+                { key: 'defenses', label: 'Defenses', value: hpBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
+                { key: 'commandControl', label: 'C4', value: hpBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
+                { key: 'sensors', label: 'Sensors', value: hpBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
+                { key: 'hangarMisc', label: 'Hangars & Misc', value: hpBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
+              ]}
+              totalLabel="Total Used"
+              totalValue={totalHullPoints - remainingHullPoints}
+              ariaLabel="Show hull points breakdown"
             />
-            <Popover
-              open={Boolean(hpAnchorEl)}
-              anchorEl={hpAnchorEl}
-              onClose={() => setHpAnchorEl(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-              <Box sx={{ p: 2, minWidth: 200 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Hull Points Breakdown
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Armor</span><span>{hpBreakdown.armor} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Power Plants</span><span>{hpBreakdown.powerPlants} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Engines</span><span>{hpBreakdown.engines} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>FTL Drive</span><span>{hpBreakdown.ftlDrive} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Support Systems</span><span>{hpBreakdown.supportSystems} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Weapons</span><span>{hpBreakdown.weapons} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Defenses</span><span>{hpBreakdown.defenses} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>C4</span><span>{hpBreakdown.commandControl} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Sensors</span><span>{hpBreakdown.sensors} HP</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hangars & Misc</span><span>{hpBreakdown.hangarMisc} HP</span>
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <span>Total Used</span><span>{totalHullPoints - remainingHullPoints} HP</span>
-                </Typography>
-              </Box>
-            </Popover>
-            <Tooltip title="Click to configure power scenario — select which systems draw power">
-              <Chip
-                label={(() => {
-                  const activeCount = Object.values(powerScenario).filter(Boolean).length;
-                  const totalCount = Object.keys(powerScenario).length;
-                  const scenarioHint = activeCount < totalCount ? ` (${activeCount}/${totalCount})` : '';
-                  return `Power: ${totalPower - totalPowerConsumed} / ${totalPower}${scenarioHint}`;
-                })()}
-                color={totalPowerConsumed > totalPower ? 'warning' : 'success'}
-                icon={totalPowerConsumed > totalPower ? <WarningAmberIcon /> : <CheckCircleIcon />}
-                variant="outlined"
-                size="small"
-                onClick={(e) => setPowerAnchorEl(e.currentTarget)}
-                onDelete={(e) => setPowerAnchorEl(e.currentTarget.closest('.MuiChip-root'))}
-                deleteIcon={<ArrowDropDownIcon />}
-                aria-label="Show power breakdown"
-              />
-            </Tooltip>
-            <Popover
-              open={Boolean(powerAnchorEl)}
-              anchorEl={powerAnchorEl}
-              onClose={() => setPowerAnchorEl(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-              <Box sx={{ p: 2, minWidth: 220 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Power Scenario
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  Select which systems to include in power calculations
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.engines}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, engines: e.target.checked })}
-                    />
-                  }
-                  label={`Engines (${powerBreakdown.engines} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.ftlDrive}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, ftlDrive: e.target.checked })}
-                    />
-                  }
-                  label={`FTL Drive (${powerBreakdown.ftlDrive} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.supportSystems}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, supportSystems: e.target.checked })}
-                    />
-                  }
-                  label={`Support Systems (${powerBreakdown.supportSystems} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.weapons}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, weapons: e.target.checked })}
-                    />
-                  }
-                  label={`Weapons (${powerBreakdown.weapons} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.defenses}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, defenses: e.target.checked })}
-                    />
-                  }
-                  label={`Defenses (${powerBreakdown.defenses} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.commandControl}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, commandControl: e.target.checked })}
-                    />
-                  }
-                  label={`C4 (${powerBreakdown.commandControl} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.sensors}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, sensors: e.target.checked })}
-                    />
-                  }
-                  label={`Sensors (${powerBreakdown.sensors} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={powerScenario.hangarMisc}
-                      onChange={(e) => setPowerScenario({ ...powerScenario, hangarMisc: e.target.checked })}
-                    />
-                  }
-                  label={`Hangars & Misc (${powerBreakdown.hangarMisc} PP)`}
-                  sx={{ display: 'block', m: 0 }}
-                />
-              </Box>
-            </Popover>
-            <Chip
+            <ResourceBarChip
+              label={`Power: ${totalPower - totalPowerConsumed} / ${totalPower}`}
+              segments={[
+                ...(powerScenario.engines ? [{ key: 'engines', label: 'Engines', value: powerBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines }] : []),
+                ...(powerScenario.ftlDrive ? [{ key: 'ftl', label: 'FTL Drive', value: powerBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl }] : []),
+                ...(powerScenario.supportSystems ? [{ key: 'support', label: 'Support Systems', value: powerBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support }] : []),
+                ...(powerScenario.weapons ? [{ key: 'weapons', label: 'Weapons', value: powerBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons }] : []),
+                ...(powerScenario.defenses ? [{ key: 'defenses', label: 'Defenses', value: powerBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses }] : []),
+                ...(powerScenario.commandControl ? [{ key: 'commandControl', label: 'C4', value: powerBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl }] : []),
+                ...(powerScenario.sensors ? [{ key: 'sensors', label: 'Sensors', value: powerBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors }] : []),
+                ...(powerScenario.hangarMisc ? [{ key: 'hangarMisc', label: 'Hangars & Misc', value: powerBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc }] : []),
+              ]}
+              capacity={totalPower}
+              isOverBudget={totalPowerConsumed > totalPower}
+              popoverTitle="Power Scenario"
+              unit="PP"
+              tooltip="Click to configure power scenario — select which systems draw power"
+              popoverExtra={
+                <Box sx={{ mt: 1 }}>
+                  <Divider sx={{ mb: 1 }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Power scenario — select active systems
+                  </Typography>
+                  {([
+                    { key: 'engines', label: 'Engines', field: 'engines' as const, color: BUDGET_CATEGORY_COLORS.engines },
+                    { key: 'ftl', label: 'FTL Drive', field: 'ftlDrive' as const, color: BUDGET_CATEGORY_COLORS.ftl },
+                    { key: 'support', label: 'Support', field: 'supportSystems' as const, color: BUDGET_CATEGORY_COLORS.support },
+                    { key: 'weapons', label: 'Weapons', field: 'weapons' as const, color: BUDGET_CATEGORY_COLORS.weapons },
+                    { key: 'defenses', label: 'Defenses', field: 'defenses' as const, color: BUDGET_CATEGORY_COLORS.defenses },
+                    { key: 'commandControl', label: 'C4', field: 'commandControl' as const, color: BUDGET_CATEGORY_COLORS.commandControl },
+                    { key: 'sensors', label: 'Sensors', field: 'sensors' as const, color: BUDGET_CATEGORY_COLORS.sensors },
+                    { key: 'hangarMisc', label: 'Hangars & Misc', field: 'hangarMisc' as const, color: BUDGET_CATEGORY_COLORS.hangarMisc },
+                  ] as const).map((item) => (
+                    <Box
+                      key={item.key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        py: 0.15,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        borderRadius: 0.5,
+                      }}
+                      onClick={() => setPowerScenario({ ...powerScenario, [item.field]: !powerScenario[item.field] })}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={powerScenario[item.field]}
+                        tabIndex={-1}
+                        sx={{ p: 0.25 }}
+                      />
+                      <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ flex: 1 }}>{item.label}</Typography>
+                      <Typography variant="body2" color="text.secondary">{powerBreakdown[item.field]} PP</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              }
+              ariaLabel="Show power breakdown"
+            />
+            <ResourceBarChip
               label={`Cost: ${formatCost(totalCost)}`}
-              color="default"
-              variant="outlined"
-              size="small"
-              onClick={(e) => setCostAnchorEl(e.currentTarget)}
-              onDelete={(e) => setCostAnchorEl(e.currentTarget.closest('.MuiChip-root'))}
-              deleteIcon={<ArrowDropDownIcon />}
-              aria-label="Show cost breakdown"
+              segments={[
+                { key: 'hull', label: 'Hull', value: costBreakdown.hull, color: BUDGET_CATEGORY_COLORS.hull },
+                { key: 'armor', label: 'Armor', value: costBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
+                { key: 'powerPlants', label: 'Power Plants', value: costBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
+                { key: 'engines', label: 'Engines', value: costBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
+                { key: 'ftl', label: 'FTL Drive', value: costBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
+                { key: 'support', label: 'Support Systems', value: costBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
+                { key: 'weapons', label: 'Weapons', value: costBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
+                { key: 'defenses', label: 'Defenses', value: costBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
+                { key: 'commandControl', label: 'C4', value: costBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
+                { key: 'sensors', label: 'Sensors', value: costBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
+                { key: 'hangarMisc', label: 'Hangars & Misc', value: costBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
+              ]}
+              isCost
+              popoverTitle="Cost Breakdown"
+              breakdownRows={[
+                { key: 'hull', label: 'Hull', value: costBreakdown.hull, color: BUDGET_CATEGORY_COLORS.hull },
+                { key: 'armor', label: 'Armor', value: costBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
+                { key: 'powerPlants', label: 'Power Plants', value: costBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
+                { key: 'engines', label: 'Engines', value: costBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
+                { key: 'ftl', label: 'FTL Drive', value: costBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
+                { key: 'support', label: 'Support Systems', value: costBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
+                { key: 'weapons', label: 'Weapons', value: costBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
+                { key: 'defenses', label: 'Defenses', value: costBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
+                { key: 'commandControl', label: 'C4', value: costBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
+                { key: 'sensors', label: 'Sensors', value: costBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
+                { key: 'hangarMisc', label: 'Hangars & Misc', value: costBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
+              ]}
+              totalLabel="Total"
+              totalValue={totalCost}
+              ariaLabel="Show cost breakdown"
             />
-            <Popover
-              open={Boolean(costAnchorEl)}
-              anchorEl={costAnchorEl}
-              onClose={() => setCostAnchorEl(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-              <Box sx={{ p: 2, minWidth: 220 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Cost Breakdown
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hull</span><span>{formatCost(costBreakdown.hull)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Armor</span><span>{formatCost(costBreakdown.armor)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Power Plants</span><span>{formatCost(costBreakdown.powerPlants)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Engines</span><span>{formatCost(costBreakdown.engines)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>FTL Drive</span><span>{formatCost(costBreakdown.ftlDrive)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Support Systems</span><span>{formatCost(costBreakdown.supportSystems)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Weapons</span><span>{formatCost(costBreakdown.weapons)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Defenses</span><span>{formatCost(costBreakdown.defenses)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>C4</span><span>{formatCost(costBreakdown.commandControl)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Sensors</span><span>{formatCost(costBreakdown.sensors)}</span>
-                </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hangars & Misc</span><span>{formatCost(costBreakdown.hangarMisc)}</span>
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <span>Total</span><span>{formatCost(totalCost)}</span>
-                </Typography>
-              </Box>
-            </Popover>
             {uniqueTechTracks.length > 0 && (
               <Chip
                 label={`Tech: ${uniqueTechTracks.join(', ')}`}

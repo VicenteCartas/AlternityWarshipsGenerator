@@ -13,6 +13,7 @@ import {
   Box,
   ToggleButtonGroup,
   ToggleButton,
+  LinearProgress,
 } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -33,8 +34,8 @@ const defaultOptions: PdfExportOptions = {
 interface PdfExportDialogProps {
   open: boolean;
   onClose: () => void;
-  onExport: (options: PdfExportOptions) => void;
-  onExportCombatRef: () => void;
+  onExport: (options: PdfExportOptions) => void | Promise<void>;
+  onExportCombatRef: () => void | Promise<void>;
 }
 
 export function PdfExportDialog({
@@ -45,6 +46,7 @@ export function PdfExportDialog({
 }: PdfExportDialogProps) {
   const [options, setOptions] = useState<PdfExportOptions>(defaultOptions);
   const [sheetType, setSheetType] = useState<PdfSheetType>('full');
+  const [exporting, setExporting] = useState(false);
 
   const handleChange = (key: keyof PdfExportOptions) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setOptions(prev => ({
@@ -53,11 +55,16 @@ export function PdfExportDialog({
     }));
   };
 
-  const handleExport = () => {
-    if (sheetType === 'combat') {
-      onExportCombatRef();
-    } else {
-      onExport(options);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      if (sheetType === 'combat') {
+        await onExportCombatRef();
+      } else {
+        await onExport(options);
+      }
+    } finally {
+      setExporting(false);
     }
     onClose();
   };
@@ -81,12 +88,24 @@ export function PdfExportDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={exporting ? undefined : onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PictureAsPdfIcon color="primary" />
         Export to PDF
       </DialogTitle>
+      {exporting && <LinearProgress />}
       <DialogContent>
+        {exporting ? (
+          <Box sx={{ py: 3, textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ mb: 1 }}>
+              Generating PDF…
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              This may take a few seconds.
+            </Typography>
+          </Box>
+        ) : (
+        <>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Choose a sheet type and configure export options.
         </Typography>
@@ -198,13 +217,16 @@ export function PdfExportDialog({
             </Typography>
           </Box>
         )}
+        </>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose} disabled={exporting}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleExport}
           startIcon={<PictureAsPdfIcon />}
+          disabled={exporting}
         >
           {sheetType === 'combat' ? 'Export Combat Ref' : 'Export'}
         </Button>

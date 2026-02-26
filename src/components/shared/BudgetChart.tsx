@@ -1,5 +1,6 @@
 import { Box, Typography, Tooltip } from '@mui/material';
 import { formatCost } from '../../services/formatters';
+import { BUDGET_CATEGORY_COLORS } from '../../constants/domainColors';
 
 /** One segment in a stacked bar */
 export interface BudgetSegment {
@@ -8,20 +9,8 @@ export interface BudgetSegment {
   color: string;
 }
 
-/** Consistent colors for each system category */
-export const CATEGORY_COLORS: Record<string, string> = {
-  armor: '#78909c',       // blue-grey
-  powerPlants: '#ff9800', // orange
-  engines: '#009688',     // teal
-  ftl: '#9c27b0',         // purple
-  support: '#795548',     // brown
-  weapons: '#f44336',     // red
-  defenses: '#4caf50',    // green
-  commandControl: '#2196f3', // blue
-  sensors: '#00bcd4',     // cyan
-  hangarMisc: '#607d8b',  // grey
-  hull: '#455a64',        // dark grey (cost-only)
-};
+/** Consistent colors for each system category — re-exported for consumers */
+export const CATEGORY_COLORS = BUDGET_CATEGORY_COLORS;
 
 interface StackedBarProps {
   label: string;
