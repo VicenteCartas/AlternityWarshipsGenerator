@@ -213,10 +213,10 @@ Steps use three different patterns for adding items. Follow the existing pattern
 
 The `rules/` folder contains sourcebook rules text. Use those `.md` files as the authoritative reference for ship/station construction rules, hull stats, equipment costs, and game terminology.
 
-## MCP Usage Rules
-- Always check memory at session start for project context and past decisions.
-- Save all architecture, design, and convention decisions to memory immediately.
-- When referencing engine/framework APIs, fetch the official docs rather than relying on training data.
-- For complex system design (AI, networking, physics, procedural generation), use sequential thinking.
-- When I mention an open-source project or engine internals, search GitHub for the source.
-- When planning a new feature, combine: memory (context) → fetch (docs) → sequential-thinking (design) → memory (save decisions).
+## Post-Implementation Workflow
+
+After completing any feature or task that appears in project tracking files:
+1. **Always** update `ROADMAP.md` first to mark the item as done — use `~~strikethrough~~` and add `✅` or `(Done)` per the existing format.
+2. Then check **all four** `NEXT STEPS` files — `NEXT STEPS FEATURES.md`, `NEXT STEPS CODE.md`, `NEXT STEPS TESTS.md`, `NEXT STEPS UX.md` — and mark the item as done in whichever files it appears.
+3. Do this as part of the implementation — do not wait for the user to ask.
+4. Match the existing strikethrough/checkmark conventions used in each file.
