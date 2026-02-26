@@ -72,6 +72,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setBuilderMode: (mode: string) =>
     ipcRenderer.invoke('set-builder-mode', mode),
   
+  // Auto-save / crash recovery
+  getAutoSavePath: () =>
+    ipcRenderer.invoke('get-autosave-path'),
+  writeAutoSave: (content: string) =>
+    ipcRenderer.invoke('write-autosave', content),
+  readAutoSave: () =>
+    ipcRenderer.invoke('read-autosave'),
+  deleteAutoSave: () =>
+    ipcRenderer.invoke('delete-autosave'),
+  
   // Mod system operations
   listMods: () =>
     ipcRenderer.invoke('list-mods'),

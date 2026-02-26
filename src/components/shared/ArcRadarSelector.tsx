@@ -1,5 +1,6 @@
 import { Box, Typography, useTheme } from '@mui/material';
 import type { FiringArc, StandardArc, ZeroArc } from '../../types/weapon';
+import { createSectorPath } from '../../services/utilities';
 
 interface ArcRadarSelectorProps {
   selectedArcs: FiringArc[];
@@ -25,32 +26,6 @@ const ZERO_ARCS: { arc: ZeroArc; startAngle: number }[] = [
   { arc: 'zero-aft', startAngle: 45 },         // bottom
   { arc: 'zero-port', startAngle: 135 },       // left
 ];
-
-// Generate SVG path for a pie sector
-function createSectorPath(
-  centerX: number,
-  centerY: number,
-  innerRadius: number,
-  outerRadius: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  const startAngleRad = (startAngle * Math.PI) / 180;
-  const endAngleRad = (endAngle * Math.PI) / 180;
-
-  const x1 = centerX + outerRadius * Math.cos(startAngleRad);
-  const y1 = centerY + outerRadius * Math.sin(startAngleRad);
-  const x2 = centerX + outerRadius * Math.cos(endAngleRad);
-  const y2 = centerY + outerRadius * Math.sin(endAngleRad);
-  const x3 = centerX + innerRadius * Math.cos(endAngleRad);
-  const y3 = centerY + innerRadius * Math.sin(endAngleRad);
-  const x4 = centerX + innerRadius * Math.cos(startAngleRad);
-  const y4 = centerY + innerRadius * Math.sin(startAngleRad);
-
-  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-
-  return `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
-}
 
 export function ArcRadarSelector({
   selectedArcs,

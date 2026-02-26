@@ -44,23 +44,23 @@ Estimated: **~100+ redundant service function calls per render** from `getHPBrea
 
 ## High
 
-### H1. SupportSystemsSelection.tsx — 3× Tab Duplication (1,446 lines)
+### H1. SupportSystemsSelection.tsx — 3× Tab Duplication ✅ DONE
 
 > **User Review:** Yes, do it
 
-Life Support, Accommodations, and Store Systems tabs each duplicate ~400 lines of nearly identical code: state variables, CRUD handlers, inline edit forms, and available-types tables. A generic `SubsystemTab<T>` component parameterized by system type would cut this file by ~60% (~800 lines reducible).
+Extracted generic `SubsystemTab<T extends BaseSubsystemType>` component with own local state, CRUD handlers, installed items display, inline edit/add forms, and available types table. Life Support, Accommodations, and Store Systems tabs now use `SubsystemTab` with render callbacks for tab-specific chips, preview stats, and table columns. Gravity tab kept separate (completely different UX pattern). Reduced from 1478 → 918 lines (~560 saved).
 
-### H2. saveService.ts — `deserializeWarship` is ~500 Lines
-
-> **User Review:** Yes, do it
-
-The deserialization function follows the same loop-find-build-push pattern for every system type, repeated ~15 times. Four weapon category branches (beam, projectile, torpedo, special) are particularly identical. A generic `deserializeSystemArray<TSaved, TInstalled>()` helper would eliminate most repetition (~250 lines reducible).
-
-### H3. dataLoader.ts — 30+ Identical Getter Functions
+### H2. saveService.ts — `deserializeWarship` is ~500 Lines ✅ DONE
 
 > **User Review:** Yes, do it
 
-Every data getter checks `dataLoaded`, warns if not, and returns from cache. The cache reset in `reloadAllGameData()` manually nulls ~30 properties. The three parallel caches (`cache`, `pureBaseCache`, `rawBaseData`) with identical structures amplify the problem. A generic getter factory or Proxy-based cache would centralize this (~200 lines reducible).
+**Completed:** Added generic `deserializeArray<TSaved, TType, TInstalled>()` helper function. Converted 13 system deserialization blocks (power plants, fuel tanks, engines, engine fuel tanks, FTL fuel tanks, life support, accommodations, store systems, gravity systems, defenses, command control, sensors, hangar misc) to use it. Collapsed 4 identical weapon category branches (beam/projectile/torpedo/special) into a single category-map loop. File reduced from 1017 to 873 lines (~144 lines saved).
+
+### H3. dataLoader.ts — 30+ Identical Getter Functions ✅ DONE
+
+> **User Review:** Yes, do it
+
+**Completed:** Created `createEmptyCache()`, `createEmptyRawBaseData()`, and `createGetter<T>()` factory functions. Replaced 26 identical getter functions with factory-produced `const` exports, simplified `reloadAllGameData` cache reset from ~66 lines to 3 `Object.assign` calls, and deduplicated cache initialization. File reduced from ~1000 to 762 lines (~238 lines saved).
 
 ### H4. Stale Closure Risks in Dependency Arrays ✅ DONE
 
@@ -72,11 +72,11 @@ Every data getter checks `dataLoaded`, warns if not, and returns from cache. The
 
 ## Medium
 
-### M1. WeaponSelection.tsx — 4× Identical Grid Render Functions (1,040 lines)
+### M1. WeaponSelection.tsx — 4× Identical Grid Render Functions ✅ DONE
 
 > **User Review:** Yes, do it
 
-`renderBeamWeaponsGrid`, `renderProjectileWeaponsGrid`, `renderTorpedoWeaponsGrid`, and `renderSpecialWeaponsGrid` are 90%+ identical. Same for the 4 tab content functions. A single `renderWeaponGrid(weapons, extraColumns?)` would eliminate ~300 lines.
+Collapsed 4 `useMemo` blocks into single `weaponsByCategory` memo with getter map. Replaced 4 `renderXxxWeaponsGrid()` functions with single `renderWeaponGrid(category)` using conditional `isSpecial` for extra column/wider minWidth. Replaced 4 `renderXxxWeaponsTab()` wrappers with single `renderWeaponTab(category)`. Collapsed 4 tab content conditionals into `activeTab !== 'ordnance' && renderWeaponTab(activeTab)`. Reduced from 1081 → 796 lines (~285 saved).
 
 ### M2. DamageDiagramSelection.tsx — Repetitive System Collection
 
@@ -203,7 +203,7 @@ Several types use `string` where a union type would add compile-time safety:
 3. **M5** \u2705 DONE
 4. **H4** (stale closures) — Bug prevention
 5. **C1** (extract hooks) — Medium risk, biggest maintainability payoff
-6. **H1** (SupportSystems generic tab) — Large LOC reduction, contained to one file
-7. **M1** (WeaponSelection generic grid) — Large LOC reduction, contained to one file
+6. **H1** ✅ DONE
+7. **M1** ✅ DONE
 8. **H2** (saveService generic deserialize) — Moderate risk, simplifies future system additions
 9. Everything else in priority order

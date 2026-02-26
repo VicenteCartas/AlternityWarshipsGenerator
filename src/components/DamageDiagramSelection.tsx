@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
+import { ConfirmDialog } from './shared';
 import {
   Box,
   Typography,
@@ -152,7 +153,23 @@ function formatArcsShort(arcs: string[] | undefined): string {
 }
 
 /**
+ * Configuration for mapping an installed system array to unassigned systems.
+ * Each entry describes how to extract id, name, and hullPoints from one type of installed item.
+ */
+interface SystemCollectorConfig {
+  idPrefix: string;
+  category: SystemDamageCategory;
+  originalType: string;
+  getName: (item: any) => string;
+  getHullPoints: (item: any) => number;
+  getCategory?: (item: any) => SystemDamageCategory;
+  getFirepowerOrder?: (item: any) => number;
+  getArcs?: (item: any) => string[];
+}
+
+/**
  * Build a list of individual systems that can be assigned to zones.
+ * Uses a data-driven config array to eliminate per-type for-loops.
  */
 function buildUnassignedSystemsList(
   installedPowerPlants: InstalledPowerPlant[],
@@ -174,125 +191,146 @@ function buildUnassignedSystemsList(
   installedHangarMisc: InstalledHangarMiscSystem[],
   assignedSystemIds: Set<string>
 ): UnassignedSystem[] {
+  const allLaunchSystems = getLaunchSystemsData();
+
+  // Config array: one entry per system type, in display order
+  const collectors: { items: any[]; config: SystemCollectorConfig }[] = [
+    {
+      items: installedPowerPlants,
+      config: { idPrefix: 'pp', category: 'powerPlant', originalType: 'powerPlant',
+        getName: (pp: InstalledPowerPlant) => `${pp.type.name} (${pp.hullPoints} HP)`,
+        getHullPoints: (pp: InstalledPowerPlant) => pp.hullPoints },
+    },
+    {
+      items: installedFuelTanks,
+      config: { idPrefix: 'ppfuel', category: 'fuel', originalType: 'powerPlantFuel',
+        getName: (ft: InstalledFuelTank) => `Fuel Tank (${ft.forPowerPlantType.name}) (${ft.hullPoints} HP)`,
+        getHullPoints: (ft: InstalledFuelTank) => ft.hullPoints },
+    },
+    {
+      items: installedEngines,
+      config: { idPrefix: 'eng', category: 'engine', originalType: 'engine',
+        getName: (e: InstalledEngine) => `${e.type.name} Engine (${e.hullPoints} HP)`,
+        getHullPoints: (e: InstalledEngine) => e.hullPoints },
+    },
+    {
+      items: installedEngineFuelTanks,
+      config: { idPrefix: 'engfuel', category: 'fuel', originalType: 'engineFuel',
+        getName: (ft: InstalledEngineFuelTank) => `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`,
+        getHullPoints: (ft: InstalledEngineFuelTank) => ft.hullPoints },
+    },
+    {
+      items: installedFTLDrive ? [installedFTLDrive] : [],
+      config: { idPrefix: 'ftl', category: 'ftlDrive', originalType: 'ftlDrive',
+        getName: (f: InstalledFTLDrive) => `${f.type.name} (${f.hullPoints} HP)`,
+        getHullPoints: (f: InstalledFTLDrive) => f.hullPoints },
+    },
+    {
+      items: installedFTLFuelTanks,
+      config: { idPrefix: 'ftlfuel', category: 'fuel', originalType: 'ftlFuel',
+        getName: (ft: InstalledFTLFuelTank) => `Fuel Tank (${ft.forFTLDriveType.name}) (${ft.hullPoints} HP)`,
+        getHullPoints: (ft: InstalledFTLFuelTank) => ft.hullPoints },
+    },
+    {
+      items: installedLifeSupport,
+      config: { idPrefix: 'ls', category: 'support', originalType: 'lifeSupport',
+        getName: (ls: InstalledLifeSupport) => `${ls.type.name} x${ls.quantity}`,
+        getHullPoints: (ls: InstalledLifeSupport) => ls.type.hullPoints * ls.quantity },
+    },
+    {
+      items: installedAccommodations,
+      config: { idPrefix: 'acc', category: 'accommodation', originalType: 'accommodation',
+        getName: (a: InstalledAccommodation) => `${a.type.name} x${a.quantity}`,
+        getHullPoints: (a: InstalledAccommodation) => a.type.hullPoints * a.quantity },
+    },
+    {
+      items: installedStoreSystems,
+      config: { idPrefix: 'store', category: 'accommodation', originalType: 'storeSystem',
+        getName: (s: InstalledStoreSystem) => `${s.type.name} x${s.quantity}`,
+        getHullPoints: (s: InstalledStoreSystem) => s.type.hullPoints * s.quantity },
+    },
+    {
+      items: installedGravitySystems,
+      config: { idPrefix: 'grav', category: 'support', originalType: 'gravitySystem',
+        getName: (g: InstalledGravitySystem) => g.type.name,
+        getHullPoints: (g: InstalledGravitySystem) => g.hullPoints },
+    },
+    {
+      items: installedWeapons,
+      config: { idPrefix: 'wpn', category: 'weapon', originalType: 'weapon',
+        getName: (w: InstalledWeapon) => `${w.weaponType.name} (${w.gunConfiguration}, ${w.mountType}) x${w.quantity}`,
+        getHullPoints: (w: InstalledWeapon) => w.hullPoints * w.quantity,
+        getFirepowerOrder: (w: InstalledWeapon) => getFirepowerOrder(w.weaponType.firepower),
+        getArcs: (w: InstalledWeapon) => w.arcs },
+    },
+    {
+      items: installedLaunchSystems,
+      config: { idPrefix: 'launch', category: 'weapon', originalType: 'launchSystem',
+        getName: (ls: InstalledLaunchSystem) => {
+          const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
+          const ordnanceNames = (ls.loadout || []).map(lo => {
+            const design = ordnanceDesigns.find(d => d.id === lo.designId);
+            return design ? design.name : '';
+          }).filter(Boolean);
+          const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
+          return `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`;
+        },
+        getHullPoints: (ls: InstalledLaunchSystem) => ls.hullPoints,
+        getFirepowerOrder: () => 99 },
+    },
+    {
+      items: installedDefenses,
+      config: { idPrefix: 'def', category: 'defense', originalType: 'defense',
+        getName: (d: InstalledDefenseSystem) => `${d.type.name} x${d.quantity}`,
+        getHullPoints: (d: InstalledDefenseSystem) => d.hullPoints },
+    },
+    {
+      items: installedCommandControl,
+      config: { idPrefix: 'cc', category: 'command', originalType: 'commandControl',
+        getName: (c: InstalledCommandControlSystem) => `${c.type.name} x${c.quantity}`,
+        getHullPoints: (c: InstalledCommandControlSystem) => c.hullPoints },
+    },
+    {
+      items: installedSensors,
+      config: { idPrefix: 'sen', category: 'sensor', originalType: 'sensor',
+        getName: (s: InstalledSensor) => `${s.type.name} x${s.quantity}`,
+        getHullPoints: (s: InstalledSensor) => s.hullPoints },
+    },
+    {
+      items: installedHangarMisc,
+      config: { idPrefix: 'hm', category: 'miscellaneous', originalType: 'hangarMisc',
+        getName: (hm: InstalledHangarMiscSystem) => `${hm.type.name} x${hm.quantity}`,
+        getHullPoints: (hm: InstalledHangarMiscSystem) => hm.hullPoints,
+        getCategory: (hm: InstalledHangarMiscSystem) =>
+          hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar'
+          : hm.type.category === 'communication' ? 'communication'
+          : 'miscellaneous' },
+    },
+  ];
+
   const systems: UnassignedSystem[] = [];
 
-  for (const pp of installedPowerPlants) {
-    const id = `pp-${pp.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${pp.type.name} (${pp.hullPoints} HP)`, hullPoints: pp.hullPoints, category: 'powerPlant', originalType: 'powerPlant' });
-    }
-  }
+  for (const { items, config } of collectors) {
+    for (const item of items) {
+      const id = `${config.idPrefix}-${item.id}`;
+      if (assignedSystemIds.has(id)) continue;
 
-  for (const ft of installedFuelTanks) {
-    const id = `ppfuel-${ft.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `Fuel Tank (${ft.forPowerPlantType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'powerPlantFuel' });
-    }
-  }
+      const system: UnassignedSystem = {
+        id,
+        name: config.getName(item),
+        hullPoints: config.getHullPoints(item),
+        category: config.getCategory ? config.getCategory(item) : config.category,
+        originalType: config.originalType,
+      };
 
-  for (const eng of installedEngines) {
-    const id = `eng-${eng.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${eng.type.name} Engine (${eng.hullPoints} HP)`, hullPoints: eng.hullPoints, category: 'engine', originalType: 'engine' });
-    }
-  }
+      if (config.getFirepowerOrder) {
+        system.firepowerOrder = config.getFirepowerOrder(item);
+      }
+      if (config.getArcs) {
+        system.arcs = config.getArcs(item);
+      }
 
-  for (const ft of installedEngineFuelTanks) {
-    const id = `engfuel-${ft.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'engineFuel' });
-    }
-  }
-
-  if (installedFTLDrive) {
-    const id = `ftl-${installedFTLDrive.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${installedFTLDrive.type.name} (${installedFTLDrive.hullPoints} HP)`, hullPoints: installedFTLDrive.hullPoints, category: 'ftlDrive', originalType: 'ftlDrive' });
-    }
-  }
-
-  for (const ft of installedFTLFuelTanks) {
-    const id = `ftlfuel-${ft.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `Fuel Tank (${ft.forFTLDriveType.name}) (${ft.hullPoints} HP)`, hullPoints: ft.hullPoints, category: 'fuel', originalType: 'ftlFuel' });
-    }
-  }
-
-  for (const ls of installedLifeSupport) {
-    const id = `ls-${ls.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${ls.type.name} x${ls.quantity}`, hullPoints: ls.type.hullPoints * ls.quantity, category: 'support', originalType: 'lifeSupport' });
-    }
-  }
-
-  for (const acc of installedAccommodations) {
-    const id = `acc-${acc.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${acc.type.name} x${acc.quantity}`, hullPoints: acc.type.hullPoints * acc.quantity, category: 'accommodation', originalType: 'accommodation' });
-    }
-  }
-
-  for (const ss of installedStoreSystems) {
-    const id = `store-${ss.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${ss.type.name} x${ss.quantity}`, hullPoints: ss.type.hullPoints * ss.quantity, category: 'accommodation', originalType: 'storeSystem' });
-    }
-  }
-
-  for (const gs of installedGravitySystems) {
-    const id = `grav-${gs.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: gs.type.name, hullPoints: gs.hullPoints, category: 'support', originalType: 'gravitySystem' });
-    }
-  }
-
-  for (const wpn of installedWeapons) {
-    const id = `wpn-${wpn.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${wpn.weaponType.name} (${wpn.gunConfiguration}, ${wpn.mountType}) x${wpn.quantity}`, hullPoints: wpn.hullPoints * wpn.quantity, category: 'weapon', firepowerOrder: getFirepowerOrder(wpn.weaponType.firepower), arcs: wpn.arcs, originalType: 'weapon' });
-    }
-  }
-
-  const allLaunchSystems = getLaunchSystemsData();
-  for (const ls of installedLaunchSystems) {
-    const id = `launch-${ls.id}`;
-    if (!assignedSystemIds.has(id)) {
-      const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
-      const ordnanceNames = (ls.loadout || []).map(lo => {
-        const design = ordnanceDesigns.find(d => d.id === lo.designId);
-        return design ? design.name : '';
-      }).filter(Boolean);
-      const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
-      systems.push({ id, name: `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`, hullPoints: ls.hullPoints, category: 'weapon', firepowerOrder: 99, originalType: 'launchSystem' });
-    }
-  }
-
-  for (const def of installedDefenses) {
-    const id = `def-${def.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${def.type.name} x${def.quantity}`, hullPoints: def.hullPoints, category: 'defense', originalType: 'defense' });
-    }
-  }
-
-  for (const cc of installedCommandControl) {
-    const id = `cc-${cc.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${cc.type.name} x${cc.quantity}`, hullPoints: cc.hullPoints, category: 'command', originalType: 'commandControl' });
-    }
-  }
-
-  for (const sen of installedSensors) {
-    const id = `sen-${sen.id}`;
-    if (!assignedSystemIds.has(id)) {
-      systems.push({ id, name: `${sen.type.name} x${sen.quantity}`, hullPoints: sen.hullPoints, category: 'sensor', originalType: 'sensor' });
-    }
-  }
-
-  for (const hm of installedHangarMisc) {
-    const id = `hm-${hm.id}`;
-    if (!assignedSystemIds.has(id)) {
-      const category = hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar' : 'miscellaneous';
-      systems.push({ id, name: `${hm.type.name} x${hm.quantity}`, hullPoints: hm.hullPoints, category, originalType: 'hangarMisc' });
+      systems.push(system);
     }
   }
 
@@ -333,11 +371,15 @@ export function DamageDiagramSelection({
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   // Keyboard hints visibility
   const [showKeyHints, setShowKeyHints] = useState(false);
+  const [showShortcutsBanner, setShowShortcutsBanner] = useState(
+    () => !localStorage.getItem('damageDiagram.shortcutsBannerDismissed')
+  );
   // Drag state
   const [draggedSystemId, setDraggedSystemId] = useState<string | null>(null);
   const [dragOverZone, setDragOverZone] = useState<ZoneCode | null>(null);
   // For drag between zones
   const [draggedZoneSystem, setDraggedZoneSystem] = useState<{ zoneCode: ZoneCode; refId: string } | null>(null);
+  const [confirmUnassignOpen, setConfirmUnassignOpen] = useState(false);
   // Track which zone each system ref came from for drag source
   const dragSourceRef = useRef<{ fromZone: ZoneCode; refId: string; systemRef: ZoneSystemReference } | null>(null);
 
@@ -830,6 +872,21 @@ export function DamageDiagramSelection({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 500 }}>
       {/* Header */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
+        {showShortcutsBanner && (
+          <Alert
+            severity="info"
+            variant="outlined"
+            sx={{ mb: 1, py: 0 }}
+            onClose={() => {
+              setShowShortcutsBanner(false);
+              localStorage.setItem('damageDiagram.shortcutsBannerDismissed', '1');
+            }}
+          >
+            <Typography variant="caption">
+              <strong>Tip:</strong> Use keyboard shortcuts for faster assignment — press <strong>1-9</strong> to assign selected systems to zones, <strong>Ctrl+A</strong> to select all, <strong>A</strong> to auto-assign, <strong>Esc</strong> to deselect. Click <strong>Shortcuts</strong> to toggle inline hints.
+            </Typography>
+          </Alert>
+        )}
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
             Assign systems to hit zones. Drag from the pool or select &amp; press a zone number key.
@@ -839,13 +896,15 @@ export function DamageDiagramSelection({
             ? 'Hide keyboard shortcuts'
             : '1-N: assign selected to zone, Ctrl+A: select all, A: auto-assign, Esc: deselect'
           }>
-            <IconButton
+            <Button
               size="small"
+              variant={showKeyHints ? 'contained' : 'text'}
               onClick={() => setShowKeyHints(prev => !prev)}
-              sx={{ p: 0.25, color: showKeyHints ? 'primary.main' : 'text.secondary' }}
+              startIcon={<KeyboardIcon sx={{ fontSize: 18 }} />}
+              sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
             >
-              <KeyboardIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+              Shortcuts
+            </Button>
           </Tooltip>
         </Box>
 
@@ -899,7 +958,7 @@ export function DamageDiagramSelection({
             </Tooltip>
           )}
           {stats.totalSystemsAssigned > 0 && (
-            <Button size="small" color="error" startIcon={<ClearAllIcon />} onClick={handleClearAllZones}>
+            <Button size="small" color="error" startIcon={<ClearAllIcon />} onClick={() => setConfirmUnassignOpen(true)}>
               Unassign All
             </Button>
           )}
@@ -1245,6 +1304,15 @@ export function DamageDiagramSelection({
           </Box>
         </Box>
       </Box>
+
+      <ConfirmDialog
+        open={confirmUnassignOpen}
+        title="Unassign All Systems"
+        message="This will remove all system assignments from all damage zones. This action cannot be undone."
+        confirmLabel="Unassign All"
+        onConfirm={() => { handleClearAllZones(); setConfirmUnassignOpen(false); }}
+        onCancel={() => setConfirmUnassignOpen(false)}
+      />
     </Box>
   );
 }

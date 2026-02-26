@@ -210,13 +210,13 @@ export function validatePowerPlantDesign(
 /**
  * Generate a unique installation ID for power plants
  */
-export function generateInstallationId(): string {
+export function generatePowerPlantId(): string {
   return generateId('pp');
 }
 
 /**
  * Generate a unique installation ID for fuel tanks
  */
-export function generateFuelTankId(): string {
+export function generatePowerPlantFuelTankId(): string {
   return generateId('ft');
 }

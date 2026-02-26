@@ -7,6 +7,18 @@
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { Hull } from '../types/hull';
 
+// ============== Debug Logger ==============
+
+/**
+ * Debug-gated logger. Logs only when `import.meta.env.DEV` is true (Vite dev mode).
+ * In production builds the calls remain but are no-ops, so they add negligible overhead.
+ */
+export const logger = {
+  log: (...args: unknown[]) => { if (import.meta.env.DEV) console.log(...args); },
+  warn: (...args: unknown[]) => { if (import.meta.env.DEV) console.warn(...args); },
+  error: (...args: unknown[]) => { if (import.meta.env.DEV) console.error(...args); },
+};
+
 // ============== Percentage Breakpoint Interpolation ==============
 
 /**
@@ -190,4 +202,41 @@ export function filterByDesignConstraints<T extends DesignConstrainedItem>(
  */
 export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Generate an SVG path string for a pie/annular sector.
+ * Used by ArcRadarSelector and FireDiagram for rendering fire-arc wedges.
+ *
+ * @param centerX - X coordinate of the center
+ * @param centerY - Y coordinate of the center
+ * @param innerRadius - Inner radius of the annular sector (0 for a full pie slice)
+ * @param outerRadius - Outer radius of the sector
+ * @param startAngle - Start angle in degrees
+ * @param endAngle - End angle in degrees
+ * @returns SVG path data string
+ */
+export function createSectorPath(
+  centerX: number,
+  centerY: number,
+  innerRadius: number,
+  outerRadius: number,
+  startAngle: number,
+  endAngle: number
+): string {
+  const startAngleRad = (startAngle * Math.PI) / 180;
+  const endAngleRad = (endAngle * Math.PI) / 180;
+
+  const x1 = centerX + outerRadius * Math.cos(startAngleRad);
+  const y1 = centerY + outerRadius * Math.sin(startAngleRad);
+  const x2 = centerX + outerRadius * Math.cos(endAngleRad);
+  const y2 = centerY + outerRadius * Math.sin(endAngleRad);
+  const x3 = centerX + innerRadius * Math.cos(endAngleRad);
+  const y3 = centerY + innerRadius * Math.sin(endAngleRad);
+  const x4 = centerX + innerRadius * Math.cos(startAngleRad);
+  const y4 = centerY + innerRadius * Math.sin(startAngleRad);
+
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+  return `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
 }

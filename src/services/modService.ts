@@ -6,6 +6,7 @@
  */
 
 import type { Mod, ModManifest, ModSettings } from '../types/mod';
+import { logger } from './utilities';
 
 /**
  * Get all installed mods with their settings (enabled/disabled, priority).
@@ -14,7 +15,7 @@ export async function getInstalledMods(): Promise<Mod[]> {
   if (!window.electronAPI) return [];
   const result = await window.electronAPI.listMods();
   if (!result.success) {
-    console.error('[ModService] Failed to list mods:', result.error);
+    logger.error('[ModService] Failed to list mods:', result.error);
     return [];
   }
   return result.mods || [];
@@ -38,7 +39,7 @@ export async function updateModSettings(settings: ModSettings): Promise<boolean>
   if (!window.electronAPI) return false;
   const result = await window.electronAPI.updateModSettings(JSON.stringify(settings));
   if (!result.success) {
-    console.error('[ModService] Failed to update mod settings:', result.error);
+    logger.error('[ModService] Failed to update mod settings:', result.error);
   }
   return result.success;
 }
@@ -85,7 +86,7 @@ export async function createMod(manifest: ModManifest): Promise<string | null> {
     .replace(/^-|-$/g, '');
   const result = await window.electronAPI.createMod(folderName, JSON.stringify(manifest, null, 2));
   if (!result.success) {
-    console.error('[ModService] Failed to create mod:', result.error);
+    logger.error('[ModService] Failed to create mod:', result.error);
     return null;
   }
   return folderName;
@@ -99,7 +100,7 @@ export async function deleteMod(folderName: string): Promise<boolean> {
   if (!window.electronAPI) return false;
   const result = await window.electronAPI.deleteMod(folderName);
   if (!result.success) {
-    console.error('[ModService] Failed to delete mod:', result.error);
+    logger.error('[ModService] Failed to delete mod:', result.error);
   }
   return result.success;
 }
@@ -117,7 +118,7 @@ export async function getModFileData(folderName: string, fileName: string): Prom
   try {
     return JSON.parse(result.content);
   } catch {
-    console.error(`[ModService] Failed to parse ${fileName} from mod ${folderName}`);
+    logger.error(`[ModService] Failed to parse ${fileName} from mod ${folderName}`);
     return null;
   }
 }
@@ -130,7 +131,7 @@ export async function saveModFileData(folderName: string, fileName: string, data
   if (!window.electronAPI) return false;
   const result = await window.electronAPI.saveModFile(folderName, fileName, JSON.stringify(data, null, 2));
   if (!result.success) {
-    console.error(`[ModService] Failed to save ${fileName} to mod ${folderName}:`, result.error);
+    logger.error(`[ModService] Failed to save ${fileName} to mod ${folderName}:`, result.error);
   }
   return result.success;
 }

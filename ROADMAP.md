@@ -60,32 +60,32 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 ---
 
-## Phase 4: UX Quick Wins Sprint
+## Phase 4: UX Quick Wins Sprint ✅ COMPLETE
 *Goal: Discoverability + error prevention — high user-facing impact*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 25 | U5: Popover chip visual affordance | UX | Low | Most powerful hidden feature exposed |
-| 26 | U11: Empty state messages in all steps | UX | Low | Consistency, per-step ~2 min |
-| 27 | U15: Weapon tab empty messages | UX | Trivial | Consistency with sensors |
-| 28 | U16: Fix summary tab order (always show Issues) | UX | Low | Stops tab positions shifting |
-| 29 | U9: Computer core prerequisite guidance | UX | Trivial | Better empty state text |
-| 30 | U8: Fuel tank relationship tooltip | UX | Trivial | Help icon + tooltip |
-| 31 | U17: Overall progress indicator | UX | Low | "7 of 13 complete" in stepper |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 25 | U5: Popover chip visual affordance (ArrowDropDown icon on HP/Power/Cost chips) | UX | Low | ✅ Done |
+| 26 | U11: Empty state messages in all steps (10 components) | UX | Low | ✅ Done |
+| 27 | U15: Weapon tab empty messages (4 grids) | UX | Trivial | ✅ Done |
+| 28 | U16: Fix summary tab order (Issues tab always visible, fixed indices) | UX | Low | ✅ Done |
+| 29 | U9: Computer core prerequisite guidance (Alert in Computers tab) | UX | Trivial | ✅ Done |
+| 30 | U8: Fuel tank relationship tooltip (HelpOutline icon on both fuel sections) | UX | Trivial | ✅ Done |
+| 31 | U17: Overall progress indicator (N/M count in stepper) | UX | Low | ✅ Done |
 
 ---
 
-## Phase 5: Feature Sprint — Auto-save, Clipboard, Validation
+## Phase 5: Feature Sprint — Auto-save, Clipboard, Validation ✅ COMPLETE
 *Goal: Deliver the approved medium-effort features*
 
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| 32 | A5: Auto-save / Crash Recovery | FEATURES | Low | Data loss prevention, pairs with save tests |
-| 33 | C12: Copy Stats to Clipboard | FEATURES | Low | High user value, standalone |
-| 34 | E19: Structured ship description fields | FEATURES | Low | Save format change → bump SAVE_FILE_VERSION |
-| 35 | D15: Fire control ↔ weapon validation | FEATURES | Medium | New validation warnings in Summary |
-| 36 | D16: Sensor control validation | FEATURES | Medium | Same pattern as D15 |
-| 37 | E22: Light/dark theme toggle | FEATURES | Low | Depends on U20 (Phase 9) for ideal impl, but can ship basic version |
+| # | Item | Source | Effort | Status |
+|---|------|--------|--------|--------|
+| 32 | A5: Auto-save / Crash Recovery | FEATURES | Low | ✅ Done |
+| 33 | C12: Copy Stats to Clipboard | FEATURES | Low | ✅ Done |
+| 34 | E19: Structured ship description fields | FEATURES | Low | ✅ Done |
+| 35 | D15: Fire control ↔ weapon validation | FEATURES | Medium | ✅ Done |
+| 36 | D16: Sensor control validation | FEATURES | Medium | ✅ Done |
+| 37 | E22: Light/dark theme toggle | FEATURES | Low | ✅ Done |
 
 ---
 
@@ -94,14 +94,14 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| 38 | H1: SupportSystems generic SubsystemTab | CODE | High | ~800 lines reduced |
-| 39 | M1: WeaponSelection generic grid | CODE | Medium | ~300 lines reduced |
-| 40 | H2: saveService generic deserialize | CODE | Medium | ~250 lines reduced, simplifies future additions |
-| 41 | H3: dataLoader getter factory | CODE | Medium | ~200 lines reduced |
-| 42 | T3: damageDiagramService tests | TESTS | High | Zone validation edge cases |
-| 43 | T4: ordnanceService tests | TESTS | High | Design calculator formulas |
-| 44 | T6: commandControlService tests | TESTS | High | Battery linking, orphan detection |
-| 45 | T7–T9: engine/powerPlant/defense tests | TESTS | Medium | Core subsystem calculations |
+| 38 | H1: SupportSystems generic SubsystemTab | CODE | High | ✅ Done (~560 lines reduced) |
+| 39 | M1: WeaponSelection generic grid | CODE | Medium | ✅ Done (~285 lines reduced) |
+| 40 | H2: saveService generic deserialize | CODE | Medium | ✅ Done (~144 lines reduced) |
+| 41 | H3: dataLoader getter factory | CODE | Medium | ✅ Done (~238 lines reduced) |
+| 42 | T3: damageDiagramService tests | TESTS | High | ✅ Done (51 tests) |
+| 43 | T4: ordnanceService tests | TESTS | High | ✅ Done (57 tests) |
+| 44 | T6: commandControlService tests | TESTS | High | ✅ Done (65 tests) |
+| 45 | T7–T9: engine/powerPlant/defense tests | TESTS | Medium | ✅ Done (126 tests: eng 52 + pp 36 + def 38) |
 
 ---
 
@@ -110,14 +110,14 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| 46 | U10: Confirmation for destructive bulk ops | UX | Medium | Clear All, Unassign All protection |
-| 47 | U12: Hull change invalidation warning | UX | Medium | Prevent silent build reset |
-| 48 | U13: Dependency removal warnings | UX | Medium | Power deficit, orphaned controls |
-| 49 | U6: Surface power scenario toggle | UX | Medium | Essential planning tool exposed |
-| 50 | U7: Damage diagram shortcuts banner | UX | Low | First-visit keyboard hint |
-| 51 | U14: Document "Add" interaction models | UX | Low | Consistency improvement |
-| 52 | U19: Config form visual distinction | UX | Low | Stronger border/background |
-| 53 | U4: Color + icon indicators | UX | Medium | Accessibility — color blind support |
+| 46 | ✅ U10: Confirmation for destructive bulk ops | UX | Medium | Clear All, Unassign All protection |
+| 47 | ✅ U12: Hull change invalidation warning | UX | Medium | Prevent silent build reset |
+| 48 | ✅ U13: Dependency removal warnings | UX | Medium | Power deficit, orphaned controls |
+| 49 | ✅ U6: Surface power scenario toggle | UX | Medium | Essential planning tool exposed |
+| 50 | ✅ U7: Damage diagram shortcuts banner | UX | Low | First-visit keyboard hint |
+| 51 | ✅ U14: Document "Add" interaction models | UX | Low | Consistency improvement |
+| 52 | ✅ U19: Config form visual distinction | UX | Low | Stronger border/background |
+| 53 | ✅ U4: Color + icon indicators | UX | Medium | Accessibility — color blind support |
 
 ---
 
@@ -126,15 +126,15 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| 54 | B6: Budget visualization (HP/Power charts) | FEATURES | Medium | In-builder helper |
-| 55 | C11: Compact combat reference sheet PDF | FEATURES | Medium | 1-page game table handout |
-| 56 | M2: DamageDiagram repetitive collection | CODE | Medium | Data-driven approach |
-| 57 | M3: pdfExportService split into sub-functions | CODE | Medium | Maintainability for C11 |
-| 58 | M4: ordnanceService factory | CODE | Low | 3 create functions → 1 |
-| 59 | L5: Shared SVG path utility | CODE | Trivial | ArcRadarSelector + FireDiagram |
-| 60 | L6: Console logging behind debug flag | CODE | Low | Production hygiene |
-| 61 | L7: Naming inconsistencies | CODE | Trivial | editingid → editingId, etc. |
-| 62 | L8: Remove hardcoded fallback defaults | CODE | Low | Fail visibly on data load error |
+| 54 | ✅ B6: Budget visualization (HP/Power charts) | FEATURES | Medium | In-builder helper |
+| 55 | ✅ C11: Compact combat reference sheet PDF | FEATURES | Medium | 1-page game table handout |
+| 56 | ✅ M2: DamageDiagram repetitive collection | CODE | Medium | Data-driven approach |
+| 57 | ✅ M3: pdfExportService split into sub-functions | CODE | Medium | Maintainability for C11 |
+| 58 | ✅ M4: ordnanceService factory | CODE | Low | 3 create functions → 1 |
+| 59 | ✅ L5: Shared SVG path utility | CODE | Trivial | ArcRadarSelector + FireDiagram |
+| 60 | ✅ L6: Console logging behind debug flag | CODE | Low | Production hygiene |
+| 61 | ✅ L7: Naming inconsistencies | CODE | Trivial | editingid → editingId, etc. |
+| 62 | ✅ L8: Remove hardcoded fallback defaults | CODE | Low | Fail visibly on data load error |
 
 ---
 
@@ -173,9 +173,9 @@ Unified execution plan across all next-steps documents. Items are sequenced by d
 |-------|-------|------:|-------------|
 | 1 | Test foundation + trivial fixes | 8 | ✅ Complete |
 | 2 | State consolidation + quick features | 10 | ✅ Complete |
-| 3 | App.tsx decomposition + critical tests | 6 | 4–5 days |
-| 4 | UX quick wins sprint | 7 | 1–2 days |
-| 5 | Feature sprint (auto-save, clipboard, validation) | 6 | 3–4 days |
+| 3 | App.tsx decomposition + critical tests | 6 | ✅ Complete |
+| 4 | UX quick wins sprint | 7 | ✅ Complete |
+| 5 | Feature sprint (auto-save, clipboard, validation) | 6 | ✅ Complete |
 | 6 | Major refactoring + tests | 8 | 5–6 days |
 | 7 | Error prevention + remaining UX | 8 | 3–4 days |
 | 8 | Medium features + remaining code | 9 | 4–5 days |

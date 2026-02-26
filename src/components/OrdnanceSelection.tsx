@@ -20,7 +20,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import BlurCircularIcon from '@mui/icons-material/BlurCircular';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -428,11 +428,12 @@ export function OrdnanceSelection({
     const remainingCap = totalCap - usedCap;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
         <Typography variant="subtitle2" sx={{ mb: '10px' }}>
           {isEditing ? 'Edit' : 'Add'} {selectedLaunchSystem.name}
         </Typography>
         {/* Header */}
+        <form onSubmit={(e) => { e.preventDefault(); handleAddOrUpdateLaunchSystem(); }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
           {/* Column 1: Quantity + Stats */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
@@ -463,14 +464,14 @@ export function OrdnanceSelection({
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+                <Button type="button" variant="outlined" size="small" onClick={handleCancelEdit}>
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
-                  onClick={handleAddOrUpdateLaunchSystem}
                 >
                   {isEditing ? 'Update' : 'Add'}
                 </Button>
@@ -478,6 +479,7 @@ export function OrdnanceSelection({
             </Box>
           </Box>
         </Box>
+        </form>
 
         {/* Ordnance Loading Section - Only when editing */}
         {isEditing && currentLS && (

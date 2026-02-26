@@ -17,9 +17,9 @@ import type { ShipDescription } from '../types/summary';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls, getAllStationHulls } from './hullService';
 import { getAllArmorTypes, buildShipArmor } from './armorService';
-import { getAllPowerPlantTypes, generateFuelTankId } from './powerPlantService';
-import { getAllEngineTypes, generateEngineInstallationId, generateEngineFuelTankId } from './engineService';
-import { getAllFTLDriveTypes, generateFTLInstallationId, generateFTLFuelTankId } from './ftlDriveService';
+import { getAllPowerPlantTypes, generatePowerPlantFuelTankId } from './powerPlantService';
+import { getAllEngineTypes, generateEngineId, generateEngineFuelTankId } from './engineService';
+import { getAllFTLDriveTypes, generateFTLDriveId, generateFTLFuelTankId } from './ftlDriveService';
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost, calculateFireControlCost, calculateSensorControlCost, generateCommandControlId } from './commandControlService';
@@ -92,6 +92,11 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     lore: state.shipDescription.lore || undefined,
     imageData: state.shipDescription.imageData,
     imageMimeType: state.shipDescription.imageMimeType,
+    faction: state.shipDescription.faction || undefined,
+    role: state.shipDescription.role || undefined,
+    commissioningDate: state.shipDescription.commissioningDate || undefined,
+    classification: state.shipDescription.classification || undefined,
+    manufacturer: state.shipDescription.manufacturer || undefined,
     hull: state.hull ? { id: state.hull.id } : null,
     armor: state.armorLayers.length === 1 ? { id: state.armorLayers[0].type.id } : null,
     armorLayers: state.armorLayers.map(layer => ({ id: layer.type.id })),
@@ -286,6 +291,31 @@ const ACCOMMODATION_ID_MIGRATIONS: Record<string, string> = {
 };
 
 /**
+ * Generic helper: iterate a saved array, look up each item's type, build the installed item.
+ * Produces a warning for each type not found.
+ */
+function deserializeArray<TSaved, TType extends { id: string }, TInstalled>(
+  savedItems: TSaved[] | undefined,
+  allTypes: TType[],
+  lookupId: (saved: TSaved) => string,
+  build: (saved: TSaved, type: TType) => TInstalled,
+  warningPrefix: string,
+  warnings: string[]
+): TInstalled[] {
+  const result: TInstalled[] = [];
+  for (const saved of savedItems || []) {
+    const id = lookupId(saved);
+    const type = allTypes.find(t => t.id === id);
+    if (type) {
+      result.push(build(saved, type));
+    } else {
+      warnings.push(`${warningPrefix}: ${id}`);
+    }
+  }
+  return result;
+}
+
+/**
  * Migrate a save file from an older version to the current format.
  * Applies all necessary ID and structure changes.
  */
@@ -437,70 +467,34 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   }
   
   // Load power plants
-  const powerPlants: InstalledPowerPlant[] = [];
   const allPowerPlantTypes = getAllPowerPlantTypes();
-  
-  for (const savedPP of (saveFile.powerPlants || [])) {
-    const ppType = allPowerPlantTypes.find(t => t.id === savedPP.typeId);
-    if (ppType) {
-      powerPlants.push({
-        id: savedPP.id || crypto.randomUUID(),
-        type: ppType,
-        hullPoints: savedPP.hullPoints,
-      });
-    } else {
-      warnings.push(`Power plant type not found: ${savedPP.typeId}`);
-    }
-  }
+  const powerPlants = deserializeArray(
+    saveFile.powerPlants, allPowerPlantTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || crypto.randomUUID(), type: t, hullPoints: s.hullPoints }),
+    'Power plant type not found', warnings
+  );
   
   // Load fuel tanks
-  const fuelTanks: InstalledFuelTank[] = [];
-  
-  for (const savedFT of (saveFile.fuelTanks || [])) {
-    const ppType = allPowerPlantTypes.find(t => t.id === savedFT.forPowerPlantTypeId);
-    if (ppType) {
-      fuelTanks.push({
-        id: savedFT.id || generateFuelTankId(),
-        forPowerPlantType: ppType,
-        hullPoints: savedFT.hullPoints,
-      });
-    } else {
-      warnings.push(`Power plant type not found for fuel tank: ${savedFT.forPowerPlantTypeId}`);
-    }
-  }
+  const fuelTanks = deserializeArray(
+    saveFile.fuelTanks, allPowerPlantTypes, s => s.forPowerPlantTypeId,
+    (s, t) => ({ id: s.id || generatePowerPlantFuelTankId(), forPowerPlantType: t, hullPoints: s.hullPoints }),
+    'Power plant type not found for fuel tank', warnings
+  );
   
   // Load engines
-  const engines: InstalledEngine[] = [];
   const allEngineTypes = getAllEngineTypes();
-  
-  for (const savedEngine of (saveFile.engines || [])) {
-    const engineType = allEngineTypes.find(t => t.id === savedEngine.typeId);
-    if (engineType) {
-      engines.push({
-        id: savedEngine.id || generateEngineInstallationId(),
-        type: engineType,
-        hullPoints: savedEngine.hullPoints,
-      });
-    } else {
-      warnings.push(`Engine type not found: ${savedEngine.typeId}`);
-    }
-  }
+  const engines = deserializeArray(
+    saveFile.engines, allEngineTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || generateEngineId(), type: t, hullPoints: s.hullPoints }),
+    'Engine type not found', warnings
+  );
   
   // Load engine fuel tanks
-  const engineFuelTanks: InstalledEngineFuelTank[] = [];
-  
-  for (const savedFT of (saveFile.engineFuelTanks || [])) {
-    const engineType = allEngineTypes.find(t => t.id === savedFT.forEngineTypeId);
-    if (engineType) {
-      engineFuelTanks.push({
-        id: savedFT.id || generateEngineFuelTankId(),
-        forEngineType: engineType,
-        hullPoints: savedFT.hullPoints,
-      });
-    } else {
-      warnings.push(`Engine type not found for fuel tank: ${savedFT.forEngineTypeId}`);
-    }
-  }
+  const engineFuelTanks = deserializeArray(
+    saveFile.engineFuelTanks, allEngineTypes, s => s.forEngineTypeId,
+    (s, t) => ({ id: s.id || generateEngineFuelTankId(), forEngineType: t, hullPoints: s.hullPoints }),
+    'Engine type not found for fuel tank', warnings
+  );
   
   // Load FTL drive
   let ftlDrive: InstalledFTLDrive | null = null;
@@ -509,7 +503,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     const ftlType = allFTLTypes.find(t => t.id === saveFile.ftlDrive!.typeId);
     if (ftlType) {
       ftlDrive = {
-        id: saveFile.ftlDrive.id || generateFTLInstallationId(),
+        id: saveFile.ftlDrive.id || generateFTLDriveId(),
         type: ftlType,
         hullPoints: saveFile.ftlDrive.hullPoints,
       };
@@ -519,202 +513,113 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   }
   
   // Load FTL fuel tanks
-  const ftlFuelTanks: InstalledFTLFuelTank[] = [];
-  
-  for (const savedFT of (saveFile.ftlFuelTanks || [])) {
-    const ftlType = allFTLTypes.find(t => t.id === savedFT.forFTLDriveTypeId);
-    if (ftlType) {
-      ftlFuelTanks.push({
-        id: savedFT.id || generateFTLFuelTankId(),
-        forFTLDriveType: ftlType,
-        hullPoints: savedFT.hullPoints,
-      });
-    } else {
-      warnings.push(`FTL drive type not found for fuel tank: ${savedFT.forFTLDriveTypeId}`);
-    }
-  }
+  const ftlFuelTanks = deserializeArray(
+    saveFile.ftlFuelTanks, allFTLTypes, s => s.forFTLDriveTypeId,
+    (s, t) => ({ id: s.id || generateFTLFuelTankId(), forFTLDriveType: t, hullPoints: s.hullPoints }),
+    'FTL drive type not found for fuel tank', warnings
+  );
   
   // Load life support
-  const lifeSupport: InstalledLifeSupport[] = [];
   const allLifeSupportTypes = getAllLifeSupportTypes();
-  
-  for (const savedLS of (saveFile.lifeSupport || [])) {
-    const lsType = allLifeSupportTypes.find(t => t.id === savedLS.typeId);
-    if (lsType) {
-      lifeSupport.push({
-        id: savedLS.id || generateLifeSupportId(),
-        type: lsType,
-        quantity: savedLS.quantity,
-        ...(savedLS.extraHp ? { extraHp: savedLS.extraHp } : {}),
-      });
-    } else {
-      warnings.push(`Life support type not found: ${savedLS.typeId}`);
-    }
-  }
+  const lifeSupport = deserializeArray(
+    saveFile.lifeSupport, allLifeSupportTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || generateLifeSupportId(), type: t, quantity: s.quantity, ...(s.extraHp ? { extraHp: s.extraHp } : {}) }),
+    'Life support type not found', warnings
+  );
   
   // Load accommodations
-  const accommodations: InstalledAccommodation[] = [];
   const allAccommodationTypes = getAllAccommodationTypes();
-  
-  for (const savedAcc of (saveFile.accommodations || [])) {
-    const accType = allAccommodationTypes.find(t => t.id === savedAcc.typeId);
-    if (accType) {
-      accommodations.push({
-        id: savedAcc.id || generateAccommodationId(),
-        type: accType,
-        quantity: savedAcc.quantity,
-        ...(savedAcc.extraHp ? { extraHp: savedAcc.extraHp } : {}),
-      });
-    } else {
-      warnings.push(`Accommodation type not found: ${savedAcc.typeId}`);
-    }
-  }
+  const accommodations = deserializeArray(
+    saveFile.accommodations, allAccommodationTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || generateAccommodationId(), type: t, quantity: s.quantity, ...(s.extraHp ? { extraHp: s.extraHp } : {}) }),
+    'Accommodation type not found', warnings
+  );
   
   // Load store systems
-  const storeSystems: InstalledStoreSystem[] = [];
   const allStoreSystemTypes = getAllStoreSystemTypes();
-  
-  for (const savedSS of (saveFile.storeSystems || [])) {
-    const ssType = allStoreSystemTypes.find(t => t.id === savedSS.typeId);
-    if (ssType) {
-      storeSystems.push({
-        id: savedSS.id || generateStoreSystemId(),
-        type: ssType,
-        quantity: savedSS.quantity,
-        ...(savedSS.extraHp ? { extraHp: savedSS.extraHp } : {}),
-      });
-    } else {
-      warnings.push(`Store system type not found: ${savedSS.typeId}`);
-    }
-  }
+  const storeSystems = deserializeArray(
+    saveFile.storeSystems, allStoreSystemTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || generateStoreSystemId(), type: t, quantity: s.quantity, ...(s.extraHp ? { extraHp: s.extraHp } : {}) }),
+    'Store system type not found', warnings
+  );
   
   // Load gravity systems
-  const gravitySystems: InstalledGravitySystem[] = [];
   const allGravitySystemTypes = getAllGravitySystemTypes();
-  
-  for (const savedGS of (saveFile.gravitySystems || [])) {
-    const gsType = allGravitySystemTypes.find(t => t.id === savedGS.typeId);
-    if (gsType) {
-      gravitySystems.push({
-        id: savedGS.id || generateGravitySystemId(),
-        type: gsType,
-        hullPoints: savedGS.hullPoints,
-        cost: savedGS.hullPoints * gsType.costPerHullPoint,
-      });
-    } else {
-      warnings.push(`Gravity system type not found: ${savedGS.typeId}`);
-    }
-  }
+  const gravitySystems = deserializeArray(
+    saveFile.gravitySystems, allGravitySystemTypes, s => s.typeId,
+    (s, t) => ({ id: s.id || generateGravitySystemId(), type: t, hullPoints: s.hullPoints, cost: s.hullPoints * t.costPerHullPoint }),
+    'Gravity system type not found', warnings
+  );
   
   // Load defense systems
-  const defenses: InstalledDefenseSystem[] = [];
   const allDefenseTypes = getAllDefenseSystemTypes();
   const shipHullPoints = hull?.hullPoints || 100; // Default for calculation purposes
-  
-  for (const savedDef of (saveFile.defenses || [])) {
-    const defType = allDefenseTypes.find(t => t.id === savedDef.typeId);
-    if (defType) {
-      const hullPts = calculateDefenseHullPoints(defType, shipHullPoints, savedDef.quantity);
-      const power = calculateDefensePower(defType, shipHullPoints, savedDef.quantity);
-      const cost = calculateDefenseCost(defType, shipHullPoints, savedDef.quantity);
-      defenses.push({
-        id: savedDef.id || generateDefenseId(),
-        type: defType,
-        quantity: savedDef.quantity,
-        hullPoints: hullPts,
-        powerRequired: power,
-        cost,
-      });
-    } else {
-      warnings.push(`Defense system type not found: ${savedDef.typeId}`);
-    }
-  }
+  const defenses = deserializeArray(
+    saveFile.defenses, allDefenseTypes, s => s.typeId,
+    (s, t) => ({
+      id: s.id || generateDefenseId(), type: t, quantity: s.quantity,
+      hullPoints: calculateDefenseHullPoints(t, shipHullPoints, s.quantity),
+      powerRequired: calculateDefensePower(t, shipHullPoints, s.quantity),
+      cost: calculateDefenseCost(t, shipHullPoints, s.quantity),
+    }),
+    'Defense system type not found', warnings
+  );
   
   // Load command & control systems
   // Note: Fire Control and Sensor Control costs will be recalculated after weapons/sensors are loaded
-  const commandControl: InstalledCommandControlSystem[] = [];
   const allCCTypes = getAllCommandControlSystemTypes();
-  
-  for (const savedCC of (saveFile.commandControl || [])) {
-    const ccType = allCCTypes.find(t => t.id === savedCC.typeId);
-    if (ccType) {
-      const hullPts = calculateCommandControlHullPoints(ccType, shipHullPoints, savedCC.quantity);
-      const power = calculateCommandControlPower(ccType, savedCC.quantity);
-      // For linked systems (Fire Control, Sensor Control), cost will be recalculated later
-      const cost = calculateCommandControlCost(ccType, shipHullPoints, savedCC.quantity);
-      commandControl.push({
-        id: savedCC.id || generateCommandControlId(),
-        type: ccType,
-        quantity: savedCC.quantity,
-        hullPoints: hullPts,
-        powerRequired: power,
-        cost,
-        linkedWeaponBatteryKey: savedCC.linkedWeaponBatteryKey,
-        linkedSensorId: savedCC.linkedSensorId,
-      });
-    } else {
-      warnings.push(`Command & control system type not found: ${savedCC.typeId}`);
-    }
-  }
+  const commandControl = deserializeArray(
+    saveFile.commandControl, allCCTypes, s => s.typeId,
+    (s, t) => ({
+      id: s.id || generateCommandControlId(), type: t, quantity: s.quantity,
+      hullPoints: calculateCommandControlHullPoints(t, shipHullPoints, s.quantity),
+      powerRequired: calculateCommandControlPower(t, s.quantity),
+      cost: calculateCommandControlCost(t, shipHullPoints, s.quantity),
+      linkedWeaponBatteryKey: s.linkedWeaponBatteryKey,
+      linkedSensorId: s.linkedSensorId,
+    }),
+    'Command & control system type not found', warnings
+  );
   
   // Load sensors
-  const sensors: InstalledSensor[] = [];
   const allSensorTypes = getAllSensorTypes();
   const designPL = saveFile.designProgressLevel || 7;
-  
-  for (const savedSensor of (saveFile.sensors || [])) {
-    const sensorType = allSensorTypes.find(t => t.id === savedSensor.typeId);
-    if (sensorType) {
-      const hullPts = calculateSensorHullPoints(sensorType, savedSensor.quantity);
-      const power = calculateSensorPower(sensorType, savedSensor.quantity);
-      const cost = calculateSensorCost(sensorType, savedSensor.quantity);
-      
-      // Get the sensor control assigned to this sensor (if any) to calculate tracking
-      const sensorId = savedSensor.id || generateSensorId();
+  const sensors = deserializeArray(
+    saveFile.sensors, allSensorTypes, s => s.typeId,
+    (s, t) => {
+      const sensorId = s.id || generateSensorId();
       const assignedControl = commandControl.find(cc => cc.linkedSensorId === sensorId);
       const computerQuality: ComputerQuality = assignedControl?.type.quality as ComputerQuality || 'none';
-      
-      sensors.push({
-        id: sensorId,
-        type: sensorType,
-        quantity: savedSensor.quantity,
-        hullPoints: hullPts,
-        powerRequired: power,
-        cost,
-        arcsCovered: Math.min(savedSensor.quantity * sensorType.arcsCovered, 4),
-        trackingCapability: calculateTrackingCapability(designPL, computerQuality, savedSensor.quantity),
-      });
-    } else {
-      warnings.push(`Sensor system type not found: ${savedSensor.typeId}`);
-    }
-  }
+      return {
+        id: sensorId, type: t, quantity: s.quantity,
+        hullPoints: calculateSensorHullPoints(t, s.quantity),
+        powerRequired: calculateSensorPower(t, s.quantity),
+        cost: calculateSensorCost(t, s.quantity),
+        arcsCovered: Math.min(s.quantity * t.arcsCovered, 4),
+        trackingCapability: calculateTrackingCapability(designPL, computerQuality, s.quantity),
+      };
+    },
+    'Sensor system type not found', warnings
+  );
   
   // Load hangar & miscellaneous systems
-  const hangarMisc: InstalledHangarMiscSystem[] = [];
   const allHangarMiscTypes = getAllHangarMiscSystemTypes();
-  
-  for (const savedHM of (saveFile.hangarMisc || [])) {
-    const hmType = allHangarMiscTypes.find(t => t.id === savedHM.typeId);
-    if (hmType) {
-      const extraHp = savedHM.extraHp || 0;
-      const hullPts = calculateHangarMiscHullPoints(hmType, shipHullPoints, savedHM.quantity, extraHp);
-      const power = calculateHangarMiscPower(hmType, shipHullPoints, savedHM.quantity, extraHp);
-      const cost = calculateHangarMiscCost(hmType, shipHullPoints, savedHM.quantity, extraHp);
-      const capacity = calculateHangarMiscCapacity(hmType, shipHullPoints, savedHM.quantity, extraHp);
-      hangarMisc.push({
-        id: savedHM.id || generateHangarMiscId(),
-        type: hmType,
-        quantity: savedHM.quantity,
-        hullPoints: hullPts,
-        powerRequired: power,
-        cost,
-        capacity: capacity > 0 ? capacity : undefined,
+  const hangarMisc = deserializeArray(
+    saveFile.hangarMisc, allHangarMiscTypes, s => s.typeId,
+    (s, t) => {
+      const extraHp = s.extraHp || 0;
+      const cap = calculateHangarMiscCapacity(t, shipHullPoints, s.quantity, extraHp);
+      return {
+        id: s.id || generateHangarMiscId(), type: t, quantity: s.quantity,
+        hullPoints: calculateHangarMiscHullPoints(t, shipHullPoints, s.quantity, extraHp),
+        powerRequired: calculateHangarMiscPower(t, shipHullPoints, s.quantity, extraHp),
+        cost: calculateHangarMiscCost(t, shipHullPoints, s.quantity, extraHp),
+        capacity: cap > 0 ? cap : undefined,
         extraHp: extraHp > 0 ? extraHp : undefined,
-      });
-    } else {
-      warnings.push(`Hangar/misc system type not found: ${savedHM.typeId}`);
-    }
-  }
+      };
+    },
+    'Hangar/misc system type not found', warnings
+  );
   
   // Load weapons
   const weapons: InstalledWeapon[] = [];
@@ -723,77 +628,34 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   const allTorpedoWeapons = getAllTorpedoWeaponTypes();
   const allSpecialWeapons = getAllSpecialWeaponTypes();
   
+  const weaponTypesByCategory: Record<string, typeof allBeamWeapons> = {
+    beam: allBeamWeapons,
+    projectile: allProjectileWeapons,
+    torpedo: allTorpedoWeapons,
+    special: allSpecialWeapons,
+  };
+  
   for (const savedWeapon of (saveFile.weapons || [])) {
-    if (savedWeapon.category === 'beam') {
-      const weaponType = allBeamWeapons.find(w => w.id === savedWeapon.typeId);
-      if (weaponType) {
-        const weapon = createInstalledWeapon(
-          weaponType,
-          savedWeapon.category,
-          savedWeapon.mountType,
-          savedWeapon.gunConfiguration,
-          savedWeapon.concealed,
-          savedWeapon.quantity,
-          savedWeapon.arcs as FiringArc[]
-        );
-        if (savedWeapon.id) weapon.id = savedWeapon.id;
-        weapons.push(weapon);
-      } else {
-        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
-      }
-    } else if (savedWeapon.category === 'projectile') {
-      const weaponType = allProjectileWeapons.find(w => w.id === savedWeapon.typeId);
-      if (weaponType) {
-        const weapon = createInstalledWeapon(
-          weaponType,
-          savedWeapon.category,
-          savedWeapon.mountType,
-          savedWeapon.gunConfiguration,
-          savedWeapon.concealed,
-          savedWeapon.quantity,
-          savedWeapon.arcs as FiringArc[]
-        );
-        if (savedWeapon.id) weapon.id = savedWeapon.id;
-        weapons.push(weapon);
-      } else {
-        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
-      }
-    } else if (savedWeapon.category === 'torpedo') {
-      const weaponType = allTorpedoWeapons.find(w => w.id === savedWeapon.typeId);
-      if (weaponType) {
-        const weapon = createInstalledWeapon(
-          weaponType,
-          savedWeapon.category,
-          savedWeapon.mountType,
-          savedWeapon.gunConfiguration,
-          savedWeapon.concealed,
-          savedWeapon.quantity,
-          savedWeapon.arcs as FiringArc[]
-        );
-        if (savedWeapon.id) weapon.id = savedWeapon.id;
-        weapons.push(weapon);
-      } else {
-        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
-      }
-    } else if (savedWeapon.category === 'special') {
-      const weaponType = allSpecialWeapons.find(w => w.id === savedWeapon.typeId);
-      if (weaponType) {
-        const weapon = createInstalledWeapon(
-          weaponType,
-          savedWeapon.category,
-          savedWeapon.mountType,
-          savedWeapon.gunConfiguration,
-          savedWeapon.concealed,
-          savedWeapon.quantity,
-          savedWeapon.arcs as FiringArc[]
-        );
-        if (savedWeapon.id) weapon.id = savedWeapon.id;
-        weapons.push(weapon);
-      } else {
-        warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
-      }
-    } else {
+    const typeList = weaponTypesByCategory[savedWeapon.category];
+    if (!typeList) {
       warnings.push(`Weapon category not yet supported: ${savedWeapon.category}`);
+      continue;
+    }
+    const weaponType = typeList.find(w => w.id === savedWeapon.typeId);
+    if (weaponType) {
+      const weapon = createInstalledWeapon(
+        weaponType,
+        savedWeapon.category,
+        savedWeapon.mountType,
+        savedWeapon.gunConfiguration,
+        savedWeapon.concealed,
+        savedWeapon.quantity,
+        savedWeapon.arcs as FiringArc[]
+      );
+      if (savedWeapon.id) weapon.id = savedWeapon.id;
+      weapons.push(weapon);
+    } else {
+      warnings.push(`Weapon type not found: ${savedWeapon.typeId}`);
     }
   }
   
@@ -959,6 +821,11 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         lore: saveFile.lore || '',
         imageData: saveFile.imageData ?? null,
         imageMimeType: saveFile.imageMimeType ?? null,
+        faction: saveFile.faction || '',
+        role: saveFile.role || '',
+        commissioningDate: saveFile.commissioningDate || '',
+        classification: saveFile.classification || '',
+        manufacturer: saveFile.manufacturer || '',
       },
       designType,
       stationType,

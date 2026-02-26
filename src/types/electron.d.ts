@@ -80,6 +80,12 @@ export interface ElectronAPI {
   // App mode management
   setBuilderMode: (mode: string) => Promise<FileOperationResult>;
   
+  // Auto-save / crash recovery
+  getAutoSavePath: () => Promise<string>;
+  writeAutoSave: (content: string) => Promise<FileOperationResult>;
+  readAutoSave: () => Promise<FileOperationResult>;
+  deleteAutoSave: () => Promise<FileOperationResult>;
+  
   // Mod system operations
   listMods: () => Promise<ListModsResult>;
   readModFile: (folderName: string, fileName: string) => Promise<FileOperationResult>;

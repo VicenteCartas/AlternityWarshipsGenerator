@@ -245,6 +245,67 @@ export function generateLaunchSystemId(): string {
 
 // ============== Design Creation Helpers ==============
 
+/**
+ * Unified factory for creating ordnance designs.
+ * Resolves propulsion, guidance, and warhead by ID, calculates stats,
+ * and returns the appropriate typed design (missile, bomb, or mine).
+ *
+ * @param category - 'missile' | 'bomb' | 'mine'
+ * @param name - User-defined name for the design
+ * @param size - Ordnance size class
+ * @param options - Component IDs: propulsionId (missiles only), guidanceId (missiles & mines), warheadId (all)
+ * @returns The created design, or null if any required component lookup fails
+ */
+export function createOrdnanceDesign(
+  category: OrdnanceCategory,
+  name: string,
+  size: OrdnanceSize,
+  options: { propulsionId?: string; guidanceId?: string; warheadId: string }
+): OrdnanceDesign | null {
+  const { propulsionId, guidanceId, warheadId } = options;
+
+  // Resolve propulsion: explicit ID for missiles, auto-find by category for bombs/mines
+  const propulsion = propulsionId
+    ? getPropulsionSystems().find((p) => p.id === propulsionId)
+    : findPropulsionByCategory(category, size);
+  if (!propulsion) return null;
+
+  const warhead = getWarheads().find((w) => w.id === warheadId);
+  if (!warhead) return null;
+
+  // Guidance: required for missiles and mines
+  const needsGuidance = category === 'missile' || category === 'mine';
+  const guidance = needsGuidance
+    ? getGuidanceSystems().find((g) => g.id === guidanceId)
+    : undefined;
+  if (needsGuidance && !guidance) return null;
+
+  // Calculate stats using the appropriate components
+  const components = guidance
+    ? calculateOrdnanceComponents(propulsion, guidance, warhead)
+    : calculateOrdnanceComponents(propulsion, warhead);
+  const capacityRequired = propulsion.size;
+
+  const base = {
+    id: generateOrdnanceDesignId(),
+    name,
+    size,
+    totalAccuracy: components.totalAccuracy,
+    totalCost: components.totalCost,
+    capacityRequired,
+  };
+
+  switch (category) {
+    case 'missile':
+      return { ...base, category: 'missile', propulsionId: propulsionId!, guidanceId: guidanceId!, warheadId } as MissileDesign;
+    case 'bomb':
+      return { ...base, category: 'bomb', warheadId } as BombDesign;
+    case 'mine':
+      return { ...base, category: 'mine', guidanceId: guidanceId!, warheadId } as MineDesign;
+  }
+}
+
+/** @deprecated Use createOrdnanceDesign('missile', ...) instead */
 export function createMissileDesign(
   name: string,
   size: OrdnanceSize,
@@ -252,90 +313,26 @@ export function createMissileDesign(
   guidanceId: string,
   warheadId: string
 ): MissileDesign | null {
-  const propulsion = getPropulsionSystems().find((p) => p.id === propulsionId);
-  const guidance = getGuidanceSystems().find((g) => g.id === guidanceId);
-  const warhead = getWarheads().find((w) => w.id === warheadId);
-
-  if (!propulsion || !guidance || !warhead) return null;
-
-  const { totalAccuracy, totalCost, capacityRequired } = calculateMissileDesign(
-    propulsion,
-    guidance,
-    warhead
-  );
-
-  return {
-    id: generateOrdnanceDesignId(),
-    name,
-    category: 'missile',
-    size,
-    propulsionId,
-    guidanceId,
-    warheadId,
-    totalAccuracy,
-    totalCost,
-    capacityRequired,
-  };
+  return createOrdnanceDesign('missile', name, size, { propulsionId, guidanceId, warheadId }) as MissileDesign | null;
 }
 
+/** @deprecated Use createOrdnanceDesign('bomb', ...) instead */
 export function createBombDesign(
   name: string,
   size: OrdnanceSize,
   warheadId: string
 ): BombDesign | null {
-  // Find the matching bomb casing propulsion
-  const propulsion = findPropulsionByCategory('bomb', size);
-  const warhead = getWarheads().find((w) => w.id === warheadId);
-
-  if (!propulsion || !warhead) return null;
-
-  const { totalAccuracy, totalCost, capacityRequired } = calculateBombDesign(
-    propulsion,
-    warhead
-  );
-
-  return {
-    id: generateOrdnanceDesignId(),
-    name,
-    category: 'bomb',
-    size,
-    warheadId,
-    totalAccuracy,
-    totalCost,
-    capacityRequired,
-  };
+  return createOrdnanceDesign('bomb', name, size, { warheadId }) as BombDesign | null;
 }
 
+/** @deprecated Use createOrdnanceDesign('mine', ...) instead */
 export function createMineDesign(
   name: string,
   size: OrdnanceSize,
   guidanceId: string,
   warheadId: string
 ): MineDesign | null {
-  // Find the matching mine casing propulsion
-  const propulsion = findPropulsionByCategory('mine', size);
-  const guidance = getGuidanceSystems().find((g) => g.id === guidanceId);
-  const warhead = getWarheads().find((w) => w.id === warheadId);
-
-  if (!propulsion || !guidance || !warhead) return null;
-
-  const { totalAccuracy, totalCost, capacityRequired } = calculateMineDesign(
-    propulsion,
-    guidance,
-    warhead
-  );
-
-  return {
-    id: generateOrdnanceDesignId(),
-    name,
-    category: 'mine',
-    size,
-    guidanceId,
-    warheadId,
-    totalAccuracy,
-    totalCost,
-    capacityRequired,
-  };
+  return createOrdnanceDesign('mine', name, size, { guidanceId, warheadId }) as MineDesign | null;
 }
 
 // ============== Installed Launch System Helpers ==============

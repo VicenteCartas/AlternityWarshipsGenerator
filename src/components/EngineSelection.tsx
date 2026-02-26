@@ -23,10 +23,11 @@ import EditIcon from '@mui/icons-material/Edit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
-import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
-import { TruncatedDescription } from './shared';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx } from '../constants/tableStyles';
+import { TruncatedDescription, ConfirmDialog } from './shared';
 import type { Hull } from '../types/hull';
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -42,7 +43,7 @@ import {
   validateEngineInstallation,
   validateEngineFuelTankInstallation,
   validateEngineDesign,
-  generateEngineInstallationId,
+  generateEngineId,
   generateEngineFuelTankId,
   getUniqueFuelRequiringEngineTypes,
   getTotalEngineFuelTankHPForEngineType,
@@ -77,7 +78,7 @@ export function EngineSelection({
   // Engine state
   const [selectedType, setSelectedType] = useState<EngineType | null>(null);
   const [hullPointsInput, setHullPointsInput] = useState<string>('');
-  const [editingid, setEditingid] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Fuel tank state
   const [addingFuelTankForType, setAddingFuelTankForType] = useState<EngineType | null>(null);
@@ -111,7 +112,7 @@ export function EngineSelection({
   const handleTypeSelect = (engine: EngineType) => {
     setSelectedType(engine);
     setHullPointsInput(engine.minSize.toString());
-    setEditingid(null);
+    setEditingId(null);
   };
 
   const handleAddEngine = () => {
@@ -128,20 +129,20 @@ export function EngineSelection({
       return;
     }
 
-    if (editingid) {
+    if (editingId) {
       const updatedInstallation: InstalledEngine = {
-        id: editingid,
+        id: editingId,
         type: selectedType,
         hullPoints,
       };
       onEnginesChange(
         installedEngines.map((e) =>
-          e.id === editingid ? updatedInstallation : e
+          e.id === editingId ? updatedInstallation : e
         )
       );
     } else {
       const newInstallation: InstalledEngine = {
-        id: generateEngineInstallationId(),
+        id: generateEngineId(),
         type: selectedType,
         hullPoints,
       };
@@ -150,7 +151,7 @@ export function EngineSelection({
     
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingid(null);
+    setEditingId(null);
   };
 
   const handleRemoveEngine = (id: string) => {
@@ -173,12 +174,12 @@ export function EngineSelection({
   const handleEditEngine = (installation: InstalledEngine) => {
     setSelectedType(installation.type);
     setHullPointsInput(installation.hullPoints.toString());
-    setEditingid(installation.id);
+    setEditingId(installation.id);
   };
 
   const handleDuplicateEngine = (installation: InstalledEngine) => {
     const duplicate: InstalledEngine = {
-      id: generateEngineInstallationId(),
+      id: generateEngineId(),
       type: installation.type,
       hullPoints: installation.hullPoints,
     };
@@ -193,7 +194,7 @@ export function EngineSelection({
     onFuelTanksChange([]);
     setSelectedType(null);
     setHullPointsInput('');
-    setEditingid(null);
+    setEditingId(null);
     setAddingFuelTankForType(null);
     setEditingFuelTankId(null);
   };
@@ -352,7 +353,7 @@ export function EngineSelection({
             variant="outlined"
             size="small"
             color="secondary"
-            onClick={handleClearAll}
+            onClick={() => setConfirmClearOpen(true)}
           >
             Clear All
           </Button>
@@ -460,7 +461,7 @@ export function EngineSelection({
       )}
 
       {/* Summary of installed engines */}
-      {installedEngines.length > 0 && (
+      {installedEngines.length > 0 ? (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
             Installed Engines
@@ -475,7 +476,7 @@ export function EngineSelection({
               const fuelTankHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, installation.type.id);
               const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, installation.type.id);
               const endurance = fuelTankHP > 0 ? calculateEngineFuelTankEndurance(installation.type, fuelTankHP, totalEngineHP) : 0;
-              const isEditing = editingid === installation.id;
+              const isEditing = editingId === installation.id;
               
               return (
                 <Fragment key={installation.id}>
@@ -553,6 +554,7 @@ export function EngineSelection({
                   {/* Inline edit form when editing this engine */}
                   {isEditing && selectedType && (
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddEngine(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Size (HP)"
@@ -574,20 +576,21 @@ export function EngineSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
+                              type="button"
                               variant="outlined"
                               size="small"
                               onClick={() => {
                                 setSelectedType(null);
-                                setEditingid(null);
+                                setEditingId(null);
                               }}
                             >
                               Cancel
                             </Button>
                             <Button
+                              type="submit"
                               variant="contained"
                               size="small"
                               startIcon={<SaveIcon />}
-                              onClick={handleAddEngine}
                               disabled={validationErrors.length > 0}
                             >
                               Update
@@ -602,6 +605,7 @@ export function EngineSelection({
                           ))}
                         </Alert>
                       )}
+                      </form>
                     </Box>
                   )}
                 </Fragment>
@@ -609,14 +613,23 @@ export function EngineSelection({
             })}
           </Stack>
         </Paper>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 1, mb: 2 }}>
+          No engines installed. Select one from the table below to get started.
+        </Typography>
       )}
 
       {/* Installed Fuel Tanks Section */}
       {installedFuelTanks.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Fuel Tanks
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <Typography variant="subtitle2">
+              Installed Fuel Tanks
+            </Typography>
+            <Tooltip title="Fuel tanks are linked to a specific engine type. Click the fuel chip on an engine above, or use the 'Add fuel tank' button below, to add fuel.">
+              <HelpOutlineIcon fontSize="small" color="action" sx={{ cursor: 'help' }} />
+            </Tooltip>
+          </Box>
           <Stack spacing={1}>
             {installedFuelTanks.map((fuelTank) => {
               const cost = calculateEngineFuelTankCost(fuelTank.forEngineType, fuelTank.hullPoints);
@@ -685,6 +698,7 @@ export function EngineSelection({
                   {/* Inline edit form when editing this fuel tank */}
                   {isEditing && addingFuelTankForType && (
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Size (HP)"
@@ -703,6 +717,7 @@ export function EngineSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
+                              type="button"
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -713,10 +728,10 @@ export function EngineSelection({
                               Cancel
                             </Button>
                             <Button
+                              type="submit"
                               variant="contained"
                               size="small"
                               startIcon={<SaveIcon />}
-                              onClick={handleAddFuelTank}
                               disabled={fuelTankValidationErrors.length > 0}
                             >
                               Update
@@ -731,6 +746,7 @@ export function EngineSelection({
                           ))}
                         </Alert>
                       )}
+                      </form>
                     </Box>
                   )}
                 </Fragment>
@@ -742,7 +758,8 @@ export function EngineSelection({
 
       {/* Add Fuel Tank Form (only when adding, not editing) */}
       {addingFuelTankForType && !editingFuelTankId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             Add Fuel Tank for {addingFuelTankForType.name}
           </Typography>
@@ -764,6 +781,7 @@ export function EngineSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -774,10 +792,10 @@ export function EngineSelection({
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddFuelTank}
                   disabled={fuelTankValidationErrors.length > 0}
                 >
                   Add
@@ -792,6 +810,7 @@ export function EngineSelection({
               ))}
             </Alert>
           )}
+          </form>
         </Paper>
       )}
 
@@ -819,8 +838,9 @@ export function EngineSelection({
       )}
 
       {/* Add Engine Section (only when adding, not editing) */}
-      {selectedType && !editingid && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+      {selectedType && !editingId && (
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddEngine(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             Configure {selectedType.name}
           </Typography>
@@ -845,20 +865,21 @@ export function EngineSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
                     setSelectedType(null);
-                    setEditingid(null);
+                    setEditingId(null);
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddEngine}
                   disabled={validationErrors.length > 0}
                 >
                   Add
@@ -873,6 +894,7 @@ export function EngineSelection({
               ))}
             </Alert>
           )}
+          </form>
         </Paper>
       )}
 
@@ -1033,6 +1055,15 @@ export function EngineSelection({
           • Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
         </Typography>
       </Paper>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="Clear All Engines"
+        message="This will remove all installed engines and engine fuel tanks. This action cannot be undone."
+        confirmLabel="Clear All"
+        onConfirm={() => { handleClearAll(); setConfirmClearOpen(false); }}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
     </Box>
   );
 }

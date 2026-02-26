@@ -1,5 +1,6 @@
 import type { Hull } from '../types/hull';
 import { FIREPOWER_ORDER } from '../types/common';
+import { logger } from './utilities';
 import type {
   ZoneCode,
   ZoneCount,
@@ -76,7 +77,7 @@ export function getZoneLimitForHull(hullTypeId: string): number {
   const limitData = data.zoneLimits.hulls[hullTypeId];
   if (!limitData) {
     // Default fallback: estimate based on hull points / zone count
-    console.warn(`No zone limit data for hull type: ${hullTypeId}`);
+    logger.warn(`No zone limit data for hull type: ${hullTypeId}`);
     return 100; // Reasonable default
   }
 

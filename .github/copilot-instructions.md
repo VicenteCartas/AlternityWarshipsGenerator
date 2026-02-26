@@ -145,6 +145,20 @@ When releasing, these must ALL be updated in sync:
 - **Inline editing only**: Never navigate away for edits — use expandable rows, inline forms, or overlay dialogs
 - **Surface environment awareness**: When `surfaceProvidesLifeSupport` or `surfaceProvidesGravity` is true, show info banners in Support Systems and adjust chips/validation accordingly (no gravity tab, "Surface Gravity"/"Life Support: Surface" chips)
 
+### Add/Install Interaction Models
+
+Steps use three different patterns for adding items. Follow the existing pattern for each step:
+
+1. **Select → Configure → Add** (dominant pattern): Click a table row to select it, a configuration form appears (quantity, HP allocation, etc.), user clicks "Add" button. Used by: Power Plants, Engines, FTL, Weapons, Sensors, C4, Hangars, Defenses, Support Systems.
+2. **Click-to-toggle**: Clicking a table row directly installs/removes the item with no intermediary form. Rows show a circle/check icon to indicate toggle state. Used by: Armor.
+3. **Click-to-install**: Clicking a table row immediately installs one unit (some items in Hangars & Misc with `instantAdd: true` behavior).
+
+### Destructive Action Protection
+
+- **Bulk operations** (Clear All, Remove All, Unassign All): Always use `ConfirmDialog` from `src/components/shared/` before executing.
+- **Hull change with data**: Show confirmation when armor layers or power plants exist.
+- **Dependency removal**: Warn when removing a power plant creates a power deficit, or removing the last computer core orphans fire/sensor controls.
+
 ### Chip Color Scheme
 
 **Section Page Chips** (all `outlined` variant):

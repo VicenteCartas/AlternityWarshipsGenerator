@@ -6,6 +6,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import type { Hull } from '../../types/hull';
 import type { ShipArmor } from '../../types/armor';
 import type { DamageZone } from '../../types/damageDiagram';
@@ -40,7 +41,7 @@ export function DamageZonesOverview({ zones, hull, warshipName, armorLayers }: D
             </Box>
           ))}
           {armorLayers.length === 0 && (
-            <Chip label="No Armor" size="small" variant="outlined" color="warning" />
+            <Chip label="No Armor" icon={<WarningAmberIcon />} size="small" variant="outlined" color="warning" />
           )}
         </Box>
       </Paper>

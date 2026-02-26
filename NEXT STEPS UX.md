@@ -46,15 +46,11 @@ Zone fill states, system category colors, and chip status rely on color alone. N
 
 ## High — Discoverability
 
-### U5. App Bar Popover Chips Have No Visual Affordance
+### U5. App Bar Popover Chips Have No Visual Affordance ✅ DONE
 
 > **User Review:** Yes, do it
 
-The HP, Power, and Cost chips are actually interactive buttons that reveal detailed breakdowns and power scenario planning. There is **zero visual hint** they're clickable — no hover cursor, no expand icon, no "click for details" tooltip.
-
-This is the most powerful analysis tool in the app and most users will never discover it.
-
-**Fix:** Add a small expand/dropdown icon to each chip, or add a cursor change on hover, or show a tooltip "Click for breakdown."
+**Completed:** Added `ArrowDropDownIcon` as a visual dropdown indicator on all three popover chips (HP, Power, Cost) using MUI's `deleteIcon` + `onDelete` pattern. The arrow icon clearly signals that clicking reveals more detail.
 
 ### U6. Power Scenario Planning is Buried
 
@@ -72,21 +68,17 @@ Keyboard shortcuts (1-9 for zones, A for auto-assign, Ctrl+A select all, Esc des
 
 **Fix:** Show a brief keyboard hint banner on first visit to the Damage Diagram step. Or make the keyboard icon more prominent with a label like "Shortcuts."
 
-### U8. Fuel Tank Sub-Items Not Explained
+### U8. Fuel Tank Sub-Items Not Explained ✅ DONE
 
 > **User Review:** Yes, do it
 
-Fuel tanks are sub-items of specific power plant/engine installations. The mental model isn't explained anywhere — users must discover that clicking a fuel row under a parent installation is how to add fuel.
+**Completed:** Added `HelpOutlineIcon` with explanatory tooltip next to "Installed Fuel Tanks" headers in both PowerPlantSelection and EngineSelection. Tooltips explain that fuel tanks are linked to specific power plant/engine types and how to add them.
 
-**Fix:** Add a small help tooltip or info icon next to fuel sections explaining the relationship.
-
-### U9. Computer Core Prerequisite Not Explained
+### U9. Computer Core Prerequisite Not Explained ✅ DONE
 
 > **User Review:** Yes, do it
 
-Control computers, fire controls, and sensor controls don't appear until a computer core is installed. The empty state just says "No core installed" without explaining what to do.
-
-**Fix:** Change empty state to actionable: "Install a computer core in the Cores tab first to unlock control computers."
+**Completed:** Added an info Alert in the Computers tab when no core is installed: "Install a computer core from the table below to unlock control computers (fire controls, sensor controls)."
 
 ---
 
@@ -100,15 +92,11 @@ Control computers, fire controls, and sensor controls don't appear until a compu
 
 **Fix:** Add a confirmation dialog for bulk destructive actions, or at minimum show a Snackbar with an "Undo" action button.
 
-### U11. Missing Empty States in Installed Items
+### U11. Missing Empty States in Installed Items ✅ DONE
 
 > **User Review:** Yes, do it
 
-When no items of a type are installed, most steps render nothing (return null) in the installed-items area. Users see the selection table but no guidance.
-
-Gold standard already exists in SensorSelection: "No {category} sensors available at current design constraints."
-
-**Fix:** When installed items are empty, show: "No {category} installed. Select from the table below to add one."
+**Completed:** Added empty state Typography messages across 10 components (PowerPlant, Engine, Defense, HangarMisc, CommandControl, Weapon, Sensor, SupportSystems ×3). Each shows "No {category} installed. Select from the table below to add one." instead of rendering nothing.
 
 ### U12. No Warning When Hull Change Invalidates Build
 
@@ -141,33 +129,27 @@ Steps use three different interaction patterns for adding items:
 
 **Fix:** Document the three models in the copilot-instructions. Consider adding a subtle "Click to add" affordance to click-to-toggle rows so they're distinguishable from click-to-select rows.
 
-### U15. Weapon Tabs Missing Empty Messages
+### U15. Weapon Tabs Missing Empty Messages ✅ DONE
 
 > **User Review:** Yes, do it
 
-Weapon tabs show empty table bodies with headers but no friendly message when no weapons of that type are available at current design constraints. Other steps (Sensors) handle this well.
+**Completed:** Added "No {category} weapons available at current design constraints" empty state messages to all 4 weapon grid functions (beam, projectile, torpedo, special), matching the existing sensor pattern.
 
-**Fix:** Add "No {category} weapons available at current design constraints" to empty weapon tables.
-
-### U16. Summary Tab Order Shifts
+### U16. Summary Tab Order Shifts ✅ DONE
 
 > **User Review:** Yes, do it
 
-The Issues tab only appears conditionally (when issues exist). This shifts other tab indices — "Systems" can be tab 1 or tab 2 depending on whether issues exist. Users who learn tab positions get confused.
-
-**Fix:** Always show the Issues tab. Use a badge count on the tab label. Show "No issues found" as the empty state.
+**Completed:** Issues tab is now always visible with fixed indices (0=Issues, 1=Description, 2=Systems, 3=Fire Diagram, 4=Damage Zones). Issue count shows in tab label when present. Empty state shows "No issues found — design is valid!" with a CheckCircleIcon.
 
 ---
 
 ## Medium — Information Architecture
 
-### U17. No Overall Progress Indicator
+### U17. No Overall Progress Indicator ✅ DONE
 
 > **User Review:** Yes, do it
 
-Step icons show individual completion state (check/error/circle) but there's no overall progress indicator. Users can't quickly see "I'm 7/13 steps done."
-
-**Fix:** Add a progress fraction or thin progress bar to the stepper area: "7 of 13 complete" or a colored fill on the stepper track.
+**Completed:** Added a compact "{completed}/{total}" progress counter in the stepper bar, right of the scroll arrows. Step completion logic extracted into a `useMemo` computing a `Map<StepId, boolean>` for reuse.
 
 ### U18. Wide Tables Require Excessive Horizontal Scroll
 

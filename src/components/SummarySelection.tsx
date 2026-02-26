@@ -26,9 +26,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { TabPanel } from './shared';
 import { FireDiagram, DamageZonesOverview } from './summary';
 import { PdfExportDialog, type PdfExportOptions } from './PdfExportDialog';
+import { BudgetChart } from './shared/BudgetChart';
 import type { Hull } from '../types/hull';
 import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -58,7 +61,9 @@ import { calculateHangarMiscStats } from '../services/hangarMiscService';
 import { formatCost } from '../services/formatters';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
-import { exportShipToPDF } from '../services/pdfExportService';
+import { getWeaponBatteries, getWeaponBatteryDisplayName, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
+import { exportShipToPDF, exportCombatReferencePDF } from '../services/pdfExportService';
+import { logger } from '../services/utilities';
 
 
 interface SummarySelectionProps {
@@ -289,6 +294,93 @@ export function SummarySelection({
     designProgressLevel,
   ]);
 
+  /** Generate Markdown-formatted stats text for clipboard */
+  const generateStatsMarkdown = useCallback((): string => {
+    if (!hull || !stats) return '';
+    const lines: string[] = [];
+    lines.push(`## ${warshipName}`);
+    lines.push('');
+
+    // Metadata
+    const meta: string[] = [];
+    meta.push(`**Hull:** ${hull.name} (${hull.shipClass.charAt(0).toUpperCase() + hull.shipClass.slice(1)})`);
+    if (shipDescription.faction) meta.push(`**Faction:** ${shipDescription.faction}`);
+    if (shipDescription.classification) meta.push(`**Classification:** ${shipDescription.classification}`);
+    if (shipDescription.role) meta.push(`**Role:** ${shipDescription.role}`);
+    if (shipDescription.manufacturer) meta.push(`**Manufacturer:** ${shipDescription.manufacturer}`);
+    if (shipDescription.commissioningDate) meta.push(`**Commissioned:** ${shipDescription.commissioningDate}`);
+    lines.push(meta.join(' | '));
+    lines.push('');
+
+    // Overview stats
+    lines.push(`| Stat | Value |`);
+    lines.push(`|------|-------|`);
+    lines.push(`| Hull Points | ${stats.usedHP} / ${stats.totalHP} |`);
+    lines.push(`| Power | ${stats.powerConsumed} / ${stats.powerGenerated} |`);
+    lines.push(`| Total Cost | ${formatCost(stats.totalCost)} |`);
+    if (stats.totalAcceleration > 0) {
+      lines.push(`| Acceleration | ${stats.totalAcceleration} |`);
+    }
+    lines.push('');
+
+    // Systems breakdown
+    lines.push('### Systems');
+    lines.push('| System | HP | Power | Cost |');
+    lines.push('|--------|---:|------:|-----:|');
+    lines.push(`| Hull & Armor | ${stats.armor.hp} | — | ${formatCost(stats.armor.cost)} |`);
+    lines.push(`| Power Plants | ${stats.powerPlants.hp} | +${stats.powerPlants.power} | ${formatCost(stats.powerPlants.cost)} |`);
+    if (stats.engines.hp > 0) lines.push(`| Engines | ${stats.engines.hp} | -${stats.engines.power} | ${formatCost(stats.engines.cost)} |`);
+    if (stats.ftl) lines.push(`| FTL Drive | ${stats.ftl.hp} | -${stats.ftl.power} | ${formatCost(stats.ftl.cost)} |`);
+    if (stats.weapons.hp > 0) lines.push(`| Weapons | ${stats.weapons.hp} | -${stats.weapons.power} | ${formatCost(stats.weapons.cost)} |`);
+    if (stats.defenses.hp > 0) lines.push(`| Defenses | ${stats.defenses.hp} | -${stats.defenses.power} | ${formatCost(stats.defenses.cost)} |`);
+    if (stats.sensors.hp > 0) lines.push(`| Sensors | ${stats.sensors.hp} | -${stats.sensors.power} | ${formatCost(stats.sensors.cost)} |`);
+    if (stats.commandControl.hp > 0) lines.push(`| Command & Control | ${stats.commandControl.hp} | -${stats.commandControl.power} | ${formatCost(stats.commandControl.cost)} |`);
+    if (stats.support.hp > 0) lines.push(`| Support Systems | ${stats.support.hp} | -${stats.support.power} | ${formatCost(stats.support.cost)} |`);
+    if (stats.hangarMisc.hp > 0) lines.push(`| Hangars & Misc | ${stats.hangarMisc.hp} | -${stats.hangarMisc.power} | ${formatCost(stats.hangarMisc.cost)} |`);
+    lines.push('');
+
+    // Weapons list
+    if (installedWeapons.length > 0 || installedLaunchSystems.length > 0) {
+      lines.push('### Armament');
+      for (const w of installedWeapons) {
+        lines.push(`- ${w.quantity}x ${w.gunConfiguration} ${w.weaponType.name} (${w.mountType}${w.concealed ? ', concealed' : ''}) [${w.arcs.join(', ')}]`);
+      }
+      for (const ls of installedLaunchSystems) {
+        const lsData = getLaunchSystemsData().find(l => l.id === ls.launchSystemType);
+        lines.push(`- ${ls.quantity}x ${lsData?.name || ls.launchSystemType}`);
+      }
+      lines.push('');
+    }
+
+    // Defenses list
+    if (installedDefenses.length > 0) {
+      lines.push('### Defenses');
+      for (const d of installedDefenses) {
+        lines.push(`- ${d.quantity}x ${d.type.name}`);
+      }
+      lines.push('');
+    }
+
+    // Lore
+    if (shipDescription.lore.trim()) {
+      lines.push('### Description');
+      lines.push(shipDescription.lore);
+    }
+
+    return lines.join('\n');
+  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses]);
+
+  const handleCopyStats = useCallback(async () => {
+    const md = generateStatsMarkdown();
+    if (!md) return;
+    try {
+      await navigator.clipboard.writeText(md);
+      onShowNotification('Stats copied to clipboard', 'success');
+    } catch {
+      onShowNotification('Failed to copy to clipboard', 'error');
+    }
+  }, [generateStatsMarkdown, onShowNotification]);
+
   // Validation checks
   const validationIssues = useMemo(() => {
     const errors: string[] = [];
@@ -436,6 +528,33 @@ export function SummarySelection({
       }
     }
 
+      // WARNING: Fire Control ↔ Weapon linking validation (D15)
+      const batteries = getWeaponBatteries(installedWeapons, installedLaunchSystems);
+      if (batteries.length > 0 && installedCommandControl.length > 0) {
+        const batteriesWithoutFC = batteries.filter(b => !batteryHasFireControl(b.key, installedCommandControl));
+        if (batteriesWithoutFC.length > 0) {
+          const names = batteriesWithoutFC.map(b => getWeaponBatteryDisplayName(b.key, installedWeapons, installedLaunchSystems));
+          warnings.push(`Weapon batter${batteriesWithoutFC.length === 1 ? 'y' : 'ies'} without fire control: ${names.join(', ')}`);
+        }
+        const orphanedFC = getOrphanedFireControls(installedCommandControl, installedWeapons, installedLaunchSystems);
+        if (orphanedFC.length > 0) {
+          warnings.push(`${orphanedFC.length} fire control${orphanedFC.length !== 1 ? 's' : ''} not linked to any weapon battery`);
+        }
+      }
+
+      // WARNING: Sensor Control ↔ Sensor linking validation (D16)
+      if (installedSensors.length > 0 && installedCommandControl.length > 0) {
+        const sensorsWithoutControl = installedSensors.filter(s => !sensorHasSensorControl(s.id, installedCommandControl));
+        if (sensorsWithoutControl.length > 0) {
+          const names = sensorsWithoutControl.map(s => `${s.quantity}x ${s.type.name}`);
+          warnings.push(`Sensor${sensorsWithoutControl.length === 1 ? '' : 's'} without sensor control: ${names.join(', ')}`);
+        }
+        const orphanedSC = getOrphanedSensorControls(installedCommandControl, installedSensors);
+        if (orphanedSC.length > 0) {
+          warnings.push(`${orphanedSC.length} sensor control${orphanedSC.length !== 1 ? 's' : ''} not linked to any sensor`);
+        }
+      }
+
     // Check damage diagram
     const zoneLimit = getZoneLimitForHull(hull.id);
     const unassignedCount = damageDiagramZones.length === 0 ? 'all' : 
@@ -558,23 +677,79 @@ export function SummarySelection({
       const sheetType = designType === 'station' ? 'station_sheet' : 'ship_sheet';
       const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_${sheetType}.pdf`;
       
-      // Create action to open the PDF file
-      const openAction = window.electronAPI ? {
-        label: 'Open',
-        onClick: async () => {
-          try {
-            await window.electronAPI!.openPath(pdfPath);
-          } catch (e) {
-            console.error('Failed to open PDF:', e);
-          }
-        }
-      } : undefined;
-      
-      onShowNotification(`PDF exported: ${filename}`, 'success', openAction);
+      showPdfNotification(pdfPath, filename);
     } catch (error) {
-      console.error('Failed to export PDF:', error);
+      logger.error('Failed to export PDF:', error);
       onShowNotification(`Failed to export PDF: ${error}`, 'error');
     }
+  };
+
+  const handleExportCombatRef = async () => {
+    if (!hull) return;
+
+    try {
+      let targetDirectory: string | undefined;
+      if (window.electronAPI) {
+        if (currentFilePath) {
+          const separator = currentFilePath.includes('\\') ? '\\' : '/';
+          const lastSeparatorIndex = currentFilePath.lastIndexOf(separator);
+          targetDirectory = currentFilePath.substring(0, lastSeparatorIndex);
+        } else {
+          targetDirectory = await window.electronAPI.getDocumentsPath();
+        }
+      }
+
+      const pdfPath = await exportCombatReferencePDF({
+        warshipName,
+        hull,
+        shipDescription,
+        armorLayers,
+        installedPowerPlants,
+        installedFuelTanks,
+        installedEngines,
+        installedEngineFuelTanks,
+        installedFTLDrive,
+        installedFTLFuelTanks,
+        installedLifeSupport,
+        installedAccommodations,
+        installedStoreSystems,
+        installedGravitySystems,
+        installedWeapons,
+        installedLaunchSystems,
+        ordnanceDesigns,
+        installedDefenses,
+        installedCommandControl,
+        installedSensors,
+        installedHangarMisc,
+        damageDiagramZones,
+        designProgressLevel,
+        designType,
+        stationType,
+        targetDirectory,
+      });
+      const suffix = designType === 'station' ? 'station_combat_ref' : 'combat_ref';
+      const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_${suffix}.pdf`;
+
+      showPdfNotification(pdfPath, filename);
+    } catch (error) {
+      logger.error('Failed to export combat reference PDF:', error);
+      onShowNotification(`Failed to export PDF: ${error}`, 'error');
+    }
+  };
+
+  const showPdfNotification = (pdfPath: string, filename: string) => {
+    const openAction = window.electronAPI ? {
+      label: 'Open',
+      onClick: async () => {
+        try {
+          await window.electronAPI!.openPath(pdfPath);
+        } catch (e) {
+          logger.error('Failed to open PDF:', e);
+        }
+      }
+    } : undefined;
+
+    onShowNotification(`PDF exported: ${filename}`, 'success', openAction);
   };
 
   return (
@@ -583,12 +758,14 @@ export function SummarySelection({
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
           <Chip
+            icon={stats.remainingHP < 0 ? <ErrorIcon /> : undefined}
             label={`HP: ${stats.usedHP} / ${stats.totalHP}`}
             size="small"
             variant="outlined"
             color={stats.remainingHP < 0 ? 'error' : 'default'}
           />
           <Chip
+            icon={stats.powerBalance < 0 ? <ErrorIcon /> : stats.powerBalance === 0 ? <WarningIcon /> : <CheckCircleIcon />}
             label={`Power: ${stats.powerConsumed} / ${stats.powerGenerated}`}
             size="small"
             variant="outlined"
@@ -601,6 +778,7 @@ export function SummarySelection({
           />
           {hasIssues && (
             <Chip
+              icon={validationIssues.errors.length > 0 ? <ErrorIcon /> : <WarningIcon />}
               label={`${validationIssues.errors.length} error(s), ${validationIssues.warnings.length} warning(s)`}
               size="small"
               color={validationIssues.errors.length > 0 ? 'error' : 'warning'}
@@ -608,6 +786,7 @@ export function SummarySelection({
           )}
           {!hasIssues && (
             <Chip
+              icon={<CheckCircleIcon />}
               label="Design valid"
               size="small"
               color="success"
@@ -619,27 +798,33 @@ export function SummarySelection({
       {/* Tabs and Export Button */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="summary tabs">
-          {hasIssues && (
-            <Tab 
-              label={`Issues (${validationIssues.errors.length + validationIssues.warnings.length})`} 
-              id="summary-tab-issues" 
-              aria-controls="summary-tabpanel-issues"
-              sx={{ color: validationIssues.errors.length > 0 ? 'error.main' : 'warning.main' }}
-            />
-          )}
+          <Tab 
+            label={hasIssues ? `Issues (${validationIssues.errors.length + validationIssues.warnings.length})` : 'Issues'}
+            id="summary-tab-issues" 
+            aria-controls="summary-tabpanel-issues"
+            sx={hasIssues ? { color: validationIssues.errors.length > 0 ? 'error.main' : 'warning.main' } : undefined}
+          />
           <Tab label="Description" id="summary-tab-0" aria-controls="summary-tabpanel-0" />
           <Tab label="Systems" id="summary-tab-1" aria-controls="summary-tabpanel-1" />
           <Tab label="Fire Diagram" id="summary-tab-2" aria-controls="summary-tabpanel-2" />
           <Tab label="Damage Zones" id="summary-tab-3" aria-controls="summary-tabpanel-3" />
         </Tabs>
-        <Button
-          variant="contained"
-          startIcon={<PictureAsPdfIcon />}
-          onClick={() => setExportDialogOpen(true)}
-          sx={{ mr: 1 }}
-        >
-          Export PDF
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={handleCopyStats}
+          >
+            Copy Stats
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PictureAsPdfIcon />}
+            onClick={() => setExportDialogOpen(true)}
+          >
+            Export PDF
+          </Button>
+        </Box>
       </Box>
 
       {/* PDF Export Dialog */}
@@ -647,11 +832,12 @@ export function SummarySelection({
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
         onExport={handleExportPDF}
+        onExportCombatRef={handleExportCombatRef}
       />
 
-      {/* Issues Tab - only shown when there are issues */}
-      {hasIssues && (
-        <TabPanel value={tabValue} index={0}>
+      {/* Issues Tab */}
+      <TabPanel value={tabValue} index={0}>
+        {hasIssues ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Errors Section */}
             {validationIssues.errors.length > 0 && (
@@ -697,11 +883,16 @@ export function SummarySelection({
               </Paper>
             )}
           </Box>
-        </TabPanel>
-      )}
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 3, justifyContent: 'center' }}>
+            <CheckCircleIcon color="success" />
+            <Typography color="success.main">No issues found — design is valid!</Typography>
+          </Box>
+        )}
+      </TabPanel>
 
       {/* Description Tab */}
-      <TabPanel value={tabValue} index={hasIssues ? 1 : 0}>
+      <TabPanel value={tabValue} index={1}>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {/* Image upload section */}
           <Box sx={{ minWidth: 300, maxWidth: 400 }}>
@@ -757,6 +948,53 @@ export function SummarySelection({
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               Max 5MB. JPG, PNG, or GIF.
             </Typography>
+
+            {/* Structured metadata fields */}
+            <Typography variant="subtitle1" gutterBottom fontWeight="bold" sx={{ mt: 3 }}>
+              Design Metadata
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <TextField
+                label="Faction"
+                size="small"
+                fullWidth
+                placeholder="e.g., Galactic Concord"
+                value={shipDescription.faction}
+                onChange={(e) => onShipDescriptionChange({ ...shipDescription, faction: e.target.value })}
+              />
+              <TextField
+                label="Classification"
+                size="small"
+                fullWidth
+                placeholder="e.g., Destroyer, Frigate"
+                value={shipDescription.classification}
+                onChange={(e) => onShipDescriptionChange({ ...shipDescription, classification: e.target.value })}
+              />
+              <TextField
+                label="Role"
+                size="small"
+                fullWidth
+                placeholder="e.g., Patrol, Escort, Assault"
+                value={shipDescription.role}
+                onChange={(e) => onShipDescriptionChange({ ...shipDescription, role: e.target.value })}
+              />
+              <TextField
+                label="Manufacturer"
+                size="small"
+                fullWidth
+                placeholder="e.g., Starmech Collective"
+                value={shipDescription.manufacturer}
+                onChange={(e) => onShipDescriptionChange({ ...shipDescription, manufacturer: e.target.value })}
+              />
+              <TextField
+                label="Commissioning Date"
+                size="small"
+                fullWidth
+                placeholder="e.g., 2501, Year 12 GC"
+                value={shipDescription.commissioningDate}
+                onChange={(e) => onShipDescriptionChange({ ...shipDescription, commissioningDate: e.target.value })}
+              />
+            </Box>
           </Box>
 
           {/* Lore/Description section */}
@@ -778,9 +1016,17 @@ export function SummarySelection({
       </TabPanel>
 
       {/* Systems Tab */}
-      <TabPanel value={tabValue} index={hasIssues ? 2 : 1}>
+      <TabPanel value={tabValue} index={2}>
         {stats && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Budget Charts */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Budget Overview
+              </Typography>
+              <BudgetChart stats={stats} hullCost={hull.cost} />
+            </Paper>
+
             {/* Hull & Armor */}
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -1149,12 +1395,12 @@ export function SummarySelection({
       </TabPanel>
 
       {/* Fire Diagram Tab */}
-            <TabPanel value={tabValue} index={hasIssues ? 3 : 2}>
+            <TabPanel value={tabValue} index={3}>
         <FireDiagram weapons={installedWeapons} warshipName={warshipName} hullName={hull.name} />
       </TabPanel>
 
       {/* Damage Zones Tab */}
-            <TabPanel value={tabValue} index={hasIssues ? 4 : 3}>
+            <TabPanel value={tabValue} index={4}>
         <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} armorLayers={armorLayers} />
       </TabPanel>
     </Box>

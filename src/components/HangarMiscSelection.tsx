@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
@@ -283,7 +283,11 @@ export function HangarMiscSelection({
   // Render installed systems for a category
   const renderInstalledSystems = (category: HangarMiscCategory) => {
     const installed = getInstalledByCategory(category);
-    if (installed.length === 0) return null;
+    if (installed.length === 0) return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        No {getCategoryLabel(category).toLowerCase()} installed. Select from the table below to add one.
+      </Typography>
+    );
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -371,6 +375,7 @@ export function HangarMiscSelection({
 
     return (
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
             label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Size (HP)' : 'Quantity')}
@@ -398,6 +403,7 @@ export function HangarMiscSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -410,16 +416,17 @@ export function HangarMiscSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<SaveIcon />}
-                onClick={handleAddSystem}
               >
                 Save
               </Button>
             </Box>
           </Box>
         </Box>
+        </form>
       </Box>
     );
   };
@@ -431,7 +438,8 @@ export function HangarMiscSelection({
     if (selectedSystem.category !== activeTab) return null;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Typography variant="subtitle2" sx={{ mb: '10px' }}>
           Add {selectedSystem.name}
         </Typography>
@@ -462,6 +470,7 @@ export function HangarMiscSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -474,16 +483,17 @@ export function HangarMiscSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={handleAddSystem}
               >
                 Add
               </Button>
             </Box>
           </Box>
         </Box>
+        </form>
       </Paper>
     );
   };

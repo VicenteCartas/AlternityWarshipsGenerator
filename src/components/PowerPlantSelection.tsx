@@ -23,8 +23,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
-import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
-import { TruncatedDescription } from './shared';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx } from '../constants/tableStyles';
+import { TruncatedDescription, ConfirmDialog } from './shared';
 import type { Hull } from '../types/hull';
 import type { PowerPlantType, InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -39,8 +40,8 @@ import {
   validatePowerPlantInstallation,
   validateFuelTankInstallation,
   validatePowerPlantDesign,
-  generateInstallationId,
-  generateFuelTankId,
+  generatePowerPlantId,
+  generatePowerPlantFuelTankId,
   getFuelRequiringInstallations,
 } from '../services/powerPlantService';
 import { filterByDesignConstraints } from '../services/utilities';
@@ -51,6 +52,7 @@ interface PowerPlantSelectionProps {
   installedPowerPlants: InstalledPowerPlant[];
   installedFuelTanks: InstalledFuelTank[];
   usedHullPoints: number;
+  totalPowerConsumed: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   onPowerPlantsChange: (powerPlants: InstalledPowerPlant[]) => void;
@@ -62,6 +64,7 @@ export function PowerPlantSelection({
   installedPowerPlants,
   installedFuelTanks,
   usedHullPoints,
+  totalPowerConsumed,
   designProgressLevel,
   designTechTracks,
   onPowerPlantsChange,
@@ -76,6 +79,9 @@ export function PowerPlantSelection({
   const [addingFuelTankForType, setAddingFuelTankForType] = useState<PowerPlantType | null>(null);
   const [fuelTankHullPointsInput, setFuelTankHullPointsInput] = useState<string>('1');
   const [editingFuelTankId, setEditingFuelTankId] = useState<string | null>(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [confirmRemoveMessage, setConfirmRemoveMessage] = useState('');
 
   // Get power plants filtered by ship class, then apply design constraints
   const availablePowerPlants = useMemo(() => {
@@ -142,7 +148,7 @@ export function PowerPlantSelection({
       );
     } else {
       const newInstallation: InstalledPowerPlant = {
-        id: generateInstallationId(),
+        id: generatePowerPlantId(),
         type: selectedType,
         hullPoints,
       };
@@ -155,6 +161,21 @@ export function PowerPlantSelection({
   };
 
   const handleRemovePowerPlant = (id: string) => {
+    const plantToRemove = installedPowerPlants.find(p => p.id === id);
+    if (plantToRemove) {
+      const plantPower = calculatePowerGenerated(plantToRemove.type, plantToRemove.hullPoints);
+      const remainingPower = totalStats.totalPowerGenerated - plantPower;
+      if (remainingPower < totalPowerConsumed) {
+        const deficit = totalPowerConsumed - remainingPower;
+        setConfirmRemoveId(id);
+        setConfirmRemoveMessage(`Removing this ${plantToRemove.type.name} will create a power deficit of ${deficit} PP. Systems may not function properly.`);
+        return;
+      }
+    }
+    executeRemovePowerPlant(id);
+  };
+
+  const executeRemovePowerPlant = (id: string) => {
     const plantToRemove = installedPowerPlants.find(p => p.id === id);
     onPowerPlantsChange(
       installedPowerPlants.filter((p) => p.id !== id)
@@ -180,7 +201,7 @@ export function PowerPlantSelection({
 
   const handleDuplicatePowerPlant = (installation: InstalledPowerPlant) => {
     const duplicate: InstalledPowerPlant = {
-      id: generateInstallationId(),
+      id: generatePowerPlantId(),
       type: installation.type,
       hullPoints: installation.hullPoints,
     };
@@ -245,7 +266,7 @@ export function PowerPlantSelection({
       );
     } else {
       const newFuelTank: InstalledFuelTank = {
-        id: generateFuelTankId(),
+        id: generatePowerPlantFuelTankId(),
         forPowerPlantType: addingFuelTankForType,
         hullPoints,
       };
@@ -271,7 +292,7 @@ export function PowerPlantSelection({
 
   const handleDuplicateFuelTank = (fuelTank: InstalledFuelTank) => {
     const duplicate: InstalledFuelTank = {
-      id: generateFuelTankId(),
+      id: generatePowerPlantFuelTankId(),
       forPowerPlantType: fuelTank.forPowerPlantType,
       hullPoints: fuelTank.hullPoints,
     };
@@ -350,7 +371,7 @@ export function PowerPlantSelection({
             variant="outlined"
             size="small"
             color="secondary"
-            onClick={handleClearAll}
+            onClick={() => setConfirmClearOpen(true)}
           >
             Clear All
           </Button>
@@ -401,7 +422,7 @@ export function PowerPlantSelection({
           </Tooltip>
         </Box>
       </Paper>
-      {installedPowerPlants.length > 0 && (
+      {installedPowerPlants.length > 0 ? (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
             Installed Power Plants
@@ -496,6 +517,7 @@ export function PowerPlantSelection({
                   {/* Inline edit form when editing this power plant */}
                   {isEditing && selectedType && (
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddPowerPlant(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Size (HP)"
@@ -518,6 +540,7 @@ export function PowerPlantSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
+                              type="button"
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -528,10 +551,10 @@ export function PowerPlantSelection({
                               Cancel
                             </Button>
                             <Button
+                              type="submit"
                               variant="contained"
                               size="small"
                               startIcon={<SaveIcon />}
-                              onClick={handleAddPowerPlant}
                               disabled={validationErrors.length > 0}
                             >
                               Update
@@ -539,6 +562,7 @@ export function PowerPlantSelection({
                           </Box>
                         </Box>
                       </Box>
+                      </form>
                       {validationErrors.length > 0 && (
                         <Alert severity="error" sx={{ mt: 1 }}>
                           {validationErrors.map((error, index) => (
@@ -553,14 +577,23 @@ export function PowerPlantSelection({
             })}
           </Stack>
         </Paper>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 1, mb: 2 }}>
+          No power plants installed. Select one from the table below to get started.
+        </Typography>
       )}
 
       {/* Fuel Tanks Section */}
       {installedFuelTanks.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Fuel Tanks
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <Typography variant="subtitle2">
+              Installed Fuel Tanks
+            </Typography>
+            <Tooltip title="Fuel tanks are linked to a specific power plant type. Click the fuel chip on a power plant above, or use the 'Add fuel tank' button below, to add fuel.">
+              <HelpOutlineIcon fontSize="small" color="action" sx={{ cursor: 'help' }} />
+            </Tooltip>
+          </Box>
           <Stack spacing={1}>
             {installedFuelTanks.map((fuelTank) => {
               const cost = calculateFuelTankCost(fuelTank.forPowerPlantType, fuelTank.hullPoints);
@@ -629,6 +662,7 @@ export function PowerPlantSelection({
                   {/* Inline edit form when editing this fuel tank */}
                   {isEditing && addingFuelTankForType && (
                     <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
                           label="Size (HP)"
@@ -647,6 +681,7 @@ export function PowerPlantSelection({
                           )}
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
+                              type="button"
                               variant="outlined"
                               size="small"
                               onClick={() => {
@@ -657,10 +692,10 @@ export function PowerPlantSelection({
                               Cancel
                             </Button>
                             <Button
+                              type="submit"
                               variant="contained"
                               size="small"
                               startIcon={<SaveIcon />}
-                              onClick={handleAddFuelTank}
                               disabled={fuelTankValidationErrors.length > 0}
                             >
                               Update
@@ -668,6 +703,7 @@ export function PowerPlantSelection({
                           </Box>
                         </Box>
                       </Box>
+                      </form>
                       {fuelTankValidationErrors.length > 0 && (
                         <Alert severity="error" sx={{ mt: 1 }}>
                           {fuelTankValidationErrors.map((error, index) => (
@@ -686,7 +722,8 @@ export function PowerPlantSelection({
 
       {/* Add Fuel Tank Form (only when adding, not editing) */}
       {addingFuelTankForType && !editingFuelTankId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             Add Fuel Tank for {addingFuelTankForType.name}
           </Typography>
@@ -708,6 +745,7 @@ export function PowerPlantSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -718,10 +756,10 @@ export function PowerPlantSelection({
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddFuelTank}
                   disabled={fuelTankValidationErrors.length > 0}
                 >
                   Add
@@ -729,6 +767,7 @@ export function PowerPlantSelection({
               </Box>
             </Box>
           </Box>
+          </form>
           {fuelTankValidationErrors.length > 0 && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {fuelTankValidationErrors.map((error, index) => (
@@ -764,7 +803,8 @@ export function PowerPlantSelection({
 
       {/* Add new power plant section (only when adding, not editing) */}
       {selectedType && !editingInstallationId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddPowerPlant(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             Configure {selectedType.name}
           </Typography>
@@ -790,6 +830,7 @@ export function PowerPlantSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -800,10 +841,10 @@ export function PowerPlantSelection({
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddPowerPlant}
                   disabled={validationErrors.length > 0}
                 >
                   Add
@@ -811,6 +852,7 @@ export function PowerPlantSelection({
               </Box>
             </Box>
           </Box>
+          </form>
           {validationErrors.length > 0 && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {validationErrors.map((error, index) => (
@@ -929,6 +971,25 @@ export function PowerPlantSelection({
           • Each fuel tank is associated with a specific power plant type and uses that plant's fuel cost and efficiency
         </Typography>
       </Paper>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="Clear All Power Plants"
+        message="This will remove all installed power plants and fuel tanks. This action cannot be undone."
+        confirmLabel="Clear All"
+        onConfirm={() => { handleClearAll(); setConfirmClearOpen(false); }}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Power Deficit Warning"
+        message={confirmRemoveMessage}
+        confirmLabel="Remove Anyway"
+        confirmColor="warning"
+        onConfirm={() => { if (confirmRemoveId) executeRemovePowerPlant(confirmRemoveId); setConfirmRemoveId(null); }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </Box>
   );
 }

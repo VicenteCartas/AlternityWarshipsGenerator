@@ -183,6 +183,7 @@ export function LaunchSystemEditForm({
     <>
       <Box ref={formRef} sx={{ pt: 1, mb: 2 }}>
         {/* Header */}
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
           {/* Column 1: Quantity + Name + Stats */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
@@ -218,19 +219,20 @@ export function LaunchSystemEditForm({
 
           {/* Column 2: Actions */}
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" size="small" onClick={onCancel}>
+            <Button type="button" variant="outlined" size="small" onClick={onCancel}>
               Cancel
             </Button>
             <Button
+              type="submit"
               variant="contained"
               size="small"
               startIcon={<SaveIcon />}
-              onClick={handleSave}
             >
               Update
             </Button>
           </Box>
         </Box>
+        </form>
 
         {/* Ordnance Loading Section */}
         <Typography variant="subtitle2" gutterBottom>

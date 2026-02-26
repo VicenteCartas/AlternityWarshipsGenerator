@@ -21,7 +21,7 @@ import { calculateSupportSystemsStats } from '../services/supportSystemService';
 import { calculateWeaponStats } from '../services/weaponService';
 import { calculateOrdnanceStats } from '../services/ordnanceService';
 import { calculateDefenseStats } from '../services/defenseService';
-import { calculateCommandControlStats } from '../services/commandControlService';
+import { calculateCommandControlStats, getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { calculateSensorStats } from '../services/sensorService';
 import { calculateHangarMiscStats } from '../services/hangarMiscService';
 
@@ -253,17 +253,28 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       } else if (!sensorStats.hasBasicSensors && installedSensors.length > 0) {
         summaryValidationState = 'warning';
       } else {
-        const hasFtlStep = steps.some(s => s.id === 'ftl');
-        if (
-          armorLayers.length === 0 ||
-          (hasFtlStep && !installedFTLDrive) ||
-          installedDefenses.length === 0 ||
-          installedCommandControl.length === 0 ||
-          installedSensors.length === 0 ||
-          (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
-          (!surfaceProvidesLifeSupport && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
-        ) {
+        // Fire control / sensor control linking checks
+        const batteries = getWeaponBatteries(installedWeapons, installedLaunchSystems);
+        const hasUnlinkedBatteries = batteries.some(b => !batteryHasFireControl(b.key, installedCommandControl));
+        const hasOrphanedFC = getOrphanedFireControls(installedCommandControl, installedWeapons, installedLaunchSystems).length > 0;
+        const hasUnlinkedSensors = installedSensors.some(s => !sensorHasSensorControl(s.id, installedCommandControl));
+        const hasOrphanedSC = getOrphanedSensorControls(installedCommandControl, installedSensors).length > 0;
+
+        if (hasUnlinkedBatteries || hasOrphanedFC || hasUnlinkedSensors || hasOrphanedSC) {
           summaryValidationState = 'warning';
+        } else {
+          const hasFtlStep = steps.some(s => s.id === 'ftl');
+          if (
+            armorLayers.length === 0 ||
+            (hasFtlStep && !installedFTLDrive) ||
+            installedDefenses.length === 0 ||
+            installedCommandControl.length === 0 ||
+            installedSensors.length === 0 ||
+            (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
+            (!surfaceProvidesLifeSupport && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
+          ) {
+            summaryValidationState = 'warning';
+          }
         }
       }
     }

@@ -18,18 +18,18 @@ vi.mock('./armorService', () => ({
 
 vi.mock('./powerPlantService', () => ({
   getAllPowerPlantTypes: vi.fn(() => []),
-  generateFuelTankId: vi.fn(() => 'gen-fuel-id'),
+  generatePowerPlantFuelTankId: vi.fn(() => 'gen-fuel-id'),
 }));
 
 vi.mock('./engineService', () => ({
   getAllEngineTypes: vi.fn(() => []),
-  generateEngineInstallationId: vi.fn(() => 'gen-engine-id'),
+  generateEngineId: vi.fn(() => 'gen-engine-id'),
   generateEngineFuelTankId: vi.fn(() => 'gen-eng-fuel-id'),
 }));
 
 vi.mock('./ftlDriveService', () => ({
   getAllFTLDriveTypes: vi.fn(() => []),
-  generateFTLInstallationId: vi.fn(() => 'gen-ftl-id'),
+  generateFTLDriveId: vi.fn(() => 'gen-ftl-id'),
   generateFTLFuelTankId: vi.fn(() => 'gen-ftl-fuel-id'),
 }));
 
@@ -186,7 +186,7 @@ function makeMinimalSaveFile(overrides: Partial<WarshipSaveFile> = {}): WarshipS
 function makeMinimalState(overrides: Partial<WarshipState> = {}): WarshipState {
   return {
     name: 'Test Ship',
-    shipDescription: { lore: '', imageData: null, imageMimeType: null },
+    shipDescription: { lore: '', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
     designType: 'warship',
     stationType: null,
     surfaceProvidesLifeSupport: false,
@@ -396,7 +396,7 @@ describe('saveService', () => {
 
     it('omits lore when empty', () => {
       const state = makeMinimalState({
-        shipDescription: { lore: '', imageData: null, imageMimeType: null },
+        shipDescription: { lore: '', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
       });
       const result = serializeWarship(state);
       expect(result.lore).toBeUndefined();

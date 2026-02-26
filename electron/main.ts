@@ -445,6 +445,50 @@ ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
   return { success: true };
 });
 
+// ============== Auto-save / Crash Recovery ==============
+
+function getAutoSavePath(): string {
+  return path.join(app.getPath('userData'), 'autosave.warship.json');
+}
+
+ipcMain.handle('get-autosave-path', async () => {
+  return getAutoSavePath();
+});
+
+ipcMain.handle('write-autosave', async (_event, content: string) => {
+  try {
+    fs.writeFileSync(getAutoSavePath(), content, 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('read-autosave', async () => {
+  try {
+    const autoSavePath = getAutoSavePath();
+    if (!fs.existsSync(autoSavePath)) {
+      return { success: false, error: 'No auto-save file found' };
+    }
+    const content = fs.readFileSync(autoSavePath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('delete-autosave', async () => {
+  try {
+    const autoSavePath = getAutoSavePath();
+    if (fs.existsSync(autoSavePath)) {
+      fs.unlinkSync(autoSavePath);
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 // ============== Mod System IPC Handlers ==============
 
 const MOD_DATA_FILES = [

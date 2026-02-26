@@ -10,22 +10,27 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import DescriptionIcon from '@mui/icons-material/Description';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { APP_VERSION } from '../constants/version';
+import { checkForAutoSave, clearAutoSave } from '../hooks/useAutoSave';
 
 interface WelcomePageProps {
   onNewWarship: () => void;
   onLoadWarship: () => void;
   onManageMods: () => void;
   onLoadFile?: (filePath: string) => void;
+  onRecoverAutoSave?: (content: string) => void;
 }
 
-export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadFile }: WelcomePageProps) {
+export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadFile, onRecoverAutoSave }: WelcomePageProps) {
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  const [autoSaveContent, setAutoSaveContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (window.electronAPI?.getRecentFiles) {
@@ -35,6 +40,10 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadF
         setRecentFiles([]);
       });
     }
+    // Check for auto-save recovery
+    checkForAutoSave().then((content) => {
+      if (content) setAutoSaveContent(content);
+    });
   }, []);
 
   const getFileName = (filePath: string) => {
@@ -89,6 +98,43 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onLoadF
         </Box>
 
         <Divider sx={{ mb: 3 }} />
+
+        {/* Auto-save Recovery */}
+        {autoSaveContent && (
+          <Alert
+            severity="warning"
+            icon={<RestoreIcon />}
+            sx={{ mb: 3 }}
+            action={
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  color="warning"
+                  size="small"
+                  variant="contained"
+                  onClick={() => {
+                    onRecoverAutoSave?.(autoSaveContent);
+                    setAutoSaveContent(null);
+                    clearAutoSave();
+                  }}
+                >
+                  Recover
+                </Button>
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    setAutoSaveContent(null);
+                    clearAutoSave();
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </Box>
+            }
+          >
+            An unsaved design was found from a previous session. Would you like to recover it?
+          </Alert>
+        )}
 
         {/* Content: Actions + Recent Designs side by side */}
         <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>

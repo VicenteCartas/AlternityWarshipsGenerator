@@ -26,7 +26,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel, TruncatedDescription } from './shared';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { DefenseSystemType, InstalledDefenseSystem } from '../types/defense';
@@ -281,7 +281,11 @@ export function DefenseSelection({
         : d.type.category === category
     );
     
-    if (categoryDefenses.length === 0) return null;
+    if (categoryDefenses.length === 0) return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        No {getCategoryLabel(category).toLowerCase()} installed. Select from the table below to add one.
+      </Typography>
+    );
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -415,7 +419,8 @@ export function DefenseSelection({
     const showQuantityInput = !(selectedDefense.hullPercentage > 0) && !selectedDefense.fixedCoverage;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddDefense(); }}>
         <Typography variant="subtitle2" gutterBottom>
           {editingDefenseId ? 'Edit' : 'Add'} {selectedDefense.name}
         </Typography>
@@ -466,6 +471,7 @@ export function DefenseSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -477,16 +483,17 @@ export function DefenseSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={editingDefenseId ? <SaveIcon /> : <AddIcon />}
-                onClick={handleAddDefense}
               >
                 {editingDefenseId ? 'Save' : 'Add'}
               </Button>
             </Box>
           </Box>
         </Box>
+        </form>
       </Paper>
     );
   };

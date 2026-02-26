@@ -131,7 +131,7 @@ export function validateFTLInstallation(
 /**
  * Generate a unique installation ID
  */
-export function generateFTLInstallationId(): string {
+export function generateFTLDriveId(): string {
   return generateId('ftl');
 }
 

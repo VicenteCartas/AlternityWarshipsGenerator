@@ -162,12 +162,9 @@ describe('weaponService', () => {
       expect(result).toEqual(MOUNT_MODIFIERS.turret);
     });
 
-    it('falls back to hardcoded defaults when JSON not loaded', () => {
+    it('throws when JSON data not loaded', () => {
       (getMountModifiersData as ReturnType<typeof vi.fn>).mockReturnValue(null);
-      const result = getMountModifiers('turret');
-      expect(result.costMultiplier).toBe(1.25);
-      expect(result.hpMultiplier).toBe(1.25);
-      expect(result.standardArcs).toBe(3);
+      expect(() => getMountModifiers('turret')).toThrow('Mount modifiers data not loaded');
     });
 
     it('returns correct values for all mount types', () => {
@@ -199,11 +196,9 @@ describe('weaponService', () => {
       expect(result).toEqual(GUN_CONFIGS.twin);
     });
 
-    it('falls back to hardcoded defaults when JSON not loaded', () => {
+    it('throws when JSON data not loaded', () => {
       (getGunConfigurationsData as ReturnType<typeof vi.fn>).mockReturnValue(null);
-      const result = getGunConfigurationModifiers('triple');
-      expect(result.effectiveGunCount).toBe(2);
-      expect(result.actualGunCount).toBe(3);
+      expect(() => getGunConfigurationModifiers('triple')).toThrow('Gun configuration data not loaded');
     });
 
     it('returns correct effectiveGunCount vs actualGunCount', () => {
@@ -213,10 +208,9 @@ describe('weaponService', () => {
       expect(getGunConfigurationModifiers('quadruple')).toEqual({ effectiveGunCount: 2.5, actualGunCount: 4 });
     });
 
-    it('returns default {1,1} for unknown config', () => {
+    it('throws for unknown config when data not loaded', () => {
       (getGunConfigurationsData as ReturnType<typeof vi.fn>).mockReturnValue(null);
-      const result = getGunConfigurationModifiers('quintuple' as string);
-      expect(result).toEqual({ effectiveGunCount: 1, actualGunCount: 1 });
+      expect(() => getGunConfigurationModifiers('quintuple' as string)).toThrow('Gun configuration data not loaded');
     });
   });
 
@@ -227,11 +221,9 @@ describe('weaponService', () => {
       expect(result.hpMultiplier).toBe(1.5);
     });
 
-    it('falls back to hardcoded defaults when JSON not loaded', () => {
+    it('throws when JSON data not loaded', () => {
       (getConcealmentModifierData as ReturnType<typeof vi.fn>).mockReturnValue(null);
-      const result = getConcealmentModifier();
-      expect(result.costMultiplier).toBe(1.5);
-      expect(result.hpMultiplier).toBe(1.5);
+      expect(() => getConcealmentModifier()).toThrow('Concealment modifier data not loaded');
     });
   });
 

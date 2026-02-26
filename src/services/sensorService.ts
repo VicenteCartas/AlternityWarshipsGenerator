@@ -90,16 +90,18 @@ export function calculateTrackingCapability(
   computerQuality: ComputerQuality,
   quantity: number
 ): number {
-  // Fallback defaults in case JSON not loaded
-  const defaults: TrackingTable = {
-    '6': { none: 5, Ordinary: 10, Good: 20, Amazing: 40 },
-    '7': { none: 10, Ordinary: 20, Good: 40, Amazing: -1 },
-    '8': { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
-    '9': { none: 20, Ordinary: 40, Good: 80, Amazing: -1 },
-  };
-
-  const table = getTrackingTableData() || defaults;
-  const baseTracking = table[designPL.toString()]?.[computerQuality] ?? defaults[designPL.toString()][computerQuality];
+  const table = getTrackingTableData();
+  if (!table) {
+    throw new Error('[sensorService] Tracking table data not loaded. Ensure game data is initialized before calling calculateTrackingCapability().');
+  }
+  const plEntry = table[designPL.toString()];
+  if (!plEntry) {
+    throw new Error(`[sensorService] No tracking data for progress level ${designPL}`);
+  }
+  const baseTracking = plEntry[computerQuality];
+  if (baseTracking === undefined) {
+    throw new Error(`[sensorService] No tracking data for computer quality "${computerQuality}" at PL ${designPL}`);
+  }
   
   // Unlimited tracking stays unlimited regardless of quantity
   if (baseTracking === -1) {

@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment, type ReactNode } from 'react';
 import {
   Box,
   Typography,
@@ -24,10 +24,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { TabPanel, TruncatedDescription } from './shared';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
-import type { ProgressLevel, TechTrack } from '../types/common';
+import type { ProgressLevel, TechTrack, InstalledQuantityItem } from '../types/common';
 import type {
   LifeSupportType,
   AccommodationType,
@@ -53,6 +55,324 @@ import {
 } from '../services/supportSystemService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
+
+// ============== Generic Subsystem Tab Component ==============
+
+/** Common fields shared by LifeSupportType, AccommodationType, and StoreSystemType */
+interface BaseSubsystemType {
+  id: string;
+  name: string;
+  progressLevel: ProgressLevel;
+  techTracks: TechTrack[];
+  hullPoints: number;
+  powerRequired: number;
+  cost: number;
+  description: string;
+  expandable?: boolean;
+  expansionValuePerHp?: number;
+  expansionCostPerHp?: number;
+}
+
+interface SubsystemTabProps<T extends BaseSubsystemType> {
+  installedItems: InstalledQuantityItem<T>[];
+  availableTypes: T[];
+  onChange: (items: InstalledQuantityItem<T>[]) => void;
+  generateId: () => string;
+  label: string;
+  labelPlural: string;
+  tableMinWidth: number;
+  renderInstalledChips: (installed: InstalledQuantityItem<T>) => ReactNode;
+  renderPreviewExtra: (type: T, quantity: number, extraHp: number) => ReactNode;
+  renderExtraHeaders: () => ReactNode;
+  renderExtraRowCells: (type: T) => ReactNode;
+}
+
+function SubsystemTab<T extends BaseSubsystemType>({
+  installedItems,
+  availableTypes,
+  onChange,
+  generateId,
+  label,
+  labelPlural,
+  tableMinWidth,
+  renderInstalledChips,
+  renderPreviewExtra,
+  renderExtraHeaders,
+  renderExtraRowCells,
+}: SubsystemTabProps<T>) {
+  const [selectedType, setSelectedType] = useState<T | null>(null);
+  const [quantity, setQuantity] = useState<string>('1');
+  const [extraHp, setExtraHp] = useState<number>(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setSelectedType(null);
+    setQuantity('1');
+    setExtraHp(0);
+    setEditingId(null);
+  };
+
+  const handleSelect = (type: T) => {
+    setSelectedType(type);
+    setQuantity('1');
+    setExtraHp(0);
+    setEditingId(null);
+  };
+
+  const handleAdd = () => {
+    if (!selectedType) return;
+    const qty = parseInt(quantity, 10) || 1;
+    const extra = selectedType.expandable ? extraHp : undefined;
+
+    if (editingId) {
+      onChange(
+        installedItems.map((item) =>
+          item.id === editingId
+            ? { ...item, type: selectedType, quantity: qty, extraHp: extra }
+            : item
+        )
+      );
+    } else {
+      onChange([
+        ...installedItems,
+        { id: generateId(), type: selectedType, quantity: qty, extraHp: extra },
+      ]);
+    }
+    resetForm();
+  };
+
+  const handleEdit = (installed: InstalledQuantityItem<T>) => {
+    setSelectedType(installed.type);
+    setQuantity(installed.quantity.toString());
+    setExtraHp(installed.extraHp || 0);
+    setEditingId(installed.id);
+  };
+
+  const handleDuplicate = (installed: InstalledQuantityItem<T>) => {
+    const duplicate: InstalledQuantityItem<T> = {
+      id: generateId(),
+      type: installed.type,
+      quantity: installed.quantity,
+      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
+    };
+    const index = installedItems.findIndex((item) => item.id === installed.id);
+    const updated = [...installedItems];
+    updated.splice(index + 1, 0, duplicate);
+    onChange(updated);
+  };
+
+  const handleRemove = (id: string) => {
+    onChange(installedItems.filter((item) => item.id !== id));
+  };
+
+  const renderFormContent = (isEditing: boolean) => {
+    if (!selectedType) return null;
+    const qty = parseInt(quantity, 10) || 1;
+    const hp = selectedType.hullPoints * qty + (selectedType.expandable ? extraHp : 0);
+    const power = selectedType.powerRequired * qty;
+    const cost = selectedType.cost * qty + (selectedType.expandable ? extraHp * (selectedType.expansionCostPerHp || 0) : 0);
+
+    return (
+      <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
+        {!isEditing && (
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+            Add {selectedType.name}
+          </Typography>
+        )}
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label="Quantity"
+            type="number"
+            size="small"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            inputProps={{ min: 1 }}
+            sx={{ width: 100 }}
+          />
+          {selectedType.expandable && (
+            <TextField
+              label="Extra HP"
+              type="number"
+              size="small"
+              value={extraHp}
+              onChange={(e) => setExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0 }}
+              sx={{ width: 100 }}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {hp} |{' '}
+              Power: {power} |{' '}
+              {renderPreviewExtra(selectedType, qty, extraHp)}
+              Cost: {formatCost(cost)}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={resetForm}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
+              >
+                {isEditing ? 'Update' : 'Add'}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </form>
+    );
+  };
+
+  return (
+    <Box>
+      {/* Installed items */}
+      {installedItems.length > 0 ? (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed {labelPlural}
+          </Typography>
+          <Stack spacing={1}>
+            {installedItems.map((installed) => {
+              const isEditing = editingId === installed.id;
+              return (
+                <Fragment key={installed.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
+                  </Typography>
+                  <Chip
+                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${installed.type.powerRequired * installed.quantity} Power`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {renderInstalledChips(installed)}
+                  <Chip
+                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <IconButton size="small" color="primary" onClick={() => handleEdit(installed)} aria-label={`Edit ${label}`}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleDuplicate(installed)} aria-label={`Duplicate ${label}`}>
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleRemove(installed.id)} aria-label={`Remove ${label}`}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && selectedType && (
+                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    {renderFormContent(true)}
+                  </Box>
+                )}
+              </Fragment>
+            );
+          })}
+          </Stack>
+        </Paper>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 1, mb: 2 }}>
+          No {label} installed. Select from the table below to add one.
+        </Typography>
+      )}
+
+      {/* Add new item form - only show when adding (not editing) */}
+      {selectedType && !editingId && (
+        <Paper variant="outlined" sx={configFormSx}>
+          {renderFormContent(false)}
+        </Paper>
+      )}
+
+      {/* Available types table */}
+      <TableContainer
+        component={Paper}
+        variant="outlined"
+        sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: tableMinWidth } }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
+              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
+              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
+              {renderExtraHeaders()}
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {availableTypes.map((type) => (
+              <TableRow
+                key={type.id}
+                hover
+                selected={selectedType?.id === type.id}
+                sx={{
+                  cursor: 'pointer',
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
+                onClick={() => handleSelect(type)}
+              >
+                <TableCell>
+                  <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
+                    {type.name}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">{type.progressLevel}</TableCell>
+                <TableCell align="center">
+                  {type.techTracks.length > 0 ? (
+                    <Tooltip title={type.techTracks.map(getTechTrackName).join(', ')}>
+                      <Typography variant="caption">{type.techTracks.join(', ')}</Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">-</Typography>
+                  )}
+                </TableCell>
+                <TableCell align="right">{type.hullPoints}</TableCell>
+                <TableCell align="right">{type.powerRequired}</TableCell>
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
+                {renderExtraRowCells(type)}
+                <TableCell>
+                  <TruncatedDescription text={type.description} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
+}
 
 interface SupportSystemsSelectionProps {
   hull: Hull;
@@ -87,24 +407,6 @@ export function SupportSystemsSelection({
 }: SupportSystemsSelectionProps) {
   const [activeTab, setActiveTab] = useState(0);
 
-  // Life Support state
-  const [selectedLifeSupport, setSelectedLifeSupport] = useState<LifeSupportType | null>(null);
-  const [lifeSupportQuantity, setLifeSupportQuantity] = useState<string>('1');
-  const [lifeSupportExtraHp, setLifeSupportExtraHp] = useState<number>(0);
-  const [editingLifeSupportId, setEditingLifeSupportId] = useState<string | null>(null);
-
-  // Accommodation state
-  const [selectedAccommodation, setSelectedAccommodation] = useState<AccommodationType | null>(null);
-  const [accommodationQuantity, setAccommodationQuantity] = useState<string>('1');
-  const [accommodationExtraHp, setAccommodationExtraHp] = useState<number>(0);
-  const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
-
-  // Store System state
-  const [selectedStoreSystem, setSelectedStoreSystem] = useState<StoreSystemType | null>(null);
-  const [storeSystemQuantity, setStoreSystemQuantity] = useState<string>('1');
-  const [storeSystemExtraHp, setStoreSystemExtraHp] = useState<number>(0);
-  const [editingStoreSystemId, setEditingStoreSystemId] = useState<string | null>(null);
-
   // Get filtered types
   const availableLifeSupport = useMemo(() => {
     return filterByDesignConstraints(getAllLifeSupportTypes(), designProgressLevel, designTechTracks);
@@ -133,995 +435,6 @@ export function SupportSystemsSelection({
       designTechTracks
     ),
     [installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks]
-  );
-
-  // ============== Life Support Handlers ==============
-
-  const handleSelectLifeSupport = (type: LifeSupportType) => {
-    setSelectedLifeSupport(type);
-    setLifeSupportQuantity('1');
-    setLifeSupportExtraHp(0);
-    setEditingLifeSupportId(null);
-  };
-
-  const handleAddLifeSupport = () => {
-    if (!selectedLifeSupport) return;
-    const quantity = parseInt(lifeSupportQuantity, 10) || 1;
-    const extraHp = selectedLifeSupport.expandable ? lifeSupportExtraHp : undefined;
-
-    if (editingLifeSupportId) {
-      onLifeSupportChange(
-        installedLifeSupport.map((ls) =>
-          ls.id === editingLifeSupportId
-            ? { ...ls, type: selectedLifeSupport, quantity, extraHp }
-            : ls
-        )
-      );
-    } else {
-      // Always add as a new installation (don't combine with existing)
-      onLifeSupportChange([
-        ...installedLifeSupport,
-        { id: generateLifeSupportId(), type: selectedLifeSupport, quantity, extraHp },
-      ]);
-    }
-
-    setSelectedLifeSupport(null);
-    setLifeSupportQuantity('1');
-    setLifeSupportExtraHp(0);
-    setEditingLifeSupportId(null);
-  };
-
-  const handleEditLifeSupport = (installed: InstalledLifeSupport) => {
-    setSelectedLifeSupport(installed.type);
-    setLifeSupportQuantity(installed.quantity.toString());
-    setLifeSupportExtraHp(installed.extraHp || 0);
-    setEditingLifeSupportId(installed.id);
-  };
-
-  const handleDuplicateLifeSupport = (installed: InstalledLifeSupport) => {
-    const duplicate: InstalledLifeSupport = {
-      id: generateLifeSupportId(),
-      type: installed.type,
-      quantity: installed.quantity,
-      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
-    };
-    const index = installedLifeSupport.findIndex(ls => ls.id === installed.id);
-    const updated = [...installedLifeSupport];
-    updated.splice(index + 1, 0, duplicate);
-    onLifeSupportChange(updated);
-  };
-
-  const handleRemoveLifeSupport = (id: string) => {
-    onLifeSupportChange(installedLifeSupport.filter((ls) => ls.id !== id));
-  };
-
-  // ============== Accommodation Handlers ==============
-
-  const handleSelectAccommodation = (type: AccommodationType) => {
-    setSelectedAccommodation(type);
-    setAccommodationQuantity('1');
-    setAccommodationExtraHp(0);
-    setEditingAccommodationId(null);
-  };
-
-  const handleAddAccommodation = () => {
-    if (!selectedAccommodation) return;
-    const quantity = parseInt(accommodationQuantity, 10) || 1;
-    const extraHp = selectedAccommodation.expandable ? accommodationExtraHp : undefined;
-
-    if (editingAccommodationId) {
-      onAccommodationsChange(
-        installedAccommodations.map((acc) =>
-          acc.id === editingAccommodationId
-            ? { ...acc, type: selectedAccommodation, quantity, extraHp }
-            : acc
-        )
-      );
-    } else {
-      // Always add as a new installation (don't combine with existing)
-      onAccommodationsChange([
-        ...installedAccommodations,
-        { id: generateAccommodationId(), type: selectedAccommodation, quantity, extraHp },
-      ]);
-    }
-
-    setSelectedAccommodation(null);
-    setAccommodationQuantity('1');
-    setAccommodationExtraHp(0);
-    setEditingAccommodationId(null);
-  };
-
-  const handleEditAccommodation = (installed: InstalledAccommodation) => {
-    setSelectedAccommodation(installed.type);
-    setAccommodationQuantity(installed.quantity.toString());
-    setAccommodationExtraHp(installed.extraHp || 0);
-    setEditingAccommodationId(installed.id);
-  };
-
-  const handleDuplicateAccommodation = (installed: InstalledAccommodation) => {
-    const duplicate: InstalledAccommodation = {
-      id: generateAccommodationId(),
-      type: installed.type,
-      quantity: installed.quantity,
-      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
-    };
-    const index = installedAccommodations.findIndex(acc => acc.id === installed.id);
-    const updated = [...installedAccommodations];
-    updated.splice(index + 1, 0, duplicate);
-    onAccommodationsChange(updated);
-  };
-
-  const handleRemoveAccommodation = (id: string) => {
-    onAccommodationsChange(installedAccommodations.filter((acc) => acc.id !== id));
-  };
-
-  // ============== Store System Handlers ==============
-
-  const handleSelectStoreSystem = (type: StoreSystemType) => {
-    setSelectedStoreSystem(type);
-    setStoreSystemQuantity('1');
-    setStoreSystemExtraHp(0);
-    setEditingStoreSystemId(null);
-  };
-
-  const handleAddStoreSystem = () => {
-    if (!selectedStoreSystem) return;
-    const quantity = parseInt(storeSystemQuantity, 10) || 1;
-    const extraHp = selectedStoreSystem.expandable ? storeSystemExtraHp : undefined;
-
-    if (editingStoreSystemId) {
-      onStoreSystemsChange(
-        installedStoreSystems.map((store) =>
-          store.id === editingStoreSystemId
-            ? { ...store, type: selectedStoreSystem, quantity, extraHp }
-            : store
-        )
-      );
-    } else {
-      // Always add as a new installation (don't combine with existing)
-      onStoreSystemsChange([
-        ...installedStoreSystems,
-        { id: generateStoreSystemId(), type: selectedStoreSystem, quantity, extraHp },
-      ]);
-    }
-
-    setSelectedStoreSystem(null);
-    setStoreSystemQuantity('1');
-    setStoreSystemExtraHp(0);
-    setEditingStoreSystemId(null);
-  };
-
-  const handleEditStoreSystem = (installed: InstalledStoreSystem) => {
-    setSelectedStoreSystem(installed.type);
-    setStoreSystemQuantity(installed.quantity.toString());
-    setStoreSystemExtraHp(installed.extraHp || 0);
-    setEditingStoreSystemId(installed.id);
-  };
-
-  const handleDuplicateStoreSystem = (installed: InstalledStoreSystem) => {
-    const duplicate: InstalledStoreSystem = {
-      id: generateStoreSystemId(),
-      type: installed.type,
-      quantity: installed.quantity,
-      ...(installed.extraHp ? { extraHp: installed.extraHp } : {}),
-    };
-    const index = installedStoreSystems.findIndex(s => s.id === installed.id);
-    const updated = [...installedStoreSystems];
-    updated.splice(index + 1, 0, duplicate);
-    onStoreSystemsChange(updated);
-  };
-
-  const handleRemoveStoreSystem = (id: string) => {
-    onStoreSystemsChange(installedStoreSystems.filter((store) => store.id !== id));
-  };
-
-  // ============== Render Helpers ==============
-
-  const renderLifeSupportTab = () => (
-    <Box>
-      {/* Installed Life Support */}
-      {installedLifeSupport.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Life Support
-          </Typography>
-          <Stack spacing={1}>
-            {installedLifeSupport.map((installed) => {
-              const isEditing = editingLifeSupportId === installed.id;
-              return (
-                <Fragment key={installed.id}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      p: 1,
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                    }}
-                  >
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
-                  </Typography>
-                  <Chip
-                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${installed.type.powerRequired * installed.quantity} Power`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`Covers ${installed.type.coveragePerHullPoint * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)} HP (${((( installed.type.coveragePerHullPoint * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%)`}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <IconButton size="small" color="primary" onClick={() => handleEditLifeSupport(installed)} aria-label="Edit life support">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateLifeSupport(installed)} aria-label="Duplicate life support">
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveLifeSupport(installed.id)} aria-label="Remove life support">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                {/* Inline edit form */}
-                {isEditing && selectedLifeSupport && (
-                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                      <TextField
-                        label="Quantity"
-                        type="number"
-                        size="small"
-                        value={lifeSupportQuantity}
-                        onChange={(e) => setLifeSupportQuantity(e.target.value)}
-                        inputProps={{ min: 1 }}
-                        sx={{ width: 100 }}
-                      />
-                      {selectedLifeSupport.expandable && (
-                        <TextField
-                          label="Extra HP"
-                          type="number"
-                          size="small"
-                          value={lifeSupportExtraHp}
-                          onChange={(e) => setLifeSupportExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                          inputProps={{ min: 0 }}
-                          sx={{ width: 100 }}
-                        />
-                      )}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp : 0)} |
-                          Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
-                          Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)} HP ({(((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%) |
-                          Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionCostPerHp || 0) : 0))}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              setSelectedLifeSupport(null);
-                              setEditingLifeSupportId(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddLifeSupport}
-                          >
-                            Update
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
-                )}
-              </Fragment>
-            );
-          })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Add new Life Support - Only show when adding new (not editing) */}
-      {selectedLifeSupport && !editingLifeSupportId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            Add {selectedLifeSupport.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <TextField
-              label="Quantity"
-              type="number"
-              size="small"
-              value={lifeSupportQuantity}
-              onChange={(e) => setLifeSupportQuantity(e.target.value)}
-              inputProps={{ min: 1 }}
-              sx={{ width: 100 }}
-            />
-            {selectedLifeSupport.expandable && (
-              <TextField
-                label="Extra HP"
-                type="number"
-                size="small"
-                value={lifeSupportExtraHp}
-                onChange={(e) => setLifeSupportExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                inputProps={{ min: 0 }}
-                sx={{ width: 100 }}
-              />
-            )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                HP: {selectedLifeSupport.hullPoints * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp : 0)} |
-                Power: {selectedLifeSupport.powerRequired * (parseInt(lifeSupportQuantity, 10) || 1)} |
-                Covers: {selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)} HP ({(((selectedLifeSupport.coveragePerHullPoint * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionValuePerHp || 0) : 0)) / hull.hullPoints) * 100).toFixed(0)}%) |
-                Cost: {formatCost(selectedLifeSupport.cost * (parseInt(lifeSupportQuantity, 10) || 1) + (selectedLifeSupport.expandable ? lifeSupportExtraHp * (selectedLifeSupport.expansionCostPerHp || 0) : 0))}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    setSelectedLifeSupport(null);
-                    setEditingLifeSupportId(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddLifeSupport}
-                >
-                  Add
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Available Life Support Types */}
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 700 } }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx}>Name</TableCell>
-              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
-              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
-              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Covers</TableCell>
-              <TableCell sx={headerCellSx}>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {availableLifeSupport.map((type) => (
-              <TableRow
-                key={type.id}
-                hover
-                selected={selectedLifeSupport?.id === type.id}
-                sx={{
-                  cursor: 'pointer',
-                  '&.Mui-selected': {
-                    backgroundColor: 'action.selected',
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: 'action.selected',
-                  },
-                }}
-                onClick={() => handleSelectLifeSupport(type)}
-              >
-                <TableCell>
-                  <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
-                    {type.name}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">{type.progressLevel}</TableCell>
-                <TableCell align="center">
-                  {type.techTracks.length > 0 ? (
-                    <Tooltip title={type.techTracks.map(getTechTrackName).join(', ')}>
-                      <Typography variant="caption">{type.techTracks.join(', ')}</Typography>
-                    </Tooltip>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
-                  )}
-                </TableCell>
-                <TableCell align="right">{type.hullPoints}</TableCell>
-                <TableCell align="right">{type.powerRequired}</TableCell>
-                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
-                <TableCell align="right">{type.coveragePerHullPoint} HP</TableCell>
-                <TableCell>
-                  <TruncatedDescription text={type.description} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-
-  const renderAccommodationsTab = () => (
-    <Box>
-      {/* Installed Accommodations */}
-      {installedAccommodations.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Accommodations
-          </Typography>
-          <Stack spacing={1}>
-            {installedAccommodations.map((installed) => {
-              const isEditing = editingAccommodationId === installed.id;
-              return (
-                <Fragment key={installed.id}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      p: 1,
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                    }}
-                  >
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
-                  </Typography>
-                  <Chip
-                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${installed.type.powerRequired * installed.quantity} Power`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${installed.type.capacity * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)} ${installed.type.category}${installed.type.category === 'crew' ? ` (${(((installed.type.capacity * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''}`}
-                    size="small"
-                    color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'troop' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
-                    variant="outlined"
-                  />
-                  {installed.type.includesAirlock && (
-                    <Chip
-                      label={`${installed.quantity} airlock${installed.quantity > 1 ? 's' : ''}`}
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                    />
-                  )}
-                  <Chip
-                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <IconButton size="small" color="primary" onClick={() => handleEditAccommodation(installed)} aria-label="Edit accommodation">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateAccommodation(installed)} aria-label="Duplicate accommodation">
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveAccommodation(installed.id)} aria-label="Remove accommodation">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                {/* Inline edit form */}
-                {isEditing && selectedAccommodation && (
-                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                      <TextField
-                        label="Quantity"
-                        type="number"
-                        size="small"
-                        value={accommodationQuantity}
-                        onChange={(e) => setAccommodationQuantity(e.target.value)}
-                        inputProps={{ min: 1 }}
-                        sx={{ width: 100 }}
-                      />
-                      {selectedAccommodation.expandable && (
-                        <TextField
-                          label="Extra HP"
-                          type="number"
-                          size="small"
-                          value={accommodationExtraHp}
-                          onChange={(e) => setAccommodationExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                          inputProps={{ min: 0 }}
-                          sx={{ width: 100 }}
-                        />
-                      )}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp : 0)} |
-                          Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
-                          Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)}{selectedAccommodation.category === 'crew' ? ` (${(((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''} |
-                          Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionCostPerHp || 0) : 0))}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              setSelectedAccommodation(null);
-                              setEditingAccommodationId(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddAccommodation}
-                          >
-                            Update
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
-                )}
-              </Fragment>
-            );
-          })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Add new Accommodation - Only show when adding new (not editing) */}
-      {selectedAccommodation && !editingAccommodationId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            Add {selectedAccommodation.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <TextField
-              label="Quantity"
-              type="number"
-              size="small"
-              value={accommodationQuantity}
-              onChange={(e) => setAccommodationQuantity(e.target.value)}
-              inputProps={{ min: 1 }}
-              sx={{ width: 100 }}
-            />
-            {selectedAccommodation.expandable && (
-              <TextField
-                label="Extra HP"
-                type="number"
-                size="small"
-                value={accommodationExtraHp}
-                onChange={(e) => setAccommodationExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                inputProps={{ min: 0 }}
-                sx={{ width: 100 }}
-              />
-            )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                HP: {selectedAccommodation.hullPoints * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp : 0)} |
-                Power: {selectedAccommodation.powerRequired * (parseInt(accommodationQuantity, 10) || 1)} |
-                Capacity: {selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)}{selectedAccommodation.category === 'crew' ? ` (${(((selectedAccommodation.capacity * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionValuePerHp || 0) : 0)) / hull.crew) * 100).toFixed(0)}%)` : ''} |
-                Cost: {formatCost(selectedAccommodation.cost * (parseInt(accommodationQuantity, 10) || 1) + (selectedAccommodation.expandable ? accommodationExtraHp * (selectedAccommodation.expansionCostPerHp || 0) : 0))}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    setSelectedAccommodation(null);
-                    setEditingAccommodationId(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddAccommodation}
-                >
-                  Add
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Available Accommodation Types */}
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 800 } }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx}>Name</TableCell>
-              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
-              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
-              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Capacity</TableCell>
-              <TableCell align="center" sx={headerCellSx}>Type</TableCell>
-              <TableCell align="center" sx={headerCellSx}>Airlock</TableCell>
-              <TableCell sx={headerCellSx}>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {availableAccommodations.map((type) => (
-              <TableRow
-                key={type.id}
-                hover
-                selected={selectedAccommodation?.id === type.id}
-                sx={{
-                  cursor: 'pointer',
-                  '&.Mui-selected': {
-                    backgroundColor: 'action.selected',
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: 'action.selected',
-                  },
-                }}
-                onClick={() => handleSelectAccommodation(type)}
-              >
-                <TableCell>
-                  <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
-                    {type.name}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">{type.progressLevel}</TableCell>
-                <TableCell align="center">
-                  {type.techTracks.length > 0 ? (
-                    <Tooltip title={type.techTracks.map(getTechTrackName).join(', ')}>
-                      <Typography variant="caption">{type.techTracks.join(', ')}</Typography>
-                    </Tooltip>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
-                  )}
-                </TableCell>
-                <TableCell align="right">{type.hullPoints}</TableCell>
-                <TableCell align="right">{type.powerRequired}</TableCell>
-                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
-                <TableCell align="right">{type.capacity}</TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={type.category}
-                    size="small"
-                    color={type.category === 'crew' ? 'error' : type.category === 'troop' ? 'error' : type.category === 'passenger' ? 'primary' : 'secondary'}
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  {type.includesAirlock ? (
-                    <Chip label="Yes" size="small" color="success" variant="outlined" />
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <TruncatedDescription text={type.description} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-
-  const renderStoresTab = () => (
-    <Box>
-      {/* Installed Store Systems */}
-      {installedStoreSystems.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Installed Store Systems
-          </Typography>
-          <Stack spacing={1}>
-            {installedStoreSystems.map((installed) => {
-              const isEditing = editingStoreSystemId === installed.id;
-              return (
-                <Fragment key={installed.id}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      p: 1,
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                    }}
-                  >
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {installed.quantity}x {installed.type.name}{installed.extraHp ? ` (+${installed.extraHp} HP)` : ''}
-                  </Typography>
-                  <Chip
-                    label={`${installed.type.hullPoints * installed.quantity + (installed.extraHp || 0)} HP`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`${installed.type.powerRequired * installed.quantity} Power`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  {installed.type.effect === 'feeds' && (() => {
-                    const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                    const feedCount = installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
-                    return (
-                      <Chip
-                        label={`Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    );
-                  })()}
-                  {installed.type.effect === 'reduces-consumption' && (() => {
-                    const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                    const recycleCount = (installed.type.affectedPeople || 0) * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
-                    return (
-                      <Chip
-                        label={`Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    );
-                  })()}
-                  {installed.type.effect === 'adds-stores' && (
-                    <Chip
-                      label={`Stores: +${(installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0)).toLocaleString()} days`}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  <Chip
-                    label={formatCost(installed.type.cost * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionCostPerHp || 0) : 0))}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <IconButton size="small" color="primary" onClick={() => handleEditStoreSystem(installed)} aria-label="Edit store system">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDuplicateStoreSystem(installed)} aria-label="Duplicate store system">
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleRemoveStoreSystem(installed.id)} aria-label="Remove store system">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                {/* Inline edit form */}
-                {isEditing && selectedStoreSystem && (
-                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                      <TextField
-                        label="Quantity"
-                        type="number"
-                        size="small"
-                        value={storeSystemQuantity}
-                        onChange={(e) => setStoreSystemQuantity(e.target.value)}
-                        inputProps={{ min: 1 }}
-                        sx={{ width: 100 }}
-                      />
-                      {selectedStoreSystem.expandable && (
-                        <TextField
-                          label="Extra HP"
-                          type="number"
-                          size="small"
-                          value={storeSystemExtraHp}
-                          onChange={(e) => setStoreSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                          inputProps={{ min: 0 }}
-                          sx={{ width: 100 }}
-                        />
-                      )}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp : 0)} |
-                          Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
-                          {selectedStoreSystem.effect === 'feeds' && (() => {
-                            const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                            const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
-                            return `Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
-                          })()}
-                          {selectedStoreSystem.effect === 'reduces-consumption' && (() => {
-                            const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                            const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
-                            return `Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
-                          })()}
-                          {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0)).toLocaleString()} days | `}
-                          Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionCostPerHp || 0) : 0))}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              setSelectedStoreSystem(null);
-                              setEditingStoreSystemId(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<SaveIcon />}
-                            onClick={handleAddStoreSystem}
-                          >
-                            Update
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
-                )}
-              </Fragment>
-            );
-          })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Add new Store System - Only show when adding new (not editing) */}
-      {selectedStoreSystem && !editingStoreSystemId && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
-            Add {selectedStoreSystem.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <TextField
-              label="Quantity"
-              type="number"
-              size="small"
-              value={storeSystemQuantity}
-              onChange={(e) => setStoreSystemQuantity(e.target.value)}
-              inputProps={{ min: 1 }}
-              sx={{ width: 100 }}
-            />
-            {selectedStoreSystem.expandable && (
-              <TextField
-                label="Extra HP"
-                type="number"
-                size="small"
-                value={storeSystemExtraHp}
-                onChange={(e) => setStoreSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                inputProps={{ min: 0 }}
-                sx={{ width: 100 }}
-              />
-            )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                HP: {selectedStoreSystem.hullPoints * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp : 0)} |
-                Power: {selectedStoreSystem.powerRequired * (parseInt(storeSystemQuantity, 10) || 1)} |
-                {selectedStoreSystem.effect === 'feeds' && (() => {
-                  const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                  const feedCount = selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
-                  return `Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
-                })()}
-                {selectedStoreSystem.effect === 'reduces-consumption' && (() => {
-                  const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
-                  const recycleCount = (selectedStoreSystem.affectedPeople || 0) * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0);
-                  return `Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
-                })()}
-                {selectedStoreSystem.effect === 'adds-stores' && `+${(selectedStoreSystem.effectValue * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionValuePerHp || 0) : 0)).toLocaleString()} days | `}
-                Cost: {formatCost(selectedStoreSystem.cost * (parseInt(storeSystemQuantity, 10) || 1) + (selectedStoreSystem.expandable ? storeSystemExtraHp * (selectedStoreSystem.expansionCostPerHp || 0) : 0))}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    setSelectedStoreSystem(null);
-                    setEditingStoreSystemId(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddStoreSystem}
-                >
-                  Add
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Available Store System Types */}
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 700 } }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx}>Name</TableCell>
-              <TableCell align="center" sx={headerCellSx}>PL</TableCell>
-              <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
-              <TableCell align="right" sx={headerCellSx}>HP</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Power</TableCell>
-              <TableCell align="right" sx={headerCellSx}>Cost</TableCell>
-              <TableCell sx={headerCellSx}>Effect</TableCell>
-              <TableCell sx={headerCellSx}>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {availableStoreSystems.map((type) => (
-              <TableRow
-                key={type.id}
-                hover
-                selected={selectedStoreSystem?.id === type.id}
-                sx={{
-                  cursor: 'pointer',
-                  '&.Mui-selected': {
-                    backgroundColor: 'action.selected',
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: 'action.selected',
-                  },
-                }}
-                onClick={() => handleSelectStoreSystem(type)}
-              >
-                <TableCell>
-                  <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
-                    {type.name}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">{type.progressLevel}</TableCell>
-                <TableCell align="center">
-                  {type.techTracks.length > 0 ? (
-                    <Tooltip title={type.techTracks.map(getTechTrackName).join(', ')}>
-                      <Typography variant="caption">{type.techTracks.join(', ')}</Typography>
-                    </Tooltip>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
-                  )}
-                </TableCell>
-                <TableCell align="right">{type.hullPoints}</TableCell>
-                <TableCell align="right">{type.powerRequired}</TableCell>
-                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatCost(type.cost)}</TableCell>
-                <TableCell>
-                  {type.effect === 'feeds' && `Feeds ${type.effectValue}`}
-                  {type.effect === 'reduces-consumption' && `Recycles for ${type.affectedPeople}`}
-                  {type.effect === 'adds-stores' && `+${type.effectValue.toLocaleString()} days`}
-                </TableCell>
-                <TableCell>
-                  <TruncatedDescription text={type.description} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
   );
 
   // ============== Gravity System Handlers ==============
@@ -1155,7 +468,7 @@ export function SupportSystemsSelection({
           </Typography>
           {stats.hasArtificialGravity ? (
             <Box>
-              <Chip label="Artificial Gravity Available" color="success" sx={{ mb: 2 }} />
+              <Chip label="Artificial Gravity Available" icon={<CheckCircleIcon />} color="success" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
                 At Progress Level {designProgressLevel} with {designTechTracks.length > 0 ? `Tech Tracks: ${designTechTracks.join(', ')}` : 'all tech tracks available'},
                 artificial gravity is automatically included in your life support systems at no extra cost.
@@ -1171,7 +484,7 @@ export function SupportSystemsSelection({
             </Box>
           ) : (
             <Box>
-              <Chip label="No Artificial Gravity" color="warning" sx={{ mb: 2 }} />
+              <Chip label="No Artificial Gravity" icon={<WarningAmberIcon />} color="warning" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
                 Artificial gravity requires Progress Level 6+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
               </Typography>
@@ -1333,6 +646,7 @@ export function SupportSystemsSelection({
           {surfaceProvidesLifeSupport ? (
             <Chip
               label="Life Support: Surface"
+              icon={<CheckCircleIcon />}
               color="success"
               variant="outlined"
             />
@@ -1394,6 +708,7 @@ export function SupportSystemsSelection({
           {!stats.hasArtificialGravity && !stats.hasGravitySystemInstalled && !surfaceProvidesGravity && (
             <Chip
               label="No Gravity"
+              icon={<WarningAmberIcon />}
               color="warning"
               variant="outlined"
             />
@@ -1401,6 +716,7 @@ export function SupportSystemsSelection({
           {surfaceProvidesGravity && (
             <Chip
               label="Surface Gravity"
+              icon={<CheckCircleIcon />}
               color="success"
               variant="outlined"
             />
@@ -1408,6 +724,7 @@ export function SupportSystemsSelection({
           {!surfaceProvidesGravity && (stats.hasArtificialGravity || stats.hasGravitySystemInstalled) && (
             <Chip
               label="Artificial Gravity"
+              icon={<CheckCircleIcon />}
               color="success"
               variant="outlined"
             />
@@ -1429,13 +746,173 @@ export function SupportSystemsSelection({
       </Box>
 
       <TabPanel value={activeTab} index={0}>
-        {renderLifeSupportTab()}
+        <SubsystemTab<LifeSupportType>
+          installedItems={installedLifeSupport}
+          availableTypes={availableLifeSupport}
+          onChange={onLifeSupportChange}
+          generateId={generateLifeSupportId}
+          label="life support"
+          labelPlural="Life Support"
+          tableMinWidth={700}
+          renderInstalledChips={(installed) => {
+            const coverage = installed.type.coveragePerHullPoint * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
+            return (
+              <Chip
+                label={`Covers ${coverage} HP (${((coverage / hull.hullPoints) * 100).toFixed(0)}%)`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            );
+          }}
+          renderPreviewExtra={(type, qty, extra) => {
+            const coverage = type.coveragePerHullPoint * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
+            return `Covers: ${coverage} HP (${((coverage / hull.hullPoints) * 100).toFixed(0)}%) | `;
+          }}
+          renderExtraHeaders={() => (
+            <TableCell align="right" sx={headerCellSx}>Covers</TableCell>
+          )}
+          renderExtraRowCells={(type) => (
+            <TableCell align="right">{type.coveragePerHullPoint} HP</TableCell>
+          )}
+        />
       </TabPanel>
       <TabPanel value={activeTab} index={1}>
-        {renderAccommodationsTab()}
+        <SubsystemTab<AccommodationType>
+          installedItems={installedAccommodations}
+          availableTypes={availableAccommodations}
+          onChange={onAccommodationsChange}
+          generateId={generateAccommodationId}
+          label="accommodation"
+          labelPlural="Accommodations"
+          tableMinWidth={800}
+          renderInstalledChips={(installed) => {
+            const capacity = installed.type.capacity * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
+            return (
+              <>
+                <Chip
+                  label={`${capacity} ${installed.type.category}${installed.type.category === 'crew' ? ` (${((capacity / hull.crew) * 100).toFixed(0)}%)` : ''}`}
+                  size="small"
+                  color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'troop' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
+                  variant="outlined"
+                />
+                {installed.type.includesAirlock && (
+                  <Chip
+                    label={`${installed.quantity} airlock${installed.quantity > 1 ? 's' : ''}`}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                  />
+                )}
+              </>
+            );
+          }}
+          renderPreviewExtra={(type, qty, extra) => {
+            const capacity = type.capacity * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
+            return `Capacity: ${capacity}${type.category === 'crew' ? ` (${((capacity / hull.crew) * 100).toFixed(0)}%)` : ''} | `;
+          }}
+          renderExtraHeaders={() => (
+            <>
+              <TableCell align="right" sx={headerCellSx}>Capacity</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Type</TableCell>
+              <TableCell align="center" sx={headerCellSx}>Airlock</TableCell>
+            </>
+          )}
+          renderExtraRowCells={(type) => (
+            <>
+              <TableCell align="right">{type.capacity}</TableCell>
+              <TableCell align="center">
+                <Chip
+                  label={type.category}
+                  size="small"
+                  color={type.category === 'crew' ? 'error' : type.category === 'troop' ? 'error' : type.category === 'passenger' ? 'primary' : 'secondary'}
+                  variant="outlined"
+                />
+              </TableCell>
+              <TableCell align="center">
+                {type.includesAirlock ? (
+                  <Chip label="Yes" size="small" color="success" variant="outlined" />
+                ) : (
+                  <Typography variant="caption" color="text.secondary">-</Typography>
+                )}
+              </TableCell>
+            </>
+          )}
+        />
       </TabPanel>
       <TabPanel value={activeTab} index={2}>
-        {renderStoresTab()}
+        <SubsystemTab<StoreSystemType>
+          installedItems={installedStoreSystems}
+          availableTypes={availableStoreSystems}
+          onChange={onStoreSystemsChange}
+          generateId={generateStoreSystemId}
+          label="store system"
+          labelPlural="Store Systems"
+          tableMinWidth={700}
+          renderInstalledChips={(installed) => {
+            const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
+            if (installed.type.effect === 'feeds') {
+              const feedCount = installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
+              return (
+                <Chip
+                  label={`Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              );
+            }
+            if (installed.type.effect === 'reduces-consumption') {
+              const recycleCount = (installed.type.affectedPeople || 0) * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
+              return (
+                <Chip
+                  label={`Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              );
+            }
+            if (installed.type.effect === 'adds-stores') {
+              const days = installed.type.effectValue * installed.quantity + (installed.type.expandable && installed.extraHp ? installed.extraHp * (installed.type.expansionValuePerHp || 0) : 0);
+              return (
+                <Chip
+                  label={`Stores: +${days.toLocaleString()} days`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              );
+            }
+            return null;
+          }}
+          renderPreviewExtra={(type, qty, extra) => {
+            const activePersons = stats.crewCapacity + stats.passengerCapacity + stats.troopCapacity;
+            if (type.effect === 'feeds') {
+              const feedCount = type.effectValue * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
+              return `Feeds ${feedCount}${activePersons > 0 ? ` (${((feedCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
+            }
+            if (type.effect === 'reduces-consumption') {
+              const recycleCount = (type.affectedPeople || 0) * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
+              return `Recycles for ${recycleCount}${activePersons > 0 ? ` (${((recycleCount / activePersons) * 100).toFixed(0)}%)` : ''} | `;
+            }
+            if (type.effect === 'adds-stores') {
+              const days = type.effectValue * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
+              return `+${days.toLocaleString()} days | `;
+            }
+            return '';
+          }}
+          renderExtraHeaders={() => (
+            <TableCell sx={headerCellSx}>Effect</TableCell>
+          )}
+          renderExtraRowCells={(type) => (
+            <TableCell>
+              {type.effect === 'feeds' && `Feeds ${type.effectValue}`}
+              {type.effect === 'reduces-consumption' && `Recycles for ${type.affectedPeople}`}
+              {type.effect === 'adds-stores' && `+${type.effectValue.toLocaleString()} days`}
+            </TableCell>
+          )}
+        />
       </TabPanel>
       {!surfaceProvidesGravity && (
         <TabPanel value={activeTab} index={3}>

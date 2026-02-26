@@ -350,6 +350,21 @@ export interface WarshipSaveFile {
   /** Ship image MIME type */
   imageMimeType?: string | null;
   
+  /** Faction or government operating this design */
+  faction?: string;
+  
+  /** Operational role */
+  role?: string;
+  
+  /** Commissioning date */
+  commissioningDate?: string;
+  
+  /** Design classification */
+  classification?: string;
+  
+  /** Manufacturer or shipyard */
+  manufacturer?: string;
+  
   /** Hull configuration */
   hull: {
     /** Hull type ID */

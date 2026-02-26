@@ -6,6 +6,7 @@ import {
   Alert,
 } from '@mui/material';
 import type { InstalledWeapon } from '../../types/weapon';
+import { createSectorPath } from '../../services/utilities';
 
 interface FireDiagramProps {
   weapons: InstalledWeapon[];
@@ -24,32 +25,6 @@ const ARC_ANGLES: Record<string, { start: number; end: number }> = {
   'zero-aft': { start: 45, end: 135 },
   'zero-port': { start: 135, end: 225 },
 };
-
-// Generate SVG path for a pie sector
-function createArcPath(
-  centerX: number,
-  centerY: number,
-  innerRadius: number,
-  outerRadius: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  const startAngleRad = (startAngle * Math.PI) / 180;
-  const endAngleRad = (endAngle * Math.PI) / 180;
-
-  const x1 = centerX + outerRadius * Math.cos(startAngleRad);
-  const y1 = centerY + outerRadius * Math.sin(startAngleRad);
-  const x2 = centerX + outerRadius * Math.cos(endAngleRad);
-  const y2 = centerY + outerRadius * Math.sin(endAngleRad);
-  const x3 = centerX + innerRadius * Math.cos(endAngleRad);
-  const y3 = centerY + innerRadius * Math.sin(endAngleRad);
-  const x4 = centerX + innerRadius * Math.cos(startAngleRad);
-  const y4 = centerY + innerRadius * Math.sin(startAngleRad);
-
-  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-
-  return `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
-}
 
 export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps) {
   // Group weapons by their arcs
@@ -141,7 +116,7 @@ export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps
             {standardArcs.map(({ key, label }) => {
               const angles = ARC_ANGLES[key];
               const weaponCount = arcWeapons[key].standard.reduce((sum, w) => sum + w.quantity, 0);
-              const path = createArcPath(center, center, innerRadius, outerRadius, angles.start, angles.end);
+              const path = createSectorPath(center, center, innerRadius, outerRadius, angles.start, angles.end);
               
               // Label position (middle of the sector)
               const midAngle = ((angles.start + angles.end) / 2) * Math.PI / 180;
@@ -186,7 +161,7 @@ export function FireDiagram({ weapons, warshipName, hullName }: FireDiagramProps
             {hasZeroArcs && standardArcs.map(({ key }) => {
               const angles = ARC_ANGLES[key];
               const weaponCount = arcWeapons[key].zero.reduce((sum, w) => sum + w.quantity, 0);
-              const path = createArcPath(center, center, zeroInnerRadius, zeroOuterRadius, angles.start, angles.end);
+              const path = createSectorPath(center, center, zeroInnerRadius, zeroOuterRadius, angles.start, angles.end);
               
               // Label position for the zero arc count
               const midAngle = ((angles.start + angles.end) / 2) * Math.PI / 180;

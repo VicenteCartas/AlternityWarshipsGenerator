@@ -29,8 +29,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
-import { TabPanel } from './shared';
-import { headerCellSx } from '../constants/tableStyles';
+import { TabPanel, ConfirmDialog } from './shared';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
@@ -95,6 +95,8 @@ export function CommandControlSelection({
   // For Sensor Control: selected sensor
   const [selectedSensorId, setSelectedSensorId] = useState<string>('');
   const formRef = useRef<HTMLDivElement>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [confirmRemoveMessage, setConfirmRemoveMessage] = useState('');
 
   // Get filtered system types
   const availableSystems = useMemo(() => {
@@ -425,6 +427,24 @@ export function CommandControlSelection({
   };
 
   const handleRemoveSystem = (id: string) => {
+    const systemToRemove = installedSystems.find(s => s.id === id);
+    if (systemToRemove?.type.isCore) {
+      // Check if this is the last core
+      const otherCores = installedSystems.filter(s => s.id !== id && s.type.isCore);
+      if (otherCores.length === 0) {
+        const fireControls = installedSystems.filter(s => s.type.linkedSystemType === 'weapon');
+        const sensorControls = installedSystems.filter(s => s.type.linkedSystemType === 'sensor');
+        const dependentCount = fireControls.length + sensorControls.length;
+        if (dependentCount > 0) {
+          const parts: string[] = [];
+          if (fireControls.length > 0) parts.push(`${fireControls.length} fire control${fireControls.length > 1 ? 's' : ''}`);
+          if (sensorControls.length > 0) parts.push(`${sensorControls.length} sensor control${sensorControls.length > 1 ? 's' : ''}`);
+          setConfirmRemoveId(id);
+          setConfirmRemoveMessage(`Removing this computer core will leave ${parts.join(' and ')} without a core. They will no longer function.`);
+          return;
+        }
+      }
+    }
     onSystemsChange(installedSystems.filter((s) => s.id !== id));
   };
 
@@ -486,7 +506,11 @@ export function CommandControlSelection({
   // Render the installed systems list for a category
   const renderInstalledSystems = (category: CommandControlCategory) => {
     const installed = getInstalledByCategory(category);
-    if (installed.length === 0) return null;
+    if (installed.length === 0) return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        No {getCategoryLabel(category).toLowerCase()} installed. Select from the table below to add one.
+      </Typography>
+    );
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -613,6 +637,7 @@ export function CommandControlSelection({
 
     return (
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Typography variant="subtitle2" gutterBottom>
           Edit {selectedSystem.name}
         </Typography>
@@ -719,6 +744,7 @@ export function CommandControlSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -732,10 +758,10 @@ export function CommandControlSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<SaveIcon />}
-                onClick={handleAddSystem}
                 disabled={isLinkedControl && (isFireControl ? selectedBattery === '' : selectedSensorId === '')}
               >
                 Save
@@ -743,6 +769,7 @@ export function CommandControlSelection({
             </Box>
           </Box>
         </Box>
+        </form>
       </Box>
     );
   };
@@ -761,7 +788,8 @@ export function CommandControlSelection({
       : true;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Typography variant="subtitle2" gutterBottom>
           Add {selectedSystem.name}
         </Typography>
@@ -869,6 +897,7 @@ export function CommandControlSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -882,10 +911,10 @@ export function CommandControlSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={handleAddSystem}
                 disabled={!canAdd}
               >
                 Add
@@ -893,6 +922,7 @@ export function CommandControlSelection({
             </Box>
           </Box>
         </Box>
+        </form>
       </Paper>
     );
   };
@@ -1130,9 +1160,24 @@ export function CommandControlSelection({
       {/* Computers Tab */}
       <TabPanel value={activeTab} index={2}>
         {renderInstalledSystems('computer')}
+        {!hasCore && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Install a computer core from the table below to unlock control computers (fire controls, sensor controls).
+          </Alert>
+        )}
         {selectedSystem?.category === 'computer' && renderAddForm()}
         {renderComputerTable()}
       </TabPanel>
+
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Dependency Warning"
+        message={confirmRemoveMessage}
+        confirmLabel="Remove Anyway"
+        confirmColor="warning"
+        onConfirm={() => { if (confirmRemoveId) onSystemsChange(installedSystems.filter(s => s.id !== confirmRemoveId)); setConfirmRemoveId(null); }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </Box>
   );
 }

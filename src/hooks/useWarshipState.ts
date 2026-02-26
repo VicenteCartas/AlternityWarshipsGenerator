@@ -60,6 +60,11 @@ export function useWarshipState(mode: AppMode) {
     lore: '',
     imageData: null,
     imageMimeType: null,
+    faction: '',
+    role: '',
+    commissioningDate: '',
+    classification: '',
+    manufacturer: '',
   });
   const [warshipName, setWarshipName] = useState<string>('New Ship');
 

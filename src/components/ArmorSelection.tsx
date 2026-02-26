@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -17,6 +17,8 @@ import {
   IconButton,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight, ShipArmor } from '../types/armor';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -32,7 +34,7 @@ import {
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
 import { headerCellSx } from '../constants/tableStyles';
-import { TruncatedDescription } from './shared';
+import { TruncatedDescription, ConfirmDialog } from './shared';
 
 interface ArmorSelectionProps {
   hull: Hull;
@@ -55,6 +57,7 @@ export function ArmorSelection({
 }: ArmorSelectionProps) {
   // Filter for armor weight categories (All, Light, Medium, Heavy, Super-Heavy)
   const [weightFilter, setWeightFilter] = useState<ArmorWeight | 'all'>('all');
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   const multiLayerAllowed = useMemo(() => isMultipleArmorLayersAllowed(), []);
   const usedWeights = useMemo(() => new Set(armorLayers.map(l => l.weight)), [armorLayers]);
@@ -113,7 +116,7 @@ export function ArmorSelection({
             variant="outlined"
             size="small"
             color="secondary"
-            onClick={onArmorClear}
+            onClick={() => setConfirmClearOpen(true)}
           >
             Remove All Armor
           </Button>
@@ -217,6 +220,7 @@ export function ArmorSelection({
           <Table size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', width: 30, p: 0 }}></TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: 120, whiteSpace: 'nowrap' }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
@@ -253,6 +257,11 @@ export function ArmorSelection({
                       },
                     }}
                   >
+                    <TableCell sx={{ p: 0, textAlign: 'center', width: 30 }}>
+                      {isSelected
+                        ? <CheckCircleIcon color="success" sx={{ fontSize: 18, verticalAlign: 'middle' }} />
+                        : <RadioButtonUncheckedIcon sx={{ fontSize: 18, verticalAlign: 'middle', opacity: 0.4 }} />}
+                    </TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
@@ -309,6 +318,15 @@ export function ArmorSelection({
             </TableBody>
           </Table>
         </TableContainer>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="Remove All Armor"
+        message="This will remove all installed armor layers. This action cannot be undone."
+        confirmLabel="Remove All"
+        onConfirm={() => { onArmorClear(); setConfirmClearOpen(false); }}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
     </Box>
   );
 }

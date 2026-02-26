@@ -23,7 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import WarningIcon from '@mui/icons-material/Warning';
-import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx } from '../constants/tableStyles';
 import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
 import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
@@ -38,7 +38,7 @@ import {
   calculateMinHullPointsForDrive,
   calculateTotalFTLStats,
   validateFTLInstallation,
-  generateFTLInstallationId,
+  generateFTLDriveId,
   generateFTLFuelTankId,
   calculateFTLFuelTankCost,
   getTotalFTLFuelTankHP,
@@ -163,7 +163,7 @@ export function FTLDriveSelection({
     if (isFixedSizeDrive(drive)) {
       const hullPoints = calculateFixedSizeHullPoints(drive, hull);
       const newInstallation: InstalledFTLDrive = {
-        id: generateFTLInstallationId(),
+        id: generateFTLDriveId(),
         type: drive,
         hullPoints,
       };
@@ -193,7 +193,7 @@ export function FTLDriveSelection({
     }
 
     const newInstallation: InstalledFTLDrive = {
-      id: isEditing && installedFTLDrive ? installedFTLDrive.id : generateFTLInstallationId(),
+      id: isEditing && installedFTLDrive ? installedFTLDrive.id : generateFTLDriveId(),
       type: selectedType,
       hullPoints,
     };
@@ -553,7 +553,8 @@ export function FTLDriveSelection({
 
       {/* Add Fuel Tank Form */}
       {addingFuelTank && installedFTLDrive && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             {editingFuelTankId ? 'Edit' : 'Add'} FTL Fuel Tank for {installedFTLDrive.type.name}
           </Typography>
@@ -586,15 +587,16 @@ export function FTLDriveSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={editingFuelTankId ? <SaveIcon /> : <AddIcon />}
-                  onClick={handleAddFuelTank}
                   disabled={fuelTankValidationErrors.length > 0}
                 >
                   {editingFuelTankId ? 'Update' : 'Add'}
                 </Button>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -614,6 +616,7 @@ export function FTLDriveSelection({
               ))}
             </Alert>
           )}
+          </form>
         </Paper>
       )}
 
@@ -641,7 +644,8 @@ export function FTLDriveSelection({
 
       {/* Configure FTL Drive Form (only shown for variable-size drives) */}
       {selectedType && !isFixedSizeDrive(selectedType) && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddFTLDrive(); }}>
           <Typography variant="subtitle2" sx={{ mb: '10px' }}>
             {isEditing ? 'Edit' : 'Configure'} {selectedType.name}
           </Typography>
@@ -667,15 +671,16 @@ export function FTLDriveSelection({
               )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
+                  type="submit"
                   variant="contained"
                   size="small"
                   startIcon={isEditing ? <SaveIcon /> : <AddIcon />}
-                  onClick={handleAddFTLDrive}
                   disabled={validationErrors.length > 0}
                 >
                   {isEditing ? 'Save' : 'Install'}
                 </Button>
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onClick={() => {
@@ -695,6 +700,7 @@ export function FTLDriveSelection({
               ))}
             </Alert>
           )}
+          </form>
         </Paper>
       )}
 

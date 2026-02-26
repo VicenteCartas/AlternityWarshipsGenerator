@@ -256,7 +256,7 @@ export function validateEngineDesign(
 /**
  * Generate a unique installation ID
  */
-export function generateEngineInstallationId(): string {
+export function generateEngineId(): string {
   return generateId('eng');
 }
 

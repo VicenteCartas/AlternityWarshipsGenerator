@@ -23,7 +23,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { headerCellSx } from '../constants/tableStyles';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { headerCellSx, configFormSx } from '../constants/tableStyles';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
@@ -171,7 +173,6 @@ export function SensorSelection({
   // Render installed sensors section for a specific category
   const renderInstalledSensorsForCategory = (category: SensorCategory) => {
     const categorySensors = getInstalledSensorsByCategory(category);
-    if (categorySensors.length === 0) return null;
 
     const categoryNames: Record<SensorCategory, string> = {
       active: 'Active Sensors',
@@ -179,6 +180,12 @@ export function SensorSelection({
       remote: 'Remote Sensors',
       special: 'Special Sensors',
     };
+
+    if (categorySensors.length === 0) return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        No {categoryNames[category].toLowerCase()} installed. Select from the table below to add one.
+      </Typography>
+    );
 
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -250,6 +257,7 @@ export function SensorSelection({
 
     return (
       <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSensor(); }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField
             label="Quantity"
@@ -270,6 +278,7 @@ export function SensorSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -281,16 +290,17 @@ export function SensorSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<SaveIcon />}
-                onClick={handleAddSensor}
               >
                 Save
               </Button>
             </Box>
           </Box>
         </Box>
+        </form>
       </Box>
     );
   };
@@ -300,7 +310,8 @@ export function SensorSelection({
     if (!selectedSensor || editingSensorId) return null;
 
     return (
-      <Paper ref={formRef} variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSensor(); }}>
         <Typography variant="subtitle2" sx={{ mb: '10px' }}>
           Add {selectedSensor.name}
         </Typography>
@@ -325,6 +336,7 @@ export function SensorSelection({
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onClick={() => {
@@ -336,16 +348,17 @@ export function SensorSelection({
                 Cancel
               </Button>
               <Button
+                type="submit"
                 variant="contained"
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={handleAddSensor}
               >
                 Add
               </Button>
             </Box>
           </Box>
         </Box>
+        </form>
       </Paper>
     );
   };
@@ -449,6 +462,7 @@ export function SensorSelection({
           <Chip label={`Cost: ${formatCost(stats.totalCost)}`} color="default" variant="outlined" />
           <Chip label={`Total Tracking: ${formatTracking(stats.totalTrackingCapability)} contacts`} color="primary" variant="outlined" />
           <Chip
+            icon={stats.hasBasicSensors ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
             label={stats.hasBasicSensors ? 'Has Active Sensors' : 'No Active Sensors'}
             color={stats.hasBasicSensors ? 'success' : 'error'}
             variant="outlined"

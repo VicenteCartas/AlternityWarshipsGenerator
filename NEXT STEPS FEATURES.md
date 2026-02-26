@@ -12,7 +12,7 @@ Source of truth for planned features and improvements.
 | A2 | Ship Templates / Presets | Start from pre-filled templates (e.g. "Light Corvette"). Bundled or user-created. | Medium | Medium | Nice to have |
 | A3 | Design Comparison | Side-by-side stat comparison of two saved designs. | Medium | Medium | Nice to have |
 | A4 | Ship Library / Gallery | Browse and search all saved designs with thumbnail cards showing key stats. | High | Low | Yes, do it |
-| A5 | Auto-save / Crash Recovery | Periodic auto-save to temp location. Offer recovery on relaunch after crash. | Low | High | Yes, do it |
+| A5 | Auto-save / Crash Recovery | Periodic auto-save to temp location. Offer recovery on relaunch after crash. | Low | High | ✅ Done |
 
 ### B. In-Builder Helpers
 
@@ -29,7 +29,7 @@ Source of truth for planned features and improvements.
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
 | C11 | Compact Combat Reference Sheet | 1-page PDF optimized for the game table: weapons, defenses, damage track, fire arcs, key stats. | Medium | High | Yes, do it |
-| C12 | Copy Stats to Clipboard | One-click formatted text (Markdown/BBCode) for forums, Discord, campaign docs. | Low | High | Yes, do it |
+| C12 | Copy Stats to Clipboard | One-click formatted text (Markdown/BBCode) for forums, Discord, campaign docs. | Low | High | ✅ Done |
 | C13 | Fleet Roster PDF | Select multiple .warship.json files → combined PDF with one page per ship. | High | Low | Nice to have |
 | C14 | Export Fire Diagram as Image | Save the fire arc SVG/PNG separately for campaign docs or VTTs. | Low | Medium | Nice to have |
 
@@ -37,8 +37,8 @@ Source of truth for planned features and improvements.
 
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
-| D15 | Fire Control ↔ Weapon Linking Validation | Warn if weapons lack matching fire control, or fire controls have no linked weapons. | Medium | Medium | Yes, do it |
-| D16 | Sensor Control Validation | Same for sensor control ↔ sensor pairings. | Medium | Medium | Yes, do it |
+| D15 | Fire Control ↔ Weapon Linking Validation | Warn if weapons lack matching fire control, or fire controls have no linked weapons. | Medium | Medium | ✅ Done |
+| D16 | Sensor Control Validation | Same for sensor control ↔ sensor pairings. | Medium | Medium | ✅ Done |
 | D17 | Design Efficiency Rating | Derived metrics: power utilization %, HP utilization %, weapon-to-hull ratio, defense coverage %. | Medium | Low | Nice to have |
 
 ### E. Advanced / Campaign Features
@@ -46,10 +46,10 @@ Source of truth for planned features and improvements.
 | # | Feature | Description | Effort | Priority | User Review |
 |---|---------|-------------|--------|----------|-------------|
 | E18 | Fleet Cost Calculator | Define fleet composition with quantities → total cost and crew requirements. | Medium | Low | Nice to have |
-| E19 | Structured Ship Description Fields | Optional metadata: faction, role, commissioning date, classification, manufacturer. Keep freeform lore too. | Low | Medium | Yes, do it |
+| E19 | Structured Ship Description Fields | Optional metadata: faction, role, commissioning date, classification, manufacturer. Keep freeform lore too. | Low | Medium | ✅ Done |
 | E20 | Combat Quick-Reference Calculator | Input attack roll → look up which weapons hit at which range band per fire arc. | High | Low | Skip |
 | E21 | Ordnance Design Sharing | Export/import ordnance designs independently from ship files for reuse across ships. | Low | Medium | Nice to have |
-| E22 | Light/Dark Theme Toggle | Add light theme option with toggle or system preference detection. | Low | High | Yes, do it |
+| E22 | Light/Dark Theme Toggle | Add light theme option with toggle or system preference detection. | Low | High | ✅ Done |
 
 ### F. Onboarding & Help
 
@@ -63,17 +63,17 @@ Source of truth for planned features and improvements.
 
 ### Approved — Quick Wins (low effort, user said "Yes")
 - ~~A1: Clone/Duplicate Design~~ ✅
-- A5: Auto-save / Crash Recovery
-- C12: Copy Stats to Clipboard
-- E19: Structured Ship Description Fields
-- E22: Light/Dark Theme Toggle
+- ~~A5: Auto-save / Crash Recovery~~ ✅
+- ~~C12: Copy Stats to Clipboard~~ ✅
+- ~~E19: Structured Ship Description Fields~~ ✅
+- ~~E22: Light/Dark Theme Toggle~~ ✅
 - ~~F24: Keyboard Shortcuts Reference~~ ✅
 
 ### Approved — Medium Effort (user said "Yes")
 - B6: Budget Visualization
 - C11: Compact Combat Reference Sheet
-- D15: Fire Control ↔ Weapon Linking Validation
-- D16: Sensor Control Validation
+- ~~D15: Fire Control ↔ Weapon Linking Validation~~ ✅
+- ~~D16: Sensor Control Validation~~ ✅
 - A4: Ship Library / Gallery
 
 ### Nice to Have (user interested, not priority)

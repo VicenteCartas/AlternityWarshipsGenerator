@@ -115,17 +115,15 @@ export function isMountTypeAvailable(
  * - Fixed: -25% to both HP and cost
  */
 export function getMountModifiers(mountType: MountType): MountModifier {
-  // Fallback defaults in case JSON not loaded
-  const defaults: Record<MountType, MountModifier> = {
-    standard: { costMultiplier: 1, hpMultiplier: 1, standardArcs: 1, allowsZeroArc: true },
-    fixed: { costMultiplier: 0.75, hpMultiplier: 0.75, standardArcs: 1, allowsZeroArc: false },
-    turret: { costMultiplier: 1.25, hpMultiplier: 1.25, standardArcs: 3, allowsZeroArc: true },
-    sponson: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 2, allowsZeroArc: true },
-    bank: { costMultiplier: 1.25, hpMultiplier: 1, standardArcs: 3, allowsZeroArc: true, allowedCategories: ['beam'], minProgressLevel: 8 },
-  };
-  // Try dataLoader first, then hardcoded defaults
   const modifiers = getMountModifiersData();
-  return modifiers?.[mountType] || defaults[mountType];
+  if (!modifiers) {
+    throw new Error('[weaponService] Mount modifiers data not loaded. Ensure game data is initialized before calling getMountModifiers().');
+  }
+  const result = modifiers[mountType];
+  if (!result) {
+    throw new Error(`[weaponService] Unknown mount type: ${mountType}`);
+  }
+  return result;
 }
 
 /**
@@ -136,16 +134,15 @@ export function getMountModifiers(mountType: MountType): MountModifier {
  * These multipliers represent how many "effective guns" you pay for in HP/cost.
  */
 export function getGunConfigurationModifiers(config: GunConfiguration): GunConfigModifier {
-  // Fallback defaults in case JSON not loaded
-  const defaults: Record<string, GunConfigModifier> = {
-    single: { effectiveGunCount: 1, actualGunCount: 1 },
-    twin: { effectiveGunCount: 1.5, actualGunCount: 2 },
-    triple: { effectiveGunCount: 2, actualGunCount: 3 },
-    quadruple: { effectiveGunCount: 2.5, actualGunCount: 4 },
-  };
-  // Try dataLoader first, then hardcoded defaults
   const configs = getGunConfigurationsData();
-  return configs?.[config] || defaults[config] || { effectiveGunCount: 1, actualGunCount: 1 };
+  if (!configs) {
+    throw new Error('[weaponService] Gun configuration data not loaded. Ensure game data is initialized before calling getGunConfigurationModifiers().');
+  }
+  const result = configs[config];
+  if (!result) {
+    throw new Error(`[weaponService] Unknown gun configuration: ${config}`);
+  }
+  return result;
 }
 
 /**
@@ -153,8 +150,11 @@ export function getGunConfigurationModifiers(config: GunConfiguration): GunConfi
  * Concealed weapons take extra space and cost more
  */
 export function getConcealmentModifier(): MountModifier {
-  const defaultMod: MountModifier = { costMultiplier: 1.5, hpMultiplier: 1.5 };
-  return getConcealmentModifierData() || defaultMod;
+  const mod = getConcealmentModifierData();
+  if (!mod) {
+    throw new Error('[weaponService] Concealment modifier data not loaded. Ensure game data is initialized before calling getConcealmentModifier().');
+  }
+  return mod;
 }
 
 /**

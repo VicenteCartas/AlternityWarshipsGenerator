@@ -101,3 +101,16 @@ export const truncatedDescriptionSx = {
   textOverflow: 'ellipsis',
   lineHeight: 1.3,
 } as const;
+
+/**
+ * Configuration/add form Paper styling — distinct visual treatment
+ * to separate config forms from adjacent selection tables.
+ * Use: <Paper variant="outlined" sx={configFormSx}>
+ */
+export const configFormSx = {
+  p: 2,
+  mb: 2,
+  borderColor: 'primary.main',
+  borderWidth: 2,
+  bgcolor: 'action.hover',
+} as const;

@@ -95,18 +95,18 @@ vi.mock('../services/dataLoader', () => ({
 |---|------|------:|--------:|-----------:|---|---|
 | T1 | saveService.ts | 990 | 5 | 80–100 | Deserialize/migrate user save files. A bug here = data loss. Must test every version migration path. | ✅ Done (72 tests) |
 | T2 | weaponService.ts | 466 | 24 | 70–85 | Compound multiplier logic (mount × config × concealed × quantity). Rounding errors accumulate across all weapons. | ✅ Done (117 tests) |
-| T3 | damageDiagramService.ts | 429 | 15 | 60–75 | Zone validation, capacity enforcement, weapon-arc compatibility, hit location chart. Complex rules with many edge cases. | Yes, do it |
-| T4 | ordnanceService.ts | 428 | 28 | 65–80 | 3 design calculators (missile/bomb/mine), loadout management, launch system stats. Multi-step formulas. | Yes, do it |
+| T3 | damageDiagramService.ts | 429 | 15 | 60–75 | Zone validation, capacity enforcement, weapon-arc compatibility, hit location chart. Complex rules with many edge cases. | ✅ Done (51 tests) |
+| T4 | ordnanceService.ts | 428 | 28 | 65–80 | 3 design calculators (missile/bomb/mine), loadout management, launch system stats. Multi-step formulas. | ✅ Done (57 tests) |
 | T5 | utilities.ts | 183 | 6 | 35 | `interpolateByPercentage` is used by every engine/FTL calculation. `filterByDesignConstraints` gates every selection table. `capitalize` promoted from pdfExportService. | ✅ Done (35 tests) |
 
 #### Tier 2 — High Value
 
 | # | File | Lines | Exports | Est. Tests | Why High | User Review |
 |---|------|------:|--------:|-----------:|---|---|
-| T6 | commandControlService.ts | 485 | 29 | 60–75 | Fire control ↔ weapon battery linking, orphan detection, computer core prerequisites. | Yes, do it |
-| T7 | engineService.ts | 251 | 23 | 45–55 | Acceleration interpolation, fuel endurance, percentage bracket allocation, HP validation. | Yes, do it |
-| T8 | powerPlantService.ts | 201 | 20 | 40–50 | Power generation, fuel endurance, HP allocation validation. Foundation for all power budgeting. | Yes, do it |
-| T9 | defenseService.ts | 196 | 12 | 35–40 | Screen conflict detection, coverage calculation, units-for-full-coverage math. | Yes, do it |
+| T6 | commandControlService.ts | 485 | 29 | 60–75 | Fire control ↔ weapon battery linking, orphan detection, computer core prerequisites. | ✅ Done (65 tests) |
+| T7 | engineService.ts | 251 | 23 | 45–55 | Acceleration interpolation, fuel endurance, percentage bracket allocation, HP validation. | ✅ Done (52 tests) |
+| T8 | powerPlantService.ts | 201 | 20 | 40–50 | Power generation, fuel endurance, HP allocation validation. Foundation for all power budgeting. | ✅ Done (36 tests) |
+| T9 | defenseService.ts | 196 | 12 | 35–40 | Screen conflict detection, coverage calculation, units-for-full-coverage math. | ✅ Done (38 tests) |
 | T10 | formatters.ts | 238 | 15 | 44 | 15 pure formatting functions used across every component. High leverage, trivial to test. | ✅ Done (44 tests) |
 
 #### Tier 3 — Medium Value
