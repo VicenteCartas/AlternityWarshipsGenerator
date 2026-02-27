@@ -30,7 +30,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel, ConfirmDialog } from './shared';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
@@ -932,11 +932,11 @@ export function CommandControlSelection({
     if (systems.length === 0) return null;
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1000 } }}>
-        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1000 } }}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: 180 }}>Name</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP</TableCell>
@@ -961,7 +961,7 @@ export function CommandControlSelection({
                   }}
                   onClick={() => handleSelectSystem(system)}
                 >
-                  <TableCell>
+                  <TableCell sx={stickyFirstColumnCellSx}>
                     <Typography variant="body2" fontWeight={isSelected ? 'bold' : 'normal'}>
                       {system.name}
                     </Typography>
@@ -1006,7 +1006,7 @@ export function CommandControlSelection({
         }}
         onClick={() => handleSelectSystem(system)}
       >
-        <TableCell>
+        <TableCell sx={stickyFirstColumnCellSx}>
           <Typography variant="body2" fontWeight={isSelected ? 'bold' : 'normal'} sx={{ pl: isNested ? 2 : 0 }}>
             {isNested ? '↳ ' : ''}{system.name}
           </Typography>
@@ -1038,11 +1038,11 @@ export function CommandControlSelection({
     if (computerCores.length === 0 && otherComputerSystems.length === 0) return null;
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1000 } }}>
-        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1000 } }}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: 180 }}>Name</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }}>PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }}>HP</TableCell>

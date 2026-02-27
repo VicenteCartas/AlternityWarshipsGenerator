@@ -25,9 +25,8 @@ export type { PdfExportOptions };
 export type PdfSheetType = 'full' | 'combat';
 
 const defaultOptions: PdfExportOptions = {
+  includeCombat: true,
   includeDamageDiagram: true,
-  includeDefenses: true,
-  includeOffense: true,
   includeDetailedSystems: false,
 };
 
@@ -71,18 +70,16 @@ export function PdfExportDialog({
 
   const handleSelectAll = () => {
     setOptions({
+      includeCombat: true,
       includeDamageDiagram: true,
-      includeDefenses: true,
-      includeOffense: true,
       includeDetailedSystems: true,
     });
   };
 
   const handleSelectNone = () => {
     setOptions({
+      includeCombat: false,
       includeDamageDiagram: false,
-      includeDefenses: false,
-      includeOffense: false,
       includeDetailedSystems: false,
     });
   };
@@ -147,7 +144,11 @@ export function PdfExportDialog({
               </Typography>
               <FormControlLabel
                 control={<Checkbox checked disabled />}
-                label="Ship Information (overview, systems summary, lore, notes, image)"
+                label="Lore & Identity (name, image, metadata, lore, notes)"
+              />
+              <FormControlLabel
+                control={<Checkbox checked disabled />}
+                label="Systems Detail (overview stats, systems summary table)"
               />
               <FormControlLabel
                 sx={{ ml: 3 }}
@@ -170,31 +171,21 @@ export function PdfExportDialog({
               <FormControlLabel
                 control={
                   <Checkbox
+                    checked={options.includeCombat}
+                    onChange={handleChange('includeCombat')}
+                  />
+                }
+                label="Combat Sheet (weapons, fire arcs, sensors, ordnance, armor, damage tracks, defenses)"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
                     checked={options.includeDamageDiagram}
                     onChange={handleChange('includeDamageDiagram')}
                   />
                 }
-                label="Damage Diagram (hit location table, zone layout with all systems)"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={options.includeDefenses}
-                    onChange={handleChange('includeDefenses')}
-                  />
-                }
-                label="Defenses (damage tracks, armor, active defenses)"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={options.includeOffense}
-                    onChange={handleChange('includeOffense')}
-                  />
-                }
-                label="Weapons (fire arcs, sensors, weapons, ordnance)"
+                label="Damage Zones (hit location table, zone layout with all systems)"
               />
             </FormGroup>
           </>

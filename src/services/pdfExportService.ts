@@ -10,6 +10,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { InstalledLaunchSystem, OrdnanceDesign, MissileDesign } from '../types/ordnance';
 import type { DamageZone, ZoneCode, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
@@ -22,13 +23,27 @@ import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEngin
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
 import { calculateSupportSystemsStats } from './supportSystemService';
 import { calculateWeaponStats } from './weaponService';
+import type { FiringArc } from '../types/weapon';
 import { calculateOrdnanceStats, getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
 import { calculateDefenseStats } from './defenseService';
 import { calculateCommandControlStats } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
+import { calculateEmbarkedCraftStats } from './embarkedCraftService';
 import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
 import { capitalize, logger } from './utilities';
+
+/**
+ * Format arcs as short single-letter abbreviations separated by spaces.
+ * Standard arcs: F S A P. Zero arcs: ZF ZS ZA ZP.
+ */
+function formatArcsShort(arcs: FiringArc[]): string {
+  if (arcs.length === 0) return '-';
+  return arcs.map(a => {
+    if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
+    return a.charAt(0).toUpperCase();
+  }).join(' ');
+}
 
 // ============ INTERFACES ============
 
@@ -54,6 +69,7 @@ export interface ShipData {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
+  embarkedCraft?: EmbarkedCraft[];
   damageDiagramZones: DamageZone[];
   hitLocationChart?: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
@@ -63,16 +79,14 @@ export interface ShipData {
 }
 
 export interface PdfExportOptions {
+  includeCombat: boolean;
   includeDamageDiagram: boolean;
-  includeDefenses: boolean;
-  includeOffense: boolean;
   includeDetailedSystems: boolean;
 }
 
 export const defaultExportOptions: PdfExportOptions = {
+  includeCombat: true,
   includeDamageDiagram: true,
-  includeDefenses: true,
-  includeOffense: true,
   includeDetailedSystems: false,
 };
 
@@ -193,6 +207,7 @@ interface ShipStats {
   commandControl: { hp: number; power: number; cost: number };
   sensors: { hp: number; power: number; cost: number };
   hangarMisc: { hp: number; power: number; cost: number };
+  embarkedCraft: { cost: number };
 }
 
 function computeShipStats(data: ShipData): ShipStats {
@@ -217,6 +232,7 @@ function computeShipStats(data: ShipData): ShipStats {
   const ccStats = calculateCommandControlStats(data.installedCommandControl, hull.hullPoints);
   const sensorStats = calculateSensorStats(data.installedSensors);
   const hmStats = calculateHangarMiscStats(data.installedHangarMisc);
+  const ecStats = calculateEmbarkedCraftStats(data.embarkedCraft || []);
 
   const usedHP = armorHP
     + ppStats.totalHullPoints
@@ -253,7 +269,8 @@ function computeShipStats(data: ShipData): ShipStats {
     + defenseStats.totalCost
     + ccStats.totalCost
     + sensorStats.totalCost
-    + hmStats.totalCost;
+    + hmStats.totalCost
+    + ecStats.totalEmbarkedCost;
 
   return {
     totalHP,
@@ -282,6 +299,7 @@ function computeShipStats(data: ShipData): ShipStats {
     commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
     sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
     hangarMisc: { hp: hmStats.totalHullPoints, power: hmStats.totalPowerRequired, cost: hmStats.totalCost },
+    embarkedCraft: { cost: ecStats.totalEmbarkedCost },
   };
 }
 
@@ -357,120 +375,7 @@ function drawPieSector(
   doc.lines(lines, sX, sY, [1, 1], stroke ? 'FD' : 'F', true);
 }
 
-/**
- * Render fire arcs diagram with concentric circles. Returns new y position.
- */
-function renderFireArcsDiagram(
-  doc: jsPDF,
-  weapons: InstalledWeapon[],
-  startY: number,
-  marginLeft: number,
-  _contentW: number,
-): number {
-  const arcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
-  const zeroArcWeapons: Record<string, number> = { forward: 0, starboard: 0, aft: 0, port: 0 };
 
-  for (const weapon of weapons) {
-    for (const arc of weapon.arcs) {
-      if (arc.startsWith('zero-')) {
-        const baseArc = arc.replace('zero-', '');
-        if (baseArc in zeroArcWeapons) zeroArcWeapons[baseArc] += weapon.quantity;
-      } else {
-        if (arc in arcWeapons) arcWeapons[arc] += weapon.quantity;
-      }
-    }
-  }
-
-  const diagramSize = 55;
-  const diagramCenterX = marginLeft + diagramSize / 2 + 10;
-  const diagramCenterY = startY + diagramSize / 2;
-  const outerRadius = diagramSize / 2 - 2;
-  const innerRadius = outerRadius * 0.45;
-  const hasZeroArcs = Object.values(zeroArcWeapons).some(v => v > 0);
-
-  const standardArcFill = [200, 200, 200];
-  const standardArcActive = [100, 149, 237];
-  const zeroArcFill = [220, 220, 220];
-  const zeroArcActive = [186, 85, 211];
-
-  const arcs = [
-    { arc: 'forward', label: 'FWD', startAngle: -135 },
-    { arc: 'starboard', label: 'STBD', startAngle: -45 },
-    { arc: 'aft', label: 'AFT', startAngle: 45 },
-    { arc: 'port', label: 'PORT', startAngle: 135 },
-  ];
-
-  for (const { arc, label, startAngle } of arcs) {
-    const count = arcWeapons[arc];
-    const fillColor = count > 0 ? standardArcActive : standardArcFill;
-    const innerR = hasZeroArcs ? innerRadius : 3;
-    drawPieSector(doc, diagramCenterX, diagramCenterY, innerR, outerRadius, startAngle, startAngle + 90, fillColor);
-
-    const midAngle = ((startAngle + 45) * Math.PI) / 180;
-    const labelRadius = (innerR + outerRadius) / 2;
-    const labelX = diagramCenterX + labelRadius * Math.cos(midAngle);
-    const labelY = diagramCenterY + labelRadius * Math.sin(midAngle);
-
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(count > 0 ? 255 : 60);
-    doc.text(label, labelX, labelY - 1, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.text(`${count}`, labelX, labelY + 3, { align: 'center' });
-  }
-
-  if (hasZeroArcs) {
-    const centerDotRadius = 3;
-    for (const { arc, startAngle } of arcs) {
-      const zeroCount = zeroArcWeapons[arc];
-      const fillColor = zeroCount > 0 ? zeroArcActive : zeroArcFill;
-      drawPieSector(doc, diagramCenterX, diagramCenterY, centerDotRadius, innerRadius, startAngle, startAngle + 90, fillColor);
-
-      if (zeroCount > 0) {
-        const midAngle = ((startAngle + 45) * Math.PI) / 180;
-        const labelRad = (centerDotRadius + innerRadius) / 2;
-        const lx = diagramCenterX + labelRad * Math.cos(midAngle);
-        const ly = diagramCenterY + labelRad * Math.sin(midAngle);
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255);
-        doc.text(`${zeroCount}`, lx, ly + 1, { align: 'center' });
-      }
-    }
-    doc.setFillColor(255, 255, 255);
-    doc.circle(diagramCenterX, diagramCenterY, centerDotRadius, 'F');
-  }
-
-  doc.setTextColor(0);
-
-  // Ship triangle
-  doc.setFillColor(50, 50, 50);
-  const triSize = 3;
-  doc.triangle(
-    diagramCenterX, diagramCenterY - triSize,
-    diagramCenterX - triSize * 0.7, diagramCenterY + triSize * 0.5,
-    diagramCenterX + triSize * 0.7, diagramCenterY + triSize * 0.5,
-    'F',
-  );
-
-  // Legend
-  const legendX = diagramCenterX + diagramSize / 2 + 12;
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'normal');
-  doc.setFillColor(standardArcActive[0], standardArcActive[1], standardArcActive[2]);
-  doc.rect(legendX, diagramCenterY - 12, 6, 3, 'F');
-  doc.text('Standard arc (outer ring)', legendX + 8, diagramCenterY - 10);
-  doc.setFillColor(zeroArcActive[0], zeroArcActive[1], zeroArcActive[2]);
-  doc.rect(legendX, diagramCenterY - 6, 6, 3, 'F');
-  doc.text('Zero-range arc (inner ring)', legendX + 8, diagramCenterY - 4);
-  doc.text('FWD = Forward', legendX, diagramCenterY + 4);
-  doc.text('AFT = Aft', legendX, diagramCenterY + 9);
-  doc.text('STBD = Starboard', legendX, diagramCenterY + 14);
-  doc.text('PORT = Port', legendX, diagramCenterY + 19);
-
-  return diagramCenterY + diagramSize / 2 + 8;
-}
 
 /**
  * Draw a single zone box with header and all systems listed.
@@ -689,24 +594,15 @@ function renderZoneFallbackGrid(
 // ============ SECTION RENDERERS ============
 
 /**
- * SECTION 1: Ship Information — title, overview stats, systems summary table,
- * description/lore, notes, and ship image.
+ * SECTION 1: Lore & Identity — title, ship image, metadata, lore text, notes.
+ * The "flavor" page with worldbuilding content, no crunch.
  */
-function renderShipInfoSection(
+function renderLoreSection(
   ctx: PdfContext,
   data: ShipData,
-  stats: ShipStats,
-  options: PdfExportOptions,
 ): void {
   const { hull, warshipName } = data;
   const isStation = data.designType === 'station';
-  const hasEngines = data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0;
-
-  const supportStats = calculateSupportSystemsStats(
-    data.installedLifeSupport, data.installedAccommodations,
-    data.installedStoreSystems, data.installedGravitySystems,
-    data.designProgressLevel, [],
-  );
 
   // --- Title ---
   const shipName = warshipName || hull.name;
@@ -721,6 +617,43 @@ function renderShipInfoSection(
     ? `${getStationTypeDisplayName(data.stationType)} – ${hull.name}`
     : `${capitalize(hull.shipClass)} Class – ${hull.name}`;
   ctx.pdf.text(subtitle, ctx.pageWidth / 2, ctx.y, { align: 'center' });
+  ctx.y += 8;
+
+  // --- Ship Image (prominent, centered) ---
+  renderShipImage(ctx, data.shipDescription);
+
+  // --- Description (metadata + lore) ---
+  renderDescriptionSection(ctx, data);
+
+  // --- Notes ---
+  renderNotesSection(ctx);
+}
+
+/**
+ * SECTION 2: Systems Detail — overview stats and systems summary table.
+ * The "what's on the ship" page with all installed components.
+ */
+function renderSystemsDetailSection(
+  ctx: PdfContext,
+  data: ShipData,
+  stats: ShipStats,
+  options: PdfExportOptions,
+): void {
+  const { hull } = data;
+  const isStation = data.designType === 'station';
+  const hasEngines = data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0;
+
+  const supportStats = calculateSupportSystemsStats(
+    data.installedLifeSupport, data.installedAccommodations,
+    data.installedStoreSystems, data.installedGravitySystems,
+    data.designProgressLevel, [],
+  );
+
+  // --- Title ---
+  const shipName = data.warshipName || hull.name;
+  ctx.pdf.setFontSize(16);
+  ctx.pdf.setFont('helvetica', 'bold');
+  ctx.pdf.text(`${shipName} — Systems`, ctx.pageWidth / 2, ctx.y + 2, { align: 'center' });
   ctx.y += 8;
 
   // --- Key Stats ---
@@ -775,15 +708,6 @@ function renderShipInfoSection(
 
   // --- Systems Summary Table ---
   renderSystemsSummaryTable(ctx, data, stats, options);
-
-  // --- Ship Description / Lore ---
-  renderDescriptionSection(ctx, data);
-
-  // --- Notes ---
-  renderNotesSection(ctx);
-
-  // --- Ship Image ---
-  renderShipImage(ctx, data.shipDescription);
 }
 
 /**
@@ -1103,6 +1027,25 @@ function renderSystemsSummaryTable(
     ctx.y += 1;
   }
 
+  // Embarked Craft
+  const embarkedCraft = data.embarkedCraft || [];
+  if (embarkedCraft.length > 0) {
+    addStatsRow('Embarked Craft', '-', '-', stats.embarkedCraft.cost);
+    if (options.includeDetailedSystems) {
+      addDetailColumnHeaders();
+      for (const craft of embarkedCraft) {
+        const qty = craft.quantity > 1 ? ` x${craft.quantity}` : '';
+        addDetailRow(
+          `${craft.name}${qty} (${craft.berthing})`,
+          `${craft.hullHp * craft.quantity}`,
+          '-',
+          formatCost(craft.designCost * craft.quantity)
+        );
+      }
+      ctx.y += 1;
+    }
+  }
+
   // Totals row
   ctx.pdf.setLineWidth(0.3);
   ctx.pdf.setDrawColor(80);
@@ -1140,20 +1083,34 @@ function renderDescriptionSection(ctx: PdfContext, data: ShipData): void {
     addSectionTitle(ctx, 'Description');
     ctx.y += 3;
 
-    // Print metadata as label: value pairs
+    // Print metadata in two columns: left (Faction, Manufacturer, Commissioned), right (Classification, Role)
     if (hasMetadata) {
       ctx.pdf.setFontSize(8);
       const metaLineHeight = 4;
-      for (const entry of metadataEntries) {
+      const colWidth = ctx.contentWidth / 2;
+      const leftCol = metadataEntries.filter(e => e.label === 'Faction' || e.label === 'Manufacturer' || e.label === 'Commissioned');
+      const rightCol = metadataEntries.filter(e => e.label === 'Classification' || e.label === 'Role');
+      const maxRows = Math.max(leftCol.length, rightCol.length);
+
+      for (let i = 0; i < maxRows; i++) {
         if (ctx.y + metaLineHeight > ctx.pageHeight - ctx.margin - 10) {
           ctx.pdf.addPage();
           ctx.y = ctx.margin;
         }
-        ctx.pdf.setFont('helvetica', 'bold');
-        ctx.pdf.text(`${entry.label}: `, ctx.margin, ctx.y);
-        const labelWidth = ctx.pdf.getTextWidth(`${entry.label}: `);
-        ctx.pdf.setFont('helvetica', 'normal');
-        ctx.pdf.text(entry.value, ctx.margin + labelWidth, ctx.y);
+        if (i < leftCol.length) {
+          ctx.pdf.setFont('helvetica', 'bold');
+          ctx.pdf.text(`${leftCol[i].label}: `, ctx.margin, ctx.y);
+          const lw = ctx.pdf.getTextWidth(`${leftCol[i].label}: `);
+          ctx.pdf.setFont('helvetica', 'normal');
+          ctx.pdf.text(leftCol[i].value, ctx.margin + lw, ctx.y);
+        }
+        if (i < rightCol.length) {
+          ctx.pdf.setFont('helvetica', 'bold');
+          ctx.pdf.text(`${rightCol[i].label}: `, ctx.margin + colWidth, ctx.y);
+          const rw = ctx.pdf.getTextWidth(`${rightCol[i].label}: `);
+          ctx.pdf.setFont('helvetica', 'normal');
+          ctx.pdf.text(rightCol[i].value, ctx.margin + colWidth + rw, ctx.y);
+        }
         ctx.y += metaLineHeight;
       }
       ctx.y += 2;
@@ -1302,108 +1259,16 @@ function renderDamageDiagramSection(ctx: PdfContext, data: ShipData): void {
 }
 
 /**
- * SECTION 3: Defenses — toughness, armor, damage track, active defenses.
+ * SECTION 3: Combat Sheet — weapons, fire arcs, sensors, ordnance,
+ * armor protection, damage track, active defenses.
+ * Groups everything needed during combat resolution on one section.
  */
-function renderDefensesSection(ctx: PdfContext, data: ShipData): void {
+function renderCombatSection(ctx: PdfContext, data: ShipData): void {
   const { hull } = data;
 
   startNewPage(ctx);
-  addSectionTitle(ctx, 'Defenses');
+  addSectionTitle(ctx, 'Combat Sheet');
   ctx.y += 3;
-
-  // Toughness & Target Modifier
-  addLabel(ctx, 'Toughness', hull.toughness.toString(), ctx.margin);
-  addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + 60);
-  ctx.y += 5;
-
-  // Armor
-  if (data.armorLayers.length > 0) {
-    for (const layer of data.armorLayers) {
-      addLabel(ctx, 'Armor', `${capitalize(layer.weight)} ${layer.type.name}`, ctx.margin);
-      ctx.y += 4;
-      ctx.pdf.setFontSize(8);
-      ctx.pdf.setFont('helvetica', 'normal');
-      ctx.pdf.text(
-        `Protection – LI: ${layer.type.protectionLI}  |  HI: ${layer.type.protectionHI}  |  En: ${layer.type.protectionEn}`,
-        ctx.margin, ctx.y,
-      );
-      ctx.y += 5;
-    }
-  } else {
-    addLabel(ctx, 'Armor', 'None', ctx.margin);
-    ctx.y += 5;
-  }
-
-  // Damage Track
-  ctx.y += 2;
-  ctx.pdf.setFontSize(9);
-  ctx.pdf.setFont('helvetica', 'bold');
-  ctx.pdf.text('DAMAGE TRACK', ctx.margin, ctx.y);
-  ctx.y += 5;
-
-  const trackWidth = ctx.contentWidth / 2 - 5;
-  const dCol1 = ctx.margin;
-  const dCol2 = ctx.margin + trackWidth + 10;
-
-  const stunRows = drawDamageTrackBoxes(ctx, `Stun (${hull.damageTrack.stun})`, hull.damageTrack.stun, dCol1, trackWidth);
-  const woundRows = drawDamageTrackBoxes(ctx, `Wound (${hull.damageTrack.wound})`, hull.damageTrack.wound, dCol2, trackWidth);
-  ctx.y += Math.max(stunRows, woundRows) * 5 + 3;
-
-  const mortalRows = drawDamageTrackBoxes(ctx, `Mortal (${hull.damageTrack.mortal})`, hull.damageTrack.mortal, dCol1, trackWidth);
-  const critRows = drawDamageTrackBoxes(ctx, `Critical (${hull.damageTrack.critical})`, hull.damageTrack.critical, dCol2, trackWidth);
-  ctx.y += Math.max(mortalRows, critRows) * 5 + 5;
-
-  // Active Defenses
-  if (data.installedDefenses.length > 0) {
-    checkNewPage(ctx, 20);
-    ctx.pdf.setFontSize(9);
-    ctx.pdf.setFont('helvetica', 'bold');
-    ctx.pdf.text('ACTIVE DEFENSES', ctx.margin, ctx.y);
-    ctx.y += 4;
-
-    const defCols = [ctx.margin, ctx.margin + 55, ctx.margin + 80, ctx.margin + 105, ctx.margin + 140];
-    ctx.pdf.setFontSize(7);
-    ctx.pdf.setFont('helvetica', 'bold');
-    ctx.pdf.text('Defense', defCols[0], ctx.y);
-    ctx.pdf.text('PL', defCols[1], ctx.y);
-    ctx.pdf.text('HP', defCols[2], ctx.y);
-    ctx.pdf.text('Power', defCols[3], ctx.y);
-    ctx.pdf.text('Effect', defCols[4], ctx.y);
-    ctx.y += 1;
-    ctx.pdf.setDrawColor(100);
-    ctx.pdf.line(ctx.margin, ctx.y, ctx.pageWidth - ctx.margin, ctx.y);
-    ctx.y += 3;
-
-    ctx.pdf.setFont('helvetica', 'normal');
-    for (const d of data.installedDefenses) {
-      checkNewPage(ctx, 8);
-      ctx.pdf.text(`${d.quantity}× ${d.type.name}`, defCols[0], ctx.y);
-      ctx.pdf.text(d.type.progressLevel.toString(), defCols[1], ctx.y);
-      ctx.pdf.text(d.hullPoints.toString(), defCols[2], ctx.y);
-      ctx.pdf.text(d.powerRequired > 0 ? d.powerRequired.toString() : '-', defCols[3], ctx.y);
-      if (d.type.effect) {
-        const effectWidth = ctx.contentWidth - (defCols[4] - ctx.margin);
-        const effectLines = ctx.pdf.splitTextToSize(d.type.effect, effectWidth);
-        for (let i = 0; i < effectLines.length; i++) {
-          ctx.pdf.text(effectLines[i], defCols[4], ctx.y);
-          if (i < effectLines.length - 1) ctx.y += 3;
-        }
-      }
-      ctx.y += 4;
-    }
-  }
-}
-
-/**
- * SECTION 4: Weapons — fire arcs diagram, sensors, weapons table, ordnance.
- */
-function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
-  startNewPage(ctx);
-  addSectionTitle(ctx, 'Weapons');
-  ctx.y += 3;
-
-  // --- Fire Arcs Diagram ---
-  ctx.y = renderFireArcsDiagram(ctx.pdf, data.installedWeapons, ctx.y, ctx.margin, ctx.contentWidth);
 
   // --- Sensors ---
   if (data.installedSensors.length > 0) {
@@ -1422,9 +1287,9 @@ function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
     ctx.pdf.setFont('helvetica', 'bold');
     ctx.pdf.text('Sensor', sCols[0], ctx.y);
     ctx.pdf.text('Range S/M/L', sCols[1], ctx.y);
-    ctx.pdf.text('Arcs', sCols[2], ctx.y);
-    ctx.pdf.text('Tracking', sCols[3], ctx.y);
-    ctx.pdf.text('Accuracy', sCols[4], ctx.y);
+    ctx.pdf.text('Tracking', sCols[2], ctx.y);
+    ctx.pdf.text('Accuracy', sCols[3], ctx.y);
+    ctx.pdf.text('Arcs', sCols[4], ctx.y);
     ctx.pdf.text('Control', sCols[5], ctx.y);
     ctx.pdf.text('Qty', sCols[6], ctx.y);
     ctx.y += 1;
@@ -1442,9 +1307,9 @@ function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
 
       ctx.pdf.text(st.name.substring(0, 22), sCols[0], ctx.y);
       ctx.pdf.text(rangeText.substring(0, 14), sCols[1], ctx.y);
-      ctx.pdf.text(st.arcsCovered.toString(), sCols[2], ctx.y);
-      ctx.pdf.text(st.trackingCapability.toString(), sCols[3], ctx.y);
-      ctx.pdf.text(st.accuracyDescription.substring(0, 10), sCols[4], ctx.y);
+      ctx.pdf.text(st.trackingCapability.toString(), sCols[2], ctx.y);
+      ctx.pdf.text(st.accuracyDescription.substring(0, 10), sCols[3], ctx.y);
+      ctx.pdf.text(formatArcsShort(sensor.arcs), sCols[4], ctx.y);
       ctx.pdf.text(scText, sCols[5], ctx.y);
       ctx.pdf.text(sensor.quantity.toString(), sCols[6], ctx.y);
       ctx.y += 4;
@@ -1486,11 +1351,6 @@ function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
       const wt = weapon.weaponType;
       const rangeText = `${wt.rangeShort}/${wt.rangeMedium}/${wt.rangeLong}`;
       const typeText = `${wt.damageType}/${wt.firepower}`;
-      const arcsText = weapon.arcs.map(a => {
-        if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
-        return a.charAt(0).toUpperCase();
-      }).join('');
-
       const batteryKey = `${wt.id}:${weapon.mountType}`;
       const linkedFC = fireControls.find(fc => fc.linkedWeaponBatteryKey === batteryKey);
       const fcText = linkedFC ? (linkedFC.type.stepBonus ? linkedFC.type.stepBonus.toString() : 'Yes') : '-';
@@ -1503,7 +1363,7 @@ function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
       ctx.pdf.text(typeText, wCols[2], ctx.y);
       ctx.pdf.text(wt.damage.substring(0, 17), wCols[3], ctx.y);
       ctx.pdf.text(accText, wCols[4], ctx.y);
-      ctx.pdf.text(arcsText, wCols[5], ctx.y);
+      ctx.pdf.text(formatArcsShort(weapon.arcs), wCols[5], ctx.y);
       ctx.pdf.text(fcText, wCols[6], ctx.y);
       ctx.pdf.text(weapon.quantity.toString(), wCols[7], ctx.y);
       ctx.y += 4;
@@ -1607,6 +1467,96 @@ function renderWeaponsSection(ctx: PdfContext, data: ShipData): void {
       ctx.y += 4;
     }
   }
+
+  // --- Defenses & Armor ---
+  ctx.y += 4;
+  checkNewPage(ctx, 30);
+
+  // Toughness & Target Modifier
+  addSectionTitle(ctx, 'Defenses');
+  ctx.y += 3;
+
+  addLabel(ctx, 'Toughness', hull.toughness.toString(), ctx.margin);
+  addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + 60);
+  ctx.y += 5;
+
+  // Armor
+  if (data.armorLayers.length > 0) {
+    for (const layer of data.armorLayers) {
+      addLabel(ctx, 'Armor', `${capitalize(layer.weight)} ${layer.type.name}`, ctx.margin);
+      ctx.y += 4;
+      ctx.pdf.setFontSize(8);
+      ctx.pdf.setFont('helvetica', 'normal');
+      ctx.pdf.text(
+        `Protection – LI: ${layer.type.protectionLI}  |  HI: ${layer.type.protectionHI}  |  En: ${layer.type.protectionEn}`,
+        ctx.margin, ctx.y,
+      );
+      ctx.y += 5;
+    }
+  } else {
+    addLabel(ctx, 'Armor', 'None', ctx.margin);
+    ctx.y += 5;
+  }
+
+  // Damage Track
+  ctx.y += 2;
+  checkNewPage(ctx, 25);
+  ctx.pdf.setFontSize(9);
+  ctx.pdf.setFont('helvetica', 'bold');
+  ctx.pdf.text('DAMAGE TRACK', ctx.margin, ctx.y);
+  ctx.y += 5;
+
+  const trackWidth = ctx.contentWidth / 2 - 5;
+  const dCol1 = ctx.margin;
+  const dCol2 = ctx.margin + trackWidth + 10;
+
+  const stunRows = drawDamageTrackBoxes(ctx, `Stun (${hull.damageTrack.stun})`, hull.damageTrack.stun, dCol1, trackWidth);
+  const woundRows = drawDamageTrackBoxes(ctx, `Wound (${hull.damageTrack.wound})`, hull.damageTrack.wound, dCol2, trackWidth);
+  ctx.y += Math.max(stunRows, woundRows) * 5 + 3;
+
+  const mortalRows = drawDamageTrackBoxes(ctx, `Mortal (${hull.damageTrack.mortal})`, hull.damageTrack.mortal, dCol1, trackWidth);
+  const critRows = drawDamageTrackBoxes(ctx, `Critical (${hull.damageTrack.critical})`, hull.damageTrack.critical, dCol2, trackWidth);
+  ctx.y += Math.max(mortalRows, critRows) * 5 + 5;
+
+  // Active Defenses
+  if (data.installedDefenses.length > 0) {
+    checkNewPage(ctx, 20);
+    ctx.pdf.setFontSize(9);
+    ctx.pdf.setFont('helvetica', 'bold');
+    ctx.pdf.text('ACTIVE DEFENSES', ctx.margin, ctx.y);
+    ctx.y += 4;
+
+    const defCols = [ctx.margin, ctx.margin + 55, ctx.margin + 80, ctx.margin + 105, ctx.margin + 140];
+    ctx.pdf.setFontSize(7);
+    ctx.pdf.setFont('helvetica', 'bold');
+    ctx.pdf.text('Defense', defCols[0], ctx.y);
+    ctx.pdf.text('PL', defCols[1], ctx.y);
+    ctx.pdf.text('HP', defCols[2], ctx.y);
+    ctx.pdf.text('Power', defCols[3], ctx.y);
+    ctx.pdf.text('Effect', defCols[4], ctx.y);
+    ctx.y += 1;
+    ctx.pdf.setDrawColor(100);
+    ctx.pdf.line(ctx.margin, ctx.y, ctx.pageWidth - ctx.margin, ctx.y);
+    ctx.y += 3;
+
+    ctx.pdf.setFont('helvetica', 'normal');
+    for (const d of data.installedDefenses) {
+      checkNewPage(ctx, 8);
+      ctx.pdf.text(`${d.quantity}× ${d.type.name}`, defCols[0], ctx.y);
+      ctx.pdf.text(d.type.progressLevel.toString(), defCols[1], ctx.y);
+      ctx.pdf.text(d.hullPoints.toString(), defCols[2], ctx.y);
+      ctx.pdf.text(d.powerRequired > 0 ? d.powerRequired.toString() : '-', defCols[3], ctx.y);
+      if (d.type.effect) {
+        const effectWidth = ctx.contentWidth - (defCols[4] - ctx.margin);
+        const effectLines = ctx.pdf.splitTextToSize(d.type.effect, effectWidth);
+        for (let i = 0; i < effectLines.length; i++) {
+          ctx.pdf.text(effectLines[i], defCols[4], ctx.y);
+          if (i < effectLines.length - 1) ctx.y += 3;
+        }
+      }
+      ctx.y += 4;
+    }
+  }
 }
 
 /**
@@ -1670,22 +1620,21 @@ export async function exportShipToPDF(data: ShipData, options: PdfExportOptions 
   const stats = computeShipStats(data);
   const shipName = data.warshipName || data.hull.name;
 
-  // Section 1: Ship Information (always included)
-  renderShipInfoSection(ctx, data, stats, options);
+  // Section 1: Lore & Identity (always included)
+  renderLoreSection(ctx, data);
 
-  // Section 2: Damage Diagram
+  // Section 2: Systems Detail (always included)
+  startNewPage(ctx);
+  renderSystemsDetailSection(ctx, data, stats, options);
+
+  // Section 3: Combat Sheet (weapons + defenses combined)
+  if (options.includeCombat) {
+    renderCombatSection(ctx, data);
+  }
+
+  // Section 4: Damage Zones
   if (options.includeDamageDiagram) {
     renderDamageDiagramSection(ctx, data);
-  }
-
-  // Section 3: Defenses
-  if (options.includeDefenses) {
-    renderDefensesSection(ctx, data);
-  }
-
-  // Section 4: Weapons
-  if (options.includeOffense) {
-    renderWeaponsSection(ctx, data);
   }
 
   // Footer on all pages
@@ -1843,10 +1792,6 @@ function renderCombatWeaponsColumn(
       const wt = weapon.weaponType;
       const rangeText = `${wt.rangeShort}/${wt.rangeMedium}/${wt.rangeLong}`;
       const typeText = `${wt.damageType}/${wt.firepower}`;
-      const arcsText = weapon.arcs.map(a => {
-        if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
-        return a.charAt(0).toUpperCase();
-      }).join('');
       const batteryKey = `${wt.id}:${weapon.mountType}`;
       const linkedFC = fireControls.find(fc => fc.linkedWeaponBatteryKey === batteryKey);
       const fcText = linkedFC ? (linkedFC.type.stepBonus ? linkedFC.type.stepBonus.toString() : 'Y') : '-';
@@ -1858,7 +1803,7 @@ function renderCombatWeaponsColumn(
       pdf.text(typeText, wCols[2], ctx.y);
       pdf.text(wt.damage.substring(0, 12), wCols[3], ctx.y);
       pdf.text(accText, wCols[4], ctx.y);
-      pdf.text(arcsText, wCols[5], ctx.y);
+      pdf.text(formatArcsShort(weapon.arcs), wCols[5], ctx.y);
       pdf.text(fcText, wCols[6], ctx.y);
       pdf.text(weapon.quantity.toString(), wCols[7], ctx.y);
       ctx.y += 3;
@@ -1955,9 +1900,9 @@ function renderCombatWeaponsColumn(
     pdf.setFont('helvetica', 'bold');
     pdf.text('Sensor', sCols[0], ctx.y);
     pdf.text('Range', sCols[1], ctx.y);
-    pdf.text('Arcs', sCols[2], ctx.y);
-    pdf.text('Track', sCols[3], ctx.y);
-    pdf.text('Acc', sCols[4], ctx.y);
+    pdf.text('Track', sCols[2], ctx.y);
+    pdf.text('Acc', sCols[3], ctx.y);
+    pdf.text('Arcs', sCols[4], ctx.y);
     pdf.text('Ctrl', sCols[5], ctx.y);
     pdf.text('Qty', sCols[6], ctx.y);
     ctx.y += 1;
@@ -1974,9 +1919,9 @@ function renderCombatWeaponsColumn(
 
       pdf.text(st.name.substring(0, 18), sCols[0], ctx.y);
       pdf.text(rangeText.substring(0, 12), sCols[1], ctx.y);
-      pdf.text(st.arcsCovered.toString(), sCols[2], ctx.y);
-      pdf.text(st.trackingCapability.toString(), sCols[3], ctx.y);
-      pdf.text(st.accuracyDescription.substring(0, 8), sCols[4], ctx.y);
+      pdf.text(st.trackingCapability.toString(), sCols[2], ctx.y);
+      pdf.text(st.accuracyDescription.substring(0, 8), sCols[3], ctx.y);
+      pdf.text(formatArcsShort(sensor.arcs), sCols[4], ctx.y);
       pdf.text(scText, sCols[5], ctx.y);
       pdf.text(sensor.quantity.toString(), sCols[6], ctx.y);
       ctx.y += 3;

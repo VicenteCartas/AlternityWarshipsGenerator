@@ -11,6 +11,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { ProgressLevel, TechTrack, DesignType, StationType, AppMode } from '../types/common';
 import type { DamageZone, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
@@ -50,6 +51,7 @@ export function useWarshipState(mode: AppMode) {
   const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
   const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
   const [installedHangarMisc, setInstalledHangarMisc] = useState<InstalledHangarMiscSystem[]>([]);
+  const [embarkedCraft, setEmbarkedCraft] = useState<EmbarkedCraft[]>([]);
 
   // ---- Damage diagram ----
   const [damageDiagramZones, setDamageDiagramZones] = useState<DamageZone[]>([]);
@@ -106,6 +108,7 @@ export function useWarshipState(mode: AppMode) {
     commandControl: installedCommandControl,
     sensors: installedSensors,
     hangarMisc: installedHangarMisc,
+    embarkedCraft,
     weapons: installedWeapons,
     ordnanceDesigns,
     launchSystems: installedLaunchSystems,
@@ -113,7 +116,7 @@ export function useWarshipState(mode: AppMode) {
     hitLocationChart,
     designProgressLevel,
     designTechTracks,
-  }), [warshipName, shipDescription, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, designProgressLevel, designTechTracks]);
+  }), [warshipName, shipDescription, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, designProgressLevel, designTechTracks]);
 
   /**
    * Apply a WarshipState snapshot to all individual setters.
@@ -143,6 +146,7 @@ export function useWarshipState(mode: AppMode) {
     setInstalledCommandControl(state.commandControl);
     setInstalledSensors(state.sensors);
     setInstalledHangarMisc(state.hangarMisc);
+    setEmbarkedCraft(state.embarkedCraft);
     setDamageDiagramZones(state.damageDiagramZones);
     setHitLocationChart(state.hitLocationChart);
     setShipDescription(state.shipDescription);
@@ -180,7 +184,7 @@ export function useWarshipState(mode: AppMode) {
     installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
     damageDiagramZones, hitLocationChart, warshipName, shipDescription,
     designProgressLevel, designTechTracks, mode, buildCurrentState]);
 
@@ -193,7 +197,7 @@ export function useWarshipState(mode: AppMode) {
     installedFTLDrive, installedFTLFuelTanks,
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
     damageDiagramZones, hitLocationChart,
     shipDescription, warshipName,
     designProgressLevel, designTechTracks,
@@ -206,6 +210,7 @@ export function useWarshipState(mode: AppMode) {
     setInstalledLifeSupport, setInstalledAccommodations, setInstalledStoreSystems, setInstalledGravitySystems,
     setInstalledWeapons, setOrdnanceDesigns, setInstalledLaunchSystems,
     setInstalledDefenses, setInstalledCommandControl, setInstalledSensors, setInstalledHangarMisc,
+    setEmbarkedCraft,
     setDamageDiagramZones, setHitLocationChart,
     setShipDescription, setWarshipName,
     setDesignProgressLevel, setDesignTechTracks,

@@ -26,7 +26,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel, TruncatedDescription } from './shared';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { DefenseSystemType, InstalledDefenseSystem } from '../types/defense';
@@ -508,11 +508,11 @@ export function DefenseSelection({
     if (defenses.length === 0) return null;
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
-        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1100 } }}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: 180, whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: 180 }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 50, whiteSpace: 'nowrap' }} align="center">PL</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 60, whiteSpace: 'nowrap' }}>Tech</TableCell>
               <TableCell sx={{ fontWeight: 'bold', width: 70, whiteSpace: 'nowrap' }} align="right">HP</TableCell>
@@ -550,7 +550,7 @@ export function DefenseSelection({
                     }}
                     onClick={() => handleSelectDefense(defense)}
                   >
-                    <TableCell>
+                    <TableCell sx={stickyFirstColumnCellSx}>
                       <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap', pl: parentInstalled ? 2 : 0 }}>
                         {parentInstalled && '↳ '}{defense.name}
                       </Typography>

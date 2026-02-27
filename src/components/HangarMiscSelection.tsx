@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
@@ -39,6 +39,8 @@ import {
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
+import { EmbarkedCraftSection } from './EmbarkedCraftSection';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 
 interface HangarMiscSelectionProps {
   hull: Hull;
@@ -46,7 +48,9 @@ interface HangarMiscSelectionProps {
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   totalPassengersAndSuspended: number;  // Passengers + suspended + troops from accommodations (crew comes from hull)
+  embarkedCraft: EmbarkedCraft[];
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
+  onEmbarkedCraftChange: (craft: EmbarkedCraft[]) => void;
 }
 
 export function HangarMiscSelection({
@@ -55,7 +59,9 @@ export function HangarMiscSelection({
   designProgressLevel,
   designTechTracks,
   totalPassengersAndSuspended,
+  embarkedCraft,
   onSystemsChange,
+  onEmbarkedCraftChange,
 }: HangarMiscSelectionProps) {
   const [activeTab, setActiveTab] = useState<HangarMiscCategory>('hangar');
   const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
@@ -510,11 +516,11 @@ export function HangarMiscSelection({
     }
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1100 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, minWidth: 180 }}>Name</TableCell>
               <TableCell sx={headerCellSx}>PL</TableCell>
               <TableCell sx={headerCellSx}>Tech</TableCell>
               <TableCell sx={headerCellSx}>HP</TableCell>
@@ -544,7 +550,7 @@ export function HangarMiscSelection({
                     },
                   }}
                 >
-                  <TableCell sx={{ minWidth: 180 }}>{system.name}</TableCell>
+                  <TableCell sx={{ ...stickyFirstColumnCellSx, minWidth: 180 }}>{system.name}</TableCell>
                   <TableCell>{system.progressLevel}</TableCell>
                   <TechTrackCell techTracks={system.techTracks} />
                   <TableCell>
@@ -634,6 +640,14 @@ export function HangarMiscSelection({
           {renderInstalledSystems('hangar')}
           {renderAddForm()}
           {renderSystemTable('hangar')}
+          {(stats.totalHangarCapacity > 0 || stats.totalDockingCapacity > 0) && (
+            <EmbarkedCraftSection
+              embarkedCraft={embarkedCraft}
+              onEmbarkedCraftChange={onEmbarkedCraftChange}
+              hangarMiscStats={stats}
+              carrierHullHp={hull.hullPoints}
+            />
+          )}
         </>
       )}
       {activeTab === 'cargo' && (

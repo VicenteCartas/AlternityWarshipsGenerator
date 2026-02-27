@@ -25,20 +25,25 @@ import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
+import type { StandardArc, FiringArc } from '../types/weapon';
 import {
   getAllSensorTypes,
   calculateSensorStats,
   createInstalledSensor,
   updateInstalledSensor,
   calculateTrackingCapability,
+  getMaxArcsForQuantity,
+  defaultArcsForSensor,
 } from '../services/sensorService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, formatSensorRange } from '../services/formatters';
+import { formatArcs } from '../services/weaponService';
 import { TechTrackCell, TruncatedDescription } from './shared';
+import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { sensorHasSensorControl, getSensorControlForSensor } from '../services/commandControlService';
 
 interface SensorSelectionProps {
@@ -59,6 +64,7 @@ export function SensorSelection({
   const [activeTab, setActiveTab] = useState<SensorCategory>('active');
   const [selectedSensor, setSelectedSensor] = useState<SensorType | null>(null);
   const [sensorQuantity, setSensorQuantity] = useState<string>('1');
+  const [selectedArcs, setSelectedArcs] = useState<StandardArc[]>(['forward']);
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +104,7 @@ export function SensorSelection({
     setSelectedSensor(type);
     // Default to 1 unit
     setSensorQuantity('1');
+    setSelectedArcs(defaultArcsForSensor(type, 1));
     setEditingSensorId(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -112,7 +119,7 @@ export function SensorSelection({
       onSensorsChange(
         installedSensors.map((s) =>
           s.id === editingSensorId
-            ? updateInstalledSensor(s, quantity, designProgressLevel)
+            ? updateInstalledSensor(s, quantity, designProgressLevel, selectedArcs)
             : s
         )
       );
@@ -120,18 +127,20 @@ export function SensorSelection({
       // Always create a new sensor installation
       onSensorsChange([
         ...installedSensors,
-        createInstalledSensor(selectedSensor, quantity, designProgressLevel),
+        createInstalledSensor(selectedSensor, quantity, designProgressLevel, selectedArcs),
       ]);
     }
 
     setSelectedSensor(null);
     setSensorQuantity('1');
+    setSelectedArcs(['forward']);
     setEditingSensorId(null);
   };
 
   const handleEditSensor = (installed: InstalledSensor) => {
     setSelectedSensor(installed.type);
     setSensorQuantity(installed.quantity.toString());
+    setSelectedArcs(installed.arcs);
     setEditingSensorId(installed.id);
   };
 
@@ -140,7 +149,7 @@ export function SensorSelection({
   };
 
   const handleDuplicateSensor = (sensor: InstalledSensor) => {
-    const duplicate = createInstalledSensor(sensor.type, sensor.quantity, designProgressLevel);
+    const duplicate = createInstalledSensor(sensor.type, sensor.quantity, designProgressLevel, sensor.arcs);
     const index = installedSensors.findIndex((s) => s.id === sensor.id);
     const updated = [...installedSensors];
     updated.splice(index + 1, 0, duplicate);
@@ -154,6 +163,31 @@ export function SensorSelection({
   const previewCost = selectedSensor ? selectedSensor.cost * previewQuantity : 0;
   const previewArcs = selectedSensor ? Math.min(selectedSensor.arcsCovered * previewQuantity, 4) : 0;
   const previewTracking = selectedSensor ? calculateTrackingCapability(designProgressLevel, 'none', previewQuantity) : 0;
+
+  // Arc toggle handler for sensors (no zero arcs)
+  const handleArcToggle = (arc: FiringArc, _isZero: boolean) => {
+    if (!selectedSensor) return;
+    const stdArc = arc as StandardArc;
+    const currentArcs = [...selectedArcs];
+    const arcIndex = currentArcs.indexOf(stdArc);
+    const maxArcs = getMaxArcsForQuantity(selectedSensor, previewQuantity);
+
+    if (arcIndex >= 0) {
+      // Remove arc (unless it's the last one)
+      if (currentArcs.length > 1) {
+        currentArcs.splice(arcIndex, 1);
+      }
+    } else {
+      if (currentArcs.length < maxArcs) {
+        currentArcs.push(stdArc);
+      } else {
+        // Replace: remove oldest, add new
+        currentArcs.shift();
+        currentArcs.push(stdArc);
+      }
+    }
+    setSelectedArcs(currentArcs);
+  };
 
   // Helper to format tracking capability
   const formatTracking = (tracking: number): string => {
@@ -218,7 +252,7 @@ export function SensorSelection({
                   </Typography>
                   <Chip label={`${sensor.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${sensor.powerRequired} Power`} size="small" variant="outlined" />
-                  <Chip label={`${sensor.arcsCovered} arc${sensor.arcsCovered !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
+                  <Chip label={formatArcs(sensor.arcs)} size="small" color="primary" variant="outlined" />
                   <Chip label={`Track: ${formatTracking(sensor.trackingCapability)}`} size="small" color="primary" variant="outlined" />
                   <Chip label={formatCost(sensor.cost)} size="small" variant="outlined" />
                   {hasSensorControl && (
@@ -264,15 +298,32 @@ export function SensorSelection({
             type="number"
             size="small"
             value={sensorQuantity}
-            onChange={(e) => setSensorQuantity(e.target.value)}
+            onChange={(e) => {
+              setSensorQuantity(e.target.value);
+              // Adjust arcs if new quantity changes max arcs
+              const newQty = parseInt(e.target.value, 10) || 1;
+              if (selectedSensor) {
+                const newMax = getMaxArcsForQuantity(selectedSensor, newQty);
+                if (selectedArcs.length > newMax) {
+                  setSelectedArcs(selectedArcs.slice(0, newMax));
+                }
+              }
+            }}
             inputProps={{ min: 1 }}
             sx={{ width: 150 }}
+          />
+          <ArcRadarSelector
+            selectedArcs={selectedArcs}
+            onArcToggle={handleArcToggle}
+            showZeroArcs={false}
+            maxStandardArcs={previewArcs}
+            maxZeroArcs={0}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} |
               Power: {previewPower} |
-              Arcs: {previewArcs}/4 |
+              Arcs: {formatArcs(selectedArcs)} |
               Track: {formatTracking(previewTracking)} |
               Cost: {formatCost(previewCost)}
             </Typography>
@@ -284,6 +335,7 @@ export function SensorSelection({
                 onClick={() => {
                   setSelectedSensor(null);
                   setSensorQuantity('1');
+                  setSelectedArcs(['forward']);
                   setEditingSensorId(null);
                 }}
               >
@@ -322,15 +374,31 @@ export function SensorSelection({
             type="number"
             size="small"
             value={sensorQuantity}
-            onChange={(e) => setSensorQuantity(e.target.value)}
+            onChange={(e) => {
+              setSensorQuantity(e.target.value);
+              const newQty = parseInt(e.target.value, 10) || 1;
+              if (selectedSensor) {
+                const newMax = getMaxArcsForQuantity(selectedSensor, newQty);
+                if (selectedArcs.length > newMax) {
+                  setSelectedArcs(selectedArcs.slice(0, newMax));
+                }
+              }
+            }}
             inputProps={{ min: 1 }}
             sx={{ width: 150 }}
+          />
+          <ArcRadarSelector
+            selectedArcs={selectedArcs}
+            onArcToggle={handleArcToggle}
+            showZeroArcs={false}
+            maxStandardArcs={previewArcs}
+            maxZeroArcs={0}
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} |
               Power: {previewPower} |
-              Arcs: {previewArcs}/4 |
+              Arcs: {formatArcs(selectedArcs)} |
               Track: {formatTracking(previewTracking)} |
               Cost: {formatCost(previewCost)}
             </Typography>
@@ -342,6 +410,7 @@ export function SensorSelection({
                 onClick={() => {
                   setSelectedSensor(null);
                   setSensorQuantity('1');
+                  setSelectedArcs(['forward']);
                   setEditingSensorId(null);
                 }}
               >
@@ -376,11 +445,11 @@ export function SensorSelection({
     }
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1100 } }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1100 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx }}>Name</TableCell>
               <TableCell sx={headerCellSx}>PL</TableCell>
               <TableCell sx={headerCellSx}>Tech</TableCell>
               <TableCell sx={headerCellSx}>HP</TableCell>
@@ -413,7 +482,7 @@ export function SensorSelection({
                   }}
                   onClick={() => handleSelectSensor(sensor)}
                 >
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{sensor.name}</TableCell>
+                  <TableCell sx={{ ...stickyFirstColumnCellSx, whiteSpace: 'nowrap' }}>{sensor.name}</TableCell>
                   <TableCell>{sensor.progressLevel}</TableCell>
                   <TechTrackCell techTracks={sensor.techTracks} />
                   <TableCell>{sensor.hullPoints}</TableCell>

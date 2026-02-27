@@ -27,7 +27,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { TabPanel, TruncatedDescription } from './shared';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack, InstalledQuantityItem } from '../types/common';
 import type {
@@ -311,12 +311,12 @@ function SubsystemTab<T extends BaseSubsystemType>({
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: tableMinWidth } }}
+        sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: tableMinWidth } }}
       >
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={headerCellSx}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx }}>Name</TableCell>
               <TableCell align="center" sx={headerCellSx}>PL</TableCell>
               <TableCell align="center" sx={headerCellSx}>Tech</TableCell>
               <TableCell align="right" sx={headerCellSx}>HP</TableCell>
@@ -343,7 +343,7 @@ function SubsystemTab<T extends BaseSubsystemType>({
                 }}
                 onClick={() => handleSelect(type)}
               >
-                <TableCell>
+                <TableCell sx={stickyFirstColumnCellSx}>
                   <Typography variant="body2" fontWeight="medium" sx={{ whiteSpace: 'nowrap' }}>
                     {type.name}
                   </Typography>

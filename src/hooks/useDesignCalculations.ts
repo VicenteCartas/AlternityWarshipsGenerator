@@ -11,6 +11,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { ProgressLevel, TechTrack, StepDef } from '../types/common';
 import { calculateHullStats } from '../services/hullService';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
@@ -24,6 +25,7 @@ import { calculateDefenseStats } from '../services/defenseService';
 import { calculateCommandControlStats, getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { calculateSensorStats } from '../services/sensorService';
 import { calculateHangarMiscStats } from '../services/hangarMiscService';
+import { calculateEmbarkedCraftStats } from '../services/embarkedCraftService';
 
 export interface PowerScenario {
   engines: boolean;
@@ -56,6 +58,7 @@ export interface DesignCalculationsInput {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
+  embarkedCraft: EmbarkedCraft[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   powerScenario: PowerScenario;
@@ -94,6 +97,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     installedCommandControl,
     installedSensors,
     installedHangarMisc,
+    embarkedCraft,
     designProgressLevel,
     designTechTracks,
     powerScenario,
@@ -142,6 +146,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(installedSensors);
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+    const embarkedCraftStats = calculateEmbarkedCraftStats(embarkedCraft);
 
     // ---- HP breakdown ----
     const hpBreakdown = {
@@ -211,6 +216,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       commandControl: ccStats.totalCost,
       sensors: sensorStats.totalCost,
       hangarMisc: hangarMiscStats.totalCost,
+      embarkedCraft: embarkedCraftStats.totalEmbarkedCost,
     };
 
     const totalCost = hull.cost + armorCost
@@ -219,7 +225,8 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       + supportStats.totalCost
       + weaponStats.totalCost + ordnanceStats.totalCost
       + defenseStats.totalCost + ccStats.totalCost
-      + sensorStats.totalCost + hangarMiscStats.totalCost;
+      + sensorStats.totalCost + hangarMiscStats.totalCost
+      + embarkedCraftStats.totalEmbarkedCost;
 
     // ---- Summary validation state ----
     let summaryValidationState: 'valid' | 'error' | 'warning' = 'valid';
@@ -318,7 +325,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
     designProgressLevel, designTechTracks,
     powerScenario, steps, surfaceProvidesLifeSupport,
   ]);

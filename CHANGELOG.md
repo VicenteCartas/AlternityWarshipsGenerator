@@ -1,43 +1,75 @@
 # Changelog
 
-## [0.2.6] - Unreleased
-
-### Bugs
-
-- Bug on assigning and sorting zones.
-
-### Future ideas
-
 ## [0.2.5] - TODO
 
 ### Important
 
-- Save file version is now 1.2. Older saves should migrate automatically.
+- Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
-### Mods
+### Mod System
 
-Mod support added.
+Full mod support added. Mods live in the user data folder and are managed through a dedicated Mod Manager screen.
 
-- You can overwrite any component from Warships.
-- You can create your own custom components and systems.
-- Your custom systems can be added to the Warships data, or can replace it if you want to do a total conversion.
-- Multiple armors in a single ship can be enabled or disabled.
+- Create mods that overwrite any component from the Warships sourcebook.
+- Create your own custom components and systems.
+- Custom systems can be added alongside Warships data, or replace it entirely for total conversions.
+- Multiple armor types in a single ship can be enabled or disabled via mods.
 - Weapon configurations and mounts can be modified.
-- Support systems can be expanded by using HP like launchers.
+- Support systems can be made expandable (HP-based sizing) like launchers.
+- Mod validation with clear error reporting.
+
+### New Features
+
+- **Ship Library:** Browse and search all saved designs with thumbnail cards showing key stats (hull, HP, power, cost, class). Filter by name, hull class, and progress level. Scan any directory for saved designs.
+- **Stations & Bases:** Full support for space stations, ground bases, and outposts. Ground bases can have breathable atmosphere and natural gravity. Outposts must provide their own life support. Space stations have optional engines/FTL.
+- **Ordnance Design Sharing:** Export and import ordnance designs independently for reuse across ships.
+- **Carrier Complement:** Assign saved small-craft designs to hangars and docking clamps. Warns if the referenced file is missing. Validates rules (hangars: craft < 100 HP; docking: craft ≤ 10% carrier hull). Craft costs roll up into the carrier's total cost and appear in Summary, Copy Stats, and PDF export.
+- **Damage Diagram Redesign:** New UI for assigning systems to damage zones with keyboard shortcuts for quick assignment.
+- **Light/Dark Theme:** Light theme option with system preference detection.
+- **Undo/Redo:** Full undo/redo history for all design changes.
+- **Keyboard Shortcuts:** Dialog listing all available shortcuts (Ctrl+S, Ctrl+Z/Y, damage zone keys, etc.).
+- **Auto-save / Crash Recovery:** Periodic auto-save to a temp location. Offers recovery on relaunch after a crash.
+- **Clone/Duplicate Design:** Duplicate the current design to create variants without rebuilding from scratch.
+- **Budget Visualization:** Bar charts showing HP, Power, and Cost allocation by category in the Summary tab.
+- **Compact Combat Reference Sheet:** 1-page PDF optimized for the game table with weapons, defenses, damage track, fire arcs, and key stats.
+- **Copy Stats to Clipboard:** One-click formatted text for forums, Discord, or campaign docs.
+- **Fire Control & Sensor Control Validation:** Warnings when weapons lack fire control, fire controls have no linked weapons, or sensors lack sensor control (and vice versa).
+- **Ship Description Fields:** Optional metadata: faction, role, commissioning date, classification, manufacturer. Freeform lore text preserved.
 
 ### Improvements
 
-- Stations (space and ground) are now supported.
-- Power Plants and Engine section will show how many HP is 5% of the hull.
-- Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" so it's easier to distinguish them.
-- Fuel tank and power plant/engine chips will explain better what the fuel number represents.
-- Support systems can be made expandable like launchers. Base systems stay as is, but useful for custom mods.
-- Multiple layers of armor can be installed on a ship as a house rule. Disabled by default, but can be enabled with a mod.
+- Accessibility improvements: keyboard navigation for fire arc selection, color + icon indicators for color-blind support.
+- Empty state messages in all steps to guide new users.
+- Computer core prerequisite guidance in Command & Control.
+- Fuel tank tooltips explaining what the fuel number represents.
+- Confirmation dialogs for all destructive bulk operations (Clear All, Remove All, Unassign All).
+- Hull change warning that all systems will be removed.
+- Dependency removal warnings (e.g. removing a power plant that causes a power deficit).
+- Wide tables use horizontal scroll with a sticky first column across all steps.
+- Welcome page with a collapsible "Getting Started" section for new users.
+- PDF export shows a progress indicator during generation.
+- Info banners when ground bases have breathable atmosphere or natural gravity.
+- Power Plants and Engine sections show how many HP is 5% of the hull for minimum size reference.
+- Fuel tanks renamed from "Engine/Power/FTL Fuel tank" to "Fuel tank Engine/Power/FTL" for easier identification.
+- Step count indicator (N/M) in the stepper.
+- Issues tab in Summary is always visible.
+- Dozens of other minor UI and performance improvements.
 
 ### Fixes
 
 - Bug: artificial gravity with G technology now requires PL6 instead of PL7.
 - Bug: some characters were not encoded correctly.
+- Bug: missing state variable in Engine step caused a runtime error.
+
+### UI
+
+- Summary Description tab: reorganized layout — metadata and image side by side at the top, full-width lore text area below.
+- PDF export reorganized into BattleTech TRO-style layout: (1) Lore & Identity, (2) Systems Detail, (3) Combat Sheet (weapons + defenses combined), (4) Damage Zones.
+- Removed fire arcs diagram from PDF Combat Sheet — arc data is already in the weapons table.
+- PDF Lore & Identity page: metadata fields now render in two columns (Faction/Manufacturer/Commissioned left, Classification/Role right).
+- Sensors now require explicit arc assignment using the same arc selector as weapons (standard arcs only, no zero-range). Old saves auto-assign default arcs on load with a migration warning.
+- Summary Systems tab now shows sensor arc assignments in brackets, matching weapon display format.
+- PDF Combat Sheet: sensor and weapon tables now use consistent column order and short arc abbreviations (F S A P) with spaces between letters.
 
 ## [0.2.4] - 02/11/2025
 

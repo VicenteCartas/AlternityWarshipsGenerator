@@ -43,6 +43,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
@@ -58,6 +59,7 @@ import { calculateDefenseStats } from '../services/defenseService';
 import { calculateCommandControlStats } from '../services/commandControlService';
 import { calculateSensorStats } from '../services/sensorService';
 import { calculateHangarMiscStats } from '../services/hangarMiscService';
+import { calculateEmbarkedCraftStats } from '../services/embarkedCraftService';
 import { formatCost } from '../services/formatters';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
@@ -89,6 +91,7 @@ interface SummarySelectionProps {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
+  embarkedCraft: EmbarkedCraft[];
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
   designType: DesignType;
@@ -120,6 +123,7 @@ export function SummarySelection({
   installedCommandControl,
   installedSensors,
   installedHangarMisc,
+  embarkedCraft,
   damageDiagramZones,
   designProgressLevel,
   designType,
@@ -207,6 +211,7 @@ export function SummarySelection({
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(installedSensors);
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+    const embarkedCraftStats = calculateEmbarkedCraftStats(embarkedCraft);
 
     // Total HP used
     const usedHP = armorHP + 
@@ -246,7 +251,8 @@ export function SummarySelection({
       defenseStats.totalCost + 
       ccStats.totalCost + 
       sensorStats.totalCost + 
-      hangarMiscStats.totalCost;
+      hangarMiscStats.totalCost +
+      embarkedCraftStats.totalEmbarkedCost;
 
     // Acceleration (single value, units depend on engine PL)
     const totalAcceleration = engineStats.totalAcceleration;
@@ -270,6 +276,7 @@ export function SummarySelection({
       commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
       sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
       hangarMisc: { hp: hangarMiscStats.totalHullPoints, power: hangarMiscStats.totalPowerRequired, cost: hangarMiscStats.totalCost },
+      embarkedCraft: { cost: embarkedCraftStats.totalEmbarkedCost, count: embarkedCraft.length, invalidFiles: embarkedCraftStats.invalidFileCount },
     };
   }, [
     hull,
@@ -291,6 +298,7 @@ export function SummarySelection({
     installedCommandControl,
     installedSensors,
     installedHangarMisc,
+    embarkedCraft,
     designProgressLevel,
   ]);
 
@@ -337,6 +345,7 @@ export function SummarySelection({
     if (stats.commandControl.hp > 0) lines.push(`| Command & Control | ${stats.commandControl.hp} | -${stats.commandControl.power} | ${formatCost(stats.commandControl.cost)} |`);
     if (stats.support.hp > 0) lines.push(`| Support Systems | ${stats.support.hp} | -${stats.support.power} | ${formatCost(stats.support.cost)} |`);
     if (stats.hangarMisc.hp > 0) lines.push(`| Hangars & Misc | ${stats.hangarMisc.hp} | -${stats.hangarMisc.power} | ${formatCost(stats.hangarMisc.cost)} |`);
+    if (stats.embarkedCraft.cost > 0) lines.push(`| Embarked Craft | — | — | ${formatCost(stats.embarkedCraft.cost)} |`);
     lines.push('');
 
     // Weapons list
@@ -361,6 +370,15 @@ export function SummarySelection({
       lines.push('');
     }
 
+    // Embarked Craft
+    if (embarkedCraft.length > 0) {
+      lines.push('### Embarked Craft');
+      for (const craft of embarkedCraft) {
+        lines.push(`- ${craft.quantity}x ${craft.name} (${craft.hullName}, ${craft.hullHp} HP) — ${craft.berthing}`);
+      }
+      lines.push('');
+    }
+
     // Lore
     if (shipDescription.lore.trim()) {
       lines.push('### Description');
@@ -368,7 +386,7 @@ export function SummarySelection({
     }
 
     return lines.join('\n');
-  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses]);
+  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses, embarkedCraft]);
 
   const handleCopyStats = useCallback(async () => {
     const md = generateStatsMarkdown();
@@ -571,6 +589,13 @@ export function SummarySelection({
       }
     }
 
+    // WARNING: Embarked craft with missing files
+    const invalidCraft = embarkedCraft.filter(c => !c.fileValid);
+    if (invalidCraft.length > 0) {
+      const names = invalidCraft.map(c => c.name);
+      warnings.push(`Embarked craft file${invalidCraft.length !== 1 ? 's' : ''} not found: ${names.join(', ')}`);
+    }
+
     return { errors, warnings };
   }, [
     hull, 
@@ -591,6 +616,7 @@ export function SummarySelection({
     installedCommandControl, 
     installedSensors,
     installedHangarMisc,
+    embarkedCraft,
     damageDiagramZones,
     designProgressLevel,
     designType,
@@ -668,6 +694,7 @@ export function SummarySelection({
         installedCommandControl,
         installedSensors,
         installedHangarMisc,
+        embarkedCraft,
         damageDiagramZones,
         designProgressLevel,
         designType,
@@ -721,6 +748,7 @@ export function SummarySelection({
         installedCommandControl,
         installedSensors,
         installedHangarMisc,
+        embarkedCraft,
         damageDiagramZones,
         designProgressLevel,
         designType,
@@ -893,118 +921,124 @@ export function SummarySelection({
 
       {/* Description Tab */}
       <TabPanel value={tabValue} index={1}>
-        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {/* Image upload section */}
-          <Box sx={{ minWidth: 300, maxWidth: 400 }}>
-            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-              Ship Image
-            </Typography>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
-            {imageDataUrl ? (
-              <Box>
-                <Card variant="outlined">
-                  <CardMedia
-                    component="img"
-                    image={imageDataUrl}
-                    alt={warshipName}
-                    sx={{ maxHeight: 300, objectFit: 'contain' }}
-                  />
-                </Card>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<AddPhotoAlternateIcon />}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Change
-                  </Button>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={handleRemoveImage}
-                    aria-label="Remove image"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Top row: Metadata on the left, Image on the right */}
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {/* Design Metadata */}
+            <Box sx={{ flex: 1, minWidth: 300 }}>
+              <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                Design Metadata
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                <TextField
+                  label="Faction"
+                  size="small"
+                  fullWidth
+                  placeholder="e.g., Galactic Concord"
+                  value={shipDescription.faction}
+                  onChange={(e) => onShipDescriptionChange({ ...shipDescription, faction: e.target.value })}
+                />
+                <TextField
+                  label="Classification"
+                  size="small"
+                  fullWidth
+                  placeholder="e.g., Destroyer, Frigate"
+                  value={shipDescription.classification}
+                  onChange={(e) => onShipDescriptionChange({ ...shipDescription, classification: e.target.value })}
+                />
+                <TextField
+                  label="Role"
+                  size="small"
+                  fullWidth
+                  placeholder="e.g., Patrol, Escort, Assault"
+                  value={shipDescription.role}
+                  onChange={(e) => onShipDescriptionChange({ ...shipDescription, role: e.target.value })}
+                />
+                <TextField
+                  label="Manufacturer"
+                  size="small"
+                  fullWidth
+                  placeholder="e.g., Starmech Collective"
+                  value={shipDescription.manufacturer}
+                  onChange={(e) => onShipDescriptionChange({ ...shipDescription, manufacturer: e.target.value })}
+                />
+                <TextField
+                  label="Commissioning Date"
+                  size="small"
+                  fullWidth
+                  placeholder="e.g., 2501, Year 12 GC"
+                  value={shipDescription.commissioningDate}
+                  onChange={(e) => onShipDescriptionChange({ ...shipDescription, commissioningDate: e.target.value })}
+                />
               </Box>
-            ) : (
-              <Button
-                variant="outlined"
-                startIcon={<AddPhotoAlternateIcon />}
-                onClick={() => fileInputRef.current?.click()}
-                sx={{ width: '100%', height: 150 }}
-              >
-                Upload Image
-              </Button>
-            )}
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Max 5MB. JPG, PNG, or GIF.
-            </Typography>
+            </Box>
 
-            {/* Structured metadata fields */}
-            <Typography variant="subtitle1" gutterBottom fontWeight="bold" sx={{ mt: 3 }}>
-              Design Metadata
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <TextField
-                label="Faction"
-                size="small"
-                fullWidth
-                placeholder="e.g., Galactic Concord"
-                value={shipDescription.faction}
-                onChange={(e) => onShipDescriptionChange({ ...shipDescription, faction: e.target.value })}
+            {/* Image upload section */}
+            <Box sx={{ minWidth: 280, maxWidth: 360 }}>
+              <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                Ship Image
+              </Typography>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                style={{ display: 'none' }}
               />
-              <TextField
-                label="Classification"
-                size="small"
-                fullWidth
-                placeholder="e.g., Destroyer, Frigate"
-                value={shipDescription.classification}
-                onChange={(e) => onShipDescriptionChange({ ...shipDescription, classification: e.target.value })}
-              />
-              <TextField
-                label="Role"
-                size="small"
-                fullWidth
-                placeholder="e.g., Patrol, Escort, Assault"
-                value={shipDescription.role}
-                onChange={(e) => onShipDescriptionChange({ ...shipDescription, role: e.target.value })}
-              />
-              <TextField
-                label="Manufacturer"
-                size="small"
-                fullWidth
-                placeholder="e.g., Starmech Collective"
-                value={shipDescription.manufacturer}
-                onChange={(e) => onShipDescriptionChange({ ...shipDescription, manufacturer: e.target.value })}
-              />
-              <TextField
-                label="Commissioning Date"
-                size="small"
-                fullWidth
-                placeholder="e.g., 2501, Year 12 GC"
-                value={shipDescription.commissioningDate}
-                onChange={(e) => onShipDescriptionChange({ ...shipDescription, commissioningDate: e.target.value })}
-              />
+              {imageDataUrl ? (
+                <Box>
+                  <Card variant="outlined">
+                    <CardMedia
+                      component="img"
+                      image={imageDataUrl}
+                      alt={warshipName}
+                      sx={{ maxHeight: 300, objectFit: 'contain' }}
+                    />
+                  </Card>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AddPhotoAlternateIcon />}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Change
+                    </Button>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={handleRemoveImage}
+                      aria-label="Remove image"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ) : (
+                <Button
+                  variant="outlined"
+                  startIcon={<AddPhotoAlternateIcon />}
+                  onClick={() => fileInputRef.current?.click()}
+                  sx={{ width: '100%', height: 150 }}
+                >
+                  Upload Image
+                </Button>
+              )}
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                Max 5MB. JPG, PNG, or GIF.
+              </Typography>
             </Box>
           </Box>
 
-          {/* Lore/Description section */}
-          <Box sx={{ flex: 1, minWidth: 300 }}>
+          {/* Bottom row: Lore/Description full width */}
+          <Box>
             <Typography variant="subtitle1" gutterBottom fontWeight="bold">
               Lore & Description
             </Typography>
             <TextField
               multiline
-              rows={12}
+              minRows={8}
+              maxRows={20}
               fullWidth
               placeholder="Write the history, purpose, and background of your design..."
               value={shipDescription.lore}
@@ -1350,6 +1384,36 @@ export function SummarySelection({
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.hangarMisc.hp} HP</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>{stats.hangarMisc.power === 0 ? '0' : `-${stats.hangarMisc.power}`} PP</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.hangarMisc.cost)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            {/* Embarked Craft */}
+            {embarkedCraft.length > 0 && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Embarked Craft
+                </Typography>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {embarkedCraft.map((craft) => (
+                      <TableRow key={craft.id}>
+                        <TableCell sx={{ width: '40%' }}>
+                          {craft.quantity}x {craft.name} ({craft.berthing})
+                          {!craft.fileValid && ' ⚠'}
+                        </TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{craft.hullHp * craft.quantity} HP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>—</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(craft.designCost * craft.quantity)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>—</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>—</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.embarkedCraft.cost)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

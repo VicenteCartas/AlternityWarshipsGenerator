@@ -14,7 +14,8 @@ import {
   calculateSensorHullPoints,
   calculateSensorPower,
   calculateSensorCost,
-  calculateArcsCovered,
+  getMaxArcsForQuantity,
+  defaultArcsForSensor,
   calculateTrackingCapability,
   calculateUnitsForFullCoverage,
   calculateSensorStats,
@@ -149,20 +150,42 @@ describe('sensorService', () => {
     });
   });
 
-  describe('calculateArcsCovered', () => {
+  describe('getMaxArcsForQuantity', () => {
     it('multiplies arcs by quantity', () => {
       const type = makeActiveSensor({ arcsCovered: 1 });
-      expect(calculateArcsCovered(type, 2)).toBe(2);
+      expect(getMaxArcsForQuantity(type, 2)).toBe(2);
     });
 
     it('caps at 4 arcs (full coverage)', () => {
       const type = makeActiveSensor({ arcsCovered: 2 });
-      expect(calculateArcsCovered(type, 3)).toBe(4);
+      expect(getMaxArcsForQuantity(type, 3)).toBe(4);
     });
 
     it('returns 4 for full-coverage sensor with quantity 1', () => {
       const type = makeFullCoverageSensor({ arcsCovered: 4 });
-      expect(calculateArcsCovered(type, 1)).toBe(4);
+      expect(getMaxArcsForQuantity(type, 1)).toBe(4);
+    });
+  });
+
+  describe('defaultArcsForSensor', () => {
+    it('returns forward for 1-arc sensor', () => {
+      const type = makeActiveSensor({ arcsCovered: 1 });
+      expect(defaultArcsForSensor(type, 1)).toEqual(['forward']);
+    });
+
+    it('returns forward+starboard for 2-arc sensor', () => {
+      const type = makePassiveSensor({ arcsCovered: 2 });
+      expect(defaultArcsForSensor(type, 1)).toEqual(['forward', 'starboard']);
+    });
+
+    it('returns all 4 arcs for full-coverage sensor', () => {
+      const type = makeFullCoverageSensor();
+      expect(defaultArcsForSensor(type, 1)).toEqual(['forward', 'starboard', 'aft', 'port']);
+    });
+
+    it('caps at 4 for multiple units', () => {
+      const type = makeActiveSensor({ arcsCovered: 2 });
+      expect(defaultArcsForSensor(type, 3)).toEqual(['forward', 'starboard', 'aft', 'port']);
     });
   });
 
@@ -235,7 +258,7 @@ describe('sensorService', () => {
           hullPoints: 2,
           powerRequired: 4,
           cost: 10000,
-          arcsCovered: 2,
+          arcs: ['forward', 'starboard'],
           trackingCapability: 20,
         },
         {
@@ -245,7 +268,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 1,
           cost: 3000,
-          arcsCovered: 2,
+          arcs: ['forward', 'aft'],
           trackingCapability: 5,
         },
       ];
@@ -265,7 +288,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 2,
           cost: 5000,
-          arcsCovered: 1,
+          arcs: ['forward'],
           trackingCapability: 10,
         },
       ];
@@ -281,7 +304,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 1,
           cost: 3000,
-          arcsCovered: 2,
+          arcs: ['forward', 'aft'],
           trackingCapability: 5,
         },
       ];
@@ -297,7 +320,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 2,
           cost: 5000,
-          arcsCovered: 1,
+          arcs: ['forward'],
           trackingCapability: -1,
         },
         {
@@ -307,7 +330,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 1,
           cost: 3000,
-          arcsCovered: 2,
+          arcs: ['forward', 'aft'],
           trackingCapability: 10,
         },
       ];
@@ -323,7 +346,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 2,
           cost: 5000,
-          arcsCovered: 1,
+          arcs: ['forward'],
           trackingCapability: 10,
         },
         {
@@ -333,7 +356,7 @@ describe('sensorService', () => {
           hullPoints: 1,
           powerRequired: 2,
           cost: 5000,
-          arcsCovered: 1,
+          arcs: ['forward'],
           trackingCapability: 10,
         },
       ];
@@ -344,13 +367,13 @@ describe('sensorService', () => {
   describe('createInstalledSensor', () => {
     it('creates an installed sensor with calculated values', () => {
       const type = makeActiveSensor({ hullPoints: 2, powerRequired: 3, cost: 5000, arcsCovered: 1 });
-      const result = createInstalledSensor(type, 2, 6, 'Ordinary');
+      const result = createInstalledSensor(type, 2, 6, ['forward', 'starboard'], 'Ordinary');
       expect(result.type).toBe(type);
       expect(result.quantity).toBe(2);
       expect(result.hullPoints).toBe(4);
       expect(result.powerRequired).toBe(6);
       expect(result.cost).toBe(10000);
-      expect(result.arcsCovered).toBe(2);
+      expect(result.arcs).toEqual(['forward', 'starboard']);
       // PL 6, Ordinary = 10, * 2 = 20
       expect(result.trackingCapability).toBe(20);
       expect(result.id).toContain('sensor');
@@ -358,7 +381,7 @@ describe('sensorService', () => {
 
     it('defaults to none computer quality', () => {
       const type = makeActiveSensor();
-      const result = createInstalledSensor(type, 1, 6);
+      const result = createInstalledSensor(type, 1, 6, ['forward']);
       // PL 6, none = 5, * 1 = 5
       expect(result.trackingCapability).toBe(5);
     });
@@ -374,16 +397,16 @@ describe('sensorService', () => {
         hullPoints: 2,
         powerRequired: 3,
         cost: 5000,
-        arcsCovered: 1,
+        arcs: ['forward'],
         trackingCapability: 5,
       };
-      const result = updateInstalledSensor(original, 3, 7, 'Good');
+      const result = updateInstalledSensor(original, 3, 7, ['forward', 'starboard', 'aft'], 'Good');
       expect(result.id).toBe('existing-sensor');
       expect(result.quantity).toBe(3);
       expect(result.hullPoints).toBe(6);
       expect(result.powerRequired).toBe(9);
       expect(result.cost).toBe(15000);
-      expect(result.arcsCovered).toBe(3);
+      expect(result.arcs).toEqual(['forward', 'starboard', 'aft']);
       // PL 7, Good = 40, * 3 = 120
       expect(result.trackingCapability).toBe(120);
     });

@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart, SavedEmbarkedCraft } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -9,6 +9,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
 import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
@@ -23,7 +24,7 @@ import { getAllFTLDriveTypes, generateFTLDriveId, generateFTLFuelTankId } from '
 import { getAllLifeSupportTypes, getAllAccommodationTypes, getAllStoreSystemTypes, getAllGravitySystemTypes, generateLifeSupportId, generateAccommodationId, generateStoreSystemId, generateGravitySystemId } from './supportSystemService';
 import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost, calculateFireControlCost, calculateSensorControlCost, generateCommandControlId } from './commandControlService';
-import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, type ComputerQuality } from './sensorService';
+import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, defaultArcsForSensor, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
@@ -55,6 +56,7 @@ export interface WarshipState {
   commandControl: InstalledCommandControlSystem[];
   sensors: InstalledSensor[];
   hangarMisc: InstalledHangarMiscSystem[];
+  embarkedCraft: EmbarkedCraft[];
   weapons: InstalledWeapon[];
   ordnanceDesigns: OrdnanceDesign[];
   launchSystems: InstalledLaunchSystem[];
@@ -171,6 +173,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: s.id,
       typeId: s.type.id,
       quantity: s.quantity,
+      arcs: s.arcs,
     })),
     hangarMisc: (state.hangarMisc || []).map((hm): SavedHangarMiscSystem => ({
       id: hm.id,
@@ -217,6 +220,18 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       extraHp: ls.extraHp,
       loadout: ls.loadout || [],
     })),
+    embarkedCraft: (state.embarkedCraft || []).length > 0
+      ? (state.embarkedCraft || []).map((ec): SavedEmbarkedCraft => ({
+          id: ec.id,
+          filePath: ec.filePath,
+          name: ec.name,
+          hullHp: ec.hullHp,
+          hullName: ec.hullName,
+          quantity: ec.quantity,
+          berthing: ec.berthing,
+          designCost: ec.designCost,
+        }))
+      : undefined,
     damageDiagramZones: (state.damageDiagramZones || []).map((zone): SavedDamageZone => ({
       code: zone.code,
       systems: zone.systems.map((sys) => ({
@@ -590,12 +605,17 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       const sensorId = s.id || generateSensorId();
       const assignedControl = commandControl.find(cc => cc.linkedSensorId === sensorId);
       const computerQuality: ComputerQuality = assignedControl?.type.quality as ComputerQuality || 'none';
+      const arcs = (s.arcs as import('../types/weapon').StandardArc[]) || null;
+      const resolvedArcs = arcs ?? defaultArcsForSensor(t, s.quantity);
+      if (!arcs) {
+        warnings.push(`Sensor "${t.name}" had no arc assignment — defaulted to [${resolvedArcs.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ')}]`);
+      }
       return {
         id: sensorId, type: t, quantity: s.quantity,
         hullPoints: calculateSensorHullPoints(t, s.quantity),
         powerRequired: calculateSensorPower(t, s.quantity),
         cost: calculateSensorCost(t, s.quantity),
-        arcsCovered: Math.min(s.quantity * t.arcsCovered, 4),
+        arcs: resolvedArcs,
         trackingCapability: calculateTrackingCapability(designPL, computerQuality, s.quantity),
       };
     },
@@ -767,6 +787,20 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   
   // Load damage diagram zones
   const damageDiagramZones: DamageZone[] = [];
+
+  // Load embarked craft (carrier complement)
+  const embarkedCraft: EmbarkedCraft[] = (saveFile.embarkedCraft || []).map((saved) => ({
+    id: saved.id,
+    filePath: saved.filePath,
+    name: saved.name,
+    hullHp: saved.hullHp,
+    hullName: saved.hullName,
+    quantity: saved.quantity,
+    berthing: saved.berthing,
+    designCost: saved.designCost,
+    fileValid: true, // Will be validated at display time
+  }));
+
   for (const savedZone of (saveFile.damageDiagramZones || [])) {
     damageDiagramZones.push({
       code: savedZone.code as ZoneCode,
@@ -847,6 +881,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       commandControl,
       sensors,
       hangarMisc,
+      embarkedCraft,
       weapons,
       ordnanceDesigns,
       launchSystems: launchSystemsList,

@@ -69,6 +69,7 @@ vi.mock('./sensorService', () => ({
   calculateSensorPower: vi.fn(() => 1),
   calculateSensorCost: vi.fn(() => 0.5),
   calculateTrackingCapability: vi.fn(() => 0),
+  defaultArcsForSensor: vi.fn(() => ['forward']),
 }));
 
 vi.mock('./hangarMiscService', () => ({

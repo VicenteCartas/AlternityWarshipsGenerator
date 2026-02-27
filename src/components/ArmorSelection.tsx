@@ -33,7 +33,7 @@ import {
 } from '../services/armorService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
-import { headerCellSx } from '../constants/tableStyles';
+import { headerCellSx, scrollableTableContainerSx } from '../constants/tableStyles';
 import { TruncatedDescription, ConfirmDialog } from './shared';
 
 interface ArmorSelectionProps {
@@ -216,7 +216,7 @@ export function ArmorSelection({
       </Box>
 
       {/* Armor Type Selection */}
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer component={Paper} variant="outlined" sx={scrollableTableContainerSx}>
           <Table size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>

@@ -84,6 +84,7 @@ export function EngineSelection({
   const [addingFuelTankForType, setAddingFuelTankForType] = useState<EngineType | null>(null);
   const [fuelTankHullPointsInput, setFuelTankHullPointsInput] = useState<string>('1');
   const [editingFuelTankId, setEditingFuelTankId] = useState<string | null>(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   // Get engines filtered by ship class, then apply design constraints
   const availableEngines = useMemo(() => {

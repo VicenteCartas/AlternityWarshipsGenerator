@@ -1,5 +1,6 @@
 import type { ProgressLevel, TechTrack, DesignType, StationType } from './common';
 import type { ZoneCode, AttackDirection } from './damageDiagram';
+import type { BerthingType } from './embarkedCraft';
 import type { SavedModReference } from './mod';
 
 /**
@@ -170,6 +171,8 @@ export interface SavedSensor {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Assigned firing arcs (optional for backward compat with old saves) */
+  arcs?: string[];
 }
 
 /**
@@ -252,6 +255,30 @@ export interface SavedLaunchSystem {
   extraHp: number;
   /** Loaded ordnance */
   loadout: SavedLoadedOrdnance[];
+}
+
+// ============== Embarked Craft ==============
+
+/**
+ * An embarked craft assignment in save file (reference-based)
+ */
+export interface SavedEmbarkedCraft {
+  /** Assignment ID */
+  id: string;
+  /** Absolute path to the .warship.json design file */
+  filePath: string;
+  /** Design name (snapshotted) */
+  name: string;
+  /** Hull HP of the craft (snapshotted) */
+  hullHp: number;
+  /** Hull name (snapshotted) */
+  hullName: string;
+  /** Quantity embarked */
+  quantity: number;
+  /** Where the craft is berthed */
+  berthing: BerthingType;
+  /** Total design cost (snapshotted) */
+  designCost: number;
 }
 
 // ============== Damage Diagram ==============
@@ -439,6 +466,9 @@ export interface WarshipSaveFile {
   
   /** Installed launch systems */
   launchSystems: SavedLaunchSystem[];
+  
+  /** Embarked craft assignments (carrier complement) */
+  embarkedCraft?: SavedEmbarkedCraft[];
   
   /** Damage diagram zones */
   damageDiagramZones: SavedDamageZone[];

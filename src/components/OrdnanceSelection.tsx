@@ -24,7 +24,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -701,11 +701,11 @@ export function OrdnanceSelection({
   // Render launch systems grid
   const renderLaunchSystemsGrid = () => {
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: 1200 } }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1200 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, minWidth: 180 }}>Name</TableCell>
               <TableCell sx={headerCellSx}>PL</TableCell>
               <TableCell sx={headerCellSx}>Tech</TableCell>
               <TableCell sx={headerCellSx}>HP</TableCell>
@@ -731,7 +731,7 @@ export function OrdnanceSelection({
                   '&.Mui-selected:hover': { backgroundColor: 'action.selected' },
                 }}
               >
-                <TableCell sx={{ minWidth: 180 }}>{ls.name}</TableCell>
+                <TableCell sx={{ ...stickyFirstColumnCellSx, minWidth: 180 }}>{ls.name}</TableCell>
                 <TableCell>{ls.progressLevel}</TableCell>
                 <TechTrackCell techTracks={ls.techTracks} />
                 <TableCell>{ls.hullPoints}</TableCell>
@@ -761,11 +761,11 @@ export function OrdnanceSelection({
     if (ordnanceDesigns.length === 0) return null;
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', mb: 2, '& .MuiTable-root': { minWidth: 900 } }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, mb: 2, '& .MuiTable-root': { minWidth: 900 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx }}>Name</TableCell>
               <TableCell sx={headerCellSx}>Type</TableCell>
               <TableCell sx={headerCellSx}>Size</TableCell>
               <TableCell sx={headerCellSx}>Tech</TableCell>
@@ -787,7 +787,7 @@ export function OrdnanceSelection({
               const propulsion = design.category === 'missile' ? getPropulsionInfo((design as MissileDesign).propulsionId) : null;
               return (
                 <TableRow key={design.id} hover>
-                  <TableCell>{design.name}</TableCell>
+                  <TableCell sx={stickyFirstColumnCellSx}>{design.name}</TableCell>
                   <TableCell sx={{ textTransform: 'capitalize' }}>{design.category}</TableCell>
                   <TableCell sx={{ textTransform: 'capitalize' }}>{design.size} ({design.capacityRequired})</TableCell>
                   <TechTrackCell techTracks={techTracks} />

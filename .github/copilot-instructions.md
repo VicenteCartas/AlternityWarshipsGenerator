@@ -215,8 +215,4 @@ The `rules/` folder contains sourcebook rules text. Use those `.md` files as the
 
 ## Post-Implementation Workflow
 
-After completing any feature or task that appears in project tracking files:
-1. **Always** update `ROADMAP.md` first to mark the item as done — use `~~strikethrough~~` and add `✅` or `(Done)` per the existing format.
-2. Then check **all four** `NEXT STEPS` files — `NEXT STEPS FEATURES.md`, `NEXT STEPS CODE.md`, `NEXT STEPS TESTS.md`, `NEXT STEPS UX.md` — and mark the item as done in whichever files it appears.
-3. Do this as part of the implementation — do not wait for the user to ask.
-4. Match the existing strikethrough/checkmark conventions used in each file.
+After completing any feature or task, update `CHANGELOG.md` with a brief entry under the current version section.

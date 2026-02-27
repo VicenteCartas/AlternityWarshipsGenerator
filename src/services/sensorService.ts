@@ -1,4 +1,5 @@
 import type { ProgressLevel } from '../types/common';
+import type { StandardArc } from '../types/weapon';
 import type {
   SensorType,
   InstalledSensor,
@@ -61,14 +62,27 @@ export function calculateSensorCost(
 }
 
 /**
- * Calculate arcs covered by a sensor installation
+ * Calculate the maximum number of arcs a sensor installation can cover.
+ * Each unit covers type.arcsCovered arcs, capped at 4 (full coverage).
  */
-export function calculateArcsCovered(
+export function getMaxArcsForQuantity(
   type: SensorType,
   quantity: number
 ): number {
-  // Each unit covers arcsCovered arcs, max 4 (full coverage)
   return Math.min(type.arcsCovered * quantity, 4);
+}
+
+/**
+ * Generate default arc assignments for a sensor based on its coverage count.
+ * Used for new installations and migration of old saves.
+ */
+export function defaultArcsForSensor(
+  type: SensorType,
+  quantity: number
+): StandardArc[] {
+  const ALL_ARCS: StandardArc[] = ['forward', 'starboard', 'aft', 'port'];
+  const maxArcs = getMaxArcsForQuantity(type, quantity);
+  return ALL_ARCS.slice(0, maxArcs);
 }
 
 /**
@@ -170,12 +184,13 @@ export function calculateSensorStats(
 // ============== Installation Helpers ==============
 
 /**
- * Create an installed sensor from a type, quantity, and PL
+ * Create an installed sensor from a type, quantity, arcs, and PL
  */
 export function createInstalledSensor(
   type: SensorType,
   quantity: number,
   designPL: ProgressLevel,
+  arcs: StandardArc[],
   computerQuality: ComputerQuality = 'none'
 ): InstalledSensor {
   return {
@@ -185,18 +200,19 @@ export function createInstalledSensor(
     hullPoints: calculateSensorHullPoints(type, quantity),
     powerRequired: calculateSensorPower(type, quantity),
     cost: calculateSensorCost(type, quantity),
-    arcsCovered: calculateArcsCovered(type, quantity),
+    arcs,
     trackingCapability: calculateTrackingCapability(designPL, computerQuality, quantity),
   };
 }
 
 /**
- * Update an existing installed sensor with new quantity
+ * Update an existing installed sensor with new quantity and arcs
  */
 export function updateInstalledSensor(
   sensor: InstalledSensor,
   quantity: number,
   designPL: ProgressLevel,
+  arcs: StandardArc[],
   computerQuality: ComputerQuality = 'none'
 ): InstalledSensor {
   return {
@@ -205,7 +221,7 @@ export function updateInstalledSensor(
     hullPoints: calculateSensorHullPoints(sensor.type, quantity),
     powerRequired: calculateSensorPower(sensor.type, quantity),
     cost: calculateSensorCost(sensor.type, quantity),
-    arcsCovered: calculateArcsCovered(sensor.type, quantity),
+    arcs,
     trackingCapability: calculateTrackingCapability(designPL, computerQuality, quantity),
   };
 }

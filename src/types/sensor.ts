@@ -1,4 +1,5 @@
 import type { ProgressLevel, TechTrack, QualityLevel, InstalledSystemBase, PowerConsumingStats } from './common';
+import type { StandardArc } from './weapon';
 
 // ============== Computer Quality ==============
 
@@ -69,8 +70,8 @@ export interface SensorType {
 // ============== Installed Sensor ==============
 
 export interface InstalledSensor extends InstalledSystemBase<SensorType> {
-  /** Firing arcs covered (derived from quantity and type) */
-  arcsCovered: number;
+  /** Specific firing arcs this sensor covers */
+  arcs: StandardArc[];
   /** Total tracking capability (derived from PL, computer quality, and quantity) */
   trackingCapability: number;
 }

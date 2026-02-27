@@ -40,17 +40,15 @@ describe('PdfExportDialog', () => {
   describe('Full Ship Sheet mode (default)', () => {
     it('shows checkbox options', () => {
       renderDialog();
-      expect(screen.getByLabelText(/Damage Diagram/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Defenses/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Weapons/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Combat Sheet/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Damage Zones/)).toBeInTheDocument();
       expect(screen.getByLabelText(/detailed component list/)).toBeInTheDocument();
     });
 
     it('checkboxes default to expected states', () => {
       renderDialog();
-      expect(screen.getByLabelText(/Damage Diagram/)).toBeChecked();
-      expect(screen.getByLabelText(/Defenses/)).toBeChecked();
-      expect(screen.getByLabelText(/Weapons/)).toBeChecked();
+      expect(screen.getByLabelText(/Combat Sheet/)).toBeChecked();
+      expect(screen.getByLabelText(/Damage Zones/)).toBeChecked();
       expect(screen.getByLabelText(/detailed component list/)).not.toBeChecked();
     });
 
@@ -59,9 +57,8 @@ describe('PdfExportDialog', () => {
       renderDialog();
       await user.click(screen.getByText('Select None'));
 
-      expect(screen.getByLabelText(/Damage Diagram/)).not.toBeChecked();
-      expect(screen.getByLabelText(/Defenses/)).not.toBeChecked();
-      expect(screen.getByLabelText(/Weapons/)).not.toBeChecked();
+      expect(screen.getByLabelText(/Combat Sheet/)).not.toBeChecked();
+      expect(screen.getByLabelText(/Damage Zones/)).not.toBeChecked();
       expect(screen.getByLabelText(/detailed component list/)).not.toBeChecked();
     });
 
@@ -72,19 +69,18 @@ describe('PdfExportDialog', () => {
       await user.click(screen.getByText('Select None'));
       await user.click(screen.getByText('Select All'));
 
-      expect(screen.getByLabelText(/Damage Diagram/)).toBeChecked();
-      expect(screen.getByLabelText(/Defenses/)).toBeChecked();
-      expect(screen.getByLabelText(/Weapons/)).toBeChecked();
+      expect(screen.getByLabelText(/Combat Sheet/)).toBeChecked();
+      expect(screen.getByLabelText(/Damage Zones/)).toBeChecked();
       expect(screen.getByLabelText(/detailed component list/)).toBeChecked();
     });
 
     it('toggling a checkbox updates its state', async () => {
       const user = userEvent.setup();
       renderDialog();
-      const damageDiagram = screen.getByLabelText(/Damage Diagram/);
-      expect(damageDiagram).toBeChecked();
-      await user.click(damageDiagram);
-      expect(damageDiagram).not.toBeChecked();
+      const combatSheet = screen.getByLabelText(/Combat Sheet/);
+      expect(combatSheet).toBeChecked();
+      await user.click(combatSheet);
+      expect(combatSheet).not.toBeChecked();
     });
 
     it('Export button calls onExport with options and closes', async () => {
@@ -92,9 +88,8 @@ describe('PdfExportDialog', () => {
       const { onExport, onClose } = renderDialog();
       await user.click(screen.getByText('Export'));
       expect(onExport).toHaveBeenCalledWith({
+        includeCombat: true,
         includeDamageDiagram: true,
-        includeDefenses: true,
-        includeOffense: true,
         includeDetailedSystems: false,
       });
       expect(onClose).toHaveBeenCalled();

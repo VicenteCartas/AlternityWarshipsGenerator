@@ -298,7 +298,7 @@ export function SystemsTab({
             <TableBody>
               {installedSensors.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name}</TableCell>
+                  <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name} [{s.arcs.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ')}]</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{s.hullPoints} HP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{s.powerRequired === 0 ? '0' : `-${s.powerRequired}`} PP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{formatCost(s.cost)}</TableCell>

@@ -29,7 +29,7 @@ import AddIcon from '@mui/icons-material/Add';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import BlurCircularIcon from '@mui/icons-material/BlurCircular';
-import { headerCellSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
 import type { Hull } from '../types/hull';
@@ -634,11 +634,11 @@ export function WeaponSelection({
     }
 
     return (
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', '& .MuiTable-root': { minWidth: isSpecial ? 1500 : 1400 } }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: isSpecial ? 1500 : 1400 } }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, minWidth: 180 }}>Name</TableCell>
               <TableCell sx={headerCellSx}>PL</TableCell>
               <TableCell sx={headerCellSx}>Tech</TableCell>
               <TableCell sx={headerCellSx}>HP</TableCell>
@@ -671,7 +671,7 @@ export function WeaponSelection({
                   },
                 }}
               >
-                <TableCell sx={{ minWidth: 180 }}>{weapon.name}</TableCell>
+                <TableCell sx={{ ...stickyFirstColumnCellSx, minWidth: 180 }}>{weapon.name}</TableCell>
                 <TableCell>{weapon.progressLevel}</TableCell>
                 <TechTrackCell techTracks={weapon.techTracks} />
                 <TableCell>{weapon.hullPoints}</TableCell>
