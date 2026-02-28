@@ -60,6 +60,8 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - Bug: artificial gravity with G technology now requires PL6 instead of PL7.
 - Bug: some characters were not encoded correctly.
 - Bug: missing state variable in Engine step caused a runtime error.
+- Bug: PDF damage track boxes (mortal/critical) not rendering when they overflow to a new page.
+- Bug: PDF total cost was missing ordnance design costs (only launcher hardware was counted).
 
 ### UI
 
@@ -67,9 +69,11 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - PDF export reorganized into BattleTech TRO-style layout: (1) Lore & Identity, (2) Systems Detail, (3) Combat Sheet (weapons + defenses combined), (4) Damage Zones.
 - Removed fire arcs diagram from PDF Combat Sheet — arc data is already in the weapons table.
 - PDF Lore & Identity page: metadata fields now render in two columns (Faction/Manufacturer/Commissioned left, Classification/Role right).
+- PDF combat tables: Sensors and Weapons first column renamed to "Name" with consistent width across all three tables. Column order for Sensors: Name, Range, Arcs, Control, Accuracy, Tracking, Qty. Column order for Weapons: Name, Range, Arcs, FC, Accuracy, Type/FP, Damage, Qty. Sensor accuracy now displays as a number (+3, 0, etc.) instead of text. Ordnance table: removed Cost column, redistributed space to Damage and Area columns.
 - Sensors now require explicit arc assignment using the same arc selector as weapons (standard arcs only, no zero-range). Old saves auto-assign default arcs on load with a migration warning.
 - Summary Systems tab now shows sensor arc assignments in brackets, matching weapon display format.
 - PDF Combat Sheet: sensor and weapon tables now use consistent column order and short arc abbreviations (F S A P) with spaces between letters.
+- PDF Systems Detail: ordnance loaded in launchers now shows per-design cost; a separate "Ordnance" summary row shows total ordnance cost. Embarked Craft costs already displayed.
 
 ## [0.2.4] - 02/11/2025
 
