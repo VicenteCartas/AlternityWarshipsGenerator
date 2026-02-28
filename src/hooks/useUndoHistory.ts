@@ -19,7 +19,7 @@ export interface UndoRedoControls<T> {
   /** Clear all history (call on new design or file load) */
   clear: () => void;
   /** Ref that is true during undo/redo restoration — callers should check this to skip re-capturing */
-  isRestoring: React.MutableRefObject<boolean>;
+  isRestoringRef: React.MutableRefObject<boolean>;
 }
 
 /**
@@ -128,6 +128,6 @@ export function useUndoHistory<T>(maxHistory: number = 50): UndoRedoControls<T> 
     canUndo,
     canRedo,
     clear,
-    isRestoring: isRestoringRef,
+    isRestoringRef: isRestoringRef,
   };
 }

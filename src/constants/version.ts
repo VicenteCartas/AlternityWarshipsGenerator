@@ -3,7 +3,7 @@
  */
 
 /** Current application version */
-export const APP_VERSION = '0.2.4';
+export const APP_VERSION = '0.2.5';
 
 /** Application name */
 export const APP_NAME = 'Alternity Warship Generator';

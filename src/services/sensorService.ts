@@ -5,7 +5,6 @@ import type {
   InstalledSensor,
   SensorStats,
   ComputerQuality,
-  TrackingTable,
 } from '../types/sensor';
 import { generateId } from './utilities';
 import { getSensorsData, getTrackingTableData } from './dataLoader';

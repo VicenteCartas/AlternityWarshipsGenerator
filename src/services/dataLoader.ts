@@ -41,7 +41,10 @@ import commandControlDataFallback from '../data/commandControl.json';
 import sensorsDataFallback from '../data/sensors.json';
 import hangarMiscDataFallback from '../data/hangarMisc.json';
 import ordnanceDataFallback from '../data/ordnance.json';
-import damageDiagramDataFallback from '../data/damageDiagram.json';
+import damageDiagramDataRaw from '../data/damageDiagram.json';
+// Type-assert the JSON import once at the boundary (JSON's inferred literal types
+// don't match the narrow union types in DamageDiagramData like ZoneCode[] and hitDie)
+const damageDiagramDataFallback = damageDiagramDataRaw as unknown as DamageDiagramData;
 import weaponsDataFallback from '../data/weapons.json';
 
 // Cache for loaded data
@@ -435,7 +438,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     pureBaseCache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
     pureBaseCache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
     pureBaseCache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-    pureBaseCache.damageDiagram = damageDiagramData as unknown as DamageDiagramData;
+    pureBaseCache.damageDiagram = damageDiagramData;
     pureBaseCache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
     pureBaseCache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
     pureBaseCache.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
@@ -757,7 +760,7 @@ export function getTrackingTableData(): TrackingTable | null {
 export function getDamageDiagramDataGetter(): DamageDiagramData | null {
   if (!dataLoaded) {
     logger.warn('[DataLoader] Data not loaded, using fallback');
-    return damageDiagramDataFallback as unknown as DamageDiagramData;
+    return damageDiagramDataFallback;
   }
   return cache.damageDiagram;
 }

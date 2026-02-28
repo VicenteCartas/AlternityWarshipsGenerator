@@ -90,6 +90,7 @@ export function OrdnanceDesignDialog({
   const allGuidance = useMemo(() => getGuidanceSystems(), []);
 
   // Reset state when dialog opens or category changes
+  /* eslint-disable react-hooks/set-state-in-effect -- syncing state from props when dialog opens */
   useEffect(() => {
     if (open) {
       if (editingDesign) {
@@ -116,6 +117,7 @@ export function OrdnanceDesignDialog({
       }
     }
   }, [open, editingDesign, category]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Filter propulsion systems for current design category
   const filteredPropulsion = useMemo(() => {

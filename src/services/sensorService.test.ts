@@ -216,10 +216,12 @@ describe('sensorService', () => {
     });
 
     it('throws for unknown PL', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => calculateTrackingCapability(5 as any, 'none', 1)).toThrow('No tracking data for progress level');
     });
 
     it('throws for unknown computer quality', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => calculateTrackingCapability(6, 'Legendary' as any, 1)).toThrow('No tracking data for computer quality');
     });
   });

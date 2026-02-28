@@ -218,16 +218,19 @@ describe('hangarMiscService', () => {
     });
 
     it('returns prisoners capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, prisonersCapacity: 8 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(16);
     });
 
     it('returns scientist capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, scientistCapacity: 4 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(8);
     });
 
     it('returns bed capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, bedCapacity: 12 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(24);
     });
@@ -244,16 +247,19 @@ describe('hangarMiscService', () => {
     });
 
     it('returns fuel collection capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, fuelCollectionCapacity: 3 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(6);
     });
 
     it('returns power points capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, powerPointsCapacity: 15 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(30);
     });
 
     it('returns troop capacity', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const type = makeHangarType({ hangarCapacity: undefined, troopCapacity: 5 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(10);
     });

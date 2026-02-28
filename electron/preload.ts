@@ -1,5 +1,6 @@
 // Preload script for exposing safe APIs to the renderer process
 // Must use CommonJS - Electron preload doesn't support ES modules
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose electron APIs to the renderer process

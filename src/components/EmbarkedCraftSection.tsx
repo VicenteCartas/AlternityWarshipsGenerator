@@ -29,7 +29,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import type { EmbarkedCraft, BerthingType } from '../types/embarkedCraft';
 import type { HangarMiscStats } from '../types/hangarMisc';
-import { calculateEmbarkedCraftStats, validateCraftAssignment, createEmbarkedCraft, HANGAR_MAX_CRAFT_HP } from '../services/embarkedCraftService';
+import { calculateEmbarkedCraftStats, validateCraftAssignment, createEmbarkedCraft } from '../services/embarkedCraftService';
 import { formatCost } from '../services/formatters';
 import { CraftPickerDialog, type CraftPickerResult } from './CraftPickerDialog';
 import { ConfirmDialog } from './shared/ConfirmDialog';

@@ -165,6 +165,7 @@ export function SensorSelection({
   const previewTracking = selectedSensor ? calculateTrackingCapability(designProgressLevel, 'none', previewQuantity) : 0;
 
   // Arc toggle handler for sensors (no zero arcs)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleArcToggle = (arc: FiringArc, _isZero: boolean) => {
     if (!selectedSensor) return;
     const stdArc = arc as StandardArc;

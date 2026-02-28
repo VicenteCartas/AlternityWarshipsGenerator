@@ -135,30 +135,31 @@ describe('validateFuelTank', () => {
   const mockHull = {
     hullPoints: 100,
     bonusHullPoints: 10,
-  };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
 
   it('returns valid for reasonable fuel tank size', () => {
-    const result = validateFuelTank(5, mockHull as any, 50);
+    const result = validateFuelTank(5, mockHull, 50);
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
 
   it('returns invalid when hull points < 1', () => {
-    const result = validateFuelTank(0, mockHull as any, 50);
+    const result = validateFuelTank(0, mockHull, 50);
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toContain('at least 1 hull point');
   });
 
   it('returns invalid when exceeding available hull points', () => {
     // 100 + 10 - 105 = 5 available, requesting 10
-    const result = validateFuelTank(10, mockHull as any, 105);
+    const result = validateFuelTank(10, mockHull, 105);
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toContain('Not enough hull points');
   });
 
   it('can return multiple errors', () => {
     // hullPoints < 1 AND exceeding available (0 still < 1)
-    const result = validateFuelTank(0, mockHull as any, 110);
+    const result = validateFuelTank(0, mockHull, 110);
     expect(result.valid).toBe(false);
     expect(result.errors).toHaveLength(1); // Only the < 1 check fires since 0 doesn't exceed
   });

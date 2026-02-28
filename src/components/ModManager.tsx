@@ -81,7 +81,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   }, []);
 
   useEffect(() => {
-    loadMods();
+    loadMods(); // eslint-disable-line react-hooks/set-state-in-effect -- initial data load
   }, [loadMods]);
 
   const persistSettings = useCallback(async (updatedMods: Mod[]) => {

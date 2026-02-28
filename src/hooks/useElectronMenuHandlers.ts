@@ -70,5 +70,5 @@ export function useElectronMenuHandlers({
         window.electronAPI?.removeAllListeners('menu-return-to-start');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart, handleDuplicateDesign]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart, handleDuplicateDesign, setAboutDialogOpen, setShortcutsDialogOpen]);
 }

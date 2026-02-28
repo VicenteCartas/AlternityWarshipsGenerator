@@ -119,7 +119,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setDesignProgressLevel, setDesignTechTracks,
     buildCurrentState, applyState,
     handleUndo, handleRedo, undoHistory,
-    hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheck,
+    hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheckRef,
   } = useWarshipState(mode);
 
   // Compute visible steps based on design type
@@ -267,7 +267,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     selectedHull,
     setMode,
     setActiveStep,
-    skipDirtyCheck,
+    skipDirtyCheckRef,
     setDesignActiveMods,
     setHasUnsavedChanges,
   });
@@ -295,7 +295,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     // Apply selected mods for this design
     await reloadWithSpecificMods(selectedMods);
     // Reset all state for a new design
-    skipDirtyCheck.current = true;
+    skipDirtyCheckRef.current = true;
     setActiveStep(0);
     const defaultName = newDesignType === 'warship' ? 'New Ship'
       : newStationType === 'ground-base' ? 'New Base'
@@ -340,7 +340,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     undoHistory.pushImmediate(freshState);
     setHasUnsavedChanges(false);
     setMode('builder');
-  }, [applyState, showNotification]);
+  }, [applyState, setCurrentFilePath, setDesignActiveMods, setHasUnsavedChanges, skipDirtyCheckRef, undoHistory]);
 
   const handleManageMods = useCallback(() => {
     setPreModeForMods(mode === 'mods' ? 'welcome' : mode);
@@ -411,7 +411,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
         return;
       }
 
-      skipDirtyCheck.current = true;
+      skipDirtyCheckRef.current = true;
       applyState(loadResult.state);
       setCurrentFilePath(null);
       setHasUnsavedChanges(true);
@@ -429,7 +429,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     } catch (error) {
       showNotification(`Error recovering auto-save: ${error}`, 'error');
     }
-  }, [applyState, showNotification]);
+  }, [applyState, showNotification, setCurrentFilePath, setHasUnsavedChanges, skipDirtyCheckRef, undoHistory]);
 
   // Register Electron menu event handlers
   useElectronMenuHandlers({
@@ -490,6 +490,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       }
     }
     initializeApp();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
   }, []);
 
   // Check if any components are installed beyond just the hull

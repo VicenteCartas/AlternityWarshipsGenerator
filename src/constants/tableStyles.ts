@@ -49,11 +49,11 @@ export const stickyFirstColumnCellSx = {
   // Layer semi-transparent hover/selected color on top of opaque paper background
   // using CSS gradient trick, so the result matches regular (non-sticky) cells exactly.
   'tr:hover &': {
-    background: (theme: Record<string, any>) =>
+    background: (theme: { palette: { action: { hover: string }; background: { paper: string } } }) =>
       `linear-gradient(${theme.palette.action.hover}, ${theme.palette.action.hover}), linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper})`,
   },
   'tr.Mui-selected &, tr.Mui-selected:hover &': {
-    background: (theme: Record<string, any>) =>
+    background: (theme: { palette: { action: { selected: string }; background: { paper: string } } }) =>
       `linear-gradient(${theme.palette.action.selected}, ${theme.palette.action.selected}), linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper})`,
   },
 } as const;

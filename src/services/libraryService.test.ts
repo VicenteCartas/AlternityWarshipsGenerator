@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { ScannedWarshipFile } from '../types/electron';
-import type { LibraryEntry, LibraryFilters, LibrarySortConfig } from '../types/library';
+import type { LibraryEntry, LibraryFilters } from '../types/library';
 import {
   toLibraryEntry,
   toLibraryEntries,

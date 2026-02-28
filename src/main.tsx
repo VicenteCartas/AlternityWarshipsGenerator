@@ -1,12 +1,13 @@
 import { StrictMode, useState, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider, CssBaseline } from '@mui/material'
-import { getTheme, resolveThemeMode, type ThemeMode } from './theme'
+import { getTheme, type ThemeMode } from './theme'
 import './index.css'
 import App from './App.tsx'
 
 const THEME_STORAGE_KEY = 'alternity-theme-mode';
 
+// eslint-disable-next-line react-refresh/only-export-components
 function Root() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
@@ -43,7 +44,7 @@ function Root() {
     return () => document.removeEventListener('focusin', handler);
   }, []);
 
-  const muiTheme = useMemo(() => getTheme(themeMode), [themeMode, resolveThemeMode(themeMode)]);
+  const muiTheme = useMemo(() => getTheme(themeMode), [themeMode]);
 
   return (
     <ThemeProvider theme={muiTheme}>

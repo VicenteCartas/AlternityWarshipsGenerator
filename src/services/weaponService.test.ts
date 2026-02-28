@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { WeaponType, InstalledWeapon, FiringArc, MountModifier, GunConfigModifier } from '../types/weapon';
-import type { ShipClass } from '../types/hull';
+import type { WeaponType, InstalledWeapon, MountModifier, GunConfigModifier } from '../types/weapon';
+
 
 // Mock the dataLoader module
 vi.mock('./dataLoader', () => ({

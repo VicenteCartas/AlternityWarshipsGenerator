@@ -49,45 +49,52 @@ interface ModEditorProps {
   onModsChanged: () => Promise<void>;
 }
 
+/** Convert a typed data array to generic rows for EditableDataGrid.
+ * Typed interfaces don't have an index signature, so TypeScript requires
+ * the double assertion to widen to Record<string, unknown>[]. */
+function toRows(data: object[]): Record<string, unknown>[] {
+  return data as unknown as Record<string, unknown>[];
+}
+
 // Map section IDs to base data getter functions
 function getBaseDataForSection(sectionId: string, pureBase = false): Record<string, unknown>[] {
   const getters: Record<string, () => Record<string, unknown>[]> = {
-    hulls: () => getHullsData(pureBase) as unknown as Record<string, unknown>[],
-    stationHulls: () => getStationHullsData(pureBase) as unknown as Record<string, unknown>[],
-    armors: () => getArmorTypesData(pureBase) as unknown as Record<string, unknown>[],
-    armorWeights: () => getArmorWeightsData(pureBase) as unknown as Record<string, unknown>[],
-    powerPlants: () => getPowerPlantsData(pureBase) as unknown as Record<string, unknown>[],
-    fuelTank: () => [getFuelTankData(pureBase)] as unknown as Record<string, unknown>[],
-    engines: () => getEnginesData(pureBase) as unknown as Record<string, unknown>[],
-    ftlDrives: () => getFTLDrivesData(pureBase) as unknown as Record<string, unknown>[],
-    lifeSupport: () => getLifeSupportData(pureBase) as unknown as Record<string, unknown>[],
-    accommodations: () => getAccommodationsData(pureBase) as unknown as Record<string, unknown>[],
-    storeSystems: () => getStoreSystemsData(pureBase) as unknown as Record<string, unknown>[],
-    gravitySystems: () => getGravitySystemsData(pureBase) as unknown as Record<string, unknown>[],
-    defenseSystems: () => getDefenseSystemsData(pureBase) as unknown as Record<string, unknown>[],
-    commandSystems: () => getCommandControlSystemsData(pureBase) as unknown as Record<string, unknown>[],
-    sensors: () => getSensorsData(pureBase) as unknown as Record<string, unknown>[],
-    hangarMiscSystems: () => getHangarMiscSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    hulls: () => toRows(getHullsData(pureBase)),
+    stationHulls: () => toRows(getStationHullsData(pureBase)),
+    armors: () => toRows(getArmorTypesData(pureBase)),
+    armorWeights: () => toRows(getArmorWeightsData(pureBase)),
+    powerPlants: () => toRows(getPowerPlantsData(pureBase)),
+    fuelTank: () => toRows([getFuelTankData(pureBase)]),
+    engines: () => toRows(getEnginesData(pureBase)),
+    ftlDrives: () => toRows(getFTLDrivesData(pureBase)),
+    lifeSupport: () => toRows(getLifeSupportData(pureBase)),
+    accommodations: () => toRows(getAccommodationsData(pureBase)),
+    storeSystems: () => toRows(getStoreSystemsData(pureBase)),
+    gravitySystems: () => toRows(getGravitySystemsData(pureBase)),
+    defenseSystems: () => toRows(getDefenseSystemsData(pureBase)),
+    commandSystems: () => toRows(getCommandControlSystemsData(pureBase)),
+    sensors: () => toRows(getSensorsData(pureBase)),
+    hangarMiscSystems: () => toRows(getHangarMiscSystemsData(pureBase)),
     mountModifiers: () => {
       const data = getMountModifiersData(pureBase);
-      return data ? Object.entries(data).map(([k, v]) => ({ id: k, ...v })) as unknown as Record<string, unknown>[] : [];
+      return data ? toRows(Object.entries(data).map(([k, v]) => ({ id: k, ...v }))) : [];
     },
     gunConfigurations: () => {
       const data = getGunConfigurationsData(pureBase);
-      return data ? Object.entries(data).map(([k, v]) => ({ id: k, ...v })) as unknown as Record<string, unknown>[] : [];
+      return data ? toRows(Object.entries(data).map(([k, v]) => ({ id: k, ...v }))) : [];
     },
     concealmentModifier: () => {
       const data = getConcealmentModifierData(pureBase);
-      return data ? [{ id: 'concealmentModifier', ...data }] as unknown as Record<string, unknown>[] : [];
+      return data ? toRows([{ id: 'concealmentModifier', ...data }]) : [];
     },
-    beamWeapons: () => getBeamWeaponsData(pureBase) as unknown as Record<string, unknown>[],
-    projectileWeapons: () => getProjectileWeaponsData(pureBase) as unknown as Record<string, unknown>[],
-    torpedoWeapons: () => getTorpedoWeaponsData(pureBase) as unknown as Record<string, unknown>[],
-    specialWeapons: () => getSpecialWeaponsData(pureBase) as unknown as Record<string, unknown>[],
-    launchSystems: () => getLaunchSystemsData(pureBase) as unknown as Record<string, unknown>[],
-    propulsionSystems: () => getPropulsionSystemsData(pureBase) as unknown as Record<string, unknown>[],
-    warheads: () => getWarheadsData(pureBase) as unknown as Record<string, unknown>[],
-    guidanceSystems: () => getGuidanceSystemsData(pureBase) as unknown as Record<string, unknown>[],
+    beamWeapons: () => toRows(getBeamWeaponsData(pureBase)),
+    projectileWeapons: () => toRows(getProjectileWeaponsData(pureBase)),
+    torpedoWeapons: () => toRows(getTorpedoWeaponsData(pureBase)),
+    specialWeapons: () => toRows(getSpecialWeaponsData(pureBase)),
+    launchSystems: () => toRows(getLaunchSystemsData(pureBase)),
+    propulsionSystems: () => toRows(getPropulsionSystemsData(pureBase)),
+    warheads: () => toRows(getWarheadsData(pureBase)),
+    guidanceSystems: () => toRows(getGuidanceSystemsData(pureBase)),
   };
   try {
     return getters[sectionId]?.() || [];

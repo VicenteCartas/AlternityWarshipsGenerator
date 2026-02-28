@@ -75,6 +75,10 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - PDF Combat Sheet: sensor and weapon tables now use consistent column order and short arc abbreviations (F S A P) with spaces between letters.
 - PDF Systems Detail: ordnance loaded in launchers now shows per-design cost; a separate "Ordnance" summary row shows total ordnance cost. Embarked Craft costs already displayed.
 
+### Code Quality
+
+- Removed `as unknown` type casts in production code: widened event handler type in EditableDataGrid, centralized data boundary casts in dataLoader and ModEditor with typed helpers.
+
 ## [0.2.4] - 02/11/2025
 
 ### Important

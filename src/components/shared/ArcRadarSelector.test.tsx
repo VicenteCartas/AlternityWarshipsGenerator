@@ -134,7 +134,7 @@ describe('ArcRadarSelector', () => {
     });
 
     it('shows Zero legend only when showZeroArcs is true', () => {
-      const { rerender } = renderSelector({ showZeroArcs: false });
+      renderSelector({ showZeroArcs: false });
       expect(screen.queryByText('Zero')).not.toBeInTheDocument();
     });
 

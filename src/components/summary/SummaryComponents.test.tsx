@@ -37,6 +37,7 @@ describe('FireDiagram', () => {
       powerUsed: 1,
       cost: 100,
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     wrap(<FireDiagram weapons={[weapon as any]} warshipName="Test Ship" hullName="Corvette" />);
     // Should not show the no-weapons alert
     expect(screen.queryByText(/No weapons installed/)).not.toBeInTheDocument();
@@ -58,6 +59,7 @@ describe('DamageZonesOverview', () => {
     cost: 1000,
     techTracks: [],
     shipClass: 'light',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
   it('shows info alert when zones are empty', () => {
@@ -95,6 +97,7 @@ describe('DamageZonesOverview', () => {
     ];
     wrap(
       <DamageZonesOverview
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         zones={zones as any}
         hull={minHull}
         warshipName="Test Ship"
@@ -131,6 +134,7 @@ describe('DamageZonesOverview', () => {
         zones={[]}
         hull={minHull}
         warshipName="Test Ship"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         armorLayers={armorLayers as any}
       />
     );

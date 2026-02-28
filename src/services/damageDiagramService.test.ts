@@ -15,7 +15,6 @@ import {
   generateZoneSystemRefId,
   getSystemDamageCategory,
   getDamageCategoryOrder,
-  getFirepowerOrder,
   sortSystemsByDamagePriority,
   canWeaponBeInZone,
   validateZone,

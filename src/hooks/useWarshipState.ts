@@ -76,7 +76,7 @@ export function useWarshipState(mode: AppMode) {
 
   // ---- Unsaved changes tracking ----
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const skipDirtyCheck = useRef(true);
+  const skipDirtyCheckRef = useRef(true);
 
   // ---- Undo / redo history ----
   const undoHistory = useUndoHistory<WarshipState>(50);
@@ -158,26 +158,28 @@ export function useWarshipState(mode: AppMode) {
   const handleUndo = useCallback(() => {
     const state = undoHistory.undo();
     if (state) applyState(state);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- undoHistory methods are stable refs
   }, [undoHistory.undo, applyState]);
 
   const handleRedo = useCallback(() => {
     const state = undoHistory.redo();
     if (state) applyState(state);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- undoHistory methods are stable refs
   }, [undoHistory.redo, applyState]);
 
   // Track design state changes to detect unsaved modifications + push to undo history
   useEffect(() => {
-    if (skipDirtyCheck.current) {
-      skipDirtyCheck.current = false;
+    if (skipDirtyCheckRef.current) {
+      skipDirtyCheckRef.current = false;
       return;
     }
     if (mode === 'builder') {
       setHasUnsavedChanges(true);
       // Push to undo history (debounced; skipped during undo/redo restore)
-      if (!undoHistory.isRestoring.current) {
+      if (!undoHistory.isRestoringRef.current) {
         undoHistory.pushState(buildCurrentState());
       } else {
-        undoHistory.isRestoring.current = false;
+        undoHistory.isRestoringRef.current = false;
       }
     }
   }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,
@@ -186,7 +188,8 @@ export function useWarshipState(mode: AppMode) {
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
     installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
     damageDiagramZones, hitLocationChart, warshipName, shipDescription,
-    designProgressLevel, designTechTracks, mode, buildCurrentState]);
+    designProgressLevel, designTechTracks, mode, buildCurrentState,
+    undoHistory]);
 
   return {
     // State values
@@ -217,6 +220,6 @@ export function useWarshipState(mode: AppMode) {
     // Helpers
     buildCurrentState, applyState,
     handleUndo, handleRedo, undoHistory,
-    hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheck,
+    hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheckRef,
   };
 }

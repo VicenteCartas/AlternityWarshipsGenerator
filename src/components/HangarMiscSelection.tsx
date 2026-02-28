@@ -86,19 +86,19 @@ export function HangarMiscSelection({
       .sort((a, b) => a.progressLevel - b.progressLevel);
   };
 
+  // Count installed systems by category
+  const installedCounts = useMemo(() => ({
+    hangar: installedSystems.filter((s) => s.type.category === 'hangar').length,
+    cargo: installedSystems.filter((s) => s.type.category === 'cargo').length,
+    emergency: installedSystems.filter((s) => s.type.category === 'emergency').length,
+    facility: installedSystems.filter((s) => s.type.category === 'facility').length,
+    utility: installedSystems.filter((s) => s.type.category === 'utility').length,
+  }), [installedSystems]);
+
   // Get installed systems by category
   const getInstalledByCategory = (category: HangarMiscCategory) => {
     return installedSystems.filter((s) => s.type.category === category);
   };
-
-  // Count installed systems by category
-  const installedCounts = useMemo(() => ({
-    hangar: getInstalledByCategory('hangar').length,
-    cargo: getInstalledByCategory('cargo').length,
-    emergency: getInstalledByCategory('emergency').length,
-    facility: getInstalledByCategory('facility').length,
-    utility: getInstalledByCategory('utility').length,
-  }), [installedSystems]);
 
   // Calculate stats
   const stats = useMemo(

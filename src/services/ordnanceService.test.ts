@@ -606,7 +606,9 @@ describe('ordnanceService', () => {
       expect(result).not.toBeNull();
       expect(result!.category).toBe('missile');
       expect(result!.name).toBe('Factory Missile');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result as any).propulsionId).toBe('chemical-light');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result as any).guidanceId).toBe('radar-homing');
       expect(result!.warheadId).toBe('he-light');
       expect(result!.totalAccuracy).toBe(1);

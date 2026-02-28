@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { ConfirmDialog } from './shared';
 import {
   Box,
@@ -133,6 +133,7 @@ function formatArcsShort(arcs: string[] | undefined): string {
  * Configuration for mapping an installed system array to unassigned systems.
  * Each entry describes how to extract id, name, and hullPoints from one type of installed item.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface SystemCollectorConfig {
   idPrefix: string;
   category: SystemDamageCategory;
@@ -143,6 +144,7 @@ interface SystemCollectorConfig {
   getFirepowerOrder?: (item: any) => number;
   getArcs?: (item: any) => string[];
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * Build a list of individual systems that can be assigned to zones.
@@ -171,6 +173,7 @@ function buildUnassignedSystemsList(
   const allLaunchSystems = getLaunchSystemsData();
 
   // Config array: one entry per system type, in display order
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const collectors: { items: any[]; config: SystemCollectorConfig }[] = [
     {
       items: installedPowerPlants,
@@ -358,7 +361,7 @@ export function DamageDiagramSelection({
   const [draggedZoneSystem, setDraggedZoneSystem] = useState<{ zoneCode: ZoneCode; refId: string } | null>(null);
   const [confirmUnassignOpen, setConfirmUnassignOpen] = useState(false);
   // Track which zone each system ref came from for drag source
-  const dragSourceRef = useRef<{ fromZone: ZoneCode; refId: string; systemRef: ZoneSystemReference } | null>(null);
+  const [dragSourceInfo, setDragSourceInfo] = useState<{ fromZone: ZoneCode; refId: string; systemRef: ZoneSystemReference } | null>(null);
 
   // Initialize zones if empty
   const effectiveZones = useMemo(() => {
@@ -478,12 +481,12 @@ export function DamageDiagramSelection({
         return { totalHp: system.hullPoints, count: 1, hasWeaponArcs: !!hasWeaponArcs, weaponArcSets: hasWeaponArcs ? [system.arcs!] : [], fromZoneHp: 0 };
       }
     }
-    if (draggedZoneSystem && dragSourceRef.current) {
-      const sys = dragSourceRef.current.systemRef;
+    if (draggedZoneSystem && dragSourceInfo) {
+      const sys = dragSourceInfo.systemRef;
       return { totalHp: sys.hullPoints, count: 1, hasWeaponArcs: false, weaponArcSets: [] as string[][], fromZoneHp: sys.hullPoints };
     }
     return null;
-  }, [draggedSystemId, draggedZoneSystem, selectedIds, unassignedSystems]);
+  }, [draggedSystemId, draggedZoneSystem, dragSourceInfo, selectedIds, unassignedSystems]);
 
   // Total systems count
   const totalSystemsCount = useMemo(() => {
@@ -708,7 +711,7 @@ export function DamageDiagramSelection({
     e.dataTransfer.setData('application/x-source', 'unassigned');
     setDraggedSystemId(systemId);
     setDraggedZoneSystem(null);
-    dragSourceRef.current = null;
+    setDragSourceInfo(null);
   }, []);
 
   const handleDragStartZoneSystem = useCallback((e: React.DragEvent, zoneCode: ZoneCode, sys: ZoneSystemReference) => {
@@ -719,7 +722,7 @@ export function DamageDiagramSelection({
     e.dataTransfer.setData('application/x-refid', sys.id);
     setDraggedZoneSystem({ zoneCode, refId: sys.id });
     setDraggedSystemId(null);
-    dragSourceRef.current = { fromZone: zoneCode, refId: sys.id, systemRef: sys };
+    setDragSourceInfo({ fromZone: zoneCode, refId: sys.id, systemRef: sys });
   }, []);
 
   const handleDragOverZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
@@ -779,14 +782,14 @@ export function DamageDiagramSelection({
 
     setDraggedSystemId(null);
     setDraggedZoneSystem(null);
-    dragSourceRef.current = null;
+    setDragSourceInfo(null);
   }, [effectiveZones, onZonesChange, selectedIds, handleAssignMultiple, handleAssignSystem]);
 
   const handleDragEnd = useCallback(() => {
     setDraggedSystemId(null);
     setDraggedZoneSystem(null);
     setDragOverZone(null);
-    dragSourceRef.current = null;
+    setDragSourceInfo(null);
   }, []);
 
   // Assign selected/filtered systems to a zone when clicking the zone header

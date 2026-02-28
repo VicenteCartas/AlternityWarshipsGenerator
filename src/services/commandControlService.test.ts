@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { CommandControlSystemType, InstalledCommandControlSystem, WeaponBatteryKey } from '../types/commandControl';
+import type { CommandControlSystemType, InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledLaunchSystem } from '../types/ordnance';
@@ -239,7 +239,7 @@ describe('commandControlService', () => {
     });
 
     it('returns launch system name for launchers', () => {
-      const launchSystems = [makeLaunchSystem({ launchSystemType: 'missile-rack' as 'missile-rack' })];
+      const launchSystems = [makeLaunchSystem({ launchSystemType: 'missile-rack' as const })];
       const name = getWeaponBatteryDisplayName('missile-rack:launcher', [], launchSystems);
       expect(name).toBe('Missile Rack Launcher');
     });
@@ -267,7 +267,7 @@ describe('commandControlService', () => {
 
     it('includes launch systems as launcher batteries', () => {
       const launchSystems = [
-        makeLaunchSystem({ launchSystemType: 'missile-rack' as 'missile-rack', hullPoints: 3, quantity: 2 }),
+        makeLaunchSystem({ launchSystemType: 'missile-rack' as const, hullPoints: 3, quantity: 2 }),
       ];
       const batteries = getWeaponBatteries([], launchSystems);
       expect(batteries).toHaveLength(1);
@@ -292,8 +292,8 @@ describe('commandControlService', () => {
 
     it('returns HP for launch system battery', () => {
       const launchSystems = [
-        makeLaunchSystem({ launchSystemType: 'missile-rack' as 'missile-rack', hullPoints: 5 }),
-        makeLaunchSystem({ launchSystemType: 'missile-rack' as 'missile-rack', hullPoints: 3 }),
+        makeLaunchSystem({ launchSystemType: 'missile-rack' as const, hullPoints: 5 }),
+        makeLaunchSystem({ launchSystemType: 'missile-rack' as const, hullPoints: 3 }),
       ];
       expect(getWeaponBatteryHullPoints('missile-rack:launcher', [], launchSystems)).toBe(8);
     });

@@ -102,14 +102,14 @@ describe('useUndoHistory', () => {
       expect(result.current.canUndo).toBe(false); // Only initial left
     });
 
-    it('is ignored when isRestoring is true', () => {
+    it('is ignored when isRestoringRef is true', () => {
       const { result } = renderHook(() => useUndoHistory<string>());
       act(() => { result.current.pushImmediate('initial'); });
-      result.current.isRestoring.current = true;
+      result.current.isRestoringRef.current = true;
       act(() => { result.current.pushState('should-be-ignored'); });
       act(() => { vi.advanceTimersByTime(500); });
       expect(result.current.canUndo).toBe(false);
-      result.current.isRestoring.current = false;
+      result.current.isRestoringRef.current = false;
     });
   });
 
@@ -139,12 +139,12 @@ describe('useUndoHistory', () => {
       expect(undone).toBeNull();
     });
 
-    it('sets isRestoring to true', () => {
+    it('sets isRestoringRef to true', () => {
       const { result } = renderHook(() => useUndoHistory<string>());
       act(() => { result.current.pushImmediate('A'); });
       act(() => { result.current.pushImmediate('B'); });
       act(() => { result.current.undo(); });
-      expect(result.current.isRestoring.current).toBe(true);
+      expect(result.current.isRestoringRef.current).toBe(true);
     });
 
     it('flushes pending debounce before undoing', () => {
@@ -201,14 +201,14 @@ describe('useUndoHistory', () => {
       expect(result.current.canRedo).toBe(false);
     });
 
-    it('sets isRestoring to true', () => {
+    it('sets isRestoringRef to true', () => {
       const { result } = renderHook(() => useUndoHistory<string>());
       act(() => { result.current.pushImmediate('A'); });
       act(() => { result.current.pushImmediate('B'); });
       act(() => { result.current.undo(); });
-      result.current.isRestoring.current = false;
+      result.current.isRestoringRef.current = false;
       act(() => { result.current.redo(); });
-      expect(result.current.isRestoring.current).toBe(true);
+      expect(result.current.isRestoringRef.current).toBe(true);
     });
 
     it('supports undo-redo-undo cycle', () => {

@@ -65,7 +65,7 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setModsLoading(true);
+    setModsLoading(true); // eslint-disable-line react-hooks/set-state-in-effect -- loading flag before async call
     getInstalledMods().then(mods => {
       if (cancelled) return;
       // Sort by priority

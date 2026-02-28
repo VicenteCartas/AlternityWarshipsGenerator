@@ -24,7 +24,7 @@ export interface SaveLoadDeps {
   selectedHull: Hull | null;
   setMode: (mode: AppMode) => void;
   setActiveStep: (step: number) => void;
-  skipDirtyCheck: React.MutableRefObject<boolean>;
+  skipDirtyCheckRef: React.MutableRefObject<boolean>;
   setDesignActiveMods: React.Dispatch<React.SetStateAction<Mod[]>>;
   setHasUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -41,7 +41,7 @@ export function useSaveLoad({
   selectedHull,
   setMode,
   setActiveStep,
-  skipDirtyCheck,
+  skipDirtyCheckRef,
   setDesignActiveMods,
   setHasUnsavedChanges,
 }: SaveLoadDeps) {
@@ -102,7 +102,7 @@ export function useSaveLoad({
       }
 
       // Apply loaded state
-      skipDirtyCheck.current = true;
+      skipDirtyCheckRef.current = true;
       applyState(loadResult.state);
       setCurrentFilePath(filePath);
       // Add to recent files list
@@ -129,7 +129,7 @@ export function useSaveLoad({
       showNotification(`Error loading file: ${error}`, 'error');
       return false;
     }
-  }, [applyState, showNotification]);
+  }, [applyState, showNotification, setActiveStep, setDesignActiveMods, setHasUnsavedChanges, setMode, skipDirtyCheckRef, undoHistory]);
 
   const handleLoadWarship = useCallback(async () => {
     if (!window.electronAPI) {
@@ -175,7 +175,7 @@ export function useSaveLoad({
       showNotification(`Error saving file: ${error}`, 'error');
       return false;
     }
-  }, [selectedHull, buildCurrentState, showNotification]);
+  }, [selectedHull, buildCurrentState, showNotification, setCurrentFilePath, setHasUnsavedChanges]);
 
   // Save As - always prompts for file location
   const handleSaveWarshipAs = useCallback(async () => {
@@ -245,7 +245,7 @@ export function useSaveLoad({
     undoHistory.clear();
     undoHistory.pushImmediate(duplicatedState);
     showNotification('Design duplicated', 'success');
-  }, [selectedHull, buildCurrentState, applyState, showNotification]);
+  }, [selectedHull, buildCurrentState, applyState, showNotification, setCurrentFilePath, setHasUnsavedChanges, undoHistory]);
 
   return {
     currentFilePath,

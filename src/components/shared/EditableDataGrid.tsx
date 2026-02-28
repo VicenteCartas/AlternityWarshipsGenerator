@@ -50,6 +50,25 @@ interface EditableDataGridProps {
 
 type EditingCell = { rowIndex: number; columnKey: string } | null;
 
+// Helpers for dot-notation keys (e.g. "damageTrack.stun")
+const getNestedValue = (obj: Record<string, unknown>, key: string): unknown => {
+  const parts = key.split('.');
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (current === null || current === undefined || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+};
+
+const setNestedValue = (obj: Record<string, unknown>, key: string, value: unknown): Record<string, unknown> => {
+  const parts = key.split('.');
+  if (parts.length === 1) return { ...obj, [key]: value };
+  const [head, ...rest] = parts;
+  const child = (obj[head] && typeof obj[head] === 'object' ? obj[head] : {}) as Record<string, unknown>;
+  return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) };
+};
+
 /**
  * Generic editable data grid for the mod editor.
  * Supports inline cell editing, add/delete/duplicate rows, and import from base.
@@ -75,25 +94,31 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const MAX_UNDO = 50;
   const undoStack = useRef<Record<string, unknown>[][]>([]);
   const redoStack = useRef<Record<string, unknown>[][]>([]);
+  const [undoLen, setUndoLen] = useState(0);
+  const [redoLen, setRedoLen] = useState(0);
   /** Track the latest rows so the keyboard handler always sees fresh data */
   const rowsRef = useRef(rows);
-  rowsRef.current = rows;
+  useEffect(() => { rowsRef.current = rows; });
 
   /** Wraps onChange to push current state onto the undo stack */
   const onChangeWithHistory = useCallback((nextRows: Record<string, unknown>[]) => {
     undoStack.current = [...undoStack.current.slice(-(MAX_UNDO - 1)), rowsRef.current];
+    setUndoLen(undoStack.current.length);
     redoStack.current = [];
+    setRedoLen(0);
     onChange(nextRows);
   }, [onChange]);
 
-  const canUndo = undoStack.current.length > 0;
-  const canRedo = redoStack.current.length > 0;
+  const canUndo = undoLen > 0;
+  const canRedo = redoLen > 0;
 
   const handleUndo = useCallback(() => {
     if (undoStack.current.length === 0) return;
     const prev = undoStack.current[undoStack.current.length - 1];
     undoStack.current = undoStack.current.slice(0, -1);
+    setUndoLen(undoStack.current.length);
     redoStack.current = [...redoStack.current, rowsRef.current];
+    setRedoLen(redoStack.current.length);
     onChange(prev);
   }, [onChange]);
 
@@ -101,7 +126,9 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     if (redoStack.current.length === 0) return;
     const next = redoStack.current[redoStack.current.length - 1];
     redoStack.current = redoStack.current.slice(0, -1);
+    setRedoLen(redoStack.current.length);
     undoStack.current = [...undoStack.current, rowsRef.current];
+    setUndoLen(undoStack.current.length);
     onChange(next);
   }, [onChange]);
 
@@ -109,6 +136,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   useEffect(() => {
     undoStack.current = [];
     redoStack.current = [];
+    setUndoLen(0); // eslint-disable-line react-hooks/set-state-in-effect -- syncing undo tracking state
+    setRedoLen(0);
   }, [columns]);
 
   // Keyboard shortcuts: Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z)
@@ -127,25 +156,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const [editValue, setEditValue] = useState<unknown>('');
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
   const [importSource, setImportSource] = useState<'base' | 'active'>('base');
-
-  // Helpers for dot-notation keys (e.g. "damageTrack.stun")
-  const getNestedValue = (obj: Record<string, unknown>, key: string): unknown => {
-    const parts = key.split('.');
-    let current: unknown = obj;
-    for (const part of parts) {
-      if (current === null || current === undefined || typeof current !== 'object') return undefined;
-      current = (current as Record<string, unknown>)[part];
-    }
-    return current;
-  };
-
-  const setNestedValue = (obj: Record<string, unknown>, key: string, value: unknown): Record<string, unknown> => {
-    const parts = key.split('.');
-    if (parts.length === 1) return { ...obj, [key]: value };
-    const [head, ...rest] = parts;
-    const child = (obj[head] && typeof obj[head] === 'object' ? obj[head] : {}) as Record<string, unknown>;
-    return { ...obj, [head]: setNestedValue(child, rest.join('.'), value) };
-  };
 
   const commitEdit = useCallback((overrideValue?: unknown) => {
     if (!editingCell) return;
@@ -455,13 +465,13 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
 
   // Reset transient UI state when switching sections (columns change)
   useEffect(() => {
-    setEditingCell(null);
+    setEditingCell(null); // eslint-disable-line react-hooks/set-state-in-effect -- resetting UI state on section change
     setPopoverAnchor(null);
     setPopoverRowIndex(-1);
     setPopoverColumnKey('');
   }, [columns]);
 
-  const handlePopoverClick = (e: React.MouseEvent<HTMLElement>, rowIndex: number, columnKey: string) => {
+  const handlePopoverClick = (e: React.SyntheticEvent<HTMLElement>, rowIndex: number, columnKey: string) => {
     setPopoverAnchor(e.currentTarget);
     setPopoverRowIndex(rowIndex);
     setPopoverColumnKey(columnKey);
@@ -679,7 +689,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                           onKeyDown={readOnly ? undefined : (e) => {
                             if (e.key === ' ' || e.key === 'Enter') {
                               e.preventDefault();
-                              handlePopoverClick(e as unknown as React.MouseEvent<HTMLElement>, rowIndex, col.key);
+                              handlePopoverClick(e, rowIndex, col.key);
                             }
                           }}
                           sx={{ 

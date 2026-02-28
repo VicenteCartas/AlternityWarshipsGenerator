@@ -438,7 +438,7 @@ export function OrdnanceSelection({
     } catch (error) {
       setSnackbar({ open: true, message: `Export failed: ${error}`, severity: 'error' });
     }
-  }, [ordnanceDesigns]);
+  }, [ordnanceDesigns, setSnackbar]);
 
   const handleImportDesigns = useCallback(async () => {
     if (!window.electronAPI) {
@@ -490,7 +490,7 @@ export function OrdnanceSelection({
     } catch (error) {
       setSnackbar({ open: true, message: `Import failed: ${error}`, severity: 'error' });
     }
-  }, [ordnanceDesigns, onOrdnanceDesignsChange]);
+  }, [ordnanceDesigns, onOrdnanceDesignsChange, setSnackbar]);
 
   // Helper functions
   const getWarheadInfo = (warheadId: string) => allWarheads.find(w => w.id === warheadId);

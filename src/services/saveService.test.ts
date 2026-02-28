@@ -779,7 +779,7 @@ describe('saveService', () => {
         hull: null,
         defenses: [{ id: 'def-1', typeId: 'shields', quantity: 1 }],
       });
-      const result = deserializeWarship(saveFile);
+      deserializeWarship(saveFile);
       expect(calculateDefenseHullPoints).toHaveBeenCalledWith(defType, 100, 1);
     });
   });

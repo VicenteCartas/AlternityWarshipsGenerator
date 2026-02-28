@@ -71,7 +71,7 @@ export function EngineSelection({
   usedHullPoints,
   designProgressLevel,
   designTechTracks,
-  isRequired = true,
+  isRequired: _isRequired,  // eslint-disable-line @typescript-eslint/no-unused-vars
   onEnginesChange,
   onFuelTanksChange,
 }: EngineSelectionProps) {

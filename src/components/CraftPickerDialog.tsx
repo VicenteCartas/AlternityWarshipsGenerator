@@ -33,7 +33,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import type { LibraryEntry } from '../types/library';
 import type { ProgressLevel } from '../types/common';
 import type { BerthingType } from '../types/embarkedCraft';
-import { PL_NAMES, getShipClassDisplayName, formatCost } from '../services/formatters';
+import { PL_NAMES, getShipClassDisplayName } from '../services/formatters';
 import {
   toLibraryEntries,
   filterLibraryEntries,
@@ -136,17 +136,6 @@ export function CraftPickerDialog({
   const [libraryPath, setLibraryPath] = useState<string | null>(null);
   const [plFilter, setPlFilter] = useState<ProgressLevel | ''>('');
 
-  // Load saved library path on open
-  useEffect(() => {
-    if (open) {
-      const savedPath = getSavedLibraryPath();
-      if (savedPath) {
-        setLibraryPath(savedPath);
-        scanDirectory(savedPath);
-      }
-    }
-  }, [open]);
-
   const scanDirectory = useCallback(async (dirPath: string) => {
     if (!window.electronAPI) return;
     setLoading(true);
@@ -165,6 +154,17 @@ export function CraftPickerDialog({
       setLoading(false);
     }
   }, []);
+
+  // Load saved library path on open
+  useEffect(() => {
+    if (open) {
+      const savedPath = getSavedLibraryPath();
+      if (savedPath) {
+        setLibraryPath(savedPath);
+        scanDirectory(savedPath);
+      }
+    }
+  }, [open, scanDirectory]);
 
   const handleBrowse = useCallback(async () => {
     if (!window.electronAPI) return;
