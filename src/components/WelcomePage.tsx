@@ -176,23 +176,23 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onOpenL
             <Button
               variant="outlined"
               size="large"
-              startIcon={<FolderOpenIcon />}
-              onClick={onLoadWarship}
-              fullWidth
-              sx={{ py: 1.25 }}
-            >
-              Load Design
-            </Button>
-
-            <Button
-              variant="outlined"
-              size="large"
               startIcon={<CollectionsIcon />}
               onClick={onOpenLibrary}
               fullWidth
               sx={{ py: 1.25 }}
             >
               Browse Library
+            </Button>
+
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<FolderOpenIcon />}
+              onClick={onLoadWarship}
+              fullWidth
+              sx={{ py: 1.25 }}
+            >
+              Load Design
             </Button>
 
             <Button

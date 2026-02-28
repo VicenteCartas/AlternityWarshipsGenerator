@@ -2,6 +2,10 @@
 
 ## [0.2.5] - TODO
 
+### UI
+
+- Reordered welcome page buttons: Browse Library now appears before Load Design.
+
 ### Important
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
