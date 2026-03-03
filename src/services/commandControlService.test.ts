@@ -98,7 +98,7 @@ function makeSensor(overrides: Partial<InstalledSensor> = {}): InstalledSensor {
     hullPoints: 5,
     powerRequired: 2,
     cost: 250000,
-    arcsCovered: 1,
+    arcs: ['forward'],
     trackingCapability: 2,
     ...overrides,
   };

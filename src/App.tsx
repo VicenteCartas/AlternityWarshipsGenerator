@@ -327,6 +327,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       weapons: [],
       ordnanceDesigns: [],
       launchSystems: [],
+      embarkedCraft: [],
       damageDiagramZones: [],
       hitLocationChart: null,
       designProgressLevel: 9,

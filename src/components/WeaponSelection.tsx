@@ -691,7 +691,7 @@ export function WeaponSelection({
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
                 {isSpecial && (
                   <TableCell sx={{ maxWidth: 200 }}>
-                    {weapon.specialEffect && <TruncatedDescription text={weapon.specialEffect} />}
+                    {'specialEffect' in weapon && weapon.specialEffect && <TruncatedDescription text={weapon.specialEffect} />}
                   </TableCell>
                 )}
                 <TableCell sx={{ maxWidth: 250 }}>

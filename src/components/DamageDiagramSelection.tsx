@@ -283,7 +283,6 @@ function buildUnassignedSystemsList(
         getHullPoints: (hm: InstalledHangarMiscSystem) => hm.hullPoints,
         getCategory: (hm: InstalledHangarMiscSystem) =>
           hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar'
-          : hm.type.category === 'communication' ? 'communication'
           : 'miscellaneous' },
     },
   ];

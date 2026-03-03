@@ -39,7 +39,7 @@ export interface UndoRedoControls<T> {
 export function useUndoHistory<T>(maxHistory: number = 50): UndoRedoControls<T> {
   const historyRef = useRef<T[]>([]);
   const indexRef = useRef(-1);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<T | null>(null);
   const isRestoringRef = useRef(false);
 

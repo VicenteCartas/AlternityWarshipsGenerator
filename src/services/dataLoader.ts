@@ -410,7 +410,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     rawBaseData.sensors = sensorsData as Record<string, unknown>;
     rawBaseData.hangarMisc = hangarMiscData as Record<string, unknown>;
     rawBaseData.ordnance = ordnanceData as Record<string, unknown>;
-    rawBaseData.damageDiagram = damageDiagramData as Record<string, unknown>;
+    rawBaseData.damageDiagram = damageDiagramData as unknown as Record<string, unknown>;
     rawBaseData.weapons = weaponsData as Record<string, unknown>;
 
     // Store pure base data in pureBaseCache

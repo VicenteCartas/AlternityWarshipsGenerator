@@ -266,9 +266,9 @@ describe('Cross-Service Integration', () => {
     });
 
     it('damage categories have defined ordering', () => {
-      const weaponOrder = getDamageCategoryOrder('weapons');
-      const engineOrder = getDamageCategoryOrder('engines');
-      const sensorOrder = getDamageCategoryOrder('sensors');
+      const weaponOrder = getDamageCategoryOrder('weapon');
+      const engineOrder = getDamageCategoryOrder('engine');
+      const sensorOrder = getDamageCategoryOrder('sensor');
       // All should return finite numbers
       expect(Number.isFinite(weaponOrder)).toBe(true);
       expect(Number.isFinite(engineOrder)).toBe(true);
@@ -285,13 +285,13 @@ describe('Cross-Service Integration', () => {
 
     it('sortSystemsByDamagePriority sorts by category then firepower', () => {
       const systems: ZoneSystemReference[] = [
-        { id: 'r1', systemId: 's1', systemType: 'sensor', name: 'Sensor A', hullPoints: 2, category: 'sensors', firepower: 'Gd' },
-        { id: 'r2', systemId: 's2', systemType: 'weapon', name: 'Weapon A', hullPoints: 5, category: 'weapons', firepower: 'H' },
-        { id: 'r3', systemId: 's3', systemType: 'weapon', name: 'Weapon B', hullPoints: 3, category: 'weapons', firepower: 'L' },
+        { id: 'r1', installedSystemId: 's1', systemType: 'sensor', name: 'Sensor A', hullPoints: 2 },
+        { id: 'r2', installedSystemId: 's2', systemType: 'weapon', name: 'Weapon A', hullPoints: 5, firepowerOrder: 4 },
+        { id: 'r3', installedSystemId: 's3', systemType: 'weapon', name: 'Weapon B', hullPoints: 3, firepowerOrder: 2 },
       ];
       const sorted = sortSystemsByDamagePriority(systems);
       // Weapons should come before sensors (or vice versa based on ordering — just check grouping)
-      const weaponIndices = sorted.map((s, i) => s.category === 'weapons' ? i : -1).filter(i => i >= 0);
+      const weaponIndices = sorted.map((s, i) => s.systemType === 'weapon' ? i : -1).filter(i => i >= 0);
       // All weapons should be adjacent
       if (weaponIndices.length > 1) {
         expect(weaponIndices[1] - weaponIndices[0]).toBe(1);

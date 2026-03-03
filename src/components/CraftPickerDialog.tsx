@@ -81,7 +81,7 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
     if (!loadResult.success || !loadResult.state?.hull) return null;
 
     const state = loadResult.state;
-    const hull = state.hull;
+    const hull = state.hull!;
 
     // Replicate cost calculation from useDesignCalculations
     const { calculateMultiLayerArmorCost } = await import('../services/armorService');

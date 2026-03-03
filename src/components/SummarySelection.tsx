@@ -734,21 +734,21 @@ export function SummarySelection({
       <Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
           <Chip
-            icon={stats.remainingHP < 0 ? <ErrorIcon /> : undefined}
-            label={`HP: ${stats.usedHP} / ${stats.totalHP}`}
+            icon={stats?.remainingHP != null && stats.remainingHP < 0 ? <ErrorIcon /> : undefined}
+            label={`HP: ${stats?.usedHP ?? 0} / ${stats?.totalHP ?? 0}`}
             size="small"
             variant="outlined"
-            color={stats.remainingHP < 0 ? 'error' : 'default'}
+            color={stats?.remainingHP != null && stats.remainingHP < 0 ? 'error' : 'default'}
           />
           <Chip
-            icon={stats.powerBalance < 0 ? <ErrorIcon /> : stats.powerBalance === 0 ? <WarningIcon /> : <CheckCircleIcon />}
-            label={`Power: ${stats.powerConsumed} / ${stats.powerGenerated}`}
+            icon={stats?.powerBalance != null && stats.powerBalance < 0 ? <ErrorIcon /> : stats?.powerBalance === 0 ? <WarningIcon /> : <CheckCircleIcon />}
+            label={`Power: ${stats?.powerConsumed ?? 0} / ${stats?.powerGenerated ?? 0}`}
             size="small"
             variant="outlined"
-            color={stats.powerBalance < 0 ? 'error' : stats.powerBalance === 0 ? 'warning' : 'success'}
+            color={stats?.powerBalance != null && stats.powerBalance < 0 ? 'error' : stats?.powerBalance === 0 ? 'warning' : 'success'}
           />
           <Chip
-            label={`Cost: ${formatCost(stats.totalCost)}`}
+            label={`Cost: ${formatCost(stats?.totalCost ?? 0)}`}
             size="small"
             variant="outlined"
           />

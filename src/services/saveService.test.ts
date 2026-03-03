@@ -215,6 +215,7 @@ function makeMinimalState(overrides: Partial<WarshipState> = {}): WarshipState {
     hitLocationChart: null,
     designProgressLevel: 7,
     designTechTracks: [],
+    embarkedCraft: [],
     ...overrides,
   };
 }
@@ -389,7 +390,7 @@ describe('saveService', () => {
 
     it('serializes lore from shipDescription', () => {
       const state = makeMinimalState({
-        shipDescription: { lore: 'A fearsome vessel', imageData: null, imageMimeType: null },
+        shipDescription: { lore: 'A fearsome vessel', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
       });
       const result = serializeWarship(state);
       expect(result.lore).toBe('A fearsome vessel');
@@ -1064,8 +1065,8 @@ describe('saveService', () => {
         }],
       });
       // Simulate old format with extraCapacity
-      (saveFile.launchSystems[0] as Record<string, unknown>).extraCapacity = 3;
-      delete (saveFile.launchSystems[0] as Record<string, unknown>).extraHp;
+      (saveFile.launchSystems[0] as unknown as Record<string, unknown>).extraCapacity = 3;
+      delete (saveFile.launchSystems[0] as unknown as Record<string, unknown>).extraHp;
 
       const result = deserializeWarship(saveFile);
       expect(result.success).toBe(true);
@@ -1084,21 +1085,21 @@ describe('saveService', () => {
 
     it('defaults lore to empty string', () => {
       const saveFile = makeMinimalSaveFile();
-      delete (saveFile as Record<string, unknown>).lore;
+      delete (saveFile as unknown as Record<string, unknown>).lore;
       const result = deserializeWarship(saveFile);
       expect(result.state!.shipDescription.lore).toBe('');
     });
 
     it('defaults designProgressLevel to 7', () => {
       const saveFile = makeMinimalSaveFile();
-      delete (saveFile as Record<string, unknown>).designProgressLevel;
+      delete (saveFile as unknown as Record<string, unknown>).designProgressLevel;
       const result = deserializeWarship(saveFile);
       expect(result.state!.designProgressLevel).toBe(7);
     });
 
     it('defaults designTechTracks to empty array', () => {
       const saveFile = makeMinimalSaveFile();
-      delete (saveFile as Record<string, unknown>).designTechTracks;
+      delete (saveFile as unknown as Record<string, unknown>).designTechTracks;
       const result = deserializeWarship(saveFile);
       expect(result.state!.designTechTracks).toEqual([]);
     });
