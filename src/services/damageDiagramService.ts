@@ -71,14 +71,20 @@ export function getZoneConfigForHull(hull: Hull): ShipClassZoneConfig {
 /**
  * Get the zone limit (max HP per zone) for a given hull type
  */
-export function getZoneLimitForHull(hullTypeId: string): number {
+export function getZoneLimitForHull(hullTypeId: string, hull?: Hull): number {
   const data = getDamageDiagramData();
 
   const limitData = data.zoneLimits.hulls[hullTypeId];
   if (!limitData) {
-    // Default fallback: estimate based on hull points / zone count
+    // Fallback: estimate zone limit from hull data if available
     logger.warn(`No zone limit data for hull type: ${hullTypeId}`);
-    return 100; // Reasonable default
+    if (hull) {
+      const config = getZoneConfigForHull(hull);
+      const totalHP = hull.hullPoints + hull.bonusHullPoints;
+      // Use approximate ratio based on zone count patterns from rulebook tables
+      return Math.ceil(totalHP / config.zoneCount * 1.5);
+    }
+    return 100; // Last resort fallback
   }
 
   return limitData.zoneLimit;
@@ -105,7 +111,7 @@ export function getZoneCountForHull(hullTypeId: string): ZoneCount {
  */
 export function createEmptyZones(hull: Hull): DamageZone[] {
   const config = getZoneConfigForHull(hull);
-  const zoneLimit = getZoneLimitForHull(hull.id);
+  const zoneLimit = getZoneLimitForHull(hull.id, hull);
 
   return config.zones.map((code) => ({
     code,

@@ -64,7 +64,7 @@ import { formatCost } from '../services/formatters';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
 import { getWeaponBatteries, getWeaponBatteryDisplayName, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
-import { exportShipToPDF, exportCombatReferencePDF } from '../services/pdfExportService';
+import { exportShipToPDF } from '../services/pdfExportService';
 import { logger } from '../services/utilities';
 
 
@@ -574,7 +574,7 @@ export function SummarySelection({
       }
 
     // Check damage diagram
-    const zoneLimit = getZoneLimitForHull(hull.id);
+    const zoneLimit = getZoneLimitForHull(hull.id, hull);
     const unassignedCount = damageDiagramZones.length === 0 ? 'all' : 
       damageDiagramZones.every(z => z.systems.length === 0) ? 'all' : null;
     if (unassignedCount === 'all') {
@@ -711,59 +711,7 @@ export function SummarySelection({
     }
   };
 
-  const handleExportCombatRef = async () => {
-    if (!hull) return;
 
-    try {
-      let targetDirectory: string | undefined;
-      if (window.electronAPI) {
-        if (currentFilePath) {
-          const separator = currentFilePath.includes('\\') ? '\\' : '/';
-          const lastSeparatorIndex = currentFilePath.lastIndexOf(separator);
-          targetDirectory = currentFilePath.substring(0, lastSeparatorIndex);
-        } else {
-          targetDirectory = await window.electronAPI.getDocumentsPath();
-        }
-      }
-
-      const pdfPath = await exportCombatReferencePDF({
-        warshipName,
-        hull,
-        shipDescription,
-        armorLayers,
-        installedPowerPlants,
-        installedFuelTanks,
-        installedEngines,
-        installedEngineFuelTanks,
-        installedFTLDrive,
-        installedFTLFuelTanks,
-        installedLifeSupport,
-        installedAccommodations,
-        installedStoreSystems,
-        installedGravitySystems,
-        installedWeapons,
-        installedLaunchSystems,
-        ordnanceDesigns,
-        installedDefenses,
-        installedCommandControl,
-        installedSensors,
-        installedHangarMisc,
-        embarkedCraft,
-        damageDiagramZones,
-        designProgressLevel,
-        designType,
-        stationType,
-        targetDirectory,
-      });
-      const suffix = designType === 'station' ? 'station_combat_ref' : 'combat_ref';
-      const filename = `${warshipName.replace(/[^a-zA-Z0-9]/g, '_')}_${suffix}.pdf`;
-
-      showPdfNotification(pdfPath, filename);
-    } catch (error) {
-      logger.error('Failed to export combat reference PDF:', error);
-      onShowNotification(`Failed to export PDF: ${error}`, 'error');
-    }
-  };
 
   const showPdfNotification = (pdfPath: string, filename: string) => {
     const openAction = window.electronAPI ? {
@@ -860,7 +808,6 @@ export function SummarySelection({
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
         onExport={handleExportPDF}
-        onExportCombatRef={handleExportCombatRef}
       />
 
       {/* Issues Tab */}

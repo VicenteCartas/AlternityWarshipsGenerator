@@ -11,18 +11,12 @@ import {
   Typography,
   Divider,
   Box,
-  ToggleButtonGroup,
-  ToggleButton,
   LinearProgress,
 } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import DescriptionIcon from '@mui/icons-material/Description';
-import SummarizeIcon from '@mui/icons-material/Summarize';
 import type { PdfExportOptions } from '../services/pdfExportService';
 
 export type { PdfExportOptions };
-
-export type PdfSheetType = 'full' | 'combat';
 
 const defaultOptions: PdfExportOptions = {
   includeCombat: true,
@@ -34,17 +28,14 @@ interface PdfExportDialogProps {
   open: boolean;
   onClose: () => void;
   onExport: (options: PdfExportOptions) => void | Promise<void>;
-  onExportCombatRef: () => void | Promise<void>;
 }
 
 export function PdfExportDialog({
   open,
   onClose,
   onExport,
-  onExportCombatRef,
 }: PdfExportDialogProps) {
   const [options, setOptions] = useState<PdfExportOptions>(defaultOptions);
-  const [sheetType, setSheetType] = useState<PdfSheetType>('full');
   const [exporting, setExporting] = useState(false);
 
   const handleChange = (key: keyof PdfExportOptions) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,11 +48,7 @@ export function PdfExportDialog({
   const handleExport = async () => {
     setExporting(true);
     try {
-      if (sheetType === 'combat') {
-        await onExportCombatRef();
-      } else {
-        await onExport(options);
-      }
+      await onExport(options);
     } finally {
       setExporting(false);
     }
@@ -104,29 +91,9 @@ export function PdfExportDialog({
         ) : (
         <>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Choose a sheet type and configure export options.
+          Configure export options.
         </Typography>
 
-        <ToggleButtonGroup
-          value={sheetType}
-          exclusive
-          onChange={(_e, val) => { if (val) setSheetType(val); }}
-          size="small"
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <ToggleButton value="full">
-            <DescriptionIcon sx={{ mr: 0.5, fontSize: 18 }} />
-            Full Ship Sheet
-          </ToggleButton>
-          <ToggleButton value="combat">
-            <SummarizeIcon sx={{ mr: 0.5, fontSize: 18 }} />
-            Combat Reference
-          </ToggleButton>
-        </ToggleButtonGroup>
-
-        {sheetType === 'full' ? (
-          <>
             <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
               <Button size="small" variant="outlined" onClick={handleSelectAll}>
                 Select All
@@ -188,26 +155,6 @@ export function PdfExportDialog({
                 label="Damage Zones (hit location table, zone layout with all systems)"
               />
             </FormGroup>
-          </>
-        ) : (
-          <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              A compact <strong>1-page</strong> handout for the game table with:
-            </Typography>
-            <Typography variant="body2" component="div">
-              <ul style={{ paddingLeft: 16, margin: 0 }}>
-                <li>Key stats (toughness, target mod, acceleration)</li>
-                <li>Weapons table with fire control and arcs</li>
-                <li>Ordnance designs and sensor stats</li>
-                <li>Armor protection values</li>
-                <li>Active defenses</li>
-                <li>Damage track checkboxes</li>
-                <li>Hit location table</li>
-                <li>Fire arcs diagram</li>
-              </ul>
-            </Typography>
-          </Box>
-        )}
         </>
         )}
       </DialogContent>
@@ -219,7 +166,7 @@ export function PdfExportDialog({
           startIcon={<PictureAsPdfIcon />}
           disabled={exporting}
         >
-          {sheetType === 'combat' ? 'Export Combat Ref' : 'Export'}
+          Export
         </Button>
       </DialogActions>
     </Dialog>

@@ -68,7 +68,20 @@
       "courier": { "hullPoints": 16, "zoneCount": 2, "zoneLimit": 11 },
       "trader": { "hullPoints": 24, "zoneCount": 4, "zoneLimit": 8 },
       "fast-freighter": { "hullPoints": 32, "zoneCount": 4, "zoneLimit": 11 },
-      "fast-transport": { "hullPoints": 40, "zoneCount": 4, "zoneLimit": 14 }
+      "fast-transport": { "hullPoints": 40, "zoneCount": 4, "zoneLimit": 14 },
+      "liner": { "hullPoints": 840, "zoneCount": 12, "zoneLimit": 137 },
+      "super-freighter": { "hullPoints": 2400, "zoneCount": 20, "zoneLimit": 360 },
+      "colony-transport": { "hullPoints": 3600, "zoneCount": 20, "zoneLimit": 540 },
+      "habitat-dome": { "hullPoints": 100, "zoneCount": 6, "zoneLimit": 28 },
+      "light-platform": { "hullPoints": 150, "zoneCount": 6, "zoneLimit": 41 },
+      "light-post": { "hullPoints": 200, "zoneCount": 6, "zoneLimit": 55 },
+      "hab-complex": { "hullPoints": 300, "zoneCount": 8, "zoneLimit": 72 },
+      "medium-platform": { "hullPoints": 400, "zoneCount": 8, "zoneLimit": 96 },
+      "medium-bunker": { "hullPoints": 600, "zoneCount": 8, "zoneLimit": 144 },
+      "heavy-platform": { "hullPoints": 1000, "zoneCount": 12, "zoneLimit": 163 },
+      "heavy-bunker": { "hullPoints": 2000, "zoneCount": 12, "zoneLimit": 325 },
+      "super-platform": { "hullPoints": 10000, "zoneCount": 20, "zoneLimit": 1500 },
+      "fortress": { "hullPoints": 20000, "zoneCount": 20, "zoneLimit": 3000 }
     }
   },
   "hitLocationTables": {

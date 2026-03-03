@@ -47,6 +47,19 @@ const MOCK_DIAGRAM_DATA: DamageDiagramData = {
       'heavy-cruiser': { hullPoints: 400, zoneCount: 8, zoneLimit: 96 },
       'battleship': { hullPoints: 1200, zoneCount: 12, zoneLimit: 195 },
       'dreadnought': { hullPoints: 3200, zoneCount: 20, zoneLimit: 480 },
+      'liner': { hullPoints: 840, zoneCount: 12, zoneLimit: 137 },
+      'super-freighter': { hullPoints: 2400, zoneCount: 20, zoneLimit: 360 },
+      'colony-transport': { hullPoints: 3600, zoneCount: 20, zoneLimit: 540 },
+      'habitat-dome': { hullPoints: 100, zoneCount: 6, zoneLimit: 28 },
+      'light-platform': { hullPoints: 150, zoneCount: 6, zoneLimit: 41 },
+      'light-post': { hullPoints: 200, zoneCount: 6, zoneLimit: 55 },
+      'hab-complex': { hullPoints: 300, zoneCount: 8, zoneLimit: 72 },
+      'medium-platform': { hullPoints: 400, zoneCount: 8, zoneLimit: 96 },
+      'medium-bunker': { hullPoints: 600, zoneCount: 8, zoneLimit: 144 },
+      'heavy-platform': { hullPoints: 1000, zoneCount: 12, zoneLimit: 163 },
+      'heavy-bunker': { hullPoints: 2000, zoneCount: 12, zoneLimit: 325 },
+      'super-platform': { hullPoints: 10000, zoneCount: 20, zoneLimit: 1500 },
+      'fortress': { hullPoints: 20000, zoneCount: 20, zoneLimit: 3000 },
     },
   },
   hitLocationTables: {
@@ -168,6 +181,19 @@ describe('damageDiagramService', () => {
 
     it('returns correct limit for small craft', () => {
       expect(getZoneLimitForHull('fighter')).toBe(7);
+    });
+
+    it('returns correct limit for station hulls', () => {
+      expect(getZoneLimitForHull('habitat-dome')).toBe(28);
+      expect(getZoneLimitForHull('heavy-platform')).toBe(163);
+      expect(getZoneLimitForHull('fortress')).toBe(3000);
+      expect(getZoneLimitForHull('super-platform')).toBe(1500);
+    });
+
+    it('returns correct limit for civilian ship hulls', () => {
+      expect(getZoneLimitForHull('liner')).toBe(137);
+      expect(getZoneLimitForHull('super-freighter')).toBe(360);
+      expect(getZoneLimitForHull('colony-transport')).toBe(540);
     });
 
     it('returns default 100 for unknown hull', () => {

@@ -11,7 +11,6 @@ function renderDialog(overrides?: Partial<Parameters<typeof PdfExportDialog>[0]>
     open: true,
     onClose: vi.fn(),
     onExport: vi.fn(),
-    onExportCombatRef: vi.fn(),
   };
   const props = { ...defaults, ...overrides };
   return {
@@ -25,11 +24,9 @@ function renderDialog(overrides?: Partial<Parameters<typeof PdfExportDialog>[0]>
 }
 
 describe('PdfExportDialog', () => {
-  it('renders title and two sheet-type buttons', () => {
+  it('renders title', () => {
     renderDialog();
     expect(screen.getByText('Export to PDF')).toBeInTheDocument();
-    expect(screen.getByText('Full Ship Sheet')).toBeInTheDocument();
-    expect(screen.getByText('Combat Reference')).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -92,28 +89,6 @@ describe('PdfExportDialog', () => {
         includeDamageDiagram: true,
         includeDetailedSystems: false,
       });
-      expect(onClose).toHaveBeenCalled();
-    });
-  });
-
-  describe('Combat Reference mode', () => {
-    it('switches to combat mode and shows description', async () => {
-      const user = userEvent.setup();
-      renderDialog();
-      await user.click(screen.getByText('Combat Reference'));
-
-      // Should show combat description, not checkboxes
-      expect(screen.getByText(/compact/)).toBeInTheDocument();
-      expect(screen.queryByText('Select All')).not.toBeInTheDocument();
-    });
-
-    it('Export button calls onExportCombatRef and closes', async () => {
-      const user = userEvent.setup();
-      const { onExportCombatRef, onExport, onClose } = renderDialog();
-      await user.click(screen.getByText('Combat Reference'));
-      await user.click(screen.getByText('Export Combat Ref'));
-      expect(onExportCombatRef).toHaveBeenCalled();
-      expect(onExport).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
     });
   });

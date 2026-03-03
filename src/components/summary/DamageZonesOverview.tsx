@@ -20,7 +20,7 @@ interface DamageZonesOverviewProps {
 }
 
 export function DamageZonesOverview({ zones, hull, warshipName, armorLayers }: DamageZonesOverviewProps) {
-  const zoneLimit = getZoneLimitForHull(hull.id);
+  const zoneLimit = getZoneLimitForHull(hull.id, hull);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

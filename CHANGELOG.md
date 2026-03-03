@@ -2,9 +2,14 @@
 
 ## [0.2.5] - TODO
 
+### Bug Fixes
+
+- Fixed damage zone HP limit always being 100 for station hulls, missing civilian ships (liner, super-freighter, colony-transport), and any hull types not in the zone limits table. Zone limits now use correct values from Table 6-1 for stations and calculated values for civilian ships. The fallback for unknown hull types now estimates from hull data instead of hardcoding 100.
+
 ### UI
 
 - Reordered welcome page buttons: Browse Library now appears before Load Design.
+- Removed compact Combat Reference PDF export option. The full ship sheet export already covers all combat data — users can print only the pages they need.
 
 ### Important
 
