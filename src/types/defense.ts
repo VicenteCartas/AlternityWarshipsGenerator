@@ -50,7 +50,32 @@ export interface DefenseSystemType {
   coverageMultiples?: boolean;
 }
 
-export type InstalledDefenseSystem = InstalledSystemBase<DefenseSystemType>;
+// ============== Sub-Systems (for zone splitting) ==============
+
+/**
+ * A sub-system created when a defense system is split for zone assignment.
+ * Each sub-system represents a portion of the parent defense that can be
+ * independently assigned to a damage zone.
+ */
+export interface DefenseSubSystem {
+  /** Unique identifier for this sub-system */
+  id: string;
+  /** Display label (e.g., "Section 1", "Section 2") */
+  label: string;
+  /** Hull points allocated to this sub-system */
+  hullPoints: number;
+}
+
+// ============== Installed Defense System ==============
+
+export interface InstalledDefenseSystem extends InstalledSystemBase<DefenseSystemType> {
+  /**
+   * Optional sub-systems for zone assignment.
+   * When present, the damage diagram shows these instead of the parent system.
+   * The parent system's total HP is the sum of all sub-system HP.
+   */
+  subSystems?: DefenseSubSystem[];
+}
 
 // ============== Stats ==============
 

@@ -1,10 +1,12 @@
 import type {
   DefenseSystemType,
+  DefenseSubSystem,
   InstalledDefenseSystem,
   DefenseStats,
 } from '../types/defense';
 import { generateId } from './utilities';
 import { getDefenseSystemsData } from './dataLoader';
+import { getZoneLimitForHull } from './damageDiagramService';
 
 // ============== Getters ==============
 
@@ -20,6 +22,69 @@ export function getDefenseSystemTypeById(id: string): DefenseSystemType | undefi
 
 export function generateDefenseId(): string {
   return generateId('def');
+}
+
+export function generateDefenseSubSystemId(): string {
+  return generateId('defsub');
+}
+
+// ============== Zone Limit Helpers ==============
+
+/**
+ * Check whether a defense system's total HP exceeds the zone limit for the given hull.
+ * Only meaningful for fixedCoverage screens — other systems allow user-controlled sizing.
+ */
+export function doesDefenseExceedZoneLimit(
+  defense: InstalledDefenseSystem,
+  hullId: string
+): boolean {
+  if (!defense.type.fixedCoverage) return false;
+  const zoneLimit = getZoneLimitForHull(hullId);
+  return defense.hullPoints > zoneLimit;
+}
+
+/**
+ * Get the zone limit for a given hull, for display purposes.
+ */
+export function getZoneLimitForDefenseWarning(hullId: string): number {
+  return getZoneLimitForHull(hullId);
+}
+
+/**
+ * Split a defense system into N equal sub-systems for zone assignment.
+ * @param defense The installed defense system to split
+ * @param splitCount Number of sections (2 or 4)
+ * @returns Updated defense with subSystems populated
+ */
+export function splitDefenseSystem(
+  defense: InstalledDefenseSystem,
+  splitCount: 2 | 4
+): InstalledDefenseSystem {
+  const totalHp = defense.hullPoints;
+  const baseHp = Math.floor(totalHp / splitCount);
+  const remainder = totalHp % splitCount;
+
+  const subSystems: DefenseSubSystem[] = [];
+  for (let i = 0; i < splitCount; i++) {
+    subSystems.push({
+      id: generateDefenseSubSystemId(),
+      label: `Section ${i + 1}`,
+      // Distribute remainder: first sub-systems get +1 HP each
+      hullPoints: baseHp + (i < remainder ? 1 : 0),
+    });
+  }
+
+  return { ...defense, subSystems };
+}
+
+/**
+ * Remove the split from a defense system, reverting to a single system.
+ */
+export function unsplitDefenseSystem(
+  defense: InstalledDefenseSystem
+): InstalledDefenseSystem {
+  const { subSystems: _, ...rest } = defense;
+  return rest as InstalledDefenseSystem;
 }
 
 // ============== Calculations ==============

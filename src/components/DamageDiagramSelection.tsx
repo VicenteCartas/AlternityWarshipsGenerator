@@ -259,7 +259,7 @@ function buildUnassignedSystemsList(
         getFirepowerOrder: () => 99 },
     },
     {
-      items: installedDefenses,
+      items: installedDefenses.filter(d => !d.subSystems || d.subSystems.length === 0),
       config: { idPrefix: 'def', category: 'defense', originalType: 'defense',
         getName: (d: InstalledDefenseSystem) => `${d.type.name} x${d.quantity}`,
         getHullPoints: (d: InstalledDefenseSystem) => d.hullPoints },
@@ -310,6 +310,23 @@ function buildUnassignedSystemsList(
       }
 
       systems.push(system);
+    }
+  }
+
+  // Expand defense sub-systems: each sub-system becomes its own assignable entry
+  for (const defense of installedDefenses) {
+    if (defense.subSystems && defense.subSystems.length > 0) {
+      for (const sub of defense.subSystems) {
+        const id = `def-${defense.id}-${sub.id}`;
+        if (assignedSystemIds.has(id)) continue;
+        systems.push({
+          id,
+          name: `${defense.type.name} — ${sub.label}`,
+          hullPoints: sub.hullPoints,
+          category: 'defense',
+          originalType: 'defense',
+        });
+      }
     }
   }
 
@@ -405,20 +422,45 @@ export function DamageDiagramSelection({
   }, [allSystems]);
 
   useEffect(() => {
-    let changed = false;
+    let anyChanged = false;
     const updated = effectiveZones.map(zone => {
+      let zoneChanged = false;
       const systems = zone.systems.map(sys => {
         const canonical = canonicalNames.get(sys.installedSystemId);
         if (canonical && canonical !== sys.name) {
-          changed = true;
+          zoneChanged = true;
           return { ...sys, name: canonical };
         }
         return sys;
       });
-      return changed ? { ...zone, systems } : zone;
+      if (zoneChanged) {
+        anyChanged = true;
+        return { ...zone, systems };
+      }
+      return zone;
     });
-    if (changed) onZonesChange(updated);
+    if (anyChanged) onZonesChange(updated);
   }, [canonicalNames, effectiveZones, onZonesChange]);
+
+  // Remove orphaned zone references (e.g., after merging split defense sub-systems)
+  const allSystemIds = useMemo(() => {
+    return new Set(allSystems.map(s => s.id));
+  }, [allSystems]);
+
+  useEffect(() => {
+    let anyRemoved = false;
+    const cleaned = effectiveZones.map(zone => {
+      const before = zone.systems.length;
+      const systems = zone.systems.filter(sys => allSystemIds.has(sys.installedSystemId));
+      if (systems.length < before) {
+        anyRemoved = true;
+        const totalHullPoints = systems.reduce((sum, s) => sum + s.hullPoints, 0);
+        return { ...zone, systems, totalHullPoints };
+      }
+      return zone;
+    });
+    if (anyRemoved) onZonesChange(cleaned);
+  }, [allSystemIds, effectiveZones, onZonesChange]);
 
   // Build list of unassigned systems
   const unassignedSystems = useMemo(() => {
@@ -482,10 +524,20 @@ export function DamageDiagramSelection({
     }
     if (draggedZoneSystem && dragSourceInfo) {
       const sys = dragSourceInfo.systemRef;
-      return { totalHp: sys.hullPoints, count: 1, hasWeaponArcs: false, weaponArcSets: [] as string[][], fromZoneHp: sys.hullPoints };
+      // Look up weapon arcs from allSystems for zone-to-zone weapon drags
+      let hasWeaponArcs = false;
+      let weaponArcSets: string[][] = [];
+      if (sys.systemType === 'weapon') {
+        const original = allSystems.find(s => s.id === sys.installedSystemId);
+        if (original?.arcs && original.arcs.length > 0) {
+          hasWeaponArcs = true;
+          weaponArcSets = [original.arcs];
+        }
+      }
+      return { totalHp: sys.hullPoints, count: 1, hasWeaponArcs, weaponArcSets, fromZoneHp: sys.hullPoints };
     }
     return null;
-  }, [draggedSystemId, draggedZoneSystem, dragSourceInfo, selectedIds, unassignedSystems]);
+  }, [draggedSystemId, draggedZoneSystem, dragSourceInfo, selectedIds, unassignedSystems, allSystems]);
 
   // Total systems count
   const totalSystemsCount = useMemo(() => {
@@ -705,38 +757,52 @@ export function DamageDiagramSelection({
   // ============== Drag & Drop from unassigned pool ==============
 
   const handleDragStartUnassigned = useCallback((e: React.DragEvent, systemId: string) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', systemId);
-    e.dataTransfer.setData('application/x-source', 'unassigned');
-    setDraggedSystemId(systemId);
-    setDraggedZoneSystem(null);
-    setDragSourceInfo(null);
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', systemId);
+      e.dataTransfer.setData('application/x-source', 'unassigned');
+      setDraggedSystemId(systemId);
+      setDraggedZoneSystem(null);
+      setDragSourceInfo(null);
+    } catch (err) {
+      console.error('[DamageDiagram] dragStart error:', err);
+    }
   }, []);
 
   const handleDragStartZoneSystem = useCallback((e: React.DragEvent, zoneCode: ZoneCode, sys: ZoneSystemReference) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', sys.installedSystemId);
-    e.dataTransfer.setData('application/x-source', 'zone');
-    e.dataTransfer.setData('application/x-zone', zoneCode);
-    e.dataTransfer.setData('application/x-refid', sys.id);
-    setDraggedZoneSystem({ zoneCode, refId: sys.id });
-    setDraggedSystemId(null);
-    setDragSourceInfo({ fromZone: zoneCode, refId: sys.id, systemRef: sys });
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', sys.installedSystemId);
+      e.dataTransfer.setData('application/x-source', 'zone');
+      e.dataTransfer.setData('application/x-zone', zoneCode);
+      e.dataTransfer.setData('application/x-refid', sys.id);
+      setDraggedZoneSystem({ zoneCode, refId: sys.id });
+      setDraggedSystemId(null);
+      setDragSourceInfo({ fromZone: zoneCode, refId: sys.id, systemRef: sys });
+    } catch (err) {
+      console.error('[DamageDiagram] dragStartZone error:', err);
+    }
   }, []);
 
   const handleDragOverZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
-    // Check arc compatibility — block drop on incompatible zones
-    if (dragInfo && dragInfo.hasWeaponArcs && dragInfo.weaponArcSets.length > 0) {
-      const anyIncompatible = dragInfo.weaponArcSets.some(arcs => !canWeaponBeInZone(arcs, zoneCode));
-      if (anyIncompatible) {
-        e.dataTransfer.dropEffect = 'none';
-        setDragOverZone(zoneCode);
-        return; // Don't preventDefault — disables the drop
+    try {
+      // Check arc compatibility — block drop on incompatible zones
+      if (dragInfo && dragInfo.hasWeaponArcs && dragInfo.weaponArcSets.length > 0) {
+        const anyIncompatible = dragInfo.weaponArcSets.some(arcs => !canWeaponBeInZone(arcs, zoneCode));
+        if (anyIncompatible) {
+          e.dataTransfer.dropEffect = 'none';
+          setDragOverZone(zoneCode);
+          return; // Don't preventDefault — disables the drop
+        }
       }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setDragOverZone(zoneCode);
+    } catch (err) {
+      // Fallback: allow the drop to prevent stuck drag state
+      e.preventDefault();
+      setDragOverZone(zoneCode);
     }
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverZone(zoneCode);
   }, [dragInfo]);
 
   const handleDragLeaveZone = useCallback(() => {
@@ -746,43 +812,55 @@ export function DamageDiagramSelection({
   const handleDropOnZone = useCallback((e: React.DragEvent, zoneCode: ZoneCode) => {
     e.preventDefault();
     setDragOverZone(null);
-    const source = e.dataTransfer.getData('application/x-source');
+    try {
+      const source = e.dataTransfer.getData('application/x-source');
 
-    if (source === 'zone') {
-      // Move between zones
-      const fromZone = e.dataTransfer.getData('application/x-zone') as ZoneCode;
-      const refId = e.dataTransfer.getData('application/x-refid');
-      if (fromZone === zoneCode) return; // Same zone, no-op
+      if (source === 'zone') {
+        // Move between zones
+        const fromZone = e.dataTransfer.getData('application/x-zone') as ZoneCode;
+        const refId = e.dataTransfer.getData('application/x-refid');
+        if (fromZone === zoneCode) return; // Same zone, no-op
 
-      const sourceZone = effectiveZones.find(z => z.code === fromZone);
-      const systemRef = sourceZone?.systems.find(s => s.id === refId);
-      if (!systemRef) return;
+        const sourceZone = effectiveZones.find(z => z.code === fromZone);
+        const systemRef = sourceZone?.systems.find(s => s.id === refId);
+        if (!systemRef) return;
 
-      const newZones = effectiveZones.map((zone) => {
-        if (zone.code === fromZone) {
-          return { ...zone, systems: zone.systems.filter(s => s.id !== refId), totalHullPoints: zone.totalHullPoints - systemRef.hullPoints };
+        // Check weapon arc compatibility for zone-to-zone moves
+        if (systemRef.systemType === 'weapon') {
+          const original = allSystems.find(s => s.id === systemRef.installedSystemId);
+          if (original?.arcs && original.arcs.length > 0 && !canWeaponBeInZone(original.arcs, zoneCode)) {
+            return; // Incompatible zone for this weapon's arcs
+          }
         }
-        if (zone.code === zoneCode) {
-          const newSystems = sortSystemsByDamagePriority([...zone.systems, { ...systemRef, id: generateZoneSystemRefId() }]);
-          return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + systemRef.hullPoints };
-        }
-        return zone;
-      });
-      onZonesChange(newZones);
-    } else {
-      // From unassigned pool
-      const systemId = e.dataTransfer.getData('text/plain');
-      if (selectedIds.size > 0 && selectedIds.has(systemId)) {
-        handleAssignMultiple(Array.from(selectedIds), zoneCode);
+
+        const newZones = effectiveZones.map((zone) => {
+          if (zone.code === fromZone) {
+            return { ...zone, systems: zone.systems.filter(s => s.id !== refId), totalHullPoints: zone.totalHullPoints - systemRef.hullPoints };
+          }
+          if (zone.code === zoneCode) {
+            const newSystems = sortSystemsByDamagePriority([...zone.systems, { ...systemRef, id: generateZoneSystemRefId() }]);
+            return { ...zone, systems: newSystems, totalHullPoints: zone.totalHullPoints + systemRef.hullPoints };
+          }
+          return zone;
+        });
+        onZonesChange(newZones);
       } else {
-        handleAssignSystem(systemId, zoneCode);
+        // From unassigned pool
+        const systemId = e.dataTransfer.getData('text/plain');
+        if (selectedIds.size > 0 && selectedIds.has(systemId)) {
+          handleAssignMultiple(Array.from(selectedIds), zoneCode);
+        } else {
+          handleAssignSystem(systemId, zoneCode);
+        }
       }
+    } catch (err) {
+      console.error('[DamageDiagram] drop error:', err);
+    } finally {
+      setDraggedSystemId(null);
+      setDraggedZoneSystem(null);
+      setDragSourceInfo(null);
     }
-
-    setDraggedSystemId(null);
-    setDraggedZoneSystem(null);
-    setDragSourceInfo(null);
-  }, [effectiveZones, onZonesChange, selectedIds, handleAssignMultiple, handleAssignSystem]);
+  }, [effectiveZones, onZonesChange, selectedIds, handleAssignMultiple, handleAssignSystem, allSystems]);
 
   const handleDragEnd = useCallback(() => {
     setDraggedSystemId(null);

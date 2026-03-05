@@ -161,6 +161,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: def.id,
       typeId: def.type.id,
       quantity: def.quantity,
+      ...(def.subSystems ? { subSystems: def.subSystems.map(ss => ({ id: ss.id, label: ss.label, hullPoints: ss.hullPoints })) } : {}),
     })),
     commandControl: (state.commandControl || []).map((cc): SavedCommandControlSystem => ({
       id: cc.id,
@@ -576,6 +577,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       hullPoints: calculateDefenseHullPoints(t, shipHullPoints, s.quantity),
       powerRequired: calculateDefensePower(t, shipHullPoints, s.quantity),
       cost: calculateDefenseCost(t, shipHullPoints, s.quantity),
+      ...(s.subSystems ? { subSystems: s.subSystems } : {}),
     }),
     'Defense system type not found', warnings
   );

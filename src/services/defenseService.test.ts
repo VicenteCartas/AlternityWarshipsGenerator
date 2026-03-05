@@ -6,6 +6,11 @@ vi.mock('./dataLoader', () => ({
   getDefenseSystemsData: vi.fn(),
 }));
 
+// Mock the damageDiagramService module (used by zone limit helpers)
+vi.mock('./damageDiagramService', () => ({
+  getZoneLimitForHull: vi.fn().mockReturnValue(480),
+}));
+
 import {
   getAllDefenseSystemTypes,
   getDefenseSystemTypeById,
@@ -19,8 +24,12 @@ import {
   hasScreenConflict,
   getInstalledScreenNames,
   getActiveScreenTypeName,
+  doesDefenseExceedZoneLimit,
+  splitDefenseSystem,
+  unsplitDefenseSystem,
 } from './defenseService';
 import { getDefenseSystemsData } from './dataLoader';
+import { getZoneLimitForHull } from './damageDiagramService';
 
 // ============== Test Data ==============
 
@@ -378,6 +387,105 @@ describe('defenseService', () => {
 
     it('returns null for empty list', () => {
       expect(getActiveScreenTypeName([])).toBeNull();
+    });
+  });
+
+  // ---------- Zone Limit & Splitting ----------
+
+  describe('doesDefenseExceedZoneLimit', () => {
+    it('returns true when fixedCoverage screen HP exceeds zone limit', () => {
+      const defense = makeInstalledDefense({
+        type: makeDefenseType({ fixedCoverage: true }),
+        hullPoints: 640,
+      });
+      (getZoneLimitForHull as ReturnType<typeof vi.fn>).mockReturnValue(480);
+      expect(doesDefenseExceedZoneLimit(defense, 'dreadnought')).toBe(true);
+    });
+
+    it('returns false when fixedCoverage screen HP fits in zone limit', () => {
+      const defense = makeInstalledDefense({
+        type: makeDefenseType({ fixedCoverage: true }),
+        hullPoints: 200,
+      });
+      (getZoneLimitForHull as ReturnType<typeof vi.fn>).mockReturnValue(480);
+      expect(doesDefenseExceedZoneLimit(defense, 'heavy-cruiser')).toBe(false);
+    });
+
+    it('returns false for non-fixedCoverage systems regardless of HP', () => {
+      const defense = makeInstalledDefense({
+        type: makeDefenseType({ fixedCoverage: undefined }),
+        hullPoints: 9999,
+      });
+      expect(doesDefenseExceedZoneLimit(defense, 'dreadnought')).toBe(false);
+    });
+  });
+
+  describe('splitDefenseSystem', () => {
+    it('splits into 2 equal sections', () => {
+      const defense = makeInstalledDefense({ hullPoints: 640 });
+      const result = splitDefenseSystem(defense, 2);
+      expect(result.subSystems).toHaveLength(2);
+      expect(result.subSystems![0].label).toBe('Section 1');
+      expect(result.subSystems![1].label).toBe('Section 2');
+      expect(result.subSystems![0].hullPoints).toBe(320);
+      expect(result.subSystems![1].hullPoints).toBe(320);
+    });
+
+    it('splits into 4 equal sections', () => {
+      const defense = makeInstalledDefense({ hullPoints: 640 });
+      const result = splitDefenseSystem(defense, 4);
+      expect(result.subSystems).toHaveLength(4);
+      expect(result.subSystems!.every(s => s.hullPoints === 160)).toBe(true);
+    });
+
+    it('distributes remainder HP to first sub-systems', () => {
+      const defense = makeInstalledDefense({ hullPoints: 641 });
+      const result = splitDefenseSystem(defense, 4);
+      expect(result.subSystems).toHaveLength(4);
+      expect(result.subSystems![0].hullPoints).toBe(161); // gets +1
+      expect(result.subSystems![1].hullPoints).toBe(160);
+      expect(result.subSystems![2].hullPoints).toBe(160);
+      expect(result.subSystems![3].hullPoints).toBe(160);
+      // Total should equal original
+      const totalHp = result.subSystems!.reduce((sum, s) => sum + s.hullPoints, 0);
+      expect(totalHp).toBe(641);
+    });
+
+    it('preserves parent system properties', () => {
+      const defense = makeInstalledDefense({ id: 'def-x', hullPoints: 100, powerRequired: 50 });
+      const result = splitDefenseSystem(defense, 2);
+      expect(result.id).toBe('def-x');
+      expect(result.hullPoints).toBe(100);
+      expect(result.powerRequired).toBe(50);
+    });
+
+    it('generates unique IDs for each sub-system', () => {
+      const defense = makeInstalledDefense({ hullPoints: 400 });
+      const result = splitDefenseSystem(defense, 4);
+      const ids = result.subSystems!.map(s => s.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(4);
+    });
+  });
+
+  describe('unsplitDefenseSystem', () => {
+    it('removes sub-systems from a split defense', () => {
+      const defense = makeInstalledDefense({ hullPoints: 640 });
+      const split = splitDefenseSystem(defense, 2);
+      expect(split.subSystems).toHaveLength(2);
+      const unsplit = unsplitDefenseSystem(split);
+      expect(unsplit.subSystems).toBeUndefined();
+      expect(unsplit.hullPoints).toBe(640);
+    });
+
+    it('preserves other properties after unsplit', () => {
+      const defense = makeInstalledDefense({ id: 'def-y', hullPoints: 640, powerRequired: 100, cost: 5000 });
+      const split = splitDefenseSystem(defense, 4);
+      const unsplit = unsplitDefenseSystem(split);
+      expect(unsplit.id).toBe('def-y');
+      expect(unsplit.hullPoints).toBe(640);
+      expect(unsplit.powerRequired).toBe(100);
+      expect(unsplit.cost).toBe(5000);
     });
   });
 });

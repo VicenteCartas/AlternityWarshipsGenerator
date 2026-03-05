@@ -20,9 +20,11 @@ import {
   Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CallSplitIcon from '@mui/icons-material/CallSplit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import MergeIcon from '@mui/icons-material/MergeType';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel, TruncatedDescription } from './shared';
@@ -40,6 +42,10 @@ import {
   generateDefenseId,
   hasScreenConflict,
   getInstalledScreenNames,
+  doesDefenseExceedZoneLimit,
+  getZoneLimitForDefenseWarning,
+  splitDefenseSystem,
+  unsplitDefenseSystem,
 } from '../services/defenseService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
@@ -215,6 +221,22 @@ export function DefenseSelection({
     onDefensesChange(installedDefenses.filter((d) => d.id !== id));
   };
 
+  const handleSplitDefense = (defenseId: string, splitCount: 2 | 4) => {
+    onDefensesChange(
+      installedDefenses.map((d) =>
+        d.id === defenseId ? splitDefenseSystem(d, splitCount) : d
+      )
+    );
+  };
+
+  const handleUnsplitDefense = (defenseId: string) => {
+    onDefensesChange(
+      installedDefenses.map((d) =>
+        d.id === defenseId ? unsplitDefenseSystem(d) : d
+      )
+    );
+  };
+
   // Check for screen conflicts
   const screenConflict = selectedDefense ? hasScreenConflict(installedDefenses, selectedDefense) : false;
   const installedScreenNames = getInstalledScreenNames(installedDefenses);
@@ -293,111 +315,209 @@ export function DefenseSelection({
           Installed {getCategoryLabel(category)}
         </Typography>
         <Stack spacing={1}>
-          {categoryDefenses.map((defense) => (
-            <Box
-              key={defense.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                bgcolor: editingDefenseId === defense.id ? 'action.selected' : 'action.hover',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }}>
-                {defense.type.name}
-                {defense.quantity > 1 && !defense.type.fixedCoverage && ` (×${defense.quantity})`}
-              </Typography>
-              <Chip
-                label={`${defense.hullPoints} HP`}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={`${defense.powerRequired} Power`}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={defense.type.shieldPoints 
-                  ? `${defense.type.shieldPoints * defense.quantity} shield points`
-                  : defense.type.effect
-                }
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                label={formatCost(defense.cost)}
-                size="small"
-                variant="outlined"
-              />
-              {/* Multiple screens warning */}
-              {defense.type.category === 'screen' && installedScreenNames.length > 1 && (
-                <Chip
-                  icon={<WarningIcon />}
-                  label="Multiple Screens"
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
-              {/* Countermeasure incompatibility warning */}
-              {defense.type.incompatibleWith?.some((id) => 
-                installedDefenses.some((d) => d.type.id === id)
-              ) && (
-                <Chip
-                  icon={<WarningIcon />}
-                  label="Incompatible"
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
-              {/* Missing required components warning */}
-              {defense.type.requiresComponents?.length && !defense.type.requiresComponents.some((reqId) =>
-                installedDefenses.some((d) => d.type.id === reqId)
-              ) && (
-                <Chip
-                  icon={<WarningIcon />}
-                  label="Missing Components"
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
-              {/* Edit button - not shown for percentage-based or fixed coverage systems */}
-              {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
-                <IconButton
-                  aria-label="Edit defense"
-                  size="small"
-                  onClick={() => handleEditDefense(defense)}
-                  color="primary"
+          {categoryDefenses.map((defense) => {
+            const exceedsZoneLimit = doesDefenseExceedZoneLimit(defense, hull.id);
+            const zoneLimit = exceedsZoneLimit ? getZoneLimitForDefenseWarning(hull.id) : 0;
+            const isSplit = !!(defense.subSystems && defense.subSystems.length > 0);
+
+            return (
+              <Box key={defense.id}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: editingDefenseId === defense.id ? 'action.selected' : 'action.hover',
+                    borderRadius: 1,
+                  }}
                 >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              )}
-              {/* Duplicate button - not shown for percentage-based or fixed coverage systems */}
-              {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
-                <IconButton
-                  aria-label="Duplicate defense"
-                  size="small"
-                  onClick={() => handleDuplicateDefense(defense)}
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-              )}
-              <IconButton
-                aria-label="Remove defense"
-                size="small"
-                onClick={() => handleRemoveDefense(defense.id)}
-                color="error"
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          ))}
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {defense.type.name}
+                    {defense.quantity > 1 && !defense.type.fixedCoverage && ` (×${defense.quantity})`}
+                  </Typography>
+                  <Chip
+                    label={`${defense.hullPoints} HP`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${defense.powerRequired} Power`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={defense.type.shieldPoints 
+                      ? `${defense.type.shieldPoints * defense.quantity} shield points`
+                      : defense.type.effect
+                    }
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={formatCost(defense.cost)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {/* Multiple screens warning */}
+                  {defense.type.category === 'screen' && installedScreenNames.length > 1 && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label="Multiple Screens"
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Exceeds zone limit warning */}
+                  {exceedsZoneLimit && !isSplit && (
+                    <Tooltip title={`This system's ${defense.hullPoints} HP exceeds the zone limit of ${zoneLimit} HP. Split it into sections for zone assignment.`}>
+                      <Chip
+                        icon={<WarningIcon />}
+                        label="Exceeds Zone Limit"
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    </Tooltip>
+                  )}
+                  {/* Split indicator */}
+                  {isSplit && (
+                    <Chip
+                      icon={<CallSplitIcon />}
+                      label={`${defense.subSystems!.length} Sections`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Countermeasure incompatibility warning */}
+                  {defense.type.incompatibleWith?.some((id) => 
+                    installedDefenses.some((d) => d.type.id === id)
+                  ) && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label="Incompatible"
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Missing required components warning */}
+                  {defense.type.requiresComponents?.length && !defense.type.requiresComponents.some((reqId) =>
+                    installedDefenses.some((d) => d.type.id === reqId)
+                  ) && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label="Missing Components"
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Split buttons — only for fixedCoverage screens that exceed zone limit */}
+                  {exceedsZoneLimit && !isSplit && (
+                    <>
+                      <Tooltip title="Split into 2 sections for zone assignment">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<CallSplitIcon />}
+                          onClick={() => handleSplitDefense(defense.id, 2)}
+                          sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                        >
+                          Split ×2
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Split into 4 sections for zone assignment">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<CallSplitIcon />}
+                          onClick={() => handleSplitDefense(defense.id, 4)}
+                          sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                        >
+                          Split ×4
+                        </Button>
+                      </Tooltip>
+                    </>
+                  )}
+                  {/* Unsplit button */}
+                  {isSplit && (
+                    <Tooltip title="Merge sections back into a single system">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<MergeIcon />}
+                        onClick={() => handleUnsplitDefense(defense.id)}
+                        sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                      >
+                        Merge
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {/* Edit button - not shown for percentage-based or fixed coverage systems */}
+                  {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
+                    <IconButton
+                      aria-label="Edit defense"
+                      size="small"
+                      onClick={() => handleEditDefense(defense)}
+                      color="primary"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {/* Duplicate button - not shown for percentage-based or fixed coverage systems */}
+                  {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
+                    <IconButton
+                      aria-label="Duplicate defense"
+                      size="small"
+                      onClick={() => handleDuplicateDefense(defense)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <IconButton
+                    aria-label="Remove defense"
+                    size="small"
+                    onClick={() => handleRemoveDefense(defense.id)}
+                    color="error"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Sub-system rows */}
+                {isSplit && defense.subSystems!.map((sub) => (
+                  <Box
+                    key={sub.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 0.75,
+                      pl: 4,
+                      ml: 2,
+                      borderLeft: '2px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'action.hover',
+                      borderRadius: '0 4px 4px 0',
+                      mt: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                      {defense.type.name} — {sub.label}
+                    </Typography>
+                    <Chip
+                      label={`${sub.hullPoints} HP`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+                ))}
+              </Box>
+            );
+          })}
         </Stack>
       </Paper>
     );

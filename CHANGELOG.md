@@ -5,6 +5,15 @@
 ### Bug Fixes
 
 - Fixed damage zone HP limit always being 100 for station hulls, missing civilian ships (liner, super-freighter, colony-transport), and any hull types not in the zone limits table. Zone limits now use correct values from Table 6-1 for stations and calculated values for civilian ships. The fallback for unknown hull types now estimates from hull data instead of hardcoding 100.
+- Fixed random crash during drag-and-drop in the Damage Zones step caused by the canonical name sync effect leaking a `changed` flag across zone iterations, causing unnecessary zone object recreation and cascading state recomputation during active drags. Now uses per-zone change tracking.
+- Fixed weapons being movable to arc-incompatible zones via zone-to-zone drag-and-drop (arc compatibility was only checked for pool-to-zone drags).
+- Zone-to-zone weapon drags now show arc incompatibility visual feedback (red border, blocked cursor) matching pool-to-zone drag behavior.
+- Drag-and-drop event handlers now include try-catch guards to prevent uncaught exceptions from crashing the app. Drop cleanup (drag state reset) now runs in a `finally` block to prevent stuck drag state on errors.
+- Fixed fixedCoverage screens (Magnetic Screen, Deflection Inducer, Particle Screen) being unassignable on large ships where total HP exceeds the zone limit. Screens can now be split into 2 or 4 sections for independent zone assignment.
+
+### New Features
+
+- **Defense System Splitting**: Fixed-coverage screens that exceed the zone limit now show an "Exceeds Zone Limit" warning chip and offer Split ×2 / Split ×4 buttons. Splitting creates sub-sections that appear independently in the Damage Zones step, while remaining a single system for removal/cost/power purposes. A Merge button allows reverting to the unsplit state.
 
 ### UI
 

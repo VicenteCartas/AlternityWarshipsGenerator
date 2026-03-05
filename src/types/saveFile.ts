@@ -143,6 +143,8 @@ export interface SavedDefenseSystem {
   typeId: string;
   /** Quantity installed */
   quantity: number;
+  /** Sub-systems for zone splitting (optional, only for screens on large ships) */
+  subSystems?: { id: string; label: string; hullPoints: number }[];
 }
 
 /**
