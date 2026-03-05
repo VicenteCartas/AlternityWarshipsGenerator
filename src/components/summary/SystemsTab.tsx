@@ -271,7 +271,7 @@ export function SystemsTab({
             <TableBody>
               {installedDefenses.map((d) => (
                 <TableRow key={d.id}>
-                  <TableCell sx={{ width: '40%' }}>{d.quantity}x {d.type.name}</TableCell>
+                  <TableCell sx={{ width: '40%' }}>{d.type.fixedCoverage ? 1 : d.quantity}x {d.type.name}</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{d.hullPoints} HP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{d.powerRequired === 0 ? '0' : `-${d.powerRequired}`} PP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{formatCost(d.cost)}</TableCell>

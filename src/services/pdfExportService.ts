@@ -357,6 +357,12 @@ function enrichLaunchSystemDisplayName(
 
 
 /**
+ * Threshold for switching to two-column layout within a zone box.
+ * Zones with more systems than this will render in two columns.
+ */
+const TWO_COLUMN_THRESHOLD = 12;
+
+/**
  * Draw a single zone box with header and all systems listed.
  */
 function drawZoneBox(
@@ -384,7 +390,7 @@ function drawZoneBox(
   doc.setTextColor(0);
 
   const zoneName = ZONE_NAMES[zone.code] || zone.code;
-  doc.text(`${zone.code} – ${zoneName}`, x + 1.5, boxY + headerH - 1.5);
+  doc.text(`${zone.code} \u2013 ${zoneName}`, x + 1.5, boxY + headerH - 1.5);
 
   doc.setFont('helvetica', 'normal');
   doc.text(`${zone.totalHullPoints}/${zone.maxHullPoints}`, x + w - 1.5, boxY + headerH - 1.5, { align: 'right' });
@@ -392,14 +398,61 @@ function drawZoneBox(
   // Systems list
   doc.setFontSize(sysFont);
   doc.setFont('helvetica', 'normal');
-  let sysY = boxY + headerH + sysLineH;
 
   if (zone.systems.length === 0) {
+    const sysY = boxY + headerH + sysLineH;
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(140);
     doc.text('(empty)', x + 1.5, sysY);
     doc.setTextColor(0);
+    return;
+  }
+
+  const useTwoColumns = zone.systems.length > TWO_COLUMN_THRESHOLD;
+
+  if (useTwoColumns) {
+    const colGap = 1.5;
+    const colW = (w - 3 - colGap) / 2;
+    const half = Math.ceil(zone.systems.length / 2);
+    const leftSystems = zone.systems.slice(0, half);
+    const rightSystems = zone.systems.slice(half);
+
+    // Draw left column
+    let sysY = boxY + headerH + sysLineH;
+    for (let j = 0; j < leftSystems.length; j++) {
+      const sys = leftSystems[j];
+      const displayName = enrichLaunchSystemDisplayName(
+        sys.name, sys.installedSystemId,
+        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      );
+      const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
+      const lines = doc.splitTextToSize(fullText, colW);
+      for (let li = 0; li < lines.length; li++) {
+        doc.text(lines[li], x + 1.5, sysY);
+        if (li < lines.length - 1) sysY += sysLineH;
+      }
+      sysY += sysLineH;
+    }
+
+    // Draw right column
+    sysY = boxY + headerH + sysLineH;
+    const rightX = x + 1.5 + colW + colGap;
+    for (let j = 0; j < rightSystems.length; j++) {
+      const sys = rightSystems[j];
+      const displayName = enrichLaunchSystemDisplayName(
+        sys.name, sys.installedSystemId,
+        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      );
+      const fullText = `${half + j + 1}. ${displayName} (${sys.hullPoints})`;
+      const lines = doc.splitTextToSize(fullText, colW);
+      for (let li = 0; li < lines.length; li++) {
+        doc.text(lines[li], rightX, sysY);
+        if (li < lines.length - 1) sysY += sysLineH;
+      }
+      sysY += sysLineH;
+    }
   } else {
+    let sysY = boxY + headerH + sysLineH;
     for (let j = 0; j < zone.systems.length; j++) {
       const sys = zone.systems[j];
       const displayName = enrichLaunchSystemDisplayName(
@@ -415,6 +468,67 @@ function drawZoneBox(
       }
       sysY += sysLineH;
     }
+  }
+}
+
+/**
+ * Count the effective line count for a zone, accounting for two-column layout
+ * and text wrapping. Used for row height calculation.
+ */
+function countZoneLines(
+  doc: jsPDF,
+  zone: DamageZone,
+  boxWidth: number,
+  systemFontSize: number,
+  data: ShipData,
+): number {
+  if (zone.systems.length === 0) return 1;
+
+  doc.setFontSize(systemFontSize);
+  const useTwoColumns = zone.systems.length > TWO_COLUMN_THRESHOLD;
+
+  if (useTwoColumns) {
+    const colGap = 1.5;
+    const colW = (boxWidth - 3 - colGap) / 2;
+    const half = Math.ceil(zone.systems.length / 2);
+
+    // Count lines for each column, return the taller one
+    let leftLines = 0;
+    for (let j = 0; j < half; j++) {
+      const sys = zone.systems[j];
+      const displayName = enrichLaunchSystemDisplayName(
+        sys.name, sys.installedSystemId,
+        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      );
+      const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
+      leftLines += doc.splitTextToSize(fullText, colW).length;
+    }
+
+    let rightLines = 0;
+    for (let j = half; j < zone.systems.length; j++) {
+      const sys = zone.systems[j];
+      const displayName = enrichLaunchSystemDisplayName(
+        sys.name, sys.installedSystemId,
+        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      );
+      const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
+      rightLines += doc.splitTextToSize(fullText, colW).length;
+    }
+
+    return Math.max(leftLines, rightLines);
+  } else {
+    const maxTextWidth = boxWidth - 3;
+    let lineCount = 0;
+    for (let j = 0; j < zone.systems.length; j++) {
+      const sys = zone.systems[j];
+      const displayName = enrichLaunchSystemDisplayName(
+        sys.name, sys.installedSystemId,
+        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      );
+      const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
+      lineCount += doc.splitTextToSize(fullText, maxTextWidth).length;
+    }
+    return lineCount;
   }
 }
 
@@ -456,7 +570,7 @@ function renderZoneDiagram(
   let currentY = startY;
 
   for (const row of layout) {
-    // Calculate tallest zone in this row (account for text wrapping)
+    // Calculate tallest zone in this row (account for text wrapping & two-column layout)
     let maxLineCount = 0;
     const rowZones: (DamageZone | null)[] = [];
 
@@ -487,22 +601,9 @@ function renderZoneDiagram(
       }
       const zone = zoneMap.get(code) || null;
       rowZones.push(zone);
-      if (zone && zone.systems.length > 0) {
-        // Count total lines including wrapping
-        doc.setFontSize(systemFontSize);
+      if (zone) {
         const boxW = positions[ci]?.w ?? colWidth;
-        const maxTextWidth = boxW - 3;
-        let lineCount = 0;
-        for (let j = 0; j < zone.systems.length; j++) {
-          const sys = zone.systems[j];
-          const displayName = enrichLaunchSystemDisplayName(
-            sys.name, sys.installedSystemId,
-            data.installedLaunchSystems || [], data.ordnanceDesigns || [],
-          );
-          const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
-          const lines = doc.splitTextToSize(fullText, maxTextWidth);
-          lineCount += lines.length;
-        }
+        const lineCount = countZoneLines(doc, zone, boxW, systemFontSize, data);
         maxLineCount = Math.max(maxLineCount, lineCount);
       }
     }
@@ -953,7 +1054,7 @@ function renderSystemsSummaryTable(
   if (options.includeDetailedSystems && data.installedDefenses.length > 0) {
     addDetailColumnHeaders();
     for (const def of data.installedDefenses) {
-      const qty = def.quantity > 1 ? ` x${def.quantity}` : '';
+      const qty = def.type.fixedCoverage ? '' : (def.quantity > 1 ? ` x${def.quantity}` : '');
       addDetailRow(
         `${def.type.name}${qty}`,
         def.hullPoints.toString(),
@@ -1493,7 +1594,8 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
     // Active defense rows
     for (const d of data.installedDefenses) {
       checkNewPage(ctx, 8);
-      ctx.pdf.text(`${d.quantity}× ${d.type.name}`, defCols[0], ctx.y);
+      const defQty = d.type.fixedCoverage ? '1' : String(d.quantity);
+      ctx.pdf.text(`${defQty}× ${d.type.name}`, defCols[0], ctx.y);
       if (d.type.effect) {
         const effectLines = ctx.pdf.splitTextToSize(d.type.effect, effectWidth);
         for (let i = 0; i < effectLines.length; i++) {

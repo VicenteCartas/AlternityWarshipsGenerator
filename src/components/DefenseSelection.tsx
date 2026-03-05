@@ -416,8 +416,8 @@ export function DefenseSelection({
                       variant="outlined"
                     />
                   )}
-                  {/* Split buttons — only for fixedCoverage screens that exceed zone limit */}
-                  {exceedsZoneLimit && !isSplit && (
+                  {/* Split buttons — for all fixedCoverage screens */}
+                  {defense.type.fixedCoverage && !isSplit && (
                     <>
                       <Tooltip title="Split into 2 sections for zone assignment">
                         <Button
