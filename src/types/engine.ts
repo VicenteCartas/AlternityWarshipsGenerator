@@ -44,6 +44,9 @@ export interface EngineType {
   /** Power required per hull point of engine */
   powerPerHullPoint: number;
   
+  /** Power generated per hull point of engine (house rule: engine power generation) */
+  powerGeneratedPerHullPoint?: number;
+  
   /** Minimum size in hull points */
   minSize: number;
   

@@ -12,6 +12,7 @@ import {
 } from '../services/saveService';
 import { reloadWithSpecificMods } from '../services/dataLoader';
 import { getInstalledMods } from '../services/modService';
+import { getSavedLibraryPath } from '../services/libraryService';
 import type { ShowNotificationFn } from './useNotification';
 import type { UndoRedoControls } from './useUndoHistory';
 import '../types/electron.d.ts';
@@ -193,7 +194,8 @@ export function useSaveLoad({
 
     try {
       const defaultFileName = getDefaultFileName(state);
-      const dialogResult = await window.electronAPI.showSaveDialog(defaultFileName);
+      const libraryPath = getSavedLibraryPath();
+      const dialogResult = await window.electronAPI.showSaveDialog(defaultFileName, libraryPath ?? undefined);
 
       if (dialogResult.canceled || !dialogResult.filePath) {
         return;

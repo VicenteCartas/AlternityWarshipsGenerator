@@ -38,8 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // File operations
-  showSaveDialog: (defaultFileName: string) => 
-    ipcRenderer.invoke('show-save-dialog', defaultFileName),
+  showSaveDialog: (defaultFileName: string, defaultDirectory?: string) => 
+    ipcRenderer.invoke('show-save-dialog', defaultFileName, defaultDirectory),
   showOpenDialog: () => 
     ipcRenderer.invoke('show-open-dialog'),
   saveFile: (filePath: string, content: string) => 

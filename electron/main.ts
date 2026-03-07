@@ -314,12 +314,16 @@ app.on('window-all-closed', () => {
 });
 
 // IPC Handlers for Save/Load
-ipcMain.handle('show-save-dialog', async (_event, defaultFileName: string) => {
+ipcMain.handle('show-save-dialog', async (_event, defaultFileName: string, defaultDirectory?: string) => {
   if (!mainWindow) return { canceled: true };
+  
+  const defaultPath = defaultDirectory
+    ? path.join(defaultDirectory, defaultFileName)
+    : defaultFileName;
   
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Save Warship',
-    defaultPath: defaultFileName,
+    defaultPath,
     filters: [
       { name: 'Warship Files', extensions: ['warship.json'] },
       { name: 'JSON Files', extensions: ['json'] },

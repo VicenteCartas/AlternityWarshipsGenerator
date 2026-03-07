@@ -15,7 +15,7 @@ import type { ProgressLevel, TechTrack, StepDef } from '../types/common';
 import { calculateHullStats } from '../services/hullService';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
 import { calculateTotalPowerPlantStats } from '../services/powerPlantService';
-import { calculateTotalEngineStats } from '../services/engineService';
+import { calculateTotalEngineStats, isEnginePowerGenerationAllowed } from '../services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from '../services/ftlDriveService';
 import { calculateSupportSystemsStats } from '../services/supportSystemService';
 import { calculateWeaponStats, calculateWeaponMagazineWarheadCost } from '../services/weaponService';
@@ -179,7 +179,8 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       - hangarMiscStats.totalHullPoints;
 
     // ---- Power breakdown ----
-    const totalPower = powerPlantStats.totalPowerGenerated;
+    const enginePowerGenerated = engineStats.totalPowerGenerated;
+    const totalPower = powerPlantStats.totalPowerGenerated + enginePowerGenerated;
 
     const powerBreakdown = {
       engines: engineStats.totalPowerRequired,
@@ -233,7 +234,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     // Errors
     if (remainingHullPoints < 0) {
       summaryValidationState = 'error';
-    } else if (installedPowerPlants.length === 0) {
+    } else if (installedPowerPlants.length === 0 && !isEnginePowerGenerationAllowed()) {
       summaryValidationState = 'error';
     } else {
       const enginesRequired = steps.some(s => s.id === 'engines' && s.required);
@@ -311,6 +312,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       totalHullPoints,
       totalPower,
       totalPowerConsumed,
+      enginePowerGenerated,
       totalCost,
       powerBreakdown,
       hpBreakdown,

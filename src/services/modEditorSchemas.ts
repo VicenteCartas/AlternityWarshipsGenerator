@@ -231,6 +231,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
     columns: [
       COL_ID, COL_NAME, COL_PL, COL_TECH,
       { key: 'powerPerHullPoint', label: 'Power/HP', type: 'number', min: 0, width: 100, description: 'Power consumed per hull point of engine' },
+      { key: 'powerGeneratedPerHullPoint', label: 'Power Gen/HP', type: 'number', min: 0, width: 120, description: 'Power generated per hull point (house rule: engine power generation — enable allowEnginePowerGeneration in engines.json)' },
       { key: 'minSize', label: 'Min Size', type: 'number', min: 1, width: 90, description: 'Minimum hull points required' },
       { key: 'baseCost', label: 'Base Cost', type: 'number', min: 0, width: 100, description: 'Fixed base cost of the engine' },
       { key: 'costPerHullPoint', label: 'Cost/HP', type: 'number', min: 0, width: 100, description: 'Additional cost per hull point allocated' },
@@ -249,7 +250,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'atmosphereSafe', label: 'Atmo Safe', type: 'boolean', width: 90, description: 'Safe for atmospheric operation' },
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], powerPerHullPoint: 1, minSize: 1, baseCost: 200000, costPerHullPoint: 50000, accelerationRatings: { at5Percent: 0.1, at10Percent: 0.25, at15Percent: 0.5, at20Percent: 0.75, at30Percent: 1.0, at40Percent: 1.5, at50Percent: 2.0 }, usesPL6Scale: false, requiresFuel: false, fuelOptional: false, fuelEfficiency: 0, fuelCostPerHullPoint: 0, atmosphereSafe: false, description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], powerPerHullPoint: 1, powerGeneratedPerHullPoint: 0, minSize: 1, baseCost: 200000, costPerHullPoint: 50000, accelerationRatings: { at5Percent: 0.1, at10Percent: 0.25, at15Percent: 0.5, at20Percent: 0.75, at30Percent: 1.0, at40Percent: 1.5, at50Percent: 2.0 }, usesPL6Scale: false, requiresFuel: false, fuelOptional: false, fuelEfficiency: 0, fuelCostPerHullPoint: 0, atmosphereSafe: false, description: '' },
   },
   {
     id: 'fuelTank',
@@ -769,6 +770,14 @@ export const HOUSE_RULES: HouseRule[] = [
     description: 'Ships can install one armor type per weight category (light, medium, heavy, super-heavy) simultaneously. Protection dice are listed separately per layer.',
     fileName: 'armor.json',
     jsonKey: 'allowMultipleLayers',
+    defaultValue: false,
+  },
+  {
+    id: 'allowEnginePowerGeneration',
+    label: 'Allow Engine Power Generation',
+    description: 'Engines can generate power in addition to consuming it. When enabled, engines with a "powerGeneratedPerHullPoint" value contribute to the ship\'s total power budget.',
+    fileName: 'engines.json',
+    jsonKey: 'allowEnginePowerGeneration',
     defaultValue: false,
   },
 ];

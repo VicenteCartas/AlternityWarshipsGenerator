@@ -66,6 +66,7 @@ import type { ArmorType, ArmorWeight } from './types/armor';
 import type { ProgressLevel, DesignType, StationType, AppMode } from './types/common';
 import './types/electron.d.ts';
 import { buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from './services/armorService';
+import { isEnginePowerGenerationAllowed } from './services/engineService';
 import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES, PL_NAMES } from './services/formatters';
 import { loadAllGameData, reloadAllGameData, reloadWithSpecificMods, type DataLoadResult } from './services/dataLoader';
 import { jsonToSaveFile, deserializeWarship, type WarshipState } from './services/saveService';
@@ -121,8 +122,14 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheckRef,
   } = useWarshipState(mode);
 
-  // Compute visible steps based on design type
-  const steps = getStepsForDesign(designType, stationType);
+  // Compute visible steps based on design type, then apply house rule overrides
+  const steps = useMemo(() => {
+    const baseSteps = getStepsForDesign(designType, stationType);
+    if (isEnginePowerGenerationAllowed()) {
+      return baseSteps.map(s => s.id === 'power' ? { ...s, required: false } : s);
+    }
+    return baseSteps;
+  }, [designType, stationType]);
 
   // Get the step ID for the current active index
   const activeStepId = steps[activeStep]?.id;
@@ -172,6 +179,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     totalHullPoints,
     totalPower,
     totalPowerConsumed,
+    enginePowerGenerated,
     totalCost,
     powerBreakdown,
     hpBreakdown,

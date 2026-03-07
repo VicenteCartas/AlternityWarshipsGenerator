@@ -4,11 +4,14 @@
 
 ### New Features
 
+- **Simplified Mod Selection**: Removed the per-design mod picker from the New Design dialog. Designs now automatically use all globally-enabled mods (as configured in the Mod Manager). The dialog shows a read-only list of active mods so users can verify before creating a design. This eliminates the confusing dual-toggle UX where mods could be enabled globally but unselected per-design (or vice versa).
+- **Engine Power Generation (House Rule)**: Engines can now optionally generate power via a new `powerGeneratedPerHullPoint` field. Disabled by default — modders enable it by setting `"allowEnginePowerGeneration": true` in `engines.json` and adding `powerGeneratedPerHullPoint` values to their custom engine definitions. When enabled, the Engine step shows a "Power Gen/HP" column in the selection table, power generation chips on installed engines, and engine-generated power is added to the ship's total power budget. Follows the same house rule pattern as multiple armor layers.
 - **Cockpit Life Support**: Cockpit now provides life support coverage (2 HP) to its occupants per the rulebook. The Support Systems step shows an info banner noting the 3-day duration limit when a cockpit is installed.
 - **PDF Export: Loadout Details**: The PDF export now shows loaded contents under weapons with magazines (Accelerator, Heavy Accelerator), hangars/docking clamps (embarked craft), and magazines (stored ordnance) in the detailed systems report, combat weapons list, and damage zone boxes, using the same indented italic format as launcher ordnance.
 
 ### Bug Fixes
 
+- Fixed Save dialog defaulting to an OS-chosen folder instead of the ship library directory. When a library path is configured, Save/Save As now opens to the library folder.
 - Fixed "Browse Folder" dialog in the Ship Library (and Craft Picker) opening to a default OS location instead of the currently selected library folder. The directory picker now defaults to the current library path.
 - The Craft Picker dialog (for hangars and docking clamps) now pre-filters designs that violate berthing rules: hangars hide craft >= 100 HP, docking clamps hide craft exceeding 10% of the carrier's hull HP.
 - Fixed random crash during drag-and-drop in the Damage Zones step caused by the canonical name sync effect leaking a `changed` flag across zone iterations, causing unnecessary zone object recreation and cascading state recomputation during active drags. Now uses per-zone change tracking.

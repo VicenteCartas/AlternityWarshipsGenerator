@@ -1,4 +1,5 @@
 {
+    "allowEnginePowerGeneration": false,
     "engines":  [
                     {
                         "id":  "planetary-thruster",

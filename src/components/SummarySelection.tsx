@@ -49,7 +49,7 @@ import type { ShipDescription } from '../types/summary';
 import type { ProgressLevel, DesignType, StationType } from '../types/common';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
 import { calculateTotalPowerPlantStats, calculateFuelTankCost } from '../services/powerPlantService';
-import { calculateTotalEngineStats, calculateEngineFuelTankCost } from '../services/engineService';
+import { calculateTotalEngineStats, calculateEngineFuelTankCost, isEnginePowerGenerationAllowed } from '../services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLFuelTankCost } from '../services/ftlDriveService';
 import { calculateSupportSystemsStats } from '../services/supportSystemService';
 import { calculateWeaponStats } from '../services/weaponService';
@@ -259,14 +259,14 @@ export function SummarySelection({
       totalHP,
       usedHP,
       remainingHP: totalHP - usedHP,
-      powerGenerated: powerPlantStats.totalPowerGenerated,
+      powerGenerated: powerPlantStats.totalPowerGenerated + engineStats.totalPowerGenerated,
       powerConsumed: totalPowerConsumed,
-      powerBalance: powerPlantStats.totalPowerGenerated - totalPowerConsumed,
+      powerBalance: powerPlantStats.totalPowerGenerated + engineStats.totalPowerGenerated - totalPowerConsumed,
       totalCost,
       totalAcceleration,
       armor: { hp: armorHP, cost: armorCost },
       powerPlants: { hp: powerPlantStats.totalHullPoints, power: powerPlantStats.totalPowerGenerated, cost: powerPlantStats.totalCost },
-      engines: { hp: engineStats.totalHullPoints, power: engineStats.totalPowerRequired, cost: engineStats.totalCost },
+      engines: { hp: engineStats.totalHullPoints, power: engineStats.totalPowerRequired, powerGen: engineStats.totalPowerGenerated, cost: engineStats.totalCost },
       ftl: ftlStats ? { hp: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints, power: ftlStats.totalPowerRequired, cost: ftlStats.totalCost + ftlFuelStats.totalCost } : null,
       support: { hp: supportStats.totalHullPoints, power: supportStats.totalPowerRequired, cost: supportStats.totalCost },
       weapons: { hp: weaponStats.totalHullPoints + ordnanceStats.totalLauncherHullPoints, power: weaponStats.totalPowerRequired + ordnanceStats.totalLauncherPower, cost: weaponStats.totalCost + ordnanceStats.totalLauncherCost },
@@ -334,7 +334,7 @@ export function SummarySelection({
     lines.push('|--------|---:|------:|-----:|');
     lines.push(`| Hull & Armor | ${stats.armor.hp} | — | ${formatCost(stats.armor.cost)} |`);
     lines.push(`| Power Plants | ${stats.powerPlants.hp} | +${stats.powerPlants.power} | ${formatCost(stats.powerPlants.cost)} |`);
-    if (stats.engines.hp > 0) lines.push(`| Engines | ${stats.engines.hp} | -${stats.engines.power} | ${formatCost(stats.engines.cost)} |`);
+    if (stats.engines.hp > 0) lines.push(`| Engines | ${stats.engines.hp} | -${stats.engines.power}${stats.engines.powerGen > 0 ? ` / +${stats.engines.powerGen}` : ''} | ${formatCost(stats.engines.cost)} |`);
     if (stats.ftl) lines.push(`| FTL Drive | ${stats.ftl.hp} | -${stats.ftl.power} | ${formatCost(stats.ftl.cost)} |`);
     if (stats.weapons.hp > 0) lines.push(`| Weapons | ${stats.weapons.hp} | -${stats.weapons.power} | ${formatCost(stats.weapons.cost)} |`);
     if (stats.defenses.hp > 0) lines.push(`| Defenses | ${stats.defenses.hp} | -${stats.defenses.power} | ${formatCost(stats.defenses.cost)} |`);
@@ -417,7 +417,7 @@ export function SummarySelection({
 
       // ERROR: Mandatory steps not completed
       const missingMandatory: string[] = [];
-      if (installedPowerPlants.length === 0) {
+      if (installedPowerPlants.length === 0 && !isEnginePowerGenerationAllowed()) {
         missingMandatory.push('Power Plant');
       }
       // Engines are mandatory only for warships
@@ -1081,7 +1081,10 @@ export function SummarySelection({
                       <TableRow key={eng.id}>
                         <TableCell sx={{ width: '40%' }}>{eng.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{eng.hullPoints} HP</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>-{eng.hullPoints * eng.type.powerPerHullPoint} PP</TableCell>
+                        <TableCell align="right" sx={{ width: '20%' }}>
+                          -{Math.ceil(eng.hullPoints * eng.type.powerPerHullPoint)} PP
+                          {(eng.type.powerGeneratedPerHullPoint ?? 0) > 0 && ` / +${Math.ceil(eng.type.powerGeneratedPerHullPoint! * eng.hullPoints)} PP`}
+                        </TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{formatCost(eng.type.baseCost + eng.hullPoints * eng.type.costPerHullPoint)}</TableCell>
                       </TableRow>
                     ))}
@@ -1096,7 +1099,10 @@ export function SummarySelection({
                     <TableRow>
                       <TableCell />
                       <TableCell />
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>-{stats.engines.power} PP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                        -{stats.engines.power} PP
+                        {stats.engines.powerGen > 0 && ` / +${stats.engines.powerGen} PP`}
+                      </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCost(stats.engines.cost)}</TableCell>
                     </TableRow>
                   </TableBody>

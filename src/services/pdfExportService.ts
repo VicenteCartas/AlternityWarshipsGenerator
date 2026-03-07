@@ -18,7 +18,7 @@ import { ZONE_NAMES } from '../types/damageDiagram';
 import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from './armorService';
 import { calculateTotalPowerPlantStats, calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
-import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
+import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEnginePowerGenerated, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
 import { calculateSupportSystemsStats } from './supportSystemService';
 import { calculateWeaponStats } from './weaponService';
@@ -217,7 +217,7 @@ interface ShipStats {
   totalAcceleration: number;
   armor: { hp: number; cost: number };
   powerPlants: { hp: number; power: number; cost: number };
-  engines: { hp: number; power: number; cost: number };
+  engines: { hp: number; power: number; powerGen: number; cost: number };
   ftl: { hp: number; power: number; cost: number } | null;
   support: { hp: number; power: number; cost: number };
   weapons: { hp: number; power: number; cost: number };
@@ -296,14 +296,14 @@ function computeShipStats(data: ShipData): ShipStats {
     totalHP,
     usedHP,
     remainingHP: totalHP - usedHP,
-    powerGenerated: ppStats.totalPowerGenerated,
+    powerGenerated: ppStats.totalPowerGenerated + engStats.totalPowerGenerated,
     powerConsumed: totalPowerConsumed,
-    powerBalance: ppStats.totalPowerGenerated - totalPowerConsumed,
+    powerBalance: ppStats.totalPowerGenerated + engStats.totalPowerGenerated - totalPowerConsumed,
     totalCost,
     totalAcceleration: engStats.totalAcceleration,
     armor: { hp: armorHP, cost: armorCost },
     powerPlants: { hp: ppStats.totalHullPoints, power: ppStats.totalPowerGenerated, cost: ppStats.totalCost },
-    engines: { hp: engStats.totalHullPoints, power: engStats.totalPowerRequired, cost: engStats.totalCost },
+    engines: { hp: engStats.totalHullPoints, power: engStats.totalPowerRequired, powerGen: engStats.totalPowerGenerated, cost: engStats.totalCost },
     ftl: ftlStats ? {
       hp: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints,
       power: ftlStats.totalPowerRequired,
@@ -959,15 +959,22 @@ function renderSystemsSummaryTable(
 
   // Engines (skip entirely if no engines installed)
   if (hasEngines) {
-    addStatsRow('Engines', stats.engines.hp.toString(), stats.engines.power.toString(), stats.engines.cost);
+    const enginePowerLabel = stats.engines.powerGen > 0
+      ? `${stats.engines.power} / +${stats.engines.powerGen}`
+      : stats.engines.power.toString();
+    addStatsRow('Engines', stats.engines.hp.toString(), enginePowerLabel, stats.engines.cost);
     if (options.includeDetailedSystems) {
       addDetailColumnHeaders();
       for (const eng of data.installedEngines) {
         const engPower = calculateEnginePowerRequired(eng.type, eng.hullPoints);
+        const engPowerGen = calculateEnginePowerGenerated(eng.type, eng.hullPoints);
         const engCost = calculateEngineCost(eng.type, eng.hullPoints);
+        const engPowerLabel = engPowerGen > 0
+          ? `${engPower} / +${engPowerGen}`
+          : engPower.toString();
         addDetailRow(
           `${eng.type.name} (${eng.hullPoints} HP)`,
-          eng.hullPoints.toString(), engPower.toString(), formatCost(engCost)
+          eng.hullPoints.toString(), engPowerLabel, formatCost(engCost)
         );
       }
       for (const tank of data.installedEngineFuelTanks) {

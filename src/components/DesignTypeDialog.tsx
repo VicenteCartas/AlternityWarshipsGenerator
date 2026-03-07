@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,17 +14,14 @@ import {
   Collapse,
   Divider,
   CircularProgress,
-  Alert,
   Chip,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import type { DesignType, StationType } from '../types/common';
 import type { Mod } from '../types/mod';
-import { getInstalledMods } from '../services/modService';
+import { getEnabledMods } from '../services/modService';
 import { getFriendlyFileName } from '../services/formatters';
-
-const LAST_SELECTED_MODS_KEY = 'alternity-warships-last-selected-mods';
 
 interface DesignTypeDialogProps {
   open: boolean;
@@ -50,71 +47,31 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
   const [surfaceProvidesLifeSupport, setSurfaceProvidesLifeSupport] = useState(true);
   const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(true);
 
-  // Mod selection state
-  const [installedMods, setInstalledMods] = useState<Mod[]>([]);
-  const [selectedModFolders, setSelectedModFolders] = useState<Set<string>>(new Set());
+  // Enabled mods (read-only display)
+  const [enabledMods, setEnabledMods] = useState<Mod[]>([]);
   const [modsLoading, setModsLoading] = useState(false);
 
-  // Filter out mods with no data files (#6)
-  const selectableMods = useMemo(
-    () => installedMods.filter(m => m.files.length > 0),
-    [installedMods],
-  );
-
-  // Load installed mods when dialog opens
+  // Load enabled mods when dialog opens
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setModsLoading(true); // eslint-disable-line react-hooks/set-state-in-effect -- loading flag before async call
-    getInstalledMods().then(mods => {
+    getEnabledMods().then(mods => {
       if (cancelled) return;
-      // Sort by priority
-      mods.sort((a, b) => a.priority - b.priority);
-      setInstalledMods(mods);
-      // Restore last selection from localStorage, filtered to currently installed
-      try {
-        const stored = localStorage.getItem(LAST_SELECTED_MODS_KEY);
-        if (stored) {
-          const lastFolders: string[] = JSON.parse(stored);
-          const installedFolderSet = new Set(mods.map(m => m.folderName));
-          const validFolders = lastFolders.filter(f => installedFolderSet.has(f));
-          setSelectedModFolders(new Set(validFolders));
-        } else {
-          setSelectedModFolders(new Set());
-        }
-      } catch {
-        setSelectedModFolders(new Set());
-      }
+      // Only show mods that have data files
+      setEnabledMods(mods.filter(m => m.files.length > 0));
       setModsLoading(false);
     });
     return () => { cancelled = true; };
   }, [open]);
 
-  const handleToggleMod = useCallback((folderName: string) => {
-    setSelectedModFolders(prev => {
-      const next = new Set(prev);
-      if (next.has(folderName)) {
-        next.delete(folderName);
-      } else {
-        next.add(folderName);
-      }
-      return next;
-    });
-  }, []);
-
   const handleConfirm = () => {
-    // Persist last mod selection
-    localStorage.setItem(LAST_SELECTED_MODS_KEY, JSON.stringify([...selectedModFolders]));
-    // Build the selected Mod[] sorted by priority
-    const selectedMods = installedMods
-      .filter(m => selectedModFolders.has(m.folderName))
-      .sort((a, b) => a.priority - b.priority);
     onConfirm(
       designType,
       designType === 'station' ? stationType : null,
       designType === 'station' && stationType === 'ground-base' ? surfaceProvidesLifeSupport : false,
       designType === 'station' && stationType === 'ground-base' ? surfaceProvidesGravity : false,
-      selectedMods,
+      enabledMods,
     );
   };
 
@@ -229,60 +186,48 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
           </Collapse>
         </Collapse>
 
-        {/* Mod Selection */}
-        {selectableMods.length > 0 && (
+        {/* Active Mods (read-only) */}
+        {enabledMods.length > 0 && (
           <>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Mods
+              Active Mods
             </Typography>
-            <Alert severity="warning" variant="outlined" sx={{ mb: 1.5 }}>
-              Mod selection is permanent — you cannot add or remove mods after the design is created.
-            </Alert>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              These mods are currently enabled and will be applied to this design.
+              To change which mods are active, go to the Mod Manager.
+            </Typography>
             {modsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
                 <CircularProgress size={20} />
               </Box>
             ) : (
               <Box sx={{ pl: 1 }}>
-                {selectableMods.map(mod => (
-                  <FormControlLabel
-                    key={mod.folderName}
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={selectedModFolders.has(mod.folderName)}
-                        onChange={() => handleToggleMod(mod.folderName)}
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body2" component="span">
-                          {mod.manifest.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: 1 }}>
-                          v{mod.manifest.version}
-                        </Typography>
-                        {mod.manifest.description && (
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 0 }}>
-                            {mod.manifest.description}
-                          </Typography>
-                        )}
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                          {mod.files.map(f => (
-                            <Chip
-                              key={f}
-                              label={getFriendlyFileName(f)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 20, fontSize: '0.7rem' }}
-                            />
-                          ))}
-                        </Box>
-                      </Box>
-                    }
-                    sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.5 }}
-                  />
+                {enabledMods.map(mod => (
+                  <Box key={mod.folderName} sx={{ mb: 1 }}>
+                    <Typography variant="body2" component="span">
+                      {mod.manifest.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: 1 }}>
+                      v{mod.manifest.version}
+                    </Typography>
+                    {mod.manifest.description && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {mod.manifest.description}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                      {mod.files.map(f => (
+                        <Chip
+                          key={f}
+                          label={getFriendlyFileName(f)}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 20, fontSize: '0.7rem' }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
                 ))}
               </Box>
             )}

@@ -87,7 +87,7 @@ export interface ElectronAPI {
   removeAllListeners: (channel: string) => void;
   
   // File operations
-  showSaveDialog: (defaultFileName: string) => Promise<SaveDialogResult>;
+  showSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
   showOpenDialog: () => Promise<OpenDialogResult>;
   saveFile: (filePath: string, content: string) => Promise<FileOperationResult>;
   readFile: (filePath: string) => Promise<FileOperationResult>;

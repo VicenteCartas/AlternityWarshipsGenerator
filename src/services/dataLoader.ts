@@ -56,6 +56,7 @@ interface DataCache {
   armorAllowMultipleLayers: boolean;
   powerPlants: PowerPlantType[] | null;
   fuelTank: FuelTankType | null;
+  engineAllowPowerGeneration: boolean;
   engines: EngineType[] | null;
   ftlDrives: FTLDriveType[] | null;
   supportSystems: {
@@ -95,6 +96,7 @@ function createEmptyCache(): DataCache {
     armorAllowMultipleLayers: false,
     powerPlants: null,
     fuelTank: null,
+    engineAllowPowerGeneration: false,
     engines: null,
     ftlDrives: null,
     supportSystems: null,
@@ -421,6 +423,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     pureBaseCache.armorAllowMultipleLayers = (armorData as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
     pureBaseCache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
     pureBaseCache.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
+    pureBaseCache.engineAllowPowerGeneration = (enginesData as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false;
     pureBaseCache.engines = (enginesData as { engines: EngineType[] }).engines;
     pureBaseCache.ftlDrives = (ftlDrivesData as { ftlDrives: FTLDriveType[] }).ftlDrives;
     pureBaseCache.supportSystems = supportSystemsData as {
@@ -527,6 +530,11 @@ export const getFuelTankData = createGetter<FuelTankType>(
   (c) => c.fuelTank!, () => (fuelTankDataFallback as { fuelTank: FuelTankType }).fuelTank
 );
 
+/** Get whether engine power generation house rule is enabled (must call loadAllGameData first) */
+export const getEngineAllowPowerGeneration = createGetter<boolean>(
+  (c) => c.engineAllowPowerGeneration, () => (enginesDataFallback as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false
+);
+
 /** Get all engine types (must call loadAllGameData first) */
 export const getEnginesData = createGetter<EngineType[]>(
   (c) => c.engines!, () => (enginesDataFallback as { engines: EngineType[] }).engines
@@ -578,6 +586,7 @@ async function applyModsToCache(mods: Mod[]): Promise<void> {
   cache.armorAllowMultipleLayers = (mergedArmor as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
   cache.powerPlants = (mergedPowerPlants as { powerPlants: PowerPlantType[] }).powerPlants;
   cache.fuelTank = (mergedFuelTank as { fuelTank: FuelTankType }).fuelTank;
+  cache.engineAllowPowerGeneration = (mergedEngines as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false;
   cache.engines = (mergedEngines as { engines: EngineType[] }).engines;
   cache.ftlDrives = (mergedFtlDrives as { ftlDrives: FTLDriveType[] }).ftlDrives;
   cache.supportSystems = mergedSupportSystems as {

@@ -6,6 +6,7 @@ import type { Hull } from '../types/hull';
 vi.mock('./dataLoader', () => ({
   getEnginesData: vi.fn(),
   getFuelTankData: vi.fn(),
+  getEngineAllowPowerGeneration: vi.fn(() => false),
 }));
 
 import {

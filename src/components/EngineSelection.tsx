@@ -34,6 +34,7 @@ import type { ProgressLevel, TechTrack } from '../types/common';
 import {
   getEngineTypesForShipClass,
   calculateEnginePowerRequired,
+  calculateEnginePowerGenerated,
   calculateEngineCost,
   calculateEngineFuelTankCost,
   calculateEngineFuelTankEndurance,
@@ -48,6 +49,7 @@ import {
   getUniqueFuelRequiringEngineTypes,
   getTotalEngineFuelTankHPForEngineType,
   getTotalEngineHPForEngineType,
+  isEnginePowerGenerationAllowed,
 } from '../services/engineService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName, formatAcceleration } from '../services/formatters';
@@ -96,6 +98,9 @@ export function EngineSelection({
     () => getUniqueFuelRequiringEngineTypes(installedEngines),
     [installedEngines]
   );
+
+  // Check if engine power generation house rule is enabled
+  const powerGenerationAllowed = useMemo(() => isEnginePowerGenerationAllowed(), []);
 
   const totalStats = useMemo(
     () => calculateTotalEngineStats(installedEngines, installedFuelTanks, hull),
@@ -321,6 +326,7 @@ export function EngineSelection({
     
     return {
       powerRequired: calculateEnginePowerRequired(selectedType, hullPoints),
+      powerGenerated: calculateEnginePowerGenerated(selectedType, hullPoints),
       engineCost: calculateEngineCost(selectedType, hullPoints),
       totalHullPoints: hullPoints,
       hullPercentage,
@@ -374,6 +380,13 @@ export function EngineSelection({
             color="default"
             variant="outlined"
           />
+          {powerGenerationAllowed && totalStats.totalPowerGenerated > 0 && (
+            <Chip
+              label={`Power Generated: ${totalStats.totalPowerGenerated}`}
+              color="primary"
+              variant="outlined"
+            />
+          )}
           <Chip
             label={`Cost: ${formatCost(totalStats.totalCost)}`}
             color="default"
@@ -470,6 +483,7 @@ export function EngineSelection({
           <Stack spacing={1}>
             {installedEngines.map((installation) => {
               const powerRequired = calculateEnginePowerRequired(installation.type, installation.hullPoints);
+              const powerGenerated = calculateEnginePowerGenerated(installation.type, installation.hullPoints);
               const cost = calculateEngineCost(installation.type, installation.hullPoints);
               const hullPercentage = calculateHullPercentage(hull, installation.hullPoints);
               const acceleration = getAccelerationForPercentage(installation.type.accelerationRatings, hullPercentage);
@@ -504,6 +518,14 @@ export function EngineSelection({
                       size="small"
                       variant="outlined"
                     />
+                    {powerGenerationAllowed && powerGenerated > 0 && (
+                      <Chip
+                        label={`${powerGenerated} Power Gen`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
                     <Chip
                       icon={<SpeedIcon />}
                       label={formatAcceleration(acceleration, installation.type.usesPL6Scale)}
@@ -571,6 +593,7 @@ export function EngineSelection({
                           {previewStats && (
                             <Typography variant="caption" color="text.secondary">
                               {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
+                              {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
                               {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                               {' | Cost: '}{formatCost(previewStats.engineCost)}
                             </Typography>
@@ -860,6 +883,7 @@ export function EngineSelection({
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
                   {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
+                  {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
                   {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                   {' | Cost: '}{formatCost(previewStats.engineCost)}
                 </Typography>
@@ -917,6 +941,13 @@ export function EngineSelection({
               <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.pl }}>PL</TableCell>
               <TableCell sx={{ ...headerCellSx, width: columnWidths.tech }}>Tech</TableCell>
               <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>Power/HP</TableCell>
+              {powerGenerationAllowed && (
+                <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>
+                  <Tooltip title="Power generated per hull point (house rule: engine power generation)">
+                    <span>Power Gen/HP</span>
+                  </Tooltip>
+                </TableCell>
+              )}
               <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.baseCost }}>Base Cost</TableCell>
               <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.costPerHp }}>Cost/HP</TableCell>
               <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.minSize }}>Min Size</TableCell>
@@ -979,6 +1010,13 @@ export function EngineSelection({
                       {engine.powerPerHullPoint}
                     </Typography>
                   </TableCell>
+                  {powerGenerationAllowed && (
+                    <TableCell align="right">
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {engine.powerGeneratedPerHullPoint || '-'}
+                      </Typography>
+                    </TableCell>
+                  )}
                   <TableCell align="right">
                     <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{formatCost(engine.baseCost)}</Typography>
                   </TableCell>

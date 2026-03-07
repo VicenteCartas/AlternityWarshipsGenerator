@@ -136,7 +136,7 @@ export interface BudgetStats {
   totalCost: number;
   armor: { hp: number; cost: number };
   powerPlants: { hp: number; power?: number; cost: number };
-  engines: { hp: number; power: number; cost: number };
+  engines: { hp: number; power: number; powerGen?: number; cost: number };
   ftl: { hp: number; power: number; cost: number } | null;
   support: { hp: number; power: number; cost: number };
   weapons: { hp: number; power: number; cost: number };
@@ -220,6 +220,13 @@ export function BudgetChart({ stats, hullCost = 0 }: BudgetChartProps) {
         segments={powerSegments}
         capacity={stats.powerGenerated}
       />
+      {(stats.engines.powerGen ?? 0) > 0 ? (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.25, mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            Generated: Power Plants {stats.powerGenerated - (stats.engines.powerGen ?? 0)} PP, Engines {stats.engines.powerGen} PP
+          </Typography>
+        </Box>
+      ) : null}
       <BudgetLegend segments={powerSegments} />
 
       <Box sx={{ mt: 2 }} />
