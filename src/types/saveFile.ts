@@ -1,6 +1,5 @@
 import type { ProgressLevel, TechTrack, DesignType, StationType } from './common';
 import type { ZoneCode, AttackDirection } from './damageDiagram';
-import type { BerthingType } from './embarkedCraft';
 import type { SavedModReference } from './mod';
 
 /**
@@ -178,6 +177,26 @@ export interface SavedSensor {
 }
 
 /**
+ * A craft loaded in a hangar or docking clamp
+ */
+export interface SavedLoadedCraft {
+  /** Assignment ID */
+  id: string;
+  /** Absolute path to the .warship.json design file */
+  filePath: string;
+  /** Design name (snapshotted) */
+  name: string;
+  /** Hull HP of the craft (snapshotted) */
+  hullHp: number;
+  /** Hull name (snapshotted) */
+  hullName: string;
+  /** Quantity loaded */
+  quantity: number;
+  /** Total design cost (snapshotted) */
+  designCost: number;
+}
+
+/**
  * Installed hangar/misc system in save file
  */
 export interface SavedHangarMiscSystem {
@@ -189,6 +208,10 @@ export interface SavedHangarMiscSystem {
   quantity: number;
   /** Extra HP for expandable systems */
   extraHp?: number;
+  /** Craft loaded in this system (hangars/docking clamps only) */
+  loadout?: SavedLoadedCraft[];
+  /** Ordnance loaded in this system (magazines only) */
+  ordnanceLoadout?: SavedLoadedOrdnance[];
 }
 
 /**
@@ -257,30 +280,6 @@ export interface SavedLaunchSystem {
   extraHp: number;
   /** Loaded ordnance */
   loadout: SavedLoadedOrdnance[];
-}
-
-// ============== Embarked Craft ==============
-
-/**
- * An embarked craft assignment in save file (reference-based)
- */
-export interface SavedEmbarkedCraft {
-  /** Assignment ID */
-  id: string;
-  /** Absolute path to the .warship.json design file */
-  filePath: string;
-  /** Design name (snapshotted) */
-  name: string;
-  /** Hull HP of the craft (snapshotted) */
-  hullHp: number;
-  /** Hull name (snapshotted) */
-  hullName: string;
-  /** Quantity embarked */
-  quantity: number;
-  /** Where the craft is berthed */
-  berthing: BerthingType;
-  /** Total design cost (snapshotted) */
-  designCost: number;
 }
 
 // ============== Damage Diagram ==============
@@ -468,9 +467,6 @@ export interface WarshipSaveFile {
   
   /** Installed launch systems */
   launchSystems: SavedLaunchSystem[];
-  
-  /** Embarked craft assignments (carrier complement) */
-  embarkedCraft?: SavedEmbarkedCraft[];
   
   /** Damage diagram zones */
   damageDiagramZones: SavedDamageZone[];

@@ -102,7 +102,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     installedFTLDrive, installedFTLFuelTanks,
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
     damageDiagramZones,
     shipDescription, warshipName,
     designProgressLevel, designTechTracks,
@@ -113,7 +113,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setInstalledLifeSupport, setInstalledAccommodations, setInstalledStoreSystems, setInstalledGravitySystems,
     setInstalledWeapons, setOrdnanceDesigns, setInstalledLaunchSystems,
     setInstalledDefenses, setInstalledCommandControl, setInstalledSensors, setInstalledHangarMisc,
-    setEmbarkedCraft,
     setDamageDiagramZones,
     setShipDescription, setWarshipName,
     setDesignProgressLevel, setDesignTechTracks,
@@ -200,7 +199,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     installedCommandControl,
     installedSensors,
     installedHangarMisc,
-    embarkedCraft,
     designProgressLevel,
     designTechTracks,
     powerScenario,
@@ -327,7 +325,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       weapons: [],
       ordnanceDesigns: [],
       launchSystems: [],
-      embarkedCraft: [],
       damageDiagramZones: [],
       hitLocationChart: null,
       designProgressLevel: 9,
@@ -514,7 +511,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     installedCommandControl.length > 0 ||
     installedSensors.length > 0 ||
     installedHangarMisc.length > 0 ||
-    embarkedCraft.length > 0 ||
     damageDiagramZones.length > 0;
 
   const clearAllComponents = () => {
@@ -536,7 +532,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setInstalledCommandControl([]);
     setInstalledSensors([]);
     setInstalledHangarMisc([]);
-    setEmbarkedCraft([]);
     setDamageDiagramZones([]);
   };
 
@@ -738,9 +733,8 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             designProgressLevel={designProgressLevel}
             designTechTracks={designTechTracks}
             totalPassengersAndSuspended={totalPassengersAndSuspended}
-            embarkedCraft={embarkedCraft}
+            ordnanceDesigns={ordnanceDesigns}
             onSystemsChange={setInstalledHangarMisc}
-            onEmbarkedCraftChange={setEmbarkedCraft}
           />
         );
       case 'damage':
@@ -793,7 +787,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             installedCommandControl={installedCommandControl}
             installedSensors={installedSensors}
             installedHangarMisc={installedHangarMisc}
-            embarkedCraft={embarkedCraft}
             damageDiagramZones={damageDiagramZones}
             designProgressLevel={designProgressLevel}
             designType={designType}

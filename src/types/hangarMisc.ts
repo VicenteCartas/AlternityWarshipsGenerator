@@ -1,4 +1,6 @@
 import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats, CostPer, PowerPer } from './common';
+import type { LoadedCraft } from './embarkedCraft';
+import type { LoadedOrdnance } from './ordnance';
 
 // ============== Categories ==============
 
@@ -86,6 +88,10 @@ export interface InstalledHangarMiscSystem extends InstalledSystemBase<HangarMis
   serviceCapacity?: number;
   /** Extra HP allocated for expansion (if expandable) */
   extraHp?: number;
+  /** Craft loaded in this hangar or docking clamp */
+  loadout?: LoadedCraft[];
+  /** Ordnance loaded in this magazine */
+  ordnanceLoadout?: LoadedOrdnance[];
 }
 
 // ============== Stats ==============

@@ -4,7 +4,8 @@
 
 ### Bug Fixes
 
-- Fixed damage zone HP limit always being 100 for station hulls, missing civilian ships (liner, super-freighter, colony-transport), and any hull types not in the zone limits table. Zone limits now use correct values from Table 6-1 for stations and calculated values for civilian ships. The fallback for unknown hull types now estimates from hull data instead of hardcoding 100.
+- Fixed "Browse Folder" dialog in the Ship Library (and Craft Picker) opening to a default OS location instead of the currently selected library folder. The directory picker now defaults to the current library path.
+- The Craft Picker dialog (for hangars and docking clamps) now pre-filters designs that violate berthing rules: hangars hide craft >= 100 HP, docking clamps hide craft exceeding 10% of the carrier's hull HP.
 - Fixed random crash during drag-and-drop in the Damage Zones step caused by the canonical name sync effect leaking a `changed` flag across zone iterations, causing unnecessary zone object recreation and cascading state recomputation during active drags. Now uses per-zone change tracking.
 - Fixed weapons being movable to arc-incompatible zones via zone-to-zone drag-and-drop (arc compatibility was only checked for pool-to-zone drags).
 - Zone-to-zone weapon drags now show arc incompatibility visual feedback (red border, blocked cursor) matching pool-to-zone drag behavior.
@@ -14,6 +15,8 @@
 ### New Features
 
 - **Defense System Splitting**: Fixed-coverage screens that exceed the zone limit now show an "Exceeds Zone Limit" warning chip and offer Split ×2 / Split ×4 buttons. Splitting creates sub-sections that appear independently in the Damage Zones step, while remaining a single system for removal/cost/power purposes. A Merge button allows reverting to the unsplit state.
+- **Per-System Embarked Craft**: Hangars and docking clamps now manage their own craft individually (like ordnance in launchers). Each installed hangar/docking clamp has its own loadout, with capacity tracking, add/remove controls, and inline craft management. When a system is destroyed in a damage zone, you know exactly which craft were in it. The previous pooled embarked craft system has been replaced.
+- **Magazine Ordnance Loading**: Magazines now track their loaded ordnance individually (like launchers). Each installed magazine shows its loadout summary, capacity chip, and an inline ordnance loading form when editing — with the same +1/+5/+10/Max controls as launchers.
 
 ### UI
 

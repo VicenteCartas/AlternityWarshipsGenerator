@@ -43,7 +43,6 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
@@ -59,7 +58,7 @@ import { calculateDefenseStats } from '../services/defenseService';
 import { calculateCommandControlStats } from '../services/commandControlService';
 import { calculateSensorStats } from '../services/sensorService';
 import { calculateHangarMiscStats } from '../services/hangarMiscService';
-import { calculateEmbarkedCraftStats } from '../services/embarkedCraftService';
+import { calculateEmbarkedCraftStats, getAllLoadedCraft } from '../services/embarkedCraftService';
 import { formatCost } from '../services/formatters';
 import { getLaunchSystemsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
@@ -91,7 +90,6 @@ interface SummarySelectionProps {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
-  embarkedCraft: EmbarkedCraft[];
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
   designType: DesignType;
@@ -123,7 +121,6 @@ export function SummarySelection({
   installedCommandControl,
   installedSensors,
   installedHangarMisc,
-  embarkedCraft,
   damageDiagramZones,
   designProgressLevel,
   designType,
@@ -211,7 +208,7 @@ export function SummarySelection({
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(installedSensors);
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    const embarkedCraftStats = calculateEmbarkedCraftStats(embarkedCraft);
+    const embarkedCraftStats = calculateEmbarkedCraftStats(installedHangarMisc);
 
     // Total HP used
     const usedHP = armorHP + 
@@ -276,7 +273,7 @@ export function SummarySelection({
       commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
       sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
       hangarMisc: { hp: hangarMiscStats.totalHullPoints, power: hangarMiscStats.totalPowerRequired, cost: hangarMiscStats.totalCost },
-      embarkedCraft: { cost: embarkedCraftStats.totalEmbarkedCost, count: embarkedCraft.length, invalidFiles: embarkedCraftStats.invalidFileCount },
+      embarkedCraft: { cost: embarkedCraftStats.totalEmbarkedCost, count: getAllLoadedCraft(installedHangarMisc).length, invalidFiles: embarkedCraftStats.invalidFileCount },
     };
   }, [
     hull,
@@ -298,7 +295,6 @@ export function SummarySelection({
     installedCommandControl,
     installedSensors,
     installedHangarMisc,
-    embarkedCraft,
     designProgressLevel,
   ]);
 
@@ -371,10 +367,11 @@ export function SummarySelection({
     }
 
     // Embarked Craft
-    if (embarkedCraft.length > 0) {
+    const allCraft = getAllLoadedCraft(installedHangarMisc);
+    if (allCraft.length > 0) {
       lines.push('### Embarked Craft');
-      for (const craft of embarkedCraft) {
-        lines.push(`- ${craft.quantity}x ${craft.name} (${craft.hullName}, ${craft.hullHp} HP) — ${craft.berthing}`);
+      for (const craft of allCraft) {
+        lines.push(`- ${craft.quantity}x ${craft.name} (${craft.hullName}, ${craft.hullHp} HP) — ${craft.berthing} (${craft.systemName})`);
       }
       lines.push('');
     }
@@ -386,7 +383,7 @@ export function SummarySelection({
     }
 
     return lines.join('\n');
-  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses, embarkedCraft]);
+  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses, installedHangarMisc]);
 
   const handleCopyStats = useCallback(async () => {
     const md = generateStatsMarkdown();
@@ -694,7 +691,6 @@ export function SummarySelection({
         installedCommandControl,
         installedSensors,
         installedHangarMisc,
-        embarkedCraft,
         damageDiagramZones,
         designProgressLevel,
         designType,

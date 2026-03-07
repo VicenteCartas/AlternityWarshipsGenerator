@@ -102,11 +102,11 @@ export function ShipLibrary({ onBack, onOpenDesign }: ShipLibraryProps) {
   const handleBrowse = useCallback(async () => {
     if (!window.electronAPI?.selectDirectory) return;
 
-    const result = await window.electronAPI.selectDirectory();
+    const result = await window.electronAPI.selectDirectory(libraryPath ?? undefined);
     if (!result.canceled && result.filePath) {
       scanDirectory(result.filePath);
     }
-  }, [scanDirectory]);
+  }, [libraryPath, scanDirectory]);
 
   // Handle refresh
   const handleRefresh = useCallback(() => {

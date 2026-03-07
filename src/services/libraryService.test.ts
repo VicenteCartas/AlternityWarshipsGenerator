@@ -13,12 +13,12 @@ import {
 // Mock hullService — return known hull data for specific IDs
 vi.mock('./hullService', () => ({
   getHullById: (id: string) => {
-    const hulls: Record<string, { name: string; shipClass: string }> = {
-      'destroyer': { name: 'Destroyer', shipClass: 'medium' },
-      'cruiser': { name: 'Heavy Cruiser', shipClass: 'heavy' },
-      'fighter': { name: 'Star Fighter', shipClass: 'small-craft' },
-      'frigate': { name: 'Frigate', shipClass: 'light' },
-      'dreadnought': { name: 'Dreadnought', shipClass: 'super-heavy' },
+    const hulls: Record<string, { name: string; shipClass: string; hullPoints: number; bonusHullPoints: number }> = {
+      'destroyer': { name: 'Destroyer', shipClass: 'medium', hullPoints: 200, bonusHullPoints: 0 },
+      'cruiser': { name: 'Heavy Cruiser', shipClass: 'heavy', hullPoints: 400, bonusHullPoints: 0 },
+      'fighter': { name: 'Star Fighter', shipClass: 'small-craft', hullPoints: 20, bonusHullPoints: 0 },
+      'frigate': { name: 'Frigate', shipClass: 'light', hullPoints: 100, bonusHullPoints: 0 },
+      'dreadnought': { name: 'Dreadnought', shipClass: 'super-heavy', hullPoints: 800, bonusHullPoints: 0 },
     };
     return hulls[id] || undefined;
   },
@@ -56,6 +56,7 @@ function makeEntry(overrides: Partial<LibraryEntry> = {}): LibraryEntry {
     hullId: 'destroyer',
     hullName: 'Destroyer',
     shipClass: 'medium',
+    hullHp: 200,
     designProgressLevel: 7,
     imageData: null,
     imageMimeType: null,
@@ -82,6 +83,7 @@ describe('toLibraryEntry', () => {
     expect(entry.hullId).toBe('destroyer');
     expect(entry.hullName).toBe('Destroyer');
     expect(entry.shipClass).toBe('medium');
+    expect(entry.hullHp).toBe(200);
     expect(entry.designProgressLevel).toBe(7);
     expect(entry.faction).toBe('Terran Empire');
     expect(entry.filePath).toBe('/designs/test.warship.json');
@@ -93,6 +95,7 @@ describe('toLibraryEntry', () => {
 
     expect(entry.hullName).toBeNull();
     expect(entry.shipClass).toBeNull();
+    expect(entry.hullHp).toBeNull();
   });
 
   it('handles null hull ID', () => {
@@ -101,6 +104,7 @@ describe('toLibraryEntry', () => {
 
     expect(entry.hullName).toBeNull();
     expect(entry.shipClass).toBeNull();
+    expect(entry.hullHp).toBeNull();
   });
 
   it('defaults designType to warship when not specified', () => {

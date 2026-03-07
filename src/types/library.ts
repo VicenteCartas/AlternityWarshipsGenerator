@@ -20,6 +20,8 @@ export interface LibraryEntry {
   hullName: string | null;
   /** Resolved ship class (null if hull not found in data) */
   shipClass: ShipClass | null;
+  /** Resolved total hull HP (null if hull not found in data) */
+  hullHp: number | null;
   /** Design progress level */
   designProgressLevel: ProgressLevel | null;
   /** Ship image (base64 encoded) */

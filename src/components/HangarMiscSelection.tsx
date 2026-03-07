@@ -39,18 +39,20 @@ import {
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost } from '../services/formatters';
 import { TechTrackCell, TruncatedDescription } from './shared';
-import { EmbarkedCraftSection } from './EmbarkedCraftSection';
-import type { EmbarkedCraft } from '../types/embarkedCraft';
+import { HangarCraftEditForm } from './HangarCraftEditForm';
+import { MagazineOrdnanceEditForm, formatMagazineLoadout } from './MagazineOrdnanceEditForm';
+import { getSystemBerthingType, getSystemUsedCapacity, getSystemCraftCapacity, calculateEmbarkedCraftStats, isSystemMagazine } from '../services/embarkedCraftService';
+import { getUsedCapacity } from '../services/ordnanceService';
+import type { OrdnanceDesign } from '../types/ordnance';
 
 interface HangarMiscSelectionProps {
   hull: Hull;
   installedSystems: InstalledHangarMiscSystem[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
-  totalPassengersAndSuspended: number;  // Passengers + suspended + troops from accommodations (crew comes from hull)
-  embarkedCraft: EmbarkedCraft[];
+  totalPassengersAndSuspended: number;
+  ordnanceDesigns: OrdnanceDesign[];
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
-  onEmbarkedCraftChange: (craft: EmbarkedCraft[]) => void;
 }
 
 export function HangarMiscSelection({
@@ -59,9 +61,8 @@ export function HangarMiscSelection({
   designProgressLevel,
   designTechTracks,
   totalPassengersAndSuspended,
-  embarkedCraft,
+  ordnanceDesigns,
   onSystemsChange,
-  onEmbarkedCraftChange,
 }: HangarMiscSelectionProps) {
   const [activeTab, setActiveTab] = useState<HangarMiscCategory>('hangar');
   const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
@@ -103,6 +104,11 @@ export function HangarMiscSelection({
   // Calculate stats
   const stats = useMemo(
     () => calculateHangarMiscStats(installedSystems),
+    [installedSystems]
+  );
+
+  const embarkedCraftStats = useMemo(
+    () => calculateEmbarkedCraftStats(installedSystems),
     [installedSystems]
   );
 
@@ -303,6 +309,13 @@ export function HangarMiscSelection({
         <Stack spacing={1}>
           {installed.map((system) => {
             const isEditing = editingSystemId === system.id;
+            const berthingType = getSystemBerthingType(system);
+            const isMagazine = isSystemMagazine(system);
+            const craftLoadout = system.loadout || [];
+            const craftSummary = berthingType && craftLoadout.length > 0
+              ? craftLoadout.map(c => `${c.quantity}× ${c.name}`).join(', ')
+              : berthingType ? 'Empty' : null;
+            const magazineSummary = isMagazine ? formatMagazineLoadout(system, ordnanceDesigns) : null;
             
             return (
               <Fragment key={system.id}>
@@ -312,13 +325,29 @@ export function HangarMiscSelection({
                     alignItems: 'center',
                     gap: 1,
                     p: 1,
-                    bgcolor: 'action.hover',
+                    bgcolor: isEditing ? 'action.selected' : 'action.hover',
                     borderRadius: 1,
                   }}
                 >
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     {system.type.name}
                     {system.quantity > 1 && system.type.costPer !== 'systemHp' && ` (×${system.quantity})`}
+                    {craftSummary && (
+                      <>
+                        {' — '}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {craftSummary}
+                        </Typography>
+                      </>
+                    )}
+                    {magazineSummary && (
+                      <>
+                        {' — '}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {magazineSummary}
+                        </Typography>
+                      </>
+                    )}
                   </Typography>
                   <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
@@ -350,6 +379,24 @@ export function HangarMiscSelection({
                     <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
                   )}
                   <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                  {/* Show craft capacity chip for hangar/docking systems (like launcher capacity) */}
+                  {berthingType && (
+                    <Chip 
+                      label={`${getSystemUsedCapacity(system)}/${getSystemCraftCapacity(system)} Cap`}
+                      size="small"
+                      color={getSystemUsedCapacity(system) >= getSystemCraftCapacity(system) ? 'success' : 'warning'}
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Show ordnance capacity chip for magazines (like launcher capacity) */}
+                  {isMagazine && system.capacity && (
+                    <Chip 
+                      label={`${getUsedCapacity(system.ordnanceLoadout || [], ordnanceDesigns)}/${system.capacity} Cap`}
+                      size="small"
+                      color={getUsedCapacity(system.ordnanceLoadout || [], ordnanceDesigns) >= system.capacity ? 'success' : 'warning'}
+                      variant="outlined"
+                    />
+                  )}
                   {/* Hide edit/duplicate buttons for toggle systems (single-quantity percentage-based) */}
                   {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
                     <IconButton size="small" aria-label="Edit system" onClick={() => handleEditSystem(system)} color="primary">
@@ -367,6 +414,26 @@ export function HangarMiscSelection({
                 </Box>
                 {/* Inline edit form */}
                 {isEditing && renderInlineEditForm()}
+                {/* Per-system craft loadout — only when editing a hangar/docking system */}
+                {berthingType && isEditing && (
+                  <HangarCraftEditForm
+                    system={system}
+                    carrierHullHp={hull.hullPoints}
+                    onSystemChange={(updated) => {
+                      onSystemsChange(installedSystems.map(s => s.id === updated.id ? updated : s));
+                    }}
+                  />
+                )}
+                {/* Per-system ordnance loadout — only when editing a magazine */}
+                {isMagazine && isEditing && (
+                  <MagazineOrdnanceEditForm
+                    system={system}
+                    ordnanceDesigns={ordnanceDesigns}
+                    onSystemChange={(updated) => {
+                      onSystemsChange(installedSystems.map(s => s.id === updated.id ? updated : s));
+                    }}
+                  />
+                )}
               </Fragment>
             );
           })}
@@ -620,6 +687,9 @@ export function HangarMiscSelection({
           {stats.totalMagazineCapacity > 0 && (
             <Chip label={`Magazine: ${stats.totalMagazineCapacity} pts`} color="primary" variant="outlined" />
           )}
+          {embarkedCraftStats.totalEmbarkedCost > 0 && (
+            <Chip label={`Embarked: ${formatCost(embarkedCraftStats.totalEmbarkedCost)}`} color="default" variant="outlined" />
+          )}
         </Box>
       </Paper>
 
@@ -640,14 +710,6 @@ export function HangarMiscSelection({
           {renderInstalledSystems('hangar')}
           {renderAddForm()}
           {renderSystemTable('hangar')}
-          {(stats.totalHangarCapacity > 0 || stats.totalDockingCapacity > 0) && (
-            <EmbarkedCraftSection
-              embarkedCraft={embarkedCraft}
-              onEmbarkedCraftChange={onEmbarkedCraftChange}
-              hangarMiscStats={stats}
-              carrierHullHp={hull.hullPoints}
-            />
-          )}
         </>
       )}
       {activeTab === 'cargo' && (

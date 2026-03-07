@@ -1,4 +1,4 @@
-import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart, SavedEmbarkedCraft } from '../types/saveFile';
+import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart, SavedLoadedCraft } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -9,7 +9,7 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { EmbarkedCraft } from '../types/embarkedCraft';
+import type { LoadedCraft } from '../types/embarkedCraft';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
 import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
@@ -56,7 +56,6 @@ export interface WarshipState {
   commandControl: InstalledCommandControlSystem[];
   sensors: InstalledSensor[];
   hangarMisc: InstalledHangarMiscSystem[];
-  embarkedCraft: EmbarkedCraft[];
   weapons: InstalledWeapon[];
   ordnanceDesigns: OrdnanceDesign[];
   launchSystems: InstalledLaunchSystem[];
@@ -181,6 +180,23 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       typeId: hm.type.id,
       quantity: hm.quantity,
       extraHp: hm.extraHp,
+      ...((hm.loadout || []).length > 0 ? {
+        loadout: hm.loadout!.map((c): SavedLoadedCraft => ({
+          id: c.id,
+          filePath: c.filePath,
+          name: c.name,
+          hullHp: c.hullHp,
+          hullName: c.hullName,
+          quantity: c.quantity,
+          designCost: c.designCost,
+        })),
+      } : {}),
+      ...((hm.ordnanceLoadout || []).length > 0 ? {
+        ordnanceLoadout: hm.ordnanceLoadout!.map(o => ({
+          designId: o.designId,
+          quantity: o.quantity,
+        })),
+      } : {}),
     })),
     weapons: (state.weapons || []).map((w): SavedWeapon => ({
       id: w.id,
@@ -221,18 +237,6 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       extraHp: ls.extraHp,
       loadout: ls.loadout || [],
     })),
-    embarkedCraft: (state.embarkedCraft || []).length > 0
-      ? (state.embarkedCraft || []).map((ec): SavedEmbarkedCraft => ({
-          id: ec.id,
-          filePath: ec.filePath,
-          name: ec.name,
-          hullHp: ec.hullHp,
-          hullName: ec.hullName,
-          quantity: ec.quantity,
-          berthing: ec.berthing,
-          designCost: ec.designCost,
-        }))
-      : undefined,
     damageDiagramZones: (state.damageDiagramZones || []).map((zone): SavedDamageZone => ({
       code: zone.code,
       systems: zone.systems.map((sys) => ({
@@ -631,6 +635,16 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     (s, t) => {
       const extraHp = s.extraHp || 0;
       const cap = calculateHangarMiscCapacity(t, shipHullPoints, s.quantity, extraHp);
+      const loadout: LoadedCraft[] = (s.loadout || []).map(lc => ({
+        id: lc.id,
+        filePath: lc.filePath,
+        name: lc.name,
+        hullHp: lc.hullHp,
+        hullName: lc.hullName,
+        quantity: lc.quantity,
+        designCost: lc.designCost,
+        fileValid: true,
+      }));
       return {
         id: s.id || generateHangarMiscId(), type: t, quantity: s.quantity,
         hullPoints: calculateHangarMiscHullPoints(t, shipHullPoints, s.quantity, extraHp),
@@ -638,6 +652,8 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         cost: calculateHangarMiscCost(t, shipHullPoints, s.quantity, extraHp),
         capacity: cap > 0 ? cap : undefined,
         extraHp: extraHp > 0 ? extraHp : undefined,
+        ...(loadout.length > 0 ? { loadout } : {}),
+        ...((s.ordnanceLoadout || []).length > 0 ? { ordnanceLoadout: s.ordnanceLoadout } : {}),
       };
     },
     'Hangar/misc system type not found', warnings
@@ -790,19 +806,6 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   // Load damage diagram zones
   const damageDiagramZones: DamageZone[] = [];
 
-  // Load embarked craft (carrier complement)
-  const embarkedCraft: EmbarkedCraft[] = (saveFile.embarkedCraft || []).map((saved) => ({
-    id: saved.id,
-    filePath: saved.filePath,
-    name: saved.name,
-    hullHp: saved.hullHp,
-    hullName: saved.hullName,
-    quantity: saved.quantity,
-    berthing: saved.berthing,
-    designCost: saved.designCost,
-    fileValid: true, // Will be validated at display time
-  }));
-
   for (const savedZone of (saveFile.damageDiagramZones || [])) {
     damageDiagramZones.push({
       code: savedZone.code as ZoneCode,
@@ -883,7 +886,6 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       commandControl,
       sensors,
       hangarMisc,
-      embarkedCraft,
       weapons,
       ordnanceDesigns,
       launchSystems: launchSystemsList,

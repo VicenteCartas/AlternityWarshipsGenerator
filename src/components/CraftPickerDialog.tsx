@@ -57,6 +57,8 @@ interface CraftPickerDialogProps {
   onSelect: (craft: CraftPickerResult) => void;
   berthing: BerthingType;
   carrierHullHp: number;
+  /** Remaining capacity HP in the target system */
+  systemCapacity?: number;
 }
 
 /**
@@ -127,6 +129,7 @@ export function CraftPickerDialog({
   onSelect,
   berthing,
   carrierHullHp,
+  systemCapacity,
 }: CraftPickerDialogProps) {
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -168,13 +171,13 @@ export function CraftPickerDialog({
 
   const handleBrowse = useCallback(async () => {
     if (!window.electronAPI) return;
-    const result = await window.electronAPI.selectDirectory();
+    const result = await window.electronAPI.selectDirectory(libraryPath ?? undefined);
     if (!result.canceled && result.filePath) {
       setLibraryPath(result.filePath);
       saveLibraryPath(result.filePath);
       scanDirectory(result.filePath);
     }
-  }, [scanDirectory]);
+  }, [libraryPath, scanDirectory]);
 
   // Filter: only warships (not stations), and for hangars only craft < 100 HP
   const filteredEntries = useMemo(() => {
@@ -185,19 +188,24 @@ export function CraftPickerDialog({
       progressLevel: plFilter || null,
     });
 
-    // For hangars, filter out craft >= 100 HP (only small-craft class can fit, but also corvettes < 100 HP)
+    // Filter by hull HP based on berthing rules
     if (berthing === 'hangar') {
-      // We can't filter by HP from library metadata since it doesn't have HP.
-      // Filter by ship class — only small-craft are guaranteed < 100 HP.
-      // Light hulls start at 80 HP, which could fit. We'll allow all and validate on selection.
+      // Rule: Only craft under 100 HP can use hangars
+      results = results.filter(e => e.hullHp === null || e.hullHp < HANGAR_MAX_CRAFT_HP);
+    } else {
+      // Docking clamp rule: Craft may not exceed 10% of carrier's hull
+      const maxCraftHp = Math.floor(carrierHullHp * 0.1);
+      results = results.filter(e => e.hullHp === null || e.hullHp <= maxCraftHp);
     }
 
-    // For docking clamps, filter out craft > 10% of carrier hull
-    // Can't filter precisely — will validate on selection.
+    // Filter by system capacity if available
+    if (systemCapacity != null && systemCapacity > 0) {
+      results = results.filter(e => e.hullHp === null || e.hullHp <= systemCapacity);
+    }
 
     results = sortLibraryEntries(results, { field: 'name', direction: 'asc' });
     return results;
-  }, [entries, searchText, plFilter, berthing]);
+  }, [entries, searchText, plFilter, berthing, carrierHullHp, systemCapacity]);
 
   const handleSelectEntry = useCallback(async (entry: LibraryEntry) => {
     setLoadingDesign(true);
@@ -219,6 +227,10 @@ export function CraftPickerDialog({
           setError(`${entry.name} (${details.hullHp} HP) exceeds the docking clamp limit of ${maxCraftHp} HP (10% of carrier's ${carrierHullHp} HP hull).`);
           return;
         }
+      }
+      if (systemCapacity != null && details.hullHp > systemCapacity) {
+        setError(`${entry.name} (${details.hullHp} HP) exceeds this system's remaining capacity of ${systemCapacity} HP.`);
+        return;
       }
 
       onSelect({
@@ -340,6 +352,9 @@ export function CraftPickerDialog({
                       )}
                       {entry.designProgressLevel && (
                         <Chip label={`PL ${entry.designProgressLevel}`} size="small" variant="outlined" />
+                      )}
+                      {entry.hullHp && (
+                        <Chip label={`${entry.hullHp} HP`} size="small" variant="outlined" />
                       )}
                     </Stack>
                   </CardContent>

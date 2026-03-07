@@ -46,11 +46,14 @@ export function toLibraryEntry(file: ScannedWarshipFile): LibraryEntry {
   let hullName: string | null = null;
   let shipClass: ShipClass | null = null;
 
+  let hullHp: number | null = null;
+
   if (file.hullId) {
     const hull = getHullById(file.hullId);
     if (hull) {
       hullName = hull.name;
       shipClass = hull.shipClass;
+      hullHp = hull.hullPoints + hull.bonusHullPoints;
     }
   }
 
@@ -62,6 +65,7 @@ export function toLibraryEntry(file: ScannedWarshipFile): LibraryEntry {
     hullId: file.hullId,
     hullName,
     shipClass,
+    hullHp,
     designProgressLevel: file.designProgressLevel as ProgressLevel | null,
     imageData: file.imageData,
     imageMimeType: file.imageMimeType,

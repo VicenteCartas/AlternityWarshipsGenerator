@@ -575,11 +575,12 @@ ipcMain.handle('scan-warship-files', async (_event, directoryPath: string) => {
   }
 });
 
-ipcMain.handle('select-directory', async () => {
+ipcMain.handle('select-directory', async (_event, defaultPath?: string) => {
   if (!mainWindow) return { canceled: true };
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     title: 'Select folder to scan for designs',
+    ...(defaultPath && fs.existsSync(defaultPath) ? { defaultPath } : {}),
   });
   if (result.canceled || result.filePaths.length === 0) {
     return { canceled: true };

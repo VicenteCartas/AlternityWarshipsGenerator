@@ -111,7 +111,7 @@ export interface ElectronAPI {
   
   // Ship Library operations
   scanWarshipFiles: (directoryPath: string) => Promise<ScanWarshipFilesResult>;
-  selectDirectory: () => Promise<SelectDirectoryResult>;
+  selectDirectory: (defaultPath?: string) => Promise<SelectDirectoryResult>;
   
   // Auto-save / crash recovery
   getAutoSavePath: () => Promise<string>;

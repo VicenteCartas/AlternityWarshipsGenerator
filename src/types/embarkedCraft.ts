@@ -1,6 +1,6 @@
 /**
  * Types for the Carrier Complement / Embarked Craft system.
- * Allows carriers to assign saved small-craft designs to hangars and docking clamps.
+ * Craft are loaded into individual hangar or docking clamp systems (like ordnance in launchers).
  */
 
 /**
@@ -9,9 +9,10 @@
 export type BerthingType = 'hangar' | 'docking';
 
 /**
- * A single embarked craft assignment — references a saved .warship.json design
+ * A craft loaded into a specific hangar or docking clamp system.
+ * References a saved .warship.json design file.
  */
-export interface EmbarkedCraft {
+export interface LoadedCraft {
   /** Unique ID for this assignment */
   id: string;
   /** Absolute path to the .warship.json file */
@@ -22,10 +23,8 @@ export interface EmbarkedCraft {
   hullHp: number;
   /** Hull name (snapshotted for display) */
   hullName: string;
-  /** Quantity of this craft type embarked */
+  /** Quantity of this craft type loaded */
   quantity: number;
-  /** Where the craft is berthed */
-  berthing: BerthingType;
   /** Total cost of the craft design (snapshotted for carrier cost rollup) */
   designCost: number;
   /** Whether the referenced file was found during last load */
@@ -33,7 +32,7 @@ export interface EmbarkedCraft {
 }
 
 /**
- * Aggregated stats for all embarked craft
+ * Aggregated stats for all embarked craft across all hangar/docking systems
  */
 export interface EmbarkedCraftStats {
   /** Total HP used in hangars */

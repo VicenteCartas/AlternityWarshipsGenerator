@@ -10,7 +10,6 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { InstalledLaunchSystem, OrdnanceDesign, MissileDesign } from '../types/ordnance';
 import type { DamageZone, ZoneCode, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
@@ -29,7 +28,7 @@ import { calculateDefenseStats } from './defenseService';
 import { calculateCommandControlStats } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
-import { calculateEmbarkedCraftStats } from './embarkedCraftService';
+import { calculateEmbarkedCraftStats, getAllLoadedCraft } from './embarkedCraftService';
 import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
 import { capitalize, logger } from './utilities';
 
@@ -69,7 +68,6 @@ export interface ShipData {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
-  embarkedCraft?: EmbarkedCraft[];
   damageDiagramZones: DamageZone[];
   hitLocationChart?: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
@@ -253,7 +251,7 @@ function computeShipStats(data: ShipData): ShipStats {
   const ccStats = calculateCommandControlStats(data.installedCommandControl, hull.hullPoints);
   const sensorStats = calculateSensorStats(data.installedSensors);
   const hmStats = calculateHangarMiscStats(data.installedHangarMisc);
-  const ecStats = calculateEmbarkedCraftStats(data.embarkedCraft || []);
+  const ecStats = calculateEmbarkedCraftStats(data.installedHangarMisc);
 
   const usedHP = armorHP
     + ppStats.totalHullPoints
@@ -1114,15 +1112,15 @@ function renderSystemsSummaryTable(
   }
 
   // Embarked Craft
-  const embarkedCraft = data.embarkedCraft || [];
-  if (embarkedCraft.length > 0) {
+  const allCraft = getAllLoadedCraft(data.installedHangarMisc);
+  if (allCraft.length > 0) {
     addStatsRow('Embarked Craft', '-', '-', stats.embarkedCraft.cost);
     if (options.includeDetailedSystems) {
       addDetailColumnHeaders();
-      for (const craft of embarkedCraft) {
+      for (const craft of allCraft) {
         const qty = craft.quantity > 1 ? ` x${craft.quantity}` : '';
         addDetailRow(
-          `${craft.name}${qty} (${craft.berthing})`,
+          `${craft.name}${qty} (${craft.systemName})`,
           `${craft.hullHp * craft.quantity}`,
           '-',
           formatCost(craft.designCost * craft.quantity)

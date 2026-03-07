@@ -11,7 +11,6 @@ import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { EmbarkedCraft } from '../types/embarkedCraft';
 import type { ProgressLevel, TechTrack, StepDef } from '../types/common';
 import { calculateHullStats } from '../services/hullService';
 import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
@@ -58,7 +57,6 @@ export interface DesignCalculationsInput {
   installedCommandControl: InstalledCommandControlSystem[];
   installedSensors: InstalledSensor[];
   installedHangarMisc: InstalledHangarMiscSystem[];
-  embarkedCraft: EmbarkedCraft[];
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   powerScenario: PowerScenario;
@@ -97,7 +95,6 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     installedCommandControl,
     installedSensors,
     installedHangarMisc,
-    embarkedCraft,
     designProgressLevel,
     designTechTracks,
     powerScenario,
@@ -146,7 +143,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(installedSensors);
     const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    const embarkedCraftStats = calculateEmbarkedCraftStats(embarkedCraft);
+    const embarkedCraftStats = calculateEmbarkedCraftStats(installedHangarMisc);
 
     // ---- HP breakdown ----
     const hpBreakdown = {
@@ -325,7 +322,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, embarkedCraft,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
     designProgressLevel, designTechTracks,
     powerScenario, steps, surfaceProvidesLifeSupport,
   ]);

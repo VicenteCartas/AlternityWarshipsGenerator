@@ -82,8 +82,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Ship Library operations
   scanWarshipFiles: (directoryPath: string) =>
     ipcRenderer.invoke('scan-warship-files', directoryPath),
-  selectDirectory: () =>
-    ipcRenderer.invoke('select-directory'),
+  selectDirectory: (defaultPath?: string) =>
+    ipcRenderer.invoke('select-directory', defaultPath),
   
   // Auto-save / crash recovery
   getAutoSavePath: () =>
