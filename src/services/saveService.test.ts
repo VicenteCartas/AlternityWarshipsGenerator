@@ -215,7 +215,6 @@ function makeMinimalState(overrides: Partial<WarshipState> = {}): WarshipState {
     hitLocationChart: null,
     designProgressLevel: 7,
     designTechTracks: [],
-    embarkedCraft: [],
     ...overrides,
   };
 }

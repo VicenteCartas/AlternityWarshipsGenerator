@@ -327,28 +327,80 @@ function computeShipStats(data: ShipData): ShipStats {
 // ============ DIAGRAM RENDERERS ============
 
 /**
- * Enrich a launch system's display name with loaded ordnance abbreviations.
+ * Enrich a system's display name with loaded contents abbreviations.
+ * Handles launch systems (ordnance designs), weapons (warheads), hangars (craft), and magazines (ordnance designs).
  * Used by zone box rendering and zone height calculation.
  */
-function enrichLaunchSystemDisplayName(
+function enrichSystemDisplayName(
   sysName: string,
   installedSystemId: string,
-  installedLaunchSystems: InstalledLaunchSystem[],
-  ordnanceDesigns: OrdnanceDesign[],
+  data: ShipData,
 ): string {
-  const launchId = installedSystemId.startsWith('launch-') ? installedSystemId.slice(7) : installedSystemId;
-  const matchedLS = (installedLaunchSystems || []).find(ls => ls.id === launchId);
-  if (matchedLS && (matchedLS.loadout || []).length > 0) {
-    const ordAbbrevs = (matchedLS.loadout || []).map(lo => {
-      const design = (ordnanceDesigns || []).find(d => d.id === lo.designId);
-      if (!design) return null;
-      const abbr = design.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
-      return `${lo.quantity}x${abbr}`;
-    }).filter(Boolean);
-    if (ordAbbrevs.length > 0) {
-      return `${sysName} (${ordAbbrevs.join(', ')})`;
+  // Launch systems: show loaded ordnance designs
+  if (installedSystemId.startsWith('launch-')) {
+    const launchId = installedSystemId.slice(7);
+    const matchedLS = (data.installedLaunchSystems || []).find(ls => ls.id === launchId);
+    if (matchedLS && (matchedLS.loadout || []).length > 0) {
+      const ordAbbrevs = (matchedLS.loadout || []).map(lo => {
+        const design = (data.ordnanceDesigns || []).find(d => d.id === lo.designId);
+        if (!design) return null;
+        const abbr = design.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+        return `${lo.quantity}x${abbr}`;
+      }).filter(Boolean);
+      if (ordAbbrevs.length > 0) {
+        return `${sysName} (${ordAbbrevs.join(', ')})`;
+      }
     }
   }
+
+  // Weapons: show loaded warheads (accelerator-type magazines)
+  if (installedSystemId.startsWith('wpn-')) {
+    const wpnId = installedSystemId.slice(4);
+    const matchedW = (data.installedWeapons || []).find(w => w.id === wpnId);
+    if (matchedW && (matchedW.magazineLoadout || []).length > 0) {
+      const allWarheads = getWarheads();
+      const whAbbrevs = (matchedW.magazineLoadout || []).map(lo => {
+        const wh = allWarheads.find(w => w.id === lo.designId);
+        if (!wh) return null;
+        const abbr = wh.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+        return `${lo.quantity}x${abbr}`;
+      }).filter(Boolean);
+      if (whAbbrevs.length > 0) {
+        return `${sysName} (${whAbbrevs.join(', ')})`;
+      }
+    }
+  }
+
+  // Hangar/misc: show loaded craft or ordnance
+  if (installedSystemId.startsWith('hm-')) {
+    const hmId = installedSystemId.slice(3);
+    const matchedHM = (data.installedHangarMisc || []).find(hm => hm.id === hmId);
+    if (matchedHM) {
+      // Craft in hangars/docking clamps
+      if ((matchedHM.loadout || []).length > 0) {
+        const craftAbbrevs = (matchedHM.loadout || []).map(c => {
+          const abbr = c.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+          return `${c.quantity}x${abbr}`;
+        });
+        if (craftAbbrevs.length > 0) {
+          return `${sysName} (${craftAbbrevs.join(', ')})`;
+        }
+      }
+      // Ordnance in magazines
+      if ((matchedHM.ordnanceLoadout || []).length > 0) {
+        const ordAbbrevs = (matchedHM.ordnanceLoadout || []).map(lo => {
+          const design = (data.ordnanceDesigns || []).find(d => d.id === lo.designId);
+          if (!design) return null;
+          const abbr = design.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+          return `${lo.quantity}x${abbr}`;
+        }).filter(Boolean);
+        if (ordAbbrevs.length > 0) {
+          return `${sysName} (${ordAbbrevs.join(', ')})`;
+        }
+      }
+    }
+  }
+
   return sysName;
 }
 
@@ -420,9 +472,8 @@ function drawZoneBox(
     let sysY = boxY + headerH + sysLineH;
     for (let j = 0; j < leftSystems.length; j++) {
       const sys = leftSystems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
       const lines = doc.splitTextToSize(fullText, colW);
@@ -438,9 +489,8 @@ function drawZoneBox(
     const rightX = x + 1.5 + colW + colGap;
     for (let j = 0; j < rightSystems.length; j++) {
       const sys = rightSystems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${half + j + 1}. ${displayName} (${sys.hullPoints})`;
       const lines = doc.splitTextToSize(fullText, colW);
@@ -454,9 +504,8 @@ function drawZoneBox(
     let sysY = boxY + headerH + sysLineH;
     for (let j = 0; j < zone.systems.length; j++) {
       const sys = zone.systems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
       const maxTextWidth = w - 3;
@@ -495,9 +544,8 @@ function countZoneLines(
     let leftLines = 0;
     for (let j = 0; j < half; j++) {
       const sys = zone.systems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
       leftLines += doc.splitTextToSize(fullText, colW).length;
@@ -506,9 +554,8 @@ function countZoneLines(
     let rightLines = 0;
     for (let j = half; j < zone.systems.length; j++) {
       const sys = zone.systems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
       rightLines += doc.splitTextToSize(fullText, colW).length;
@@ -520,9 +567,8 @@ function countZoneLines(
     let lineCount = 0;
     for (let j = 0; j < zone.systems.length; j++) {
       const sys = zone.systems[j];
-      const displayName = enrichLaunchSystemDisplayName(
-        sys.name, sys.installedSystemId,
-        data.installedLaunchSystems || [], data.ordnanceDesigns || [],
+      const displayName = enrichSystemDisplayName(
+        sys.name, sys.installedSystemId, data,
       );
       const fullText = `${j + 1}. ${displayName} (${sys.hullPoints})`;
       lineCount += doc.splitTextToSize(fullText, maxTextWidth).length;
@@ -1017,6 +1063,22 @@ function renderSystemsSummaryTable(
           `${w.weaponType.name}${config}${mount}${qty}`,
           w.hullPoints.toString(), w.powerRequired.toString(), formatCost(w.cost)
         );
+        // Show magazine warheads loaded in accelerator-type weapons
+        if ((w.magazineLoadout || []).length > 0) {
+          const allWarheads = getWarheads();
+          for (const loadedItem of w.magazineLoadout || []) {
+            const wh = allWarheads.find(wh => wh.id === loadedItem.designId);
+            if (wh) {
+              checkNewPage(ctx, 5);
+              ctx.pdf.setFontSize(6);
+              ctx.pdf.setFont('helvetica', 'italic');
+              ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}`, detailIndent, ctx.y);
+              ctx.pdf.text(formatCost(wh.cost * loadedItem.quantity), detailColCost, ctx.y);
+              ctx.pdf.setFont('helvetica', 'normal');
+              ctx.y += 3;
+            }
+          }
+        }
       }
       const launchSystemDefs = getLaunchSystems();
       for (const ls of data.installedLaunchSystems) {
@@ -1109,6 +1171,30 @@ function renderSystemsSummaryTable(
         hm.powerRequired > 0 ? hm.powerRequired.toString() : '-',
         formatCost(hm.cost)
       );
+      // Show craft loaded in hangars and docking clamps
+      for (const craft of hm.loadout || []) {
+        checkNewPage(ctx, 5);
+        ctx.pdf.setFontSize(6);
+        ctx.pdf.setFont('helvetica', 'italic');
+        const craftQty = craft.quantity > 1 ? ` x${craft.quantity}` : '';
+        ctx.pdf.text(`    > ${craft.name}${craftQty}`, detailIndent, ctx.y);
+        ctx.pdf.text(formatCost(craft.designCost * craft.quantity), detailColCost, ctx.y);
+        ctx.pdf.setFont('helvetica', 'normal');
+        ctx.y += 3;
+      }
+      // Show ordnance loaded in magazines
+      for (const loadedItem of hm.ordnanceLoadout || []) {
+        const design = (data.ordnanceDesigns || []).find(d => d.id === loadedItem.designId);
+        if (design) {
+          checkNewPage(ctx, 5);
+          ctx.pdf.setFontSize(6);
+          ctx.pdf.setFont('helvetica', 'italic');
+          ctx.pdf.text(`    > ${design.name} x${loadedItem.quantity}`, detailIndent, ctx.y);
+          ctx.pdf.text(formatCost(design.totalCost * loadedItem.quantity), detailColCost, ctx.y);
+          ctx.pdf.setFont('helvetica', 'normal');
+          ctx.y += 3;
+        }
+      }
     }
     ctx.y += 1;
   }
@@ -1454,6 +1540,23 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       ctx.pdf.text(wt.damage.substring(0, 22), wCols[6], ctx.y);
       ctx.pdf.text(weapon.quantity.toString(), wCols[7], ctx.y);
       ctx.y += 4;
+
+      // Show magazine warheads loaded in accelerator-type weapons
+      if ((weapon.magazineLoadout || []).length > 0) {
+        const allWarheads = getWarheads();
+        for (const loadedItem of weapon.magazineLoadout || []) {
+          const wh = allWarheads.find(wh => wh.id === loadedItem.designId);
+          if (wh) {
+            checkNewPage(ctx, 6);
+            ctx.pdf.setFontSize(5.5);
+            ctx.pdf.setFont('helvetica', 'italic');
+            ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}`, wCols[0], ctx.y);
+            ctx.pdf.setFontSize(6.5);
+            ctx.pdf.setFont('helvetica', 'normal');
+            ctx.y += 3.5;
+          }
+        }
+      }
     }
 
     // Launch systems

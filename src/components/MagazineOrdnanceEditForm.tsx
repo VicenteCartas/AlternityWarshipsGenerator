@@ -3,7 +3,7 @@
  * Follows the same pattern as LaunchSystemEditForm ordnance loading.
  */
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,
@@ -78,18 +78,6 @@ export function MagazineOrdnanceEditForm({
       );
     }
   };
-
-  // Format loadout contents for display (used externally too)
-  const formatLoadoutSummary = useMemo(() => {
-    if (currentLoadout.length === 0) return '';
-    return currentLoadout
-      .map(item => {
-        const design = ordnanceDesigns.find(d => d.id === item.designId);
-        return design ? `${item.quantity}× ${design.name}` : '';
-      })
-      .filter(Boolean)
-      .join(', ');
-  }, [currentLoadout, ordnanceDesigns]);
 
   return (
     <Box sx={{ mt: 1.5, mb: 1 }}>

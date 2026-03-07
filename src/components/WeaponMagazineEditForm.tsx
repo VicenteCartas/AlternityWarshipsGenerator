@@ -19,7 +19,7 @@ import {
   TextField,
   Chip,
 } from '@mui/material';
-import type { InstalledWeapon, WeaponType } from '../types/weapon';
+import type { InstalledWeapon } from '../types/weapon';
 import type { LoadedOrdnance, Warhead } from '../types/ordnance';
 import { formatCost } from '../services/formatters';
 import { getWarheads } from '../services/ordnanceService';

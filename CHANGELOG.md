@@ -5,6 +5,7 @@
 ### New Features
 
 - **Cockpit Life Support**: Cockpit now provides life support coverage (2 HP) to its occupants per the rulebook. The Support Systems step shows an info banner noting the 3-day duration limit when a cockpit is installed.
+- **PDF Export: Loadout Details**: The PDF export now shows loaded contents under weapons with magazines (Accelerator, Heavy Accelerator), hangars/docking clamps (embarked craft), and magazines (stored ordnance) in the detailed systems report, combat weapons list, and damage zone boxes, using the same indented italic format as launcher ordnance.
 
 ### Bug Fixes
 
