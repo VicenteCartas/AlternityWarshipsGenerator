@@ -103,7 +103,9 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
     const engStats = calculateTotalEngineStats(state.engines, state.engineFuelTanks, hull);
     const ftlStats = state.ftlDrive ? calculateTotalFTLStats(state.ftlDrive, hull) : { totalCost: 0 };
     const ftlFuelStats = calculateTotalFTLFuelTankStats(state.ftlFuelTanks);
-    const supportStats = calculateSupportSystemsStats(state.lifeSupport, state.accommodations, state.storeSystems, state.gravitySystems, state.designProgressLevel, []);
+    const supportStats = calculateSupportSystemsStats(state.lifeSupport, state.accommodations, state.storeSystems, state.gravitySystems, state.designProgressLevel, [],
+      state.commandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
+    );
     const weaponStats = calculateWeaponStats(state.weapons);
     const ordnanceStats = calculateOrdnanceStats(state.launchSystems, state.ordnanceDesigns);
     const defenseStats = calculateDefenseStats(state.defenses);

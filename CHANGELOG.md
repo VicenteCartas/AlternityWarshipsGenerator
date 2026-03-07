@@ -2,6 +2,10 @@
 
 ## [0.2.5] - TODO
 
+### New Features
+
+- **Cockpit Life Support**: Cockpit now provides life support coverage (2 HP) to its occupants per the rulebook. The Support Systems step shows an info banner noting the 3-day duration limit when a cockpit is installed.
+
 ### Bug Fixes
 
 - Fixed "Browse Folder" dialog in the Ship Library (and Craft Picker) opening to a default OS location instead of the currently selected library folder. The directory picker now defaults to the current library path.

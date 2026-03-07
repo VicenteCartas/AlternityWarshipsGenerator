@@ -47,6 +47,8 @@ export interface CommandControlSystemType {
   isCore?: boolean;
   /** Maximum ship hull points this can be used on (cockpit only) */
   maxShipHullPoints?: number;
+  /** Life support coverage in HP provided by this system (cockpit only, 3-day duration) */
+  lifeSupportCoverageHp?: number;
   /** Whether this control computer requires a core to be installed first */
   requiresCore?: boolean;
   /** Maximum quality of core this computer can work with (Ordinary can't exceed Ordinary core, etc.) */

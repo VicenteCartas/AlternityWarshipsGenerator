@@ -384,6 +384,7 @@ interface SupportSystemsSelectionProps {
   designTechTracks: TechTrack[];
   surfaceProvidesLifeSupport?: boolean;
   surfaceProvidesGravity?: boolean;
+  cockpitLifeSupportCoverageHp?: number;
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
@@ -400,6 +401,7 @@ export function SupportSystemsSelection({
   designTechTracks,
   surfaceProvidesLifeSupport = false,
   surfaceProvidesGravity = false,
+  cockpitLifeSupportCoverageHp = 0,
   onLifeSupportChange,
   onAccommodationsChange,
   onStoreSystemsChange,
@@ -432,9 +434,10 @@ export function SupportSystemsSelection({
       installedStoreSystems,
       installedGravitySystems,
       designProgressLevel,
-      designTechTracks
+      designTechTracks,
+      cockpitLifeSupportCoverageHp,
     ),
-    [installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks]
+    [installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, designTechTracks, cockpitLifeSupportCoverageHp]
   );
 
   // ============== Gravity System Handlers ==============
@@ -623,6 +626,11 @@ export function SupportSystemsSelection({
             </Alert>
           )}
         </Stack>
+      )}
+      {cockpitLifeSupportCoverageHp > 0 && (
+        <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+          <strong>Cockpit provides life support</strong> — The cockpit includes basic life support for its occupants with a maximum duration of three days. Ships requiring more endurance must purchase a normal life support system.
+        </Alert>
       )}
 
       {/* Summary Chips */}

@@ -671,6 +671,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             designTechTracks={designTechTracks}
             surfaceProvidesLifeSupport={surfaceProvidesLifeSupport}
             surfaceProvidesGravity={surfaceProvidesGravity}
+            cockpitLifeSupportCoverageHp={installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0)}
             onLifeSupportChange={setInstalledLifeSupport}
             onAccommodationsChange={setInstalledAccommodations}
             onStoreSystemsChange={setInstalledStoreSystems}

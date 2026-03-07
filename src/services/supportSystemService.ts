@@ -94,7 +94,8 @@ export function calculateSupportSystemsStats(
   storeSystems: InstalledStoreSystem[],
   gravitySystems: InstalledGravitySystem[],
   designProgressLevel: ProgressLevel,
-  designTechTracks: TechTrack[]
+  designTechTracks: TechTrack[],
+  cockpitLifeSupportCoverageHp: number = 0,
 ): SupportSystemsStats {
   // Life Support stats
   let lifeSupportHP = 0;
@@ -113,6 +114,9 @@ export function calculateSupportSystemsStats(
       recyclingFromLifeSupport += ls.type.recyclingCapacity * ls.quantity;
     }
   }
+
+  // Add cockpit life support coverage (3-day duration, no HP/power/cost)
+  totalCoverage += cockpitLifeSupportCoverageHp;
 
   // Accommodation stats
   let accommodationsHP = 0;

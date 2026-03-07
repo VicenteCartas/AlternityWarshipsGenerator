@@ -11,9 +11,10 @@
       "cost": 100000,
       "costPer": "unit",
       "maxQuantity": 4,
-      "description": "The cockpit is the nerve center of a small ship. For half a hull point, it includes one control station or seat. The maximum size of a cockpit is four seats or stations (2 hull points). Anything larger is more accurately described as a small command deck. A cockpit is limited to ships of 50 hull points or less.",
+      "description": "The cockpit is the nerve center of a small ship. For half a hull point, it includes one control station or seat. The maximum size of a cockpit is four seats or stations (2 hull points). Anything larger is more accurately described as a small command deck. A cockpit is limited to ships of 50 hull points or less. The cockpit includes life support for its occupants with a maximum duration of three days.",
       "isRequired": true,
-      "maxShipHullPoints": 50
+      "maxShipHullPoints": 50,
+      "lifeSupportCoverageHp": 2
     },
     {
       "id": "command-deck",

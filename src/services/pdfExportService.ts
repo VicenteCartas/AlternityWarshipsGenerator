@@ -244,6 +244,7 @@ function computeShipStats(data: ShipData): ShipStats {
     data.installedLifeSupport, data.installedAccommodations,
     data.installedStoreSystems, data.installedGravitySystems,
     data.designProgressLevel, [],
+    data.installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
   );
   const weaponStats = calculateWeaponStats(data.installedWeapons);
   const ordnanceStats = calculateOrdnanceStats(data.installedLaunchSystems, data.ordnanceDesigns);
@@ -725,6 +726,7 @@ function renderSystemsDetailSection(
     data.installedLifeSupport, data.installedAccommodations,
     data.installedStoreSystems, data.installedGravitySystems,
     data.designProgressLevel, [],
+    data.installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
   );
 
   // --- Title ---

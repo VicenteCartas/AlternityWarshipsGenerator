@@ -201,7 +201,8 @@ export function SummarySelection({
     const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, hull);
     const ftlStats = installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, hull) : null;
     const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, []);
+    const cockpitLifeSupportCoverageHp = installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0);
+    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, [], cockpitLifeSupportCoverageHp);
     const weaponStats = calculateWeaponStats(installedWeapons);
     const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
     const defenseStats = calculateDefenseStats(installedDefenses);
@@ -396,6 +397,8 @@ export function SummarySelection({
     }
   }, [generateStatsMarkdown, onShowNotification]);
 
+  const embarkedCraft = getAllLoadedCraft(installedHangarMisc);
+
   // Validation checks
   const validationIssues = useMemo(() => {
     const errors: string[] = [];
@@ -461,13 +464,15 @@ export function SummarySelection({
       }
 
       // Calculate support stats for accommodation/life support warnings
+      const cockpitCoverage = installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0);
       const supportStats = calculateSupportSystemsStats(
         installedLifeSupport, 
         installedAccommodations, 
         installedStoreSystems, 
         installedGravitySystems, 
         designProgressLevel, 
-        []
+        [],
+        cockpitCoverage,
       );
       
       // Calculate hangar/misc stats for evacuation capacity

@@ -136,6 +136,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     const supportStats = calculateSupportSystemsStats(
       installedLifeSupport, installedAccommodations, installedStoreSystems,
       installedGravitySystems, designProgressLevel, designTechTracks,
+      installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
     );
     const weaponStats = calculateWeaponStats(installedWeapons);
     const weaponMagazineWarheadCost = calculateWeaponMagazineWarheadCost(installedWeapons);
@@ -276,7 +277,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
             installedCommandControl.length === 0 ||
             installedSensors.length === 0 ||
             (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
-            (!surfaceProvidesLifeSupport && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
+            (!surfaceProvidesLifeSupport && supportStats.totalCoverage === 0 && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
           ) {
             summaryValidationState = 'warning';
           }
