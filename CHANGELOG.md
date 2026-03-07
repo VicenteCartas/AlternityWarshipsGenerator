@@ -2,37 +2,6 @@
 
 ## [0.2.5] - TODO
 
-### New Features
-
-- **Simplified Mod Selection**: Removed the per-design mod picker from the New Design dialog. Designs now automatically use all globally-enabled mods (as configured in the Mod Manager). The dialog shows a read-only list of active mods so users can verify before creating a design. This eliminates the confusing dual-toggle UX where mods could be enabled globally but unselected per-design (or vice versa).
-- **Engine Power Generation (House Rule)**: Engines can now optionally generate power via a new `powerGeneratedPerHullPoint` field. Disabled by default — modders enable it by setting `"allowEnginePowerGeneration": true` in `engines.json` and adding `powerGeneratedPerHullPoint` values to their custom engine definitions. When enabled, the Engine step shows a "Power Gen/HP" column in the selection table, power generation chips on installed engines, and engine-generated power is added to the ship's total power budget. Follows the same house rule pattern as multiple armor layers.
-- **Cockpit Life Support**: Cockpit now provides life support coverage (2 HP) to its occupants per the rulebook. The Support Systems step shows an info banner noting the 3-day duration limit when a cockpit is installed.
-- **PDF Export: Loadout Details**: The PDF export now shows loaded contents under weapons with magazines (Accelerator, Heavy Accelerator), hangars/docking clamps (embarked craft), and magazines (stored ordnance) in the detailed systems report, combat weapons list, and damage zone boxes, using the same indented italic format as launcher ordnance.
-
-### Bug Fixes
-
-- Fixed Save dialog defaulting to an OS-chosen folder instead of the ship library directory. When a library path is configured, Save/Save As now opens to the library folder.
-- Fixed "Browse Folder" dialog in the Ship Library (and Craft Picker) opening to a default OS location instead of the currently selected library folder. The directory picker now defaults to the current library path.
-- The Craft Picker dialog (for hangars and docking clamps) now pre-filters designs that violate berthing rules: hangars hide craft >= 100 HP, docking clamps hide craft exceeding 10% of the carrier's hull HP.
-- Fixed random crash during drag-and-drop in the Damage Zones step caused by the canonical name sync effect leaking a `changed` flag across zone iterations, causing unnecessary zone object recreation and cascading state recomputation during active drags. Now uses per-zone change tracking.
-- Fixed weapons being movable to arc-incompatible zones via zone-to-zone drag-and-drop (arc compatibility was only checked for pool-to-zone drags).
-- Zone-to-zone weapon drags now show arc incompatibility visual feedback (red border, blocked cursor) matching pool-to-zone drag behavior.
-- Drag-and-drop event handlers now include try-catch guards to prevent uncaught exceptions from crashing the app. Drop cleanup (drag state reset) now runs in a `finally` block to prevent stuck drag state on errors.
-- Fixed fixedCoverage screens (Magnetic Screen, Deflection Inducer, Particle Screen) being unassignable on large ships where total HP exceeds the zone limit. Screens can now be split into 2 or 4 sections for independent zone assignment.
-
-### New Features
-
-- **Accelerator & Heavy Accelerator Weapons**: Added the Accelerator (PL 7) and Heavy Accelerator (PL 7) as projectile weapons. These hybrid weapons use a linear accelerator to throw unguided warheads at the enemy. Each has an integrated magazine measured in warhead size points (16 for Accelerator, 32 for Heavy Accelerator) that can be expanded with extra HP. Warheads are loaded directly from the warhead table — no propulsion or guidance needed. The magazine UI appears inline when editing an installed accelerator, following the same pattern as ordnance launchers.
-- **Data-Driven Weapon Magazines**: Any weapon (including modded weapons) can have an integrated magazine by setting `magazineCapacity` and `maxWarheadSize` fields. The expandable magazine mechanic uses the existing `expandable`/`expansionValuePerHp`/`expansionCostPerHp` system. Modders can create custom accelerator-type weapons entirely through the Mod Editor UI.
-- **Defense System Splitting**: Fixed-coverage screens that exceed the zone limit now show an "Exceeds Zone Limit" warning chip and offer Split ×2 / Split ×4 buttons. Splitting creates sub-sections that appear independently in the Damage Zones step, while remaining a single system for removal/cost/power purposes. A Merge button allows reverting to the unsplit state.
-- **Per-System Embarked Craft**: Hangars and docking clamps now manage their own craft individually (like ordnance in launchers). Each installed hangar/docking clamp has its own loadout, with capacity tracking, add/remove controls, and inline craft management. When a system is destroyed in a damage zone, you know exactly which craft were in it. The previous pooled embarked craft system has been replaced.
-- **Magazine Ordnance Loading**: Magazines now track their loaded ordnance individually (like launchers). Each installed magazine shows its loadout summary, capacity chip, and an inline ordnance loading form when editing — with the same +1/+5/+10/Max controls as launchers.
-
-### UI
-
-- Reordered welcome page buttons: Browse Library now appears before Load Design.
-- Removed compact Combat Reference PDF export option. The full ship sheet export already covers all combat data — users can print only the pages they need.
-
 ### Important
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
@@ -66,6 +35,15 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - **Copy Stats to Clipboard:** One-click formatted text for forums, Discord, or campaign docs.
 - **Fire Control & Sensor Control Validation:** Warnings when weapons lack fire control, fire controls have no linked weapons, or sensors lack sensor control (and vice versa).
 - **Ship Description Fields:** Optional metadata: faction, role, commissioning date, classification, manufacturer. Freeform lore text preserved.
+- **Simplified Mod Selection**: Removed the per-design mod picker from the New Design dialog. Designs now automatically use all globally-enabled mods (as configured in the Mod Manager). The dialog shows a read-only list of active mods so users can verify before creating a design. This eliminates the confusing dual-toggle UX where mods could be enabled globally but unselected per-design (or vice versa).
+- **Engine Power Generation (House Rule)**: Engines can now optionally generate power via a new `powerGeneratedPerHullPoint` field. Disabled by default — modders enable it by setting `"allowEnginePowerGeneration": true` in `engines.json` and adding `powerGeneratedPerHullPoint` values to their custom engine definitions. When enabled, the Engine step shows a "Power Gen/HP" column in the selection table, power generation chips on installed engines, and engine-generated power is added to the ship's total power budget. Follows the same house rule pattern as multiple armor layers.
+- **Cockpit Life Support**: Cockpit now provides life support coverage (2 HP) to its occupants per the rulebook. The Support Systems step shows an info banner noting the 3-day duration limit when a cockpit is installed.
+- **PDF Export: Loadout Details**: The PDF export now shows loaded contents under weapons with magazines (Accelerator, Heavy Accelerator), hangars/docking clamps (embarked craft), and magazines (stored ordnance) in the detailed systems report, combat weapons list, and damage zone boxes, using the same indented italic format as launcher ordnance.
+- **Accelerator & Heavy Accelerator Weapons**: Added the Accelerator (PL 7) and Heavy Accelerator (PL 7) as projectile weapons. These hybrid weapons use a linear accelerator to throw unguided warheads at the enemy. Each has an integrated magazine measured in warhead size points (16 for Accelerator, 32 for Heavy Accelerator) that can be expanded with extra HP. Warheads are loaded directly from the warhead table — no propulsion or guidance needed. The magazine UI appears inline when editing an installed accelerator, following the same pattern as ordnance launchers.
+- **Data-Driven Weapon Magazines**: Any weapon (including modded weapons) can have an integrated magazine by setting `magazineCapacity` and `maxWarheadSize` fields. The expandable magazine mechanic uses the existing `expandable`/`expansionValuePerHp`/`expansionCostPerHp` system. Modders can create custom accelerator-type weapons entirely through the Mod Editor UI.
+- **Defense System Splitting**: Fixed-coverage screens that exceed the zone limit now show an "Exceeds Zone Limit" warning chip and offer Split ×2 / Split ×4 buttons. Splitting creates sub-sections that appear independently in the Damage Zones step, while remaining a single system for removal/cost/power purposes. A Merge button allows reverting to the unsplit state.
+- **Per-System Embarked Craft**: Hangars and docking clamps now manage their own craft individually (like ordnance in launchers). Each installed hangar/docking clamp has its own loadout, with capacity tracking, add/remove controls, and inline craft management. When a system is destroyed in a damage zone, you know exactly which craft were in it. The previous pooled embarked craft system has been replaced.
+- **Magazine Ordnance Loading**: Magazines now track their loaded ordnance individually (like launchers). Each installed magazine shows its loadout summary, capacity chip, and an inline ordnance loading form when editing — with the same +1/+5/+10/Max controls as launchers.
 
 ### Improvements
 
@@ -86,14 +64,6 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - Issues tab in Summary is always visible.
 - Dozens of other minor UI and performance improvements.
 
-### Fixes
-
-- Bug: artificial gravity with G technology now requires PL6 instead of PL7.
-- Bug: some characters were not encoded correctly.
-- Bug: missing state variable in Engine step caused a runtime error.
-- Bug: PDF damage track boxes (mortal/critical) not rendering when they overflow to a new page.
-- Bug: PDF total cost was missing ordnance design costs (only launcher hardware was counted).
-
 ### UI
 
 - Summary Description tab: reorganized layout — metadata and image side by side at the top, full-width lore text area below.
@@ -105,10 +75,28 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - Summary Systems tab now shows sensor arc assignments in brackets, matching weapon display format.
 - PDF Combat Sheet: sensor and weapon tables now use consistent column order and short arc abbreviations (F S A P) with spaces between letters.
 - PDF Systems Detail: ordnance loaded in launchers now shows per-design cost; a separate "Ordnance" summary row shows total ordnance cost. Embarked Craft costs already displayed.
+- Reordered welcome page buttons: Browse Library now appears before Load Design.
+- Removed compact Combat Reference PDF export option. The full ship sheet export already covers all combat data — users can print only the pages they need.
 
 ### Code Quality
 
 - Removed `as unknown` type casts in production code: widened event handler type in EditableDataGrid, centralized data boundary casts in dataLoader and ModEditor with typed helpers.
+
+### Fixes
+
+- Bug: artificial gravity with G technology now requires PL6 instead of PL7.
+- Bug: some characters were not encoded correctly.
+- Bug: missing state variable in Engine step caused a runtime error.
+- Bug: PDF damage track boxes (mortal/critical) not rendering when they overflow to a new page.
+- Bug: PDF total cost was missing ordnance design costs (only launcher hardware was counted).
+- Fixed Save dialog defaulting to an OS-chosen folder instead of the ship library directory. When a library path is configured, Save/Save As now opens to the library folder.
+- Fixed "Browse Folder" dialog in the Ship Library (and Craft Picker) opening to a default OS location instead of the currently selected library folder. The directory picker now defaults to the current library path.
+- The Craft Picker dialog (for hangars and docking clamps) now pre-filters designs that violate berthing rules: hangars hide craft >= 100 HP, docking clamps hide craft exceeding 10% of the carrier's hull HP.
+- Fixed random crash during drag-and-drop in the Damage Zones step caused by the canonical name sync effect leaking a `changed` flag across zone iterations, causing unnecessary zone object recreation and cascading state recomputation during active drags. Now uses per-zone change tracking.
+- Fixed weapons being movable to arc-incompatible zones via zone-to-zone drag-and-drop (arc compatibility was only checked for pool-to-zone drags).
+- Zone-to-zone weapon drags now show arc incompatibility visual feedback (red border, blocked cursor) matching pool-to-zone drag behavior.
+- Drag-and-drop event handlers now include try-catch guards to prevent uncaught exceptions from crashing the app. Drop cleanup (drag state reset) now runs in a `finally` block to prevent stuck drag state on errors.
+- Fixed fixedCoverage screens (Magnetic Screen, Deflection Inducer, Particle Screen) being unassignable on large ships where total HP exceeds the zone limit. Screens can now be split into 2 or 4 sections for independent zone assignment.
 
 ## [0.2.4] - 02/11/2025
 

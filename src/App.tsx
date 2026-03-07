@@ -179,7 +179,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     totalHullPoints,
     totalPower,
     totalPowerConsumed,
-    enginePowerGenerated,
     totalCost,
     powerBreakdown,
     hpBreakdown,
