@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, inlineEditSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
@@ -447,7 +447,7 @@ export function HangarMiscSelection({
     if (!selectedSystem || !editingSystemId) return null;
 
     return (
-      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+      <Box ref={formRef} sx={inlineEditSx}>
         <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField

@@ -32,6 +32,7 @@ import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
 import { ArcRadarSelector } from './shared/ArcRadarSelector';
 import { OrdnanceSelection, InstalledLaunchSystems } from './OrdnanceSelection';
+import { WeaponMagazineEditForm, formatWeaponMagazineLoadout, getWeaponMagazineUsedCapacity } from './WeaponMagazineEditForm';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type {
@@ -65,6 +66,7 @@ import {
   formatArcs,
   validateArcs,
   generateWeaponId,
+  isWeaponMagazine,
 } from '../services/weaponService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { getGunConfigurationsData, getMountModifiersData } from '../services/dataLoader';
@@ -267,6 +269,7 @@ export function WeaponSelection({
     const newWeapon: InstalledWeapon = {
       ...weapon,
       id: generateWeaponId(),
+      ...(weapon.magazineLoadout ? { magazineLoadout: weapon.magazineLoadout.map(o => ({ ...o })) } : {}),
     };
     const index = installedWeapons.findIndex((w) => w.id === weapon.id);
     const updated = [...installedWeapons];
@@ -418,6 +421,14 @@ export function WeaponSelection({
                     {weapon.concealed && ' (Concealed)'}
                     {' → '}
                     {formatArcs(weapon.arcs || ['forward'])}
+                    {isWeaponMagazine(weapon.weaponType) && (
+                      <>
+                        {' — '}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {formatWeaponMagazineLoadout(weapon)}
+                        </Typography>
+                      </>
+                    )}
                   </Typography>
                   <Chip label={`${weapon.hullPoints * weapon.quantity} HP`} size="small" variant="outlined" />
                   <Chip label={`${weapon.powerRequired * weapon.quantity} Power`} size="small" variant="outlined" />
@@ -446,6 +457,18 @@ export function WeaponSelection({
                       />
                     </Tooltip>
                   )}
+                  {isWeaponMagazine(weapon.weaponType) && (() => {
+                    const usedCap = getWeaponMagazineUsedCapacity(weapon);
+                    const totalCap = weapon.totalMagazineCapacity || weapon.weaponType.magazineCapacity || 0;
+                    return (
+                      <Chip
+                        label={`${usedCap}/${totalCap} Cap`}
+                        size="small"
+                        variant="outlined"
+                        color={usedCap >= totalCap ? 'success' : 'warning'}
+                      />
+                    );
+                  })()}
                   <IconButton size="small" onClick={() => handleEditWeapon(weapon)} color="primary" aria-label="Edit weapon">
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -616,6 +639,23 @@ export function WeaponSelection({
           </Box>
         </Box>
         </form>
+        {/* Magazine edit form for accelerator-type weapons */}
+        {editingWeaponId && isWeaponMagazine(selectedWeapon) && (() => {
+          const editingWeapon = installedWeapons.find(w => w.id === editingWeaponId);
+          if (!editingWeapon) return null;
+          return (
+            <WeaponMagazineEditForm
+              weapon={editingWeapon}
+              designProgressLevel={designProgressLevel}
+              designTechTracks={designTechTracks}
+              onWeaponChange={(updated) => {
+                onWeaponsChange(
+                  installedWeapons.map(w => w.id === updated.id ? updated : w)
+                );
+              }}
+            />
+          );
+        })()}
       </Paper>
     );
   };

@@ -110,7 +110,19 @@ export const truncatedDescriptionSx = {
 export const configFormSx = {
   p: 2,
   mb: 2,
-  borderColor: 'primary.main',
-  borderWidth: 2,
-  bgcolor: 'action.hover',
+  bgcolor: 'background.default',
+} as const;
+
+/**
+ * Inline edit form styling — used when editing an existing installed item
+ * inside the installed items Paper. The darker background creates a visual
+ * "inset" effect to distinguish the edit area from the parent list.
+ * Use: <Box sx={inlineEditSx}>
+ */
+export const inlineEditSx = {
+  pl: 2,
+  pr: 2,
+  pb: 1,
+  pt: 1,
+  bgcolor: 'background.default',
 } as const;

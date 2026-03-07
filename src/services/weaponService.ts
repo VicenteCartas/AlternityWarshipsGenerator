@@ -19,6 +19,7 @@ import type {
   GunConfigModifier,
   FirepowerRating,
 } from '../types/weapon';
+import type { LoadedOrdnance } from '../types/ordnance';
 import { ALL_ZERO_ARCS } from '../types/weapon';
 import {
   getBeamWeaponsData,
@@ -28,6 +29,7 @@ import {
   getMountModifiersData,
   getGunConfigurationsData,
   getConcealmentModifierData,
+  getWarheadsData,
 } from './dataLoader';
 
 /**
@@ -239,6 +241,36 @@ export function calculateWeaponCost(
 }
 
 /**
+ * Check if a weapon type has an integrated magazine (accelerator-type weapons)
+ */
+export function isWeaponMagazine(weapon: WeaponType): boolean {
+  return !!weapon.magazineCapacity;
+}
+
+/**
+ * Calculate magazine capacity for an accelerator-type weapon
+ */
+export function calculateWeaponMagazineCapacity(
+  weapon: WeaponType,
+  extraHp: number
+): number {
+  const base = weapon.magazineCapacity || 0;
+  if (!weapon.expandable || extraHp <= 0) return base;
+  return base + extraHp * (weapon.expansionValuePerHp || 0);
+}
+
+/**
+ * Calculate extra HP cost for magazine expansion
+ */
+export function calculateWeaponMagazineExtraCost(
+  weapon: WeaponType,
+  extraHp: number
+): number {
+  if (!weapon.expandable || extraHp <= 0) return 0;
+  return extraHp * (weapon.expansionCostPerHp || 0);
+}
+
+/**
  * Create an installed weapon from a weapon type
  */
 export function createInstalledWeapon(
@@ -248,8 +280,16 @@ export function createInstalledWeapon(
   gunConfig: GunConfiguration,
   concealed: boolean,
   quantity: number = 1,
-  arcs: FiringArc[] = ['forward']
+  arcs: FiringArc[] = ['forward'],
+  extraHp: number = 0,
+  magazineLoadout?: LoadedOrdnance[]
 ): InstalledWeapon {
+  const hasMagazine = isWeaponMagazine(weapon);
+  const baseHp = calculateWeaponHullPoints(weapon, mountType, gunConfig, concealed);
+  const baseCost = calculateWeaponCost(weapon, mountType, gunConfig, concealed);
+  const magazineExtraHp = hasMagazine ? extraHp : 0;
+  const magazineExtraCost = hasMagazine ? calculateWeaponMagazineExtraCost(weapon, magazineExtraHp) : 0;
+
   return {
     id: generateWeaponId(),
     weaponType: weapon,
@@ -259,9 +299,14 @@ export function createInstalledWeapon(
     concealed,
     quantity,
     arcs,
-    hullPoints: calculateWeaponHullPoints(weapon, mountType, gunConfig, concealed),
+    hullPoints: baseHp + magazineExtraHp,
     powerRequired: calculateWeaponPower(weapon, gunConfig),
-    cost: calculateWeaponCost(weapon, mountType, gunConfig, concealed),
+    cost: baseCost + magazineExtraCost,
+    ...(hasMagazine ? {
+      extraHp: magazineExtraHp,
+      magazineLoadout: magazineLoadout || [],
+      totalMagazineCapacity: calculateWeaponMagazineCapacity(weapon, magazineExtraHp),
+    } : {}),
   };
 }
 
@@ -274,8 +319,17 @@ export function updateInstalledWeapon(
   gunConfig: GunConfiguration,
   concealed: boolean,
   quantity: number = 1,
-  arcs: FiringArc[] = installed.arcs
+  arcs: FiringArc[] = installed.arcs,
+  extraHp?: number,
+  magazineLoadout?: LoadedOrdnance[]
 ): InstalledWeapon {
+  const weapon = installed.weaponType;
+  const hasMagazine = isWeaponMagazine(weapon);
+  const baseHp = calculateWeaponHullPoints(weapon, mountType, gunConfig, concealed);
+  const baseCost = calculateWeaponCost(weapon, mountType, gunConfig, concealed);
+  const magazineExtraHp = hasMagazine ? (extraHp ?? installed.extraHp ?? 0) : 0;
+  const magazineExtraCost = hasMagazine ? calculateWeaponMagazineExtraCost(weapon, magazineExtraHp) : 0;
+
   return {
     ...installed,
     mountType,
@@ -283,9 +337,14 @@ export function updateInstalledWeapon(
     concealed,
     quantity,
     arcs,
-    hullPoints: calculateWeaponHullPoints(installed.weaponType, mountType, gunConfig, concealed),
-    powerRequired: calculateWeaponPower(installed.weaponType, gunConfig),
-    cost: calculateWeaponCost(installed.weaponType, mountType, gunConfig, concealed),
+    hullPoints: baseHp + magazineExtraHp,
+    powerRequired: calculateWeaponPower(weapon, gunConfig),
+    cost: baseCost + magazineExtraCost,
+    ...(hasMagazine ? {
+      extraHp: magazineExtraHp,
+      magazineLoadout: magazineLoadout ?? installed.magazineLoadout ?? [],
+      totalMagazineCapacity: calculateWeaponMagazineCapacity(weapon, magazineExtraHp),
+    } : {}),
   };
 }
 
@@ -315,6 +374,24 @@ export function calculateWeaponStats(weapons: InstalledWeapon[]): WeaponStats {
       ordnanceCount: 0,
     }
   );
+}
+
+/**
+ * Calculate total warhead cost for all weapon magazines (accelerator-type weapons)
+ */
+export function calculateWeaponMagazineWarheadCost(weapons: InstalledWeapon[]): number {
+  const warheads = getWarheadsData() || [];
+  let totalCost = 0;
+  for (const weapon of weapons) {
+    if (!weapon.magazineLoadout) continue;
+    for (const item of weapon.magazineLoadout) {
+      const wh = warheads.find(w => w.id === item.designId);
+      if (wh) {
+        totalCost += wh.cost * item.quantity * weapon.quantity;
+      }
+    }
+  }
+  return totalCost;
 }
 
 /**

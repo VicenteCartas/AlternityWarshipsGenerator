@@ -25,7 +25,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, inlineEditSx } from '../constants/tableStyles';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { SensorType, InstalledSensor, SensorCategory } from '../types/sensor';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
@@ -291,7 +291,7 @@ export function SensorSelection({
     if (!selectedSensor || !editingSensorId) return null;
 
     return (
-      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+      <Box ref={formRef} sx={inlineEditSx}>
         <form onSubmit={(e) => { e.preventDefault(); handleAddSensor(); }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <TextField

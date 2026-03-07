@@ -27,7 +27,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { TabPanel, TruncatedDescription } from './shared';
-import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, inlineEditSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack, InstalledQuantityItem } from '../types/common';
 import type {
@@ -285,7 +285,7 @@ function SubsystemTab<T extends BaseSubsystemType>({
                 </Box>
                 {/* Inline edit form */}
                 {isEditing && selectedType && (
-                  <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                  <Box sx={inlineEditSx}>
                     {renderFormContent(true)}
                   </Box>
                 )}

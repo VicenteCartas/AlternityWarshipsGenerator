@@ -1000,27 +1000,6 @@
       ]
     },
     {
-      "id": "accelerator",
-      "name": "Accelerator",
-      "progressLevel": 7,
-      "techTracks": [],
-      "hullPoints": 9,
-      "powerRequired": 7,
-      "cost": 10000000,
-      "accuracyModifier": 1,
-      "rangeShort": 3,
-      "rangeMedium": 5,
-      "rangeLong": 7,
-      "damageType": "En",
-      "damage": "2d6s/2d6w/2d6m",
-      "description": "The accelerator uses advanced magnetic fields to launch projectiles at near-relativistic speeds, converting kinetic energy into devastating impact damage.",
-      "firepower": "M",
-      "fireModes": [
-        "F",
-        "G"
-      ]
-    },
-    {
       "id": "tach-rifle",
       "name": "Tach Rifle",
       "progressLevel": 7,
@@ -1038,27 +1017,6 @@
       "damage": "d12w/d8m/d12m",
       "description": "The tach rifle fires self-powered tachyon rockets. The rounds are not self-guiding since the tachyon rocket breaks the light-speed barrier for an infinitesimal moment. The guidance system is basically a timer that drops it back into real space just in time to strike the target.",
       "firepower": "M",
-      "fireModes": [
-        "F",
-        "G"
-      ]
-    },
-    {
-      "id": "heavy-accelerator",
-      "name": "Heavy Accelerator",
-      "progressLevel": 7,
-      "techTracks": [],
-      "hullPoints": 18,
-      "powerRequired": 14,
-      "cost": 40000000,
-      "accuracyModifier": 3,
-      "rangeShort": 4,
-      "rangeMedium": 8,
-      "rangeLong": 10,
-      "damageType": "En",
-      "damage": "2d6w/2d6m/2d6c",
-      "description": "A larger and more powerful version of the accelerator, capable of launching even larger projectiles at devastating velocities.",
-      "firepower": "H",
       "fireModes": [
         "F",
         "G"
@@ -1277,6 +1235,58 @@
       "fireModes": [
         "F"
       ]
+    },
+    {
+      "id": "accelerator",
+      "name": "Accelerator",
+      "progressLevel": 7,
+      "techTracks": [],
+      "hullPoints": 9,
+      "powerRequired": 7,
+      "cost": 10000000,
+      "accuracyModifier": 1,
+      "rangeShort": 3,
+      "rangeMedium": 5,
+      "rangeLong": 7,
+      "damageType": "En",
+      "firepower": "M",
+      "damage": "2d6s/2d6w/2d6m",
+      "description": "The accelerator uses a linear accelerator to throw an unguided warhead at the enemy. Any warhead of size 2 or smaller may be used as the payload (the listed damage and firepower assume a low-yield nuke). The warheads are area-effect weapons.",
+      "fireModes": [
+        "F",
+        "G"
+      ],
+      "magazineCapacity": 16,
+      "maxWarheadSize": 2,
+      "expandable": true,
+      "expansionValuePerHp": 4,
+      "expansionCostPerHp": 50000
+    },
+    {
+      "id": "heavy-accelerator",
+      "name": "Heavy Accelerator",
+      "progressLevel": 7,
+      "techTracks": [],
+      "hullPoints": 18,
+      "powerRequired": 14,
+      "cost": 40000000,
+      "accuracyModifier": 3,
+      "rangeShort": 4,
+      "rangeMedium": 8,
+      "rangeLong": 10,
+      "damageType": "En",
+      "firepower": "H",
+      "damage": "2d6w/2d6m/2d6c",
+      "description": "The heavy accelerator fires any warhead of size four or smaller; the default figures represent a high-yield nuke. The warheads are area-effect weapons.",
+      "fireModes": [
+        "F",
+        "G"
+      ],
+      "magazineCapacity": 32,
+      "maxWarheadSize": 4,
+      "expandable": true,
+      "expansionValuePerHp": 4,
+      "expansionCostPerHp": 50000
     }
   ],
   "torpedoWeapons": [

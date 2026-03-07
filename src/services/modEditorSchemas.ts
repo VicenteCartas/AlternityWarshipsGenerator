@@ -539,9 +539,12 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'damage', label: 'Damage', type: 'text', width: 200, description: 'Damage dice expression' },
       COL_AREA_AMAZING, COL_AREA_GOOD, COL_AREA_ORDINARY, COL_AREA_NOTES,
       { key: 'fireModes', label: 'Fire Modes', type: 'multiselect', width: 120, description: 'Available fire mode options', options: [{ value: 'F', label: 'F (Single-Shot)' }, { value: 'B', label: 'B (Burst)' }, { value: 'A', label: 'A (Automatic)' }, { value: 'G', label: 'G (Battery)' }] },
+      { key: 'magazineCapacity', label: 'Mag Cap', type: 'number', min: 0, width: 90, description: 'Base magazine capacity in warhead size points (0 = no magazine)' },
+      { key: 'maxWarheadSize', label: 'Max WH', type: 'number', min: 0, width: 90, description: 'Maximum warhead size that can be loaded' },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 100000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 3, rangeLong: 10, damageType: 'En', firepower: 'S', damage: 'd4s/d4w/d4m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 100000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 3, rangeLong: 10, damageType: 'En', firepower: 'S', damage: 'd4s/d4w/d4m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], magazineCapacity: 0, maxWarheadSize: 0, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, description: '' },
   },
 
   // ---- Weapons: Projectile ----
@@ -562,9 +565,12 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'damage', label: 'Damage', type: 'text', width: 200, description: 'Damage dice expression' },
       COL_AREA_AMAZING, COL_AREA_GOOD, COL_AREA_ORDINARY, COL_AREA_NOTES,
       { key: 'fireModes', label: 'Fire Modes', type: 'multiselect', width: 120, description: 'Available fire mode options', options: [{ value: 'F', label: 'F (Single-Shot)' }, { value: 'B', label: 'B (Burst)' }, { value: 'A', label: 'A (Automatic)' }, { value: 'G', label: 'G (Battery)' }] },
+      { key: 'magazineCapacity', label: 'Mag Cap', type: 'number', min: 0, width: 90, description: 'Base magazine capacity in warhead size points (0 = no magazine)' },
+      { key: 'maxWarheadSize', label: 'Max WH', type: 'number', min: 0, width: 90, description: 'Maximum warhead size that can be loaded' },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 2, rangeLong: 5, damageType: 'HI', firepower: 'S', damage: 'd4s/d4w/d4m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 2, rangeLong: 5, damageType: 'HI', firepower: 'S', damage: 'd4s/d4w/d4m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], magazineCapacity: 0, maxWarheadSize: 0, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, description: '' },
   },
 
   // ---- Weapons: Torpedo ----
@@ -585,9 +591,12 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'damage', label: 'Damage', type: 'text', width: 200, description: 'Damage dice expression' },
       COL_AREA_AMAZING, COL_AREA_GOOD, COL_AREA_ORDINARY, COL_AREA_NOTES,
       { key: 'fireModes', label: 'Fire Modes', type: 'multiselect', width: 120, description: 'Available fire mode options', options: [{ value: 'F', label: 'F (Single-Shot)' }, { value: 'B', label: 'B (Burst)' }, { value: 'A', label: 'A (Automatic)' }, { value: 'G', label: 'G (Battery)' }] },
+      { key: 'magazineCapacity', label: 'Mag Cap', type: 'number', min: 0, width: 90, description: 'Base magazine capacity in warhead size points (0 = no magazine)' },
+      { key: 'maxWarheadSize', label: 'Max WH', type: 'number', min: 0, width: 90, description: 'Maximum warhead size that can be loaded' },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 7, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 200000, accuracyModifier: 0, rangeShort: 2, rangeMedium: 5, rangeLong: 15, damageType: 'En', firepower: 'M', damage: 'd6s/d6w/d6m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 7, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 200000, accuracyModifier: 0, rangeShort: 2, rangeMedium: 5, rangeLong: 15, damageType: 'En', firepower: 'M', damage: 'd6s/d6w/d6m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], magazineCapacity: 0, maxWarheadSize: 0, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, description: '' },
   },
 
   // ---- Weapons: Special ----
@@ -609,9 +618,12 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       COL_AREA_AMAZING, COL_AREA_GOOD, COL_AREA_ORDINARY, COL_AREA_NOTES,
       { key: 'fireModes', label: 'Fire Modes', type: 'multiselect', width: 120, description: 'Available fire mode options', options: [{ value: 'F', label: 'F (Single-Shot)' }, { value: 'B', label: 'B (Burst)' }, { value: 'A', label: 'A (Automatic)' }, { value: 'G', label: 'G (Battery)' }] },
       { key: 'specialEffect', label: 'Special', type: 'text', width: 250, description: 'Special weapon effect description' },
+      { key: 'magazineCapacity', label: 'Mag Cap', type: 'number', min: 0, width: 90, description: 'Base magazine capacity in warhead size points (0 = no magazine)' },
+      { key: 'maxWarheadSize', label: 'Max WH', type: 'number', min: 0, width: 90, description: 'Maximum warhead size that can be loaded' },
+      COL_EXPANDABLE, COL_EXP_VALUE_PER_HP, COL_EXP_COST_PER_HP,
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 7, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 200000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 3, rangeLong: 10, damageType: 'En', firepower: 'M', damage: 'd6s/d6w/d6m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], specialEffect: '', description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 7, techTracks: [], hullPoints: 1, powerRequired: 1, cost: 200000, accuracyModifier: 0, rangeShort: 1, rangeMedium: 3, rangeLong: 10, damageType: 'En', firepower: 'M', damage: 'd6s/d6w/d6m', area: { rangeAmazing: '', rangeGood: '', rangeOrdinary: '', notes: '' }, fireModes: ['F'], specialEffect: '', magazineCapacity: 0, maxWarheadSize: 0, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, description: '' },
   },
 
   // ---- Ordnance: Launch Systems ----

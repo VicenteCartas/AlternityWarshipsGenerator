@@ -207,6 +207,13 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       concealed: w.concealed,
       quantity: w.quantity,
       arcs: w.arcs,
+      ...(w.extraHp ? { extraHp: w.extraHp } : {}),
+      ...(w.magazineLoadout && w.magazineLoadout.length > 0 ? {
+        magazineLoadout: w.magazineLoadout.map(o => ({
+          designId: o.designId,
+          quantity: o.quantity,
+        })),
+      } : {}),
     })),
     ordnanceDesigns: (state.ordnanceDesigns || []).map((d): SavedOrdnanceDesign => {
       const base = {
@@ -688,7 +695,9 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         savedWeapon.gunConfiguration,
         savedWeapon.concealed,
         savedWeapon.quantity,
-        savedWeapon.arcs as FiringArc[]
+        savedWeapon.arcs as FiringArc[],
+        savedWeapon.extraHp || 0,
+        savedWeapon.magazineLoadout?.map(o => ({ designId: o.designId, quantity: o.quantity }))
       );
       if (savedWeapon.id) weapon.id = savedWeapon.id;
       weapons.push(weapon);

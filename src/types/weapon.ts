@@ -1,4 +1,5 @@
-import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs, PowerConsumingStats } from './common';
+import type { ProgressLevel, TechTrack, InstalledItemBase, InstalledItemWithCalcs, PowerConsumingStats, ExpandableFields } from './common';
+import type { LoadedOrdnance } from './ordnance';
 
 // ============== Weapon Categories ==============
 
@@ -95,7 +96,7 @@ export interface AreaEffect {
 /**
  * Base interface for all weapon types
  */
-export interface BaseWeaponType {
+export interface BaseWeaponType extends ExpandableFields {
   id: string;
   name: string;
   progressLevel: ProgressLevel;
@@ -126,6 +127,10 @@ export interface BaseWeaponType {
   description: string;
   /** Area effect information (if weapon has area effect) */
   area?: AreaEffect;
+  /** Base magazine capacity in warhead size points (for accelerator-type weapons) */
+  magazineCapacity?: number;
+  /** Maximum warhead size that can be loaded (for accelerator-type weapons) */
+  maxWarheadSize?: number;
 }
 
 // ============== Beam Weapon Type ==============
@@ -180,6 +185,12 @@ export interface InstalledWeapon extends InstalledItemBase, InstalledItemWithCal
   quantity: number;
   /** Selected firing arcs */
   arcs: FiringArc[];
+  /** Extra HP allocated for magazine expansion (accelerator-type weapons) */
+  extraHp?: number;
+  /** Ordnance warheads loaded in the weapon's magazine (accelerator-type weapons) */
+  magazineLoadout?: LoadedOrdnance[];
+  /** Total magazine capacity after expansion (calculated) */
+  totalMagazineCapacity?: number;
 }
 
 // ============== Weapon Stats ==============

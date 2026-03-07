@@ -26,7 +26,7 @@ import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
-import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx } from '../constants/tableStyles';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx, inlineEditSx } from '../constants/tableStyles';
 import { TruncatedDescription, ConfirmDialog } from './shared';
 import type { Hull } from '../types/hull';
 import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
@@ -554,7 +554,7 @@ export function EngineSelection({
                   </Box>
                   {/* Inline edit form when editing this engine */}
                   {isEditing && selectedType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    <Box sx={inlineEditSx}>
                       <form onSubmit={(e) => { e.preventDefault(); handleAddEngine(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField
@@ -698,7 +698,7 @@ export function EngineSelection({
                   </Box>
                   {/* Inline edit form when editing this fuel tank */}
                   {isEditing && addingFuelTankForType && (
-                    <Box sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+                    <Box sx={inlineEditSx}>
                       <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <TextField

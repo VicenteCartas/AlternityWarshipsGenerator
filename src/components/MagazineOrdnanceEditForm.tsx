@@ -15,10 +15,8 @@ import {
   TableRow,
   Paper,
   Button,
-  IconButton,
   Stack,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { OrdnanceDesign, LoadedOrdnance } from '../types/ordnance';
 import { formatCost } from '../services/formatters';
@@ -67,6 +65,20 @@ export function MagazineOrdnanceEditForm({
     updateLoadout(currentLoadout.filter(item => item.designId !== designId));
   };
 
+  const handleReduceQuantity = (designId: string, qty: number) => {
+    const existing = currentLoadout.find(item => item.designId === designId);
+    if (!existing) return;
+    if (existing.quantity <= qty) {
+      handleUnload(designId);
+    } else {
+      updateLoadout(
+        currentLoadout.map(item =>
+          item.designId === designId ? { ...item, quantity: item.quantity - qty } : item
+        )
+      );
+    }
+  };
+
   // Format loadout contents for display (used externally too)
   const formatLoadoutSummary = useMemo(() => {
     if (currentLoadout.length === 0) return '';
@@ -101,6 +113,8 @@ export function MagazineOrdnanceEditForm({
             <TableBody>
               {currentLoadout.map(item => {
                 const design = ordnanceDesigns.find(d => d.id === item.designId);
+                const canLoadMore = design ? design.capacityRequired <= remainingCap : false;
+                const maxMore = design ? Math.floor(remainingCap / design.capacityRequired) : 0;
                 return (
                   <TableRow key={item.designId}>
                     <TableCell>{design?.name ?? 'Unknown'}</TableCell>
@@ -108,14 +122,12 @@ export function MagazineOrdnanceEditForm({
                     <TableCell>{design ? design.capacityRequired * item.quantity : '?'}</TableCell>
                     <TableCell>{design ? formatCost(design.totalCost * item.quantity) : '?'}</TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleUnload(item.designId)}
-                        aria-label="Unload ordnance"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button size="small" variant="outlined" onClick={() => handleReduceQuantity(item.designId, 1)}>-1</Button>
+                        <Button size="small" variant="outlined" disabled={!canLoadMore} onClick={() => handleLoad(item.designId, 1)}>+1</Button>
+                        {maxMore >= 5 && <Button size="small" variant="outlined" onClick={() => handleLoad(item.designId, 5)}>+5</Button>}
+                        <Button size="small" variant="outlined" color="error" onClick={() => handleUnload(item.designId)}>Clear</Button>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 );

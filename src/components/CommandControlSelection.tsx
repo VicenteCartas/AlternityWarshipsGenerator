@@ -30,7 +30,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import WarningIcon from '@mui/icons-material/Warning';
 import { TabPanel, ConfirmDialog } from './shared';
-import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx } from '../constants/tableStyles';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, inlineEditSx } from '../constants/tableStyles';
 import type { Hull } from '../types/hull';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import type { CommandControlSystemType, InstalledCommandControlSystem, CommandControlCategory, WeaponBatteryKey } from '../types/commandControl';
@@ -636,7 +636,7 @@ export function CommandControlSelection({
     const isLinkedControl = isFireControl || isSensorControl;
 
     return (
-      <Box ref={formRef} sx={{ pl: 2, pr: 2, pb: 1, pt: 1 }}>
+      <Box ref={formRef} sx={inlineEditSx}>
         <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
         <Typography variant="subtitle2" gutterBottom>
           Edit {selectedSystem.name}

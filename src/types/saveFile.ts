@@ -234,6 +234,10 @@ export interface SavedWeapon {
   quantity: number;
   /** Firing arcs */
   arcs: string[];
+  /** Extra HP for magazine expansion (accelerator-type weapons) */
+  extraHp?: number;
+  /** Ordnance loaded in magazine (accelerator-type weapons) */
+  magazineLoadout?: SavedLoadedOrdnance[];
 }
 
 /**

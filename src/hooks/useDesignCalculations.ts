@@ -18,7 +18,7 @@ import { calculateTotalPowerPlantStats } from '../services/powerPlantService';
 import { calculateTotalEngineStats } from '../services/engineService';
 import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from '../services/ftlDriveService';
 import { calculateSupportSystemsStats } from '../services/supportSystemService';
-import { calculateWeaponStats } from '../services/weaponService';
+import { calculateWeaponStats, calculateWeaponMagazineWarheadCost } from '../services/weaponService';
 import { calculateOrdnanceStats } from '../services/ordnanceService';
 import { calculateDefenseStats } from '../services/defenseService';
 import { calculateCommandControlStats, getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
@@ -138,6 +138,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       installedGravitySystems, designProgressLevel, designTechTracks,
     );
     const weaponStats = calculateWeaponStats(installedWeapons);
+    const weaponMagazineWarheadCost = calculateWeaponMagazineWarheadCost(installedWeapons);
     const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
     const defenseStats = calculateDefenseStats(installedDefenses);
     const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
@@ -208,7 +209,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       engines: engineStats.totalCost,
       ftlDrive: ftlStats.totalCost + ftlFuelStats.totalCost,
       supportSystems: supportStats.totalCost,
-      weapons: weaponStats.totalCost + ordnanceStats.totalCost,
+      weapons: weaponStats.totalCost + ordnanceStats.totalCost + weaponMagazineWarheadCost,
       defenses: defenseStats.totalCost,
       commandControl: ccStats.totalCost,
       sensors: sensorStats.totalCost,
@@ -220,7 +221,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       + powerPlantStats.totalCost + engineStats.totalCost
       + ftlStats.totalCost + ftlFuelStats.totalCost
       + supportStats.totalCost
-      + weaponStats.totalCost + ordnanceStats.totalCost
+      + weaponStats.totalCost + ordnanceStats.totalCost + weaponMagazineWarheadCost
       + defenseStats.totalCost + ccStats.totalCost
       + sensorStats.totalCost + hangarMiscStats.totalCost
       + embarkedCraftStats.totalEmbarkedCost;
