@@ -87,6 +87,7 @@ Full mod support added. Mods live in the user data folder and are managed throug
 
 ### Fixes
 
+- Bug: Cerametal armor incorrectly required the "S" (Super-Materials) tech track. Cerametal has no tech track requirement.
 - Bug: artificial gravity with G technology now requires PL6 instead of PL7.
 - Bug: some characters were not encoded correctly.
 - Bug: missing state variable in Engine step caused a runtime error.

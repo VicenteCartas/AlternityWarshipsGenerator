@@ -64,9 +64,7 @@
             "name": "Cerametal",
             "armorWeight": "light",
             "progressLevel": 7,
-            "techTracks": [
-                "S"
-            ],
+            "techTracks": [],
             "protectionLI": "d6-1",
             "protectionHI": "d6-1",
             "protectionEn": "d6-1",
@@ -144,9 +142,7 @@
             "name": "Cerametal",
             "armorWeight": "medium",
             "progressLevel": 7,
-            "techTracks": [
-                "S"
-            ],
+            "techTracks": [],
             "protectionLI": "d4+1",
             "protectionHI": "d4+1",
             "protectionEn": "d4+1",
@@ -238,9 +234,7 @@
             "name": "Cerametal",
             "armorWeight": "heavy",
             "progressLevel": 7,
-            "techTracks": [
-                "S"
-            ],
+            "techTracks": [],
             "protectionLI": "d8",
             "protectionHI": "d8",
             "protectionEn": "d8",
