@@ -12,19 +12,9 @@ import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { ProgressLevel, TechTrack, StepDef } from '../types/common';
-import { calculateHullStats } from '../services/hullService';
-import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
-import { calculateTotalPowerPlantStats } from '../services/powerPlantService';
-import { calculateTotalEngineStats, isEnginePowerGenerationAllowed } from '../services/engineService';
-import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats } from '../services/ftlDriveService';
-import { calculateSupportSystemsStats } from '../services/supportSystemService';
-import { calculateWeaponStats, calculateWeaponMagazineWarheadCost } from '../services/weaponService';
-import { calculateOrdnanceStats } from '../services/ordnanceService';
-import { calculateDefenseStats } from '../services/defenseService';
-import { calculateCommandControlStats, getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
-import { calculateSensorStats } from '../services/sensorService';
-import { calculateHangarMiscStats } from '../services/hangarMiscService';
-import { calculateEmbarkedCraftStats } from '../services/embarkedCraftService';
+import { isEnginePowerGenerationAllowed } from '../services/engineService';
+import { getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
+import { computeDesignSnapshot } from '../services/designSnapshotService';
 
 export interface PowerScenario {
   engines: boolean;
@@ -122,117 +112,51 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     }
 
     const hull = selectedHull;
-    const totalHullPoints = calculateHullStats(hull).totalHullPoints;
 
-    // ---- Subsystem stats (computed once, reused across breakdowns) ----
-    const armorHP = calculateMultiLayerArmorHP(hull, armorLayers);
-    const armorCost = calculateMultiLayerArmorCost(hull, armorLayers);
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, hull);
-    const ftlStats = installedFTLDrive
-      ? calculateTotalFTLStats(installedFTLDrive, hull)
-      : { totalHullPoints: 0, totalPowerRequired: 0, totalCost: 0 };
-    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
-    const supportStats = calculateSupportSystemsStats(
-      installedLifeSupport, installedAccommodations, installedStoreSystems,
-      installedGravitySystems, designProgressLevel, designTechTracks,
-      installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
-    );
-    const weaponStats = calculateWeaponStats(installedWeapons);
-    const weaponMagazineWarheadCost = calculateWeaponMagazineWarheadCost(installedWeapons);
-    const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
-    const defenseStats = calculateDefenseStats(installedDefenses);
-    const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
-    const sensorStats = calculateSensorStats(installedSensors);
-    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    const embarkedCraftStats = calculateEmbarkedCraftStats(installedHangarMisc);
+    // ---- Single authoritative computation ----
+    const snapshot = computeDesignSnapshot({
+      hull,
+      armorLayers,
+      installedPowerPlants,
+      installedFuelTanks,
+      installedEngines,
+      installedEngineFuelTanks,
+      installedFTLDrive,
+      installedFTLFuelTanks,
+      installedLifeSupport,
+      installedAccommodations,
+      installedStoreSystems,
+      installedGravitySystems,
+      installedWeapons,
+      ordnanceDesigns,
+      installedLaunchSystems,
+      installedDefenses,
+      installedCommandControl,
+      installedSensors,
+      installedHangarMisc,
+      designProgressLevel,
+      designTechTracks,
+    });
 
-    // ---- HP breakdown ----
-    const hpBreakdown = {
-      armor: armorHP,
-      powerPlants: powerPlantStats.totalHullPoints,
-      engines: engineStats.totalHullPoints,
-      ftlDrive: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints,
-      supportSystems: supportStats.totalHullPoints,
-      weapons: weaponStats.totalHullPoints + ordnanceStats.totalLauncherHullPoints,
-      defenses: defenseStats.totalHullPoints,
-      commandControl: ccStats.totalHullPoints,
-      sensors: sensorStats.totalHullPoints,
-      hangarMisc: hangarMiscStats.totalHullPoints,
-    };
+    const usedHullPointsBeforePowerPlants = snapshot.hpBreakdown.armor;
+    const usedHullPointsBeforeEngines = snapshot.hpBreakdown.armor + snapshot.hpBreakdown.powerPlants;
 
-    const usedHullPointsBeforePowerPlants = armorHP;
-    const usedHullPointsBeforeEngines = armorHP + powerPlantStats.totalHullPoints;
-
-    const remainingHullPoints = totalHullPoints
-      - armorHP
-      - powerPlantStats.totalHullPoints
-      - engineStats.totalHullPoints
-      - ftlStats.totalHullPoints
-      - ftlFuelStats.totalHullPoints
-      - supportStats.totalHullPoints
-      - weaponStats.totalHullPoints
-      - ordnanceStats.totalLauncherHullPoints
-      - defenseStats.totalHullPoints
-      - ccStats.totalHullPoints
-      - sensorStats.totalHullPoints
-      - hangarMiscStats.totalHullPoints;
-
-    // ---- Power breakdown ----
-    const enginePowerGenerated = engineStats.totalPowerGenerated;
-    const totalPower = powerPlantStats.totalPowerGenerated + enginePowerGenerated;
-
-    const powerBreakdown = {
-      engines: engineStats.totalPowerRequired,
-      ftlDrive: ftlStats.totalPowerRequired,
-      supportSystems: supportStats.totalPowerRequired,
-      weapons: weaponStats.totalPowerRequired + ordnanceStats.totalLauncherPower,
-      defenses: defenseStats.totalPowerRequired,
-      commandControl: ccStats.totalPowerRequired,
-      sensors: sensorStats.totalPowerRequired,
-      hangarMisc: hangarMiscStats.totalPowerRequired,
-    };
-
+    // ---- Power consumption with scenario gating ----
     let totalPowerConsumed = 0;
-    if (powerScenario.engines) totalPowerConsumed += powerBreakdown.engines;
-    if (powerScenario.ftlDrive) totalPowerConsumed += powerBreakdown.ftlDrive;
-    if (powerScenario.supportSystems) totalPowerConsumed += powerBreakdown.supportSystems;
-    if (powerScenario.weapons) totalPowerConsumed += powerBreakdown.weapons;
-    if (powerScenario.defenses) totalPowerConsumed += powerBreakdown.defenses;
-    if (powerScenario.commandControl) totalPowerConsumed += powerBreakdown.commandControl;
-    if (powerScenario.sensors) totalPowerConsumed += powerBreakdown.sensors;
-    if (powerScenario.hangarMisc) totalPowerConsumed += powerBreakdown.hangarMisc;
-
-    // ---- Cost breakdown ----
-    const costBreakdown = {
-      hull: hull.cost,
-      armor: armorCost,
-      powerPlants: powerPlantStats.totalCost,
-      engines: engineStats.totalCost,
-      ftlDrive: ftlStats.totalCost + ftlFuelStats.totalCost,
-      supportSystems: supportStats.totalCost,
-      weapons: weaponStats.totalCost + ordnanceStats.totalCost + weaponMagazineWarheadCost,
-      defenses: defenseStats.totalCost,
-      commandControl: ccStats.totalCost,
-      sensors: sensorStats.totalCost,
-      hangarMisc: hangarMiscStats.totalCost,
-      embarkedCraft: embarkedCraftStats.totalEmbarkedCost,
-    };
-
-    const totalCost = hull.cost + armorCost
-      + powerPlantStats.totalCost + engineStats.totalCost
-      + ftlStats.totalCost + ftlFuelStats.totalCost
-      + supportStats.totalCost
-      + weaponStats.totalCost + ordnanceStats.totalCost + weaponMagazineWarheadCost
-      + defenseStats.totalCost + ccStats.totalCost
-      + sensorStats.totalCost + hangarMiscStats.totalCost
-      + embarkedCraftStats.totalEmbarkedCost;
+    if (powerScenario.engines) totalPowerConsumed += snapshot.powerBreakdown.engines;
+    if (powerScenario.ftlDrive) totalPowerConsumed += snapshot.powerBreakdown.ftlDrive;
+    if (powerScenario.supportSystems) totalPowerConsumed += snapshot.powerBreakdown.supportSystems;
+    if (powerScenario.weapons) totalPowerConsumed += snapshot.powerBreakdown.weapons;
+    if (powerScenario.defenses) totalPowerConsumed += snapshot.powerBreakdown.defenses;
+    if (powerScenario.commandControl) totalPowerConsumed += snapshot.powerBreakdown.commandControl;
+    if (powerScenario.sensors) totalPowerConsumed += snapshot.powerBreakdown.sensors;
+    if (powerScenario.hangarMisc) totalPowerConsumed += snapshot.powerBreakdown.hangarMisc;
 
     // ---- Summary validation state ----
     let summaryValidationState: 'valid' | 'error' | 'warning' = 'valid';
 
     // Errors
-    if (remainingHullPoints < 0) {
+    if (snapshot.remainingHP < 0) {
       summaryValidationState = 'error';
     } else if (installedPowerPlants.length === 0 && !isEnginePowerGenerationAllowed()) {
       summaryValidationState = 'error';
@@ -245,19 +169,19 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
 
     // Warnings (only check if no errors)
     if (summaryValidationState !== 'error') {
-      const ftlPower = ftlStats.totalPowerRequired;
+      const ftlPower = snapshot.powerBreakdown.ftlDrive;
       const powerConsumedWithoutFTL = totalPowerConsumed - ftlPower;
-      if (powerConsumedWithoutFTL > totalPower) {
+      if (powerConsumedWithoutFTL > snapshot.powerGenerated) {
         summaryValidationState = 'warning';
-      } else if (supportStats.crewCapacity < hull.crew) {
+      } else if (snapshot.supportStats.crewCapacity < hull.crew) {
         summaryValidationState = 'warning';
-      } else if (!surfaceProvidesLifeSupport && supportStats.totalCoverage < hull.hullPoints) {
+      } else if (!surfaceProvidesLifeSupport && snapshot.supportStats.totalCoverage < hull.hullPoints) {
         summaryValidationState = 'warning';
-      } else if (hangarMiscStats.totalEvacCapacity < hull.crew + supportStats.troopCapacity) {
+      } else if (snapshot.hangarMiscStats.totalEvacCapacity < hull.crew + snapshot.supportStats.troopCapacity) {
         summaryValidationState = 'warning';
       } else if (installedLaunchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length > 0) {
         summaryValidationState = 'warning';
-      } else if (!sensorStats.hasBasicSensors && installedSensors.length > 0) {
+      } else if (!snapshot.sensorStats.hasBasicSensors && installedSensors.length > 0) {
         summaryValidationState = 'warning';
       } else {
         // Fire control / sensor control linking checks
@@ -278,7 +202,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
             installedCommandControl.length === 0 ||
             installedSensors.length === 0 ||
             (installedWeapons.length === 0 && installedLaunchSystems.length === 0) ||
-            (!surfaceProvidesLifeSupport && supportStats.totalCoverage === 0 && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
+            (!surfaceProvidesLifeSupport && snapshot.supportStats.totalCoverage === 0 && installedLifeSupport.length === 0 && installedAccommodations.length === 0)
           ) {
             summaryValidationState = 'warning';
           }
@@ -303,20 +227,20 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
 
     // ---- Passengers & suspended for HangarMiscSelection ----
     const totalPassengersAndSuspended =
-      supportStats.passengerCapacity + supportStats.suspendedCapacity + supportStats.troopCapacity;
+      snapshot.supportStats.passengerCapacity + snapshot.supportStats.suspendedCapacity + snapshot.supportStats.troopCapacity;
 
     return {
       usedHullPointsBeforePowerPlants,
       usedHullPointsBeforeEngines,
-      remainingHullPoints,
-      totalHullPoints,
-      totalPower,
+      remainingHullPoints: snapshot.remainingHP,
+      totalHullPoints: snapshot.totalHP,
+      totalPower: snapshot.powerGenerated,
       totalPowerConsumed,
-      enginePowerGenerated,
-      totalCost,
-      powerBreakdown,
-      hpBreakdown,
-      costBreakdown,
+      enginePowerGenerated: snapshot.enginePowerGenerated,
+      totalCost: snapshot.totalCost,
+      powerBreakdown: snapshot.powerBreakdown,
+      hpBreakdown: snapshot.hpBreakdown,
+      costBreakdown: snapshot.costBreakdown,
       summaryValidationState,
       uniqueTechTracks,
       totalPassengersAndSuspended,

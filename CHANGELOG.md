@@ -6,6 +6,11 @@
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
+### Bug Fixes
+
+- **Fixed Fortress Ship crew count:** Corrected crew from 120,000 to 12,000 to match the sourcebook.
+- **Fixed inconsistent cost/stats across views:** The builder app bar, Summary tab, and PDF export previously computed ship totals independently with divergent formulas. Introduced a single authoritative `computeDesignSnapshot()` service used by all three consumers. This fixes: incorrect tech track handling in Summary/PDF (always treated all techs as available), missing weapon magazine warhead costs in Summary/PDF totals, and ordnance cost discrepancies between views.
+
 ### Mod System
 
 Full mod support added. Mods live in the user data folder and are managed through a dedicated Mod Manager screen.
@@ -84,6 +89,7 @@ Full mod support added. Mods live in the user data folder and are managed throug
 ### Code Quality
 
 - Removed `as unknown` type casts in production code: widened event handler type in EditableDataGrid, centralized data boundary casts in dataLoader and ModEditor with typed helpers.
+- Added a second release-readiness architecture review in [docs/architecture-review-0.2.5.md](docs/architecture-review-0.2.5.md) covering calculation consistency, persistence/mod-state coupling, recovery flow safety, and state-ownership concerns.
 
 ### Fixes
 

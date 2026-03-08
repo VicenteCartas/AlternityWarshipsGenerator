@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback, Fragment } from 'react';
 import {
   Box,
   Typography,
@@ -46,21 +46,14 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
-import type { ProgressLevel, DesignType, StationType } from '../types/common';
-import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from '../services/armorService';
-import { calculateTotalPowerPlantStats, calculateFuelTankCost } from '../services/powerPlantService';
-import { calculateTotalEngineStats, calculateEngineFuelTankCost, isEnginePowerGenerationAllowed } from '../services/engineService';
-import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLFuelTankCost } from '../services/ftlDriveService';
-import { calculateSupportSystemsStats } from '../services/supportSystemService';
-import { calculateWeaponStats } from '../services/weaponService';
-import { calculateOrdnanceStats } from '../services/ordnanceService';
-import { calculateDefenseStats } from '../services/defenseService';
-import { calculateCommandControlStats } from '../services/commandControlService';
-import { calculateSensorStats } from '../services/sensorService';
-import { calculateHangarMiscStats } from '../services/hangarMiscService';
-import { calculateEmbarkedCraftStats, getAllLoadedCraft } from '../services/embarkedCraftService';
+import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
+import { calculateFuelTankCost } from '../services/powerPlantService';
+import { calculateEngineFuelTankCost, isEnginePowerGenerationAllowed } from '../services/engineService';
+import { calculateFTLFuelTankCost } from '../services/ftlDriveService';
+import { getAllLoadedCraft } from '../services/embarkedCraftService';
+import { computeDesignSnapshot } from '../services/designSnapshotService';
 import { formatCost } from '../services/formatters';
-import { getLaunchSystemsData } from '../services/dataLoader';
+import { getLaunchSystemsData, getWarheadsData } from '../services/dataLoader';
 import { getZoneLimitForHull } from '../services/damageDiagramService';
 import { getWeaponBatteries, getWeaponBatteryDisplayName, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { exportShipToPDF } from '../services/pdfExportService';
@@ -92,6 +85,7 @@ interface SummarySelectionProps {
   installedHangarMisc: InstalledHangarMiscSystem[];
   damageDiagramZones: DamageZone[];
   designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
   designType: DesignType;
   stationType: StationType | null;
   currentFilePath: string | null;
@@ -123,6 +117,7 @@ export function SummarySelection({
   installedHangarMisc,
   damageDiagramZones,
   designProgressLevel,
+  designTechTracks,
   designType,
   stationType,
   currentFilePath,
@@ -186,95 +181,69 @@ export function SummarySelection({
     });
   };
 
-  // Calculate all stats
+  // Calculate all stats via single authoritative snapshot
   const stats = useMemo(() => {
     if (!hull) {
       return null;
     }
 
-    const totalHP = hull.hullPoints + hull.bonusHullPoints;
-    
-    const armorHP = calculateMultiLayerArmorHP(hull, armorLayers);
-    const armorCost = calculateMultiLayerArmorCost(hull, armorLayers);
+    const snapshot = computeDesignSnapshot({
+      hull,
+      armorLayers,
+      installedPowerPlants,
+      installedFuelTanks,
+      installedEngines,
+      installedEngineFuelTanks,
+      installedFTLDrive,
+      installedFTLFuelTanks,
+      installedLifeSupport,
+      installedAccommodations,
+      installedStoreSystems,
+      installedGravitySystems,
+      installedWeapons,
+      ordnanceDesigns,
+      installedLaunchSystems,
+      installedDefenses,
+      installedCommandControl,
+      installedSensors,
+      installedHangarMisc,
+      designProgressLevel,
+      designTechTracks,
+    });
 
-    const powerPlantStats = calculateTotalPowerPlantStats(installedPowerPlants, installedFuelTanks);
-    const engineStats = calculateTotalEngineStats(installedEngines, installedEngineFuelTanks, hull);
-    const ftlStats = installedFTLDrive ? calculateTotalFTLStats(installedFTLDrive, hull) : null;
-    const ftlFuelStats = calculateTotalFTLFuelTankStats(installedFTLFuelTanks);
-    const cockpitLifeSupportCoverageHp = installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0);
-    const supportStats = calculateSupportSystemsStats(installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, designProgressLevel, [], cockpitLifeSupportCoverageHp);
-    const weaponStats = calculateWeaponStats(installedWeapons);
-    const ordnanceStats = calculateOrdnanceStats(installedLaunchSystems, ordnanceDesigns);
-    const defenseStats = calculateDefenseStats(installedDefenses);
-    const ccStats = calculateCommandControlStats(installedCommandControl, hull.hullPoints);
-    const sensorStats = calculateSensorStats(installedSensors);
-    const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
-    const embarkedCraftStats = calculateEmbarkedCraftStats(installedHangarMisc);
-
-    // Total HP used
-    const usedHP = armorHP + 
-      powerPlantStats.totalHullPoints + 
-      engineStats.totalHullPoints + 
-      (ftlStats?.totalHullPoints || 0) + 
-      ftlFuelStats.totalHullPoints +
-      supportStats.totalHullPoints + 
-      weaponStats.totalHullPoints + 
-      ordnanceStats.totalLauncherHullPoints +
-      defenseStats.totalHullPoints + 
-      ccStats.totalHullPoints + 
-      sensorStats.totalHullPoints + 
-      hangarMiscStats.totalHullPoints;
-
-    // Total power consumed
-    const totalPowerConsumed = engineStats.totalPowerRequired + 
-      (ftlStats?.totalPowerRequired || 0) + 
-      supportStats.totalPowerRequired + 
-      weaponStats.totalPowerRequired + 
-      ordnanceStats.totalLauncherPower +
-      defenseStats.totalPowerRequired + 
-      ccStats.totalPowerRequired + 
-      sensorStats.totalPowerRequired + 
-      hangarMiscStats.totalPowerRequired;
-
-    // Total cost
-    const totalCost = hull.cost + 
-      armorCost + 
-      powerPlantStats.totalCost + 
-      engineStats.totalCost + 
-      (ftlStats?.totalCost || 0) + 
-      ftlFuelStats.totalCost +
-      supportStats.totalCost + 
-      weaponStats.totalCost + 
-      ordnanceStats.totalLauncherCost +
-      defenseStats.totalCost + 
-      ccStats.totalCost + 
-      sensorStats.totalCost + 
-      hangarMiscStats.totalCost +
-      embarkedCraftStats.totalEmbarkedCost;
-
-    // Acceleration (single value, units depend on engine PL)
-    const totalAcceleration = engineStats.totalAcceleration;
+    const totalPowerConsumed = snapshot.powerBreakdown.engines
+      + snapshot.powerBreakdown.ftlDrive
+      + snapshot.powerBreakdown.supportSystems
+      + snapshot.powerBreakdown.weapons
+      + snapshot.powerBreakdown.defenses
+      + snapshot.powerBreakdown.commandControl
+      + snapshot.powerBreakdown.sensors
+      + snapshot.powerBreakdown.hangarMisc;
 
     return {
-      totalHP,
-      usedHP,
-      remainingHP: totalHP - usedHP,
-      powerGenerated: powerPlantStats.totalPowerGenerated + engineStats.totalPowerGenerated,
+      totalHP: snapshot.totalHP,
+      usedHP: snapshot.usedHP,
+      remainingHP: snapshot.remainingHP,
+      powerGenerated: snapshot.powerGenerated,
       powerConsumed: totalPowerConsumed,
-      powerBalance: powerPlantStats.totalPowerGenerated + engineStats.totalPowerGenerated - totalPowerConsumed,
-      totalCost,
-      totalAcceleration,
-      armor: { hp: armorHP, cost: armorCost },
-      powerPlants: { hp: powerPlantStats.totalHullPoints, power: powerPlantStats.totalPowerGenerated, cost: powerPlantStats.totalCost },
-      engines: { hp: engineStats.totalHullPoints, power: engineStats.totalPowerRequired, powerGen: engineStats.totalPowerGenerated, cost: engineStats.totalCost },
-      ftl: ftlStats ? { hp: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints, power: ftlStats.totalPowerRequired, cost: ftlStats.totalCost + ftlFuelStats.totalCost } : null,
-      support: { hp: supportStats.totalHullPoints, power: supportStats.totalPowerRequired, cost: supportStats.totalCost },
-      weapons: { hp: weaponStats.totalHullPoints + ordnanceStats.totalLauncherHullPoints, power: weaponStats.totalPowerRequired + ordnanceStats.totalLauncherPower, cost: weaponStats.totalCost + ordnanceStats.totalLauncherCost },
-      defenses: { hp: defenseStats.totalHullPoints, power: defenseStats.totalPowerRequired, cost: defenseStats.totalCost },
-      commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
-      sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
-      hangarMisc: { hp: hangarMiscStats.totalHullPoints, power: hangarMiscStats.totalPowerRequired, cost: hangarMiscStats.totalCost },
-      embarkedCraft: { cost: embarkedCraftStats.totalEmbarkedCost, count: getAllLoadedCraft(installedHangarMisc).length, invalidFiles: embarkedCraftStats.invalidFileCount },
+      powerBalance: snapshot.powerGenerated - totalPowerConsumed,
+      totalCost: snapshot.totalCost,
+      totalAcceleration: snapshot.totalAcceleration,
+      armor: snapshot.armor,
+      powerPlants: snapshot.powerPlants,
+      engines: snapshot.engines,
+      ftl: snapshot.ftl,
+      support: snapshot.support,
+      weapons: snapshot.weapons,
+      defenses: snapshot.defenses,
+      commandControl: snapshot.commandControl,
+      sensors: snapshot.sensors,
+      hangarMisc: snapshot.hangarMisc,
+      embarkedCraft: { cost: snapshot.embarkedCraft.cost, count: getAllLoadedCraft(installedHangarMisc).length, invalidFiles: snapshot.embarkedCraft.invalidFileCount },
+      // Expose full subsystem stats for validation
+      supportStats: snapshot.supportStats,
+      sensorStats: snapshot.sensorStats,
+      hangarMiscStats: snapshot.hangarMiscStats,
     };
   }, [
     hull,
@@ -297,6 +266,7 @@ export function SummarySelection({
     installedSensors,
     installedHangarMisc,
     designProgressLevel,
+    designTechTracks,
   ]);
 
   /** Generate Markdown-formatted stats text for clipboard */
@@ -350,10 +320,19 @@ export function SummarySelection({
       lines.push('### Armament');
       for (const w of installedWeapons) {
         lines.push(`- ${w.quantity}x ${w.gunConfiguration} ${w.weaponType.name} (${w.mountType}${w.concealed ? ', concealed' : ''}) [${w.arcs.join(', ')}]`);
+        const warheads = getWarheadsData() || [];
+        for (const lo of w.magazineLoadout || []) {
+          const wh = warheads.find(wh => wh.id === lo.designId);
+          if (wh) lines.push(`  - ${lo.quantity * w.quantity}x ${wh.name}`);
+        }
       }
       for (const ls of installedLaunchSystems) {
         const lsData = getLaunchSystemsData().find(l => l.id === ls.launchSystemType);
         lines.push(`- ${ls.quantity}x ${lsData?.name || ls.launchSystemType}`);
+        for (const lo of ls.loadout || []) {
+          const design = ordnanceDesigns.find(d => d.id === lo.designId);
+          if (design) lines.push(`  - ${lo.quantity}x ${design.name}`);
+        }
       }
       lines.push('');
     }
@@ -377,6 +356,20 @@ export function SummarySelection({
       lines.push('');
     }
 
+    // Magazine Ordnance
+    const magazinesWithOrdnance = installedHangarMisc.filter(hm => (hm.ordnanceLoadout || []).length > 0);
+    if (magazinesWithOrdnance.length > 0) {
+      lines.push('### Magazine Ordnance');
+      for (const mag of magazinesWithOrdnance) {
+        lines.push(`- ${mag.quantity}x ${mag.type.name}`);
+        for (const lo of mag.ordnanceLoadout || []) {
+          const design = ordnanceDesigns.find(d => d.id === lo.designId);
+          if (design) lines.push(`  - ${lo.quantity}x ${design.name}`);
+        }
+      }
+      lines.push('');
+    }
+
     // Lore
     if (shipDescription.lore.trim()) {
       lines.push('### Description');
@@ -384,7 +377,7 @@ export function SummarySelection({
     }
 
     return lines.join('\n');
-  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, installedDefenses, installedHangarMisc]);
+  }, [hull, stats, warshipName, shipDescription, installedWeapons, installedLaunchSystems, ordnanceDesigns, installedDefenses, installedHangarMisc]);
 
   const handleCopyStats = useCallback(async () => {
     const md = generateStatsMarkdown();
@@ -464,22 +457,9 @@ export function SummarySelection({
       }
 
       // Calculate support stats for accommodation/life support warnings
-      const cockpitCoverage = installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0);
-      const supportStats = calculateSupportSystemsStats(
-        installedLifeSupport, 
-        installedAccommodations, 
-        installedStoreSystems, 
-        installedGravitySystems, 
-        designProgressLevel, 
-        [],
-        cockpitCoverage,
-      );
-      
-      // Calculate hangar/misc stats for evacuation capacity
-      const hangarMiscStats = calculateHangarMiscStats(installedHangarMisc);
+      const { supportStats, hangarMiscStats, sensorStats } = stats;
       
       // Calculate sensor stats for active sensors check
-      const sensorStats = calculateSensorStats(installedSensors);
 
       // WARNING: Crew without 100% accommodations
       if (hull.crew > 0 && supportStats.crewCapacity < hull.crew) {
@@ -698,6 +678,7 @@ export function SummarySelection({
         installedHangarMisc,
         damageDiagramZones,
         designProgressLevel,
+        designTechTracks,
         designType,
         stationType,
         targetDirectory,
@@ -1151,27 +1132,58 @@ export function SummarySelection({
                 </Typography>
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
-                    {installedWeapons.map((w) => (
-                      <TableRow key={w.id}>
-                        <TableCell sx={{ width: '40%' }}>
-                          {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{w.arcs.join(', ')}]
-                        </TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{w.hullPoints * w.quantity} HP</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{w.powerRequired * w.quantity === 0 ? '0' : `-${w.powerRequired * w.quantity}`} PP</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(w.cost * w.quantity)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {installedWeapons.map((w) => {
+                      const warheads = getWarheadsData() || [];
+                      return (
+                        <Fragment key={w.id}>
+                          <TableRow>
+                            <TableCell sx={{ width: '40%' }}>
+                              {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{w.arcs.join(', ')}]
+                            </TableCell>
+                            <TableCell align="right" sx={{ width: '20%' }}>{w.hullPoints * w.quantity} HP</TableCell>
+                            <TableCell align="right" sx={{ width: '20%' }}>{w.powerRequired * w.quantity === 0 ? '0' : `-${w.powerRequired * w.quantity}`} PP</TableCell>
+                            <TableCell align="right" sx={{ width: '20%' }}>{formatCost(w.cost * w.quantity)}</TableCell>
+                          </TableRow>
+                          {(w.magazineLoadout || []).map((lo) => {
+                            const wh = warheads.find(wh => wh.id === lo.designId);
+                            if (!wh) return null;
+                            return (
+                              <TableRow key={`${w.id}-wh-${lo.designId}`}>
+                                <TableCell sx={{ pl: 4 }}>↳ {lo.quantity * w.quantity}x {wh.name}</TableCell>
+                                <TableCell align="right">—</TableCell>
+                                <TableCell align="right">—</TableCell>
+                                <TableCell align="right">{formatCost(wh.cost * lo.quantity * w.quantity)}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </Fragment>
+                      );
+                    })}
                     {installedLaunchSystems.map((ls) => {
                       const launchSystemData = getLaunchSystemsData().find(l => l.id === ls.launchSystemType);
                       return (
-                        <TableRow key={ls.id}>
-                          <TableCell>
-                            {ls.quantity}x {launchSystemData?.name || ls.launchSystemType}
-                          </TableCell>
-                          <TableCell align="right">{ls.hullPoints * ls.quantity} HP</TableCell>
-                          <TableCell align="right">{ls.powerRequired * ls.quantity === 0 ? '0' : `-${ls.powerRequired * ls.quantity}`} PP</TableCell>
-                          <TableCell align="right">{formatCost(ls.cost * ls.quantity)}</TableCell>
-                        </TableRow>
+                        <Fragment key={ls.id}>
+                          <TableRow>
+                            <TableCell>
+                              {ls.quantity}x {launchSystemData?.name || ls.launchSystemType}
+                            </TableCell>
+                            <TableCell align="right">{ls.hullPoints * ls.quantity} HP</TableCell>
+                            <TableCell align="right">{ls.powerRequired * ls.quantity === 0 ? '0' : `-${ls.powerRequired * ls.quantity}`} PP</TableCell>
+                            <TableCell align="right">{formatCost(ls.cost * ls.quantity)}</TableCell>
+                          </TableRow>
+                          {(ls.loadout || []).map((lo) => {
+                            const design = ordnanceDesigns.find(d => d.id === lo.designId);
+                            if (!design) return null;
+                            return (
+                              <TableRow key={`${ls.id}-ord-${lo.designId}`}>
+                                <TableCell sx={{ pl: 4 }}>↳ {lo.quantity}x {design.name}</TableCell>
+                                <TableCell align="right">—</TableCell>
+                                <TableCell align="right">—</TableCell>
+                                <TableCell align="right">{formatCost(design.totalCost * lo.quantity)}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </Fragment>
                       );
                     })}
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
@@ -1326,12 +1338,34 @@ export function SummarySelection({
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableBody>
                     {installedHangarMisc.map((hm) => (
-                      <TableRow key={hm.id}>
-                        <TableCell sx={{ width: '40%' }}>{hm.quantity}x {hm.type.name}</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{hm.hullPoints} HP</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{hm.powerRequired === 0 ? '0' : `-${hm.powerRequired}`} PP</TableCell>
-                        <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hm.cost)}</TableCell>
-                      </TableRow>
+                      <Fragment key={hm.id}>
+                        <TableRow>
+                          <TableCell sx={{ width: '40%' }}>{hm.quantity}x {hm.type.name}</TableCell>
+                          <TableCell align="right" sx={{ width: '20%' }}>{hm.hullPoints} HP</TableCell>
+                          <TableCell align="right" sx={{ width: '20%' }}>{hm.powerRequired === 0 ? '0' : `-${hm.powerRequired}`} PP</TableCell>
+                          <TableCell align="right" sx={{ width: '20%' }}>{formatCost(hm.cost)}</TableCell>
+                        </TableRow>
+                        {(hm.loadout || []).map((craft) => (
+                          <TableRow key={craft.id}>
+                            <TableCell sx={{ pl: 4 }}>↳ {craft.quantity}x {craft.name}{!craft.fileValid ? ' ⚠' : ''}</TableCell>
+                            <TableCell align="right">—</TableCell>
+                            <TableCell align="right">—</TableCell>
+                            <TableCell align="right">{formatCost(craft.designCost * craft.quantity)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(hm.ordnanceLoadout || []).map((lo) => {
+                          const design = ordnanceDesigns.find(d => d.id === lo.designId);
+                          if (!design) return null;
+                          return (
+                            <TableRow key={`${hm.id}-ord-${lo.designId}`}>
+                              <TableCell sx={{ pl: 4 }}>↳ {lo.quantity}x {design.name}</TableCell>
+                              <TableCell align="right">—</TableCell>
+                              <TableCell align="right">—</TableCell>
+                              <TableCell align="right">{formatCost(design.totalCost * lo.quantity)}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </Fragment>
                     ))}
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>

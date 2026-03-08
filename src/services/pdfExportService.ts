@@ -13,22 +13,17 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledLaunchSystem, OrdnanceDesign, MissileDesign } from '../types/ordnance';
 import type { DamageZone, ZoneCode, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
-import type { ProgressLevel, DesignType, StationType } from '../types/common';
+import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
+import type { SupportSystemsStats } from '../types/supportSystem';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDiagramService';
-import { calculateMultiLayerArmorHP, calculateMultiLayerArmorCost } from './armorService';
-import { calculateTotalPowerPlantStats, calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
-import { calculateTotalEngineStats, calculateEnginePowerRequired, calculateEnginePowerGenerated, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
-import { calculateTotalFTLStats, calculateTotalFTLFuelTankStats, calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
-import { calculateSupportSystemsStats } from './supportSystemService';
-import { calculateWeaponStats } from './weaponService';
+import { calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
+import { calculateEnginePowerRequired, calculateEnginePowerGenerated, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
+import { calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
 import type { FiringArc } from '../types/weapon';
-import { calculateOrdnanceStats, getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
-import { calculateDefenseStats } from './defenseService';
-import { calculateCommandControlStats } from './commandControlService';
-import { calculateSensorStats } from './sensorService';
-import { calculateHangarMiscStats } from './hangarMiscService';
-import { calculateEmbarkedCraftStats, getAllLoadedCraft } from './embarkedCraftService';
+import { getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
+import { getAllLoadedCraft } from './embarkedCraftService';
+import { computeDesignSnapshot } from './designSnapshotService';
 import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
 import { capitalize, logger } from './utilities';
 
@@ -71,6 +66,7 @@ export interface ShipData {
   damageDiagramZones: DamageZone[];
   hitLocationChart?: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
+  designTechTracks?: TechTrack[];
   designType?: DesignType;
   stationType?: StationType | null;
   targetDirectory?: string;
@@ -227,100 +223,65 @@ interface ShipStats {
   sensors: { hp: number; power: number; cost: number };
   hangarMisc: { hp: number; power: number; cost: number };
   embarkedCraft: { cost: number };
+  supportStats: SupportSystemsStats;
 }
 
 function computeShipStats(data: ShipData): ShipStats {
-  const { hull } = data;
-  const totalHP = hull.hullPoints + hull.bonusHullPoints;
+  const snapshot = computeDesignSnapshot({
+    hull: data.hull,
+    armorLayers: data.armorLayers,
+    installedPowerPlants: data.installedPowerPlants,
+    installedFuelTanks: data.installedFuelTanks,
+    installedEngines: data.installedEngines,
+    installedEngineFuelTanks: data.installedEngineFuelTanks,
+    installedFTLDrive: data.installedFTLDrive,
+    installedFTLFuelTanks: data.installedFTLFuelTanks,
+    installedLifeSupport: data.installedLifeSupport,
+    installedAccommodations: data.installedAccommodations,
+    installedStoreSystems: data.installedStoreSystems,
+    installedGravitySystems: data.installedGravitySystems,
+    installedWeapons: data.installedWeapons,
+    ordnanceDesigns: data.ordnanceDesigns,
+    installedLaunchSystems: data.installedLaunchSystems,
+    installedDefenses: data.installedDefenses,
+    installedCommandControl: data.installedCommandControl,
+    installedSensors: data.installedSensors,
+    installedHangarMisc: data.installedHangarMisc,
+    designProgressLevel: data.designProgressLevel,
+    designTechTracks: data.designTechTracks || [],
+  });
 
-  const armorHP = calculateMultiLayerArmorHP(hull, data.armorLayers);
-  const armorCost = calculateMultiLayerArmorCost(hull, data.armorLayers);
-
-  const ppStats = calculateTotalPowerPlantStats(data.installedPowerPlants, data.installedFuelTanks);
-  const engStats = calculateTotalEngineStats(data.installedEngines, data.installedEngineFuelTanks, hull);
-  const ftlStats = data.installedFTLDrive ? calculateTotalFTLStats(data.installedFTLDrive, hull) : null;
-  const ftlFuelStats = calculateTotalFTLFuelTankStats(data.installedFTLFuelTanks);
-  const supportStats = calculateSupportSystemsStats(
-    data.installedLifeSupport, data.installedAccommodations,
-    data.installedStoreSystems, data.installedGravitySystems,
-    data.designProgressLevel, [],
-    data.installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
-  );
-  const weaponStats = calculateWeaponStats(data.installedWeapons);
-  const ordnanceStats = calculateOrdnanceStats(data.installedLaunchSystems, data.ordnanceDesigns);
-  const defenseStats = calculateDefenseStats(data.installedDefenses);
-  const ccStats = calculateCommandControlStats(data.installedCommandControl, hull.hullPoints);
-  const sensorStats = calculateSensorStats(data.installedSensors);
-  const hmStats = calculateHangarMiscStats(data.installedHangarMisc);
-  const ecStats = calculateEmbarkedCraftStats(data.installedHangarMisc);
-
-  const usedHP = armorHP
-    + ppStats.totalHullPoints
-    + engStats.totalHullPoints
-    + (ftlStats?.totalHullPoints || 0)
-    + ftlFuelStats.totalHullPoints
-    + supportStats.totalHullPoints
-    + weaponStats.totalHullPoints
-    + ordnanceStats.totalLauncherHullPoints
-    + defenseStats.totalHullPoints
-    + ccStats.totalHullPoints
-    + sensorStats.totalHullPoints
-    + hmStats.totalHullPoints;
-
-  const totalPowerConsumed = engStats.totalPowerRequired
-    + (ftlStats?.totalPowerRequired || 0)
-    + supportStats.totalPowerRequired
-    + weaponStats.totalPowerRequired
-    + ordnanceStats.totalLauncherPower
-    + defenseStats.totalPowerRequired
-    + ccStats.totalPowerRequired
-    + sensorStats.totalPowerRequired
-    + hmStats.totalPowerRequired;
-
-  const totalCost = hull.cost
-    + armorCost
-    + ppStats.totalCost
-    + engStats.totalCost
-    + (ftlStats?.totalCost || 0)
-    + ftlFuelStats.totalCost
-    + supportStats.totalCost
-    + weaponStats.totalCost
-    + ordnanceStats.totalCost
-    + defenseStats.totalCost
-    + ccStats.totalCost
-    + sensorStats.totalCost
-    + hmStats.totalCost
-    + ecStats.totalEmbarkedCost;
+  const totalPowerConsumed = snapshot.powerBreakdown.engines
+    + snapshot.powerBreakdown.ftlDrive
+    + snapshot.powerBreakdown.supportSystems
+    + snapshot.powerBreakdown.weapons
+    + snapshot.powerBreakdown.defenses
+    + snapshot.powerBreakdown.commandControl
+    + snapshot.powerBreakdown.sensors
+    + snapshot.powerBreakdown.hangarMisc;
 
   return {
-    totalHP,
-    usedHP,
-    remainingHP: totalHP - usedHP,
-    powerGenerated: ppStats.totalPowerGenerated + engStats.totalPowerGenerated,
+    totalHP: snapshot.totalHP,
+    usedHP: snapshot.usedHP,
+    remainingHP: snapshot.remainingHP,
+    powerGenerated: snapshot.powerGenerated,
     powerConsumed: totalPowerConsumed,
-    powerBalance: ppStats.totalPowerGenerated + engStats.totalPowerGenerated - totalPowerConsumed,
-    totalCost,
-    totalAcceleration: engStats.totalAcceleration,
-    armor: { hp: armorHP, cost: armorCost },
-    powerPlants: { hp: ppStats.totalHullPoints, power: ppStats.totalPowerGenerated, cost: ppStats.totalCost },
-    engines: { hp: engStats.totalHullPoints, power: engStats.totalPowerRequired, powerGen: engStats.totalPowerGenerated, cost: engStats.totalCost },
-    ftl: ftlStats ? {
-      hp: ftlStats.totalHullPoints + ftlFuelStats.totalHullPoints,
-      power: ftlStats.totalPowerRequired,
-      cost: ftlStats.totalCost + ftlFuelStats.totalCost,
-    } : null,
-    support: { hp: supportStats.totalHullPoints, power: supportStats.totalPowerRequired, cost: supportStats.totalCost },
-    weapons: {
-      hp: weaponStats.totalHullPoints + ordnanceStats.totalLauncherHullPoints,
-      power: weaponStats.totalPowerRequired + ordnanceStats.totalLauncherPower,
-      cost: weaponStats.totalCost + ordnanceStats.totalLauncherCost,
-    },
-    ordnance: { cost: ordnanceStats.totalOrdnanceCost },
-    defenses: { hp: defenseStats.totalHullPoints, power: defenseStats.totalPowerRequired, cost: defenseStats.totalCost },
-    commandControl: { hp: ccStats.totalHullPoints, power: ccStats.totalPowerRequired, cost: ccStats.totalCost },
-    sensors: { hp: sensorStats.totalHullPoints, power: sensorStats.totalPowerRequired, cost: sensorStats.totalCost },
-    hangarMisc: { hp: hmStats.totalHullPoints, power: hmStats.totalPowerRequired, cost: hmStats.totalCost },
-    embarkedCraft: { cost: ecStats.totalEmbarkedCost },
+    powerBalance: snapshot.powerGenerated - totalPowerConsumed,
+    totalCost: snapshot.totalCost,
+    totalAcceleration: snapshot.totalAcceleration,
+    armor: snapshot.armor,
+    powerPlants: snapshot.powerPlants,
+    engines: snapshot.engines,
+    ftl: snapshot.ftl,
+    support: snapshot.support,
+    weapons: snapshot.weapons,
+    ordnance: snapshot.ordnance,
+    defenses: snapshot.defenses,
+    commandControl: snapshot.commandControl,
+    sensors: snapshot.sensors,
+    hangarMisc: snapshot.hangarMisc,
+    embarkedCraft: snapshot.embarkedCraft,
+    supportStats: snapshot.supportStats,
   };
 }
 
@@ -768,12 +729,7 @@ function renderSystemsDetailSection(
   const isStation = data.designType === 'station';
   const hasEngines = data.installedEngines.length > 0 || data.installedEngineFuelTanks.length > 0;
 
-  const supportStats = calculateSupportSystemsStats(
-    data.installedLifeSupport, data.installedAccommodations,
-    data.installedStoreSystems, data.installedGravitySystems,
-    data.designProgressLevel, [],
-    data.installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
-  );
+  const supportStats = stats.supportStats;
 
   // --- Title ---
   const shipName = data.warshipName || hull.name;

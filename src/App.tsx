@@ -797,6 +797,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             installedHangarMisc={installedHangarMisc}
             damageDiagramZones={damageDiagramZones}
             designProgressLevel={designProgressLevel}
+            designTechTracks={designTechTracks}
             designType={designType}
             stationType={stationType}
             currentFilePath={currentFilePath}
