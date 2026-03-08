@@ -15,6 +15,7 @@ import {
   getStationTypeDisplayName,
   getFriendlyFileName,
   ALL_TECH_TRACK_CODES,
+  getAllTechTrackCodes,
 } from './formatters';
 import type { AreaEffect } from '../types/weapon';
 
@@ -119,6 +120,10 @@ describe('getTechTrackName', () => {
     expect(getTechTrackName('X')).toBe('Energy Transformation');
     expect(getTechTrackName('C')).toBe('Computer Tech');
   });
+
+  it('returns the raw code for unknown track codes', () => {
+    expect(getTechTrackName('Z')).toBe('Z');
+  });
 });
 
 // ============== ALL_TECH_TRACK_CODES ==============
@@ -131,6 +136,18 @@ describe('ALL_TECH_TRACK_CODES', () => {
 
   it('contains all expected codes', () => {
     expect(ALL_TECH_TRACK_CODES).toEqual(['G', 'D', 'A', 'M', 'F', 'Q', 'T', 'S', 'P', 'X', 'C']);
+  });
+});
+
+// ============== getAllTechTrackCodes ==============
+
+describe('getAllTechTrackCodes', () => {
+  it('returns at least the 11 base track codes before data loads', () => {
+    const codes = getAllTechTrackCodes();
+    expect(codes.length).toBeGreaterThanOrEqual(11);
+    expect(codes).toContain('G');
+    expect(codes).toContain('C');
+    expect(codes).not.toContain('-');
   });
 });
 

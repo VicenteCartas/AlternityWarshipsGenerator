@@ -5,6 +5,7 @@
  */
 
 import type { ColumnDef } from './modEditorSchemas';
+import { getAllTechTrackCodes } from './formatters';
 
 export interface ValidationError {
   rowIndex: number;
@@ -33,6 +34,11 @@ export function validateField(value: unknown, column: ColumnDef): string | null 
       if (column.key === 'id') {
         if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)) {
           return 'ID must be lowercase kebab-case (e.g., "my-item")';
+        }
+      }
+      if (column.key === 'code') {
+        if (!/^[A-Z]$/.test(value)) {
+          return 'Must be a single uppercase letter (A-Z)';
         }
       }
       break;
@@ -113,4 +119,45 @@ export function validateRows(rows: Record<string, unknown>[], columns: ColumnDef
  */
 export function getCellError(errors: ValidationError[], rowIndex: number, columnKey: string): string | undefined {
   return errors.find(e => e.rowIndex === rowIndex && e.columnKey === columnKey)?.message;
+}
+
+/**
+ * Cross-validate techTracks fields in equipment rows against known track codes.
+ * Known codes = base tracks + any tracks defined in the same mod's techTracks section.
+ * Returns additional validation errors for unknown track references.
+ */
+export function validateTechTrackReferences(
+  rows: Record<string, unknown>[],
+  columns: ColumnDef[],
+  modTechTrackRows?: Record<string, unknown>[]
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const techTrackColumns = columns.filter(c => c.type === 'techTracks');
+  if (techTrackColumns.length === 0) return errors;
+
+  // Build set of known track codes: base + mod-defined
+  const knownCodes = new Set(getAllTechTrackCodes());
+  if (modTechTrackRows) {
+    for (const row of modTechTrackRows) {
+      const code = row.code as string;
+      if (code && /^[A-Z]$/.test(code)) {
+        knownCodes.add(code);
+      }
+    }
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    for (const col of techTrackColumns) {
+      const value = rows[i][col.key];
+      if (Array.isArray(value)) {
+        for (const track of value) {
+          if (typeof track === 'string' && !knownCodes.has(track)) {
+            errors.push({ rowIndex: i, columnKey: col.key, message: `Unknown tech track "${track}". Define it in the Tech Tracks section first.` });
+          }
+        }
+      }
+    }
+  }
+
+  return errors;
 }

@@ -38,9 +38,9 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import type { Mod, ModDataFileName } from '../types/mod';
 import { getModFileData, saveModFileData, getInstalledMods } from '../services/modService';
 import { EDITOR_SECTIONS, EDITOR_SECTION_GROUPS, HOUSE_RULES, type EditorSection, type HouseRule } from '../services/modEditorSchemas';
-import { validateRows, type ValidationError } from '../services/modValidationService';
+import { validateRows, validateTechTrackReferences, type ValidationError } from '../services/modValidationService';
 import { EditableDataGrid } from './shared/EditableDataGrid';
-import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData } from '../services/dataLoader';
+import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData, getTechTracksData } from '../services/dataLoader';
 import { MOD_ROW_BORDER_COLOR } from '../constants/domainColors';
 
 interface ModEditorProps {
@@ -59,6 +59,7 @@ function toRows(data: object[]): Record<string, unknown>[] {
 // Map section IDs to base data getter functions
 function getBaseDataForSection(sectionId: string, pureBase = false): Record<string, unknown>[] {
   const getters: Record<string, () => Record<string, unknown>[]> = {
+    techTracks: () => toRows(getTechTracksData(pureBase)),
     hulls: () => toRows(getHullsData(pureBase)),
     stationHulls: () => toRows(getStationHullsData(pureBase)),
     armors: () => toRows(getArmorTypesData(pureBase)),
@@ -326,11 +327,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     const baseRows = getBaseDataForSection(activeSectionId, false);
     const map = new Map<string, Record<string, unknown>>();
     for (const item of baseRows) {
-      const key = (item.id as string) || JSON.stringify(item);
+      const key = (item.id as string) || (item.code as string) || JSON.stringify(item);
       map.set(key, { ...item, _source: 'base' });
     }
     for (const item of modRows) {
-      const key = (item.id as string) || JSON.stringify(item);
+      const key = (item.id as string) || (item.code as string) || JSON.stringify(item);
       map.set(key, { ...item, _source: 'mod' });
     }
     return Array.from(map.values());
@@ -342,13 +343,18 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   }, []);
 
   const handleSave = useCallback(async () => {
+    // Get mod's tech track definitions for cross-validation
+    const modTechTrackRows = sectionData['techTracks'] || [];
+
     // Validate all dirty sections
     for (const section of EDITOR_SECTIONS) {
       const rows = sectionData[section.id] || [];
       if (rows.length > 0) {
         const errors = validateRows(rows, section.columns);
-        if (errors.length > 0) {
-          setSnackbar({ open: true, message: `Validation errors in "${section.label}": ${errors[0].message}`, severity: 'error' });
+        const trackErrors = validateTechTrackReferences(rows, section.columns, modTechTrackRows);
+        const allErrors = [...errors, ...trackErrors];
+        if (allErrors.length > 0) {
+          setSnackbar({ open: true, message: `Validation errors in "${section.label}": ${allErrors[0].message}`, severity: 'error' });
           // Navigate to the section with errors and expand its group
           setActiveSectionId(section.id);
           for (const group of EDITOR_SECTION_GROUPS) {
@@ -457,12 +463,15 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   /** Validate all sections and show results dialog */
   const handleValidateAll = useCallback(() => {
     const results: { sectionLabel: string; sectionId: string; errors: ValidationError[] }[] = [];
+    const modTechTrackRows = sectionData['techTracks'] || [];
     for (const section of EDITOR_SECTIONS) {
       const rows = sectionData[section.id] || [];
       if (rows.length === 0) continue;
       const errors = validateRows(rows, section.columns);
-      if (errors.length > 0) {
-        results.push({ sectionLabel: section.label, sectionId: section.id, errors });
+      const trackErrors = validateTechTrackReferences(rows, section.columns, modTechTrackRows);
+      const allErrors = [...errors, ...trackErrors];
+      if (allErrors.length > 0) {
+        results.push({ sectionLabel: section.label, sectionId: section.id, errors: allErrors });
       }
     }
     setValidationResults(results);

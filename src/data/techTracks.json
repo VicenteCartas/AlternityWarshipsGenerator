@@ -1,0 +1,15 @@
+{
+  "techTracks": [
+    { "code": "G", "name": "Gravity Manipulation" },
+    { "code": "D", "name": "Dark Matter Tech" },
+    { "code": "A", "name": "Antimatter Tech" },
+    { "code": "M", "name": "Matter Coding" },
+    { "code": "F", "name": "Fusion Tech" },
+    { "code": "Q", "name": "Quantum Manipulation" },
+    { "code": "T", "name": "Matter Transmission" },
+    { "code": "S", "name": "Super-Materials" },
+    { "code": "P", "name": "Psi-tech" },
+    { "code": "X", "name": "Energy Transformation" },
+    { "code": "C", "name": "Computer Tech" }
+  ]
+}

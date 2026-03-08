@@ -28,6 +28,7 @@ import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calcula
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
+import { getAllTechTrackCodes } from './formatters';
 import { getActiveMods } from './dataLoader';
 
 /**
@@ -408,6 +409,23 @@ function migrateSaveFile(saveFile: WarshipSaveFile): string[] {
   }
 
   return migrations;
+}
+
+/**
+ * Filter design tech tracks to only known codes.
+ * Unknown tracks (e.g., from unloaded mods) are stripped with a warning.
+ */
+function filterKnownTechTracks(tracks: string[], warnings: string[]): TechTrack[] {
+  const knownCodes = new Set(getAllTechTrackCodes());
+  const result: TechTrack[] = [];
+  for (const track of tracks) {
+    if (knownCodes.has(track)) {
+      result.push(track as TechTrack);
+    } else {
+      warnings.push(`Unknown tech track "${track}" (mod not loaded?) — removed from design constraints`);
+    }
+  }
+  return result;
 }
 
 /**
@@ -901,7 +919,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       damageDiagramZones,
       hitLocationChart,
       designProgressLevel: saveFile.designProgressLevel || 7,
-      designTechTracks: saveFile.designTechTracks || [],
+      designTechTracks: filterKnownTechTracks(saveFile.designTechTracks || [], warnings),
     },
     warnings: warnings.length > 0 ? warnings : undefined,
   };

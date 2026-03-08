@@ -1,15 +1,35 @@
 import type { ShipClass } from '../types/hull';
 import type { TechTrack, DesignType, StationType, ProgressLevel } from '../types/common';
 import type { AreaEffect } from '../types/weapon';
+import { getTechTracksData } from './dataLoader';
 
 /**
  * Shared formatting utility functions
  */
 
 /**
- * All available tech track codes for iteration
+ * Base tech track codes (hardcoded fallback before data loads).
+ * After data loads, use getAllTechTrackCodes() for the full dynamic list.
  */
-export const ALL_TECH_TRACK_CODES: TechTrack[] = ['G', 'D', 'A', 'M', 'F', 'Q', 'T', 'S', 'P', 'X', 'C'];
+const BASE_TECH_TRACK_CODES: TechTrack[] = ['G', 'D', 'A', 'M', 'F', 'Q', 'T', 'S', 'P', 'X', 'C'];
+
+/**
+ * Get all available tech track codes (base + mod-defined), for iteration.
+ * Returns dynamically from loaded data; falls back to base codes if data isn't loaded yet.
+ */
+export function getAllTechTrackCodes(): TechTrack[] {
+  const defs = getTechTracksData();
+  if (defs && defs.length > 0) {
+    return defs.map(d => d.code as TechTrack);
+  }
+  return BASE_TECH_TRACK_CODES;
+}
+
+/**
+ * Static alias kept for backward compatibility.
+ * Components that need a reactive list should call getAllTechTrackCodes() instead.
+ */
+export const ALL_TECH_TRACK_CODES = BASE_TECH_TRACK_CODES;
 
 /**
  * Format a cost number for display
@@ -62,24 +82,36 @@ export function formatTargetModifier(modifier: number): string {
 }
 
 /**
- * Get tech track display name
+ * Base tech track name map (fallback before data loads)
+ */
+const BASE_TECH_TRACK_NAMES: Record<string, string> = {
+  '-': 'None',
+  'G': 'Gravity Manipulation',
+  'D': 'Dark Matter Tech',
+  'A': 'Antimatter Tech',
+  'M': 'Matter Coding',
+  'F': 'Fusion Tech',
+  'Q': 'Quantum Manipulation',
+  'T': 'Matter Transmission',
+  'S': 'Super-Materials',
+  'P': 'Psi-tech',
+  'X': 'Energy Transformation',
+  'C': 'Computer Tech',
+};
+
+/**
+ * Get tech track display name.
+ * Looks up from loaded data first (supports mod-defined tracks),
+ * falls back to base names, then to the raw code.
  */
 export function getTechTrackName(track: TechTrack): string {
-  const names: Record<TechTrack, string> = {
-    '-': 'None',
-    'G': 'Gravity Manipulation',
-    'D': 'Dark Matter Tech',
-    'A': 'Antimatter Tech',
-    'M': 'Matter Coding',
-    'F': 'Fusion Tech',
-    'Q': 'Quantum Manipulation',
-    'T': 'Matter Transmission',
-    'S': 'Super-Materials',
-    'P': 'Psi-tech',
-    'X': 'Energy Transformation',
-    'C': 'Computer Tech',
-  };
-  return names[track];
+  if (track === '-') return 'None';
+  const defs = getTechTracksData();
+  if (defs && defs.length > 0) {
+    const def = defs.find(d => d.code === track);
+    if (def) return def.name;
+  }
+  return BASE_TECH_TRACK_NAMES[track] || track;
 }
 
 /**

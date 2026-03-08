@@ -17,6 +17,9 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - Weapon configurations and mounts can be modified.
 - Support systems can be made expandable (HP-based sizing) like launchers.
 - Mod validation with clear error reporting.
+- Mods can define new Technology Tracks (single uppercase letter + name) that equipment in the same mod can reference.
+- Tech track definitions are loaded from `techTracks.json` data file and merged from mods.
+- Unknown tech tracks in save files (from unloaded mods) are stripped with a warning on load.
 
 ### New Features
 

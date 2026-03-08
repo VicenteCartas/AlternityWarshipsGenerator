@@ -41,21 +41,26 @@ export type StationType = 'ground-base' | 'outpost' | 'space-station';
 export type ProgressLevel = 6 | 7 | 8 | 9;
 
 /**
- * Technology tracks representing different fields of advancement
- * '-': 'None',
- * 'G': 'Gravity Manipulation',
- * 'D': 'Dark Matter Tech',
- * 'A': 'Antimatter Tech',
- * 'M': 'Matter Coding',
- * 'F': 'Fusion Tech',
- * 'Q': 'Quantum Manipulation',
- * 'T': 'Matter Transmission',
- * 'S': 'Super-Materials',
- * 'P': 'Psi-tech',
- * 'X': 'Energy Transformation',
- * 'C': 'Computer Tech',
+ * Base technology track codes from the Warships sourcebook.
+ * Mods can add additional single-letter track codes at runtime.
  */
-export type TechTrack = '-' | 'G' | 'D' | 'A' | 'M' | 'F' | 'Q' | 'T' | 'S' | 'P' | 'X' | 'C';
+export type BaseTechTrack = '-' | 'G' | 'D' | 'A' | 'M' | 'F' | 'Q' | 'T' | 'S' | 'P' | 'X' | 'C';
+
+/**
+ * Technology track code — base tracks plus any mod-defined tracks.
+ * Always a single uppercase letter (or '-' for none).
+ */
+export type TechTrack = BaseTechTrack | (string & {});
+
+/**
+ * Definition of a technology track (base or mod-defined).
+ */
+export interface TechTrackDefinition {
+  /** Single uppercase letter code */
+  code: string;
+  /** Display name (e.g., "Gravity Manipulation") */
+  name: string;
+}
 
 /**
  * Damage types for weapons and armor

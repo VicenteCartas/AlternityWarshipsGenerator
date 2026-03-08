@@ -31,7 +31,7 @@ import RedoIcon from '@mui/icons-material/Redo';
 import type { ColumnDef } from '../../services/modEditorSchemas';
 import { validateField } from '../../services/modValidationService';
 import type { TechTrack } from '../../types/common';
-import { ALL_TECH_TRACK_CODES, getTechTrackName } from '../../services/formatters';
+import { getAllTechTrackCodes, getTechTrackName } from '../../services/formatters';
 
 interface EditableDataGridProps {
   columns: ColumnDef[];
@@ -279,10 +279,11 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     // Strip _source tag when importing
     const { _source, ...cleanItem } = item;
     void _source;
-    const exists = rows.some(r => r.id === cleanItem.id);
+    const itemKey = (cleanItem.id as string) || (cleanItem.code as string);
+    const exists = itemKey ? rows.some(r => (r.id || r.code) === itemKey) : false;
     if (exists) {
       // Override existing
-      const updated = rows.map(r => r.id === cleanItem.id ? { ...cleanItem } : r);
+      const updated = rows.map(r => (r.id || r.code) === itemKey ? { ...cleanItem } : r);
       onChangeWithHistory(updated);
     } else {
       onChangeWithHistory([...rows, { ...cleanItem }]);
@@ -776,7 +777,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             {popoverColumnKey === 'techTracks' ? 'Tech Tracks' : columns.find(c => c.key === popoverColumnKey)?.label || 'Select Options'}
           </Typography>
           {popoverColumnKey === 'techTracks' ? (
-            ALL_TECH_TRACK_CODES.filter(t => t !== '-').map(track => {
+            getAllTechTrackCodes().filter(t => t !== '-').map(track => {
               const current = popoverRowIndex >= 0 ? ((rows[popoverRowIndex]?.techTracks as TechTrack[]) || []) : [];
               return (
                 <FormControlLabel
@@ -843,7 +844,8 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             </TableHead>
             <TableBody>
               {((importSource === 'base' ? baseData : modOnlyData) || []).map((item, i) => {
-                const exists = rows.some(r => r.id === item.id);
+                const itemKey = (item.id as string) || (item.code as string);
+                const exists = itemKey ? rows.some(r => (r.id || r.code) === itemKey) : false;
                 return (
                   <TableRow
                     key={i}

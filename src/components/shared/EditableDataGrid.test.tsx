@@ -8,6 +8,7 @@ import type { ColumnDef } from '../../services/modEditorSchemas';
 // Mock formatters
 vi.mock('../../services/formatters', () => ({
   ALL_TECH_TRACK_CODES: ['G', 'D', 'A', 'M', 'F'],
+  getAllTechTrackCodes: () => ['G', 'D', 'A', 'M', 'F'],
   getTechTrackName: (code: string) => `Track-${code}`,
 }));
 

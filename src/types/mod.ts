@@ -61,6 +61,7 @@ export interface ModSourceTag {
  * Must match the files loaded by dataLoader.ts.
  */
 export const MOD_DATA_FILES = [
+  'techTracks.json',
   'hulls.json',
   'armor.json',
   'powerPlants.json',

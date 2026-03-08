@@ -67,7 +67,7 @@ import type { ProgressLevel, DesignType, StationType, AppMode } from './types/co
 import './types/electron.d.ts';
 import { buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from './services/armorService';
 import { isEnginePowerGenerationAllowed } from './services/engineService';
-import { formatCost, getTechTrackName, getStationTypeDisplayName, ALL_TECH_TRACK_CODES, PL_NAMES } from './services/formatters';
+import { formatCost, getTechTrackName, getStationTypeDisplayName, getAllTechTrackCodes, PL_NAMES } from './services/formatters';
 import { loadAllGameData, reloadAllGameData, reloadWithSpecificMods, type DataLoadResult } from './services/dataLoader';
 import { jsonToSaveFile, deserializeWarship, type WarshipState } from './services/saveService';
 import { getInstalledMods } from './services/modService';
@@ -953,7 +953,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 Leave all unchecked to show all components
               </Typography>
-              {ALL_TECH_TRACK_CODES.map((code) => (
+              {getAllTechTrackCodes().map((code) => (
                 <FormControlLabel
                   key={code}
                   control={

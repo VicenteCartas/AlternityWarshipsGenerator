@@ -113,6 +113,20 @@ const COL_AREA_NOTES: ColumnDef = { key: 'area.notes', label: 'Notes', type: 'se
 // ============== Section Definitions ==============
 
 export const EDITOR_SECTIONS: EditorSection[] = [
+  // ---- Tech Tracks ----
+  {
+    id: 'techTracks',
+    label: 'Tech Tracks',
+    description: 'Technology track definitions. Each track is a single uppercase letter code with a display name. Mods can add new tracks that equipment can then reference.',
+    fileName: 'techTracks.json',
+    rootKey: 'techTracks',
+    columns: [
+      { key: 'code', label: 'Code', type: 'text', required: true, width: 80, description: 'Single uppercase letter (A-Z) identifying this tech track' },
+      { key: 'name', label: 'Name', type: 'text', required: true, width: 300, description: 'Display name for this technology track (e.g., "Gravity Manipulation")' },
+    ],
+    defaultItem: { code: '', name: '' },
+  },
+
   // ---- Hulls ----
   {
     id: 'hulls',
@@ -716,6 +730,7 @@ export interface EditorSectionGroup {
 }
 
 export const EDITOR_SECTION_GROUPS: EditorSectionGroup[] = [
+  { id: 'techTracks', label: 'Tech Tracks', sectionIds: ['techTracks'] },
   { id: 'hulls', label: 'Hulls', sectionIds: ['hulls', 'stationHulls'] },
   { id: 'armor', label: 'Armor', sectionIds: ['armorWeights', 'armors'] },
   { id: 'propulsion', label: 'Propulsion', sectionIds: ['powerPlants', 'engines', 'fuelTank', 'ftlDrives'] },

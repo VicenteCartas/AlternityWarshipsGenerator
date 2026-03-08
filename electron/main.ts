@@ -639,6 +639,7 @@ ipcMain.handle('delete-autosave', async () => {
 // ============== Mod System IPC Handlers ==============
 
 const MOD_DATA_FILES = [
+  'techTracks.json',
   'hulls.json', 'armor.json', 'powerPlants.json', 'fuelTank.json',
   'engines.json', 'ftlDrives.json', 'supportSystems.json', 'weapons.json',
   'ordnance.json', 'defenses.json', 'sensors.json', 'commandControl.json',

@@ -10,6 +10,7 @@
  * "replace" mods replace entire files.
  */
 
+import type { TechTrackDefinition } from '../types/common';
 import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeightConfig } from '../types/armor';
 import type { PowerPlantType, FuelTankType } from '../types/powerPlant';
@@ -46,9 +47,11 @@ import damageDiagramDataRaw from '../data/damageDiagram.json';
 // don't match the narrow union types in DamageDiagramData like ZoneCode[] and hitDie)
 const damageDiagramDataFallback = damageDiagramDataRaw as unknown as DamageDiagramData;
 import weaponsDataFallback from '../data/weapons.json';
+import techTracksDataFallback from '../data/techTracks.json';
 
 // Cache for loaded data
 interface DataCache {
+  techTracks: TechTrackDefinition[] | null;
   hulls: Hull[] | null;
   stationHulls: Hull[] | null;
   armors: ArmorType[] | null;
@@ -89,6 +92,7 @@ interface DataCache {
 
 function createEmptyCache(): DataCache {
   return {
+    techTracks: null,
     hulls: null,
     stationHulls: null,
     armors: null,
@@ -122,6 +126,7 @@ function createEmptyCache(): DataCache {
 
 function createEmptyRawBaseData(): RawBaseDataCache {
   return {
+    techTracks: null,
     hulls: null, armor: null, powerPlants: null, fuelTank: null,
     engines: null, ftlDrives: null, supportSystems: null, defenses: null,
     commandControl: null, sensors: null, hangarMisc: null, ordnance: null,
@@ -134,6 +139,7 @@ const pureBaseCache: DataCache = createEmptyCache();
 
 // Cache for the raw base JSON data (pre-parsing) so we can re-merge mods without reloading from disk
 interface RawBaseDataCache {
+  techTracks: Record<string, unknown> | null;
   hulls: Record<string, unknown> | null;
   armor: Record<string, unknown> | null;
   powerPlants: Record<string, unknown> | null;
@@ -217,11 +223,11 @@ function mergeArraysById<T extends Record<string, unknown>>(
 ): T[] {
   const map = new Map<string, T>();
   for (const item of base) {
-    const key = (item.id as string) || JSON.stringify(item);
+    const key = (item.id as string) || (item.code as string) || JSON.stringify(item);
     map.set(key, item);
   }
   for (const item of mod) {
-    const key = (item.id as string) || JSON.stringify(item);
+    const key = (item.id as string) || (item.code as string) || JSON.stringify(item);
     map.set(key, { ...item, _source: sourceName });
   }
   return Array.from(map.values());
@@ -382,7 +388,8 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     const isElectron = !!window.electronAPI;
 
     // Load all base data files in parallel
-    const [hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
+    const [techTracksData, hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
+      loadDataFile('techTracks.json', techTracksDataFallback, failedFiles),
       loadDataFile('hulls.json', hullsDataFallback, failedFiles),
       loadDataFile('armor.json', armorDataFallback, failedFiles),
       loadDataFile('powerPlants.json', powerPlantDataFallback, failedFiles),
@@ -400,6 +407,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     ]);
 
     // Store raw base data for re-merging mods later (without reloading from disk)
+    rawBaseData.techTracks = techTracksData as Record<string, unknown>;
     rawBaseData.hulls = hullsData as Record<string, unknown>;
     rawBaseData.armor = armorData as Record<string, unknown>;
     rawBaseData.powerPlants = powerPlantsData as Record<string, unknown>;
@@ -416,6 +424,7 @@ export async function loadAllGameData(): Promise<DataLoadResult> {
     rawBaseData.weapons = weaponsData as Record<string, unknown>;
 
     // Store pure base data in pureBaseCache
+    pureBaseCache.techTracks = (techTracksData as { techTracks: TechTrackDefinition[] }).techTracks;
     pureBaseCache.hulls = (hullsData as { hulls: Hull[] }).hulls;
     pureBaseCache.stationHulls = (hullsData as { stationHulls?: Hull[] }).stationHulls || [];
     pureBaseCache.armors = (armorData as { armors: ArmorType[] }).armors;
@@ -495,6 +504,11 @@ function createGetter<T>(
 
 // ============== Data Getters ==============
 
+/** Get all tech track definitions (base + mod-defined). Must call loadAllGameData first. */
+export const getTechTracksData = createGetter<TechTrackDefinition[]>(
+  (c) => c.techTracks!, () => (techTracksDataFallback as { techTracks: TechTrackDefinition[] }).techTracks
+);
+
 /** Get all hulls (must call loadAllGameData first) */
 export const getHullsData = createGetter<Hull[]>(
   (c) => c.hulls!, () => (hullsDataFallback as { hulls: Hull[] }).hulls
@@ -558,11 +572,13 @@ async function applyModsToCache(mods: Mod[]): Promise<void> {
   }
 
   const [
+    mergedTechTracks,
     mergedHulls, mergedArmor, mergedPowerPlants, mergedFuelTank,
     mergedEngines, mergedFtlDrives, mergedSupportSystems,
     mergedDefenses, mergedCommandControl, mergedSensors,
     mergedHangarMisc, mergedOrdnance, mergedDamageDiagram, mergedWeapons,
   ] = await Promise.all([
+    applyModsToFile('techTracks.json', rawBaseData.techTracks!, mods),
     applyModsToFile('hulls.json', rawBaseData.hulls!, mods),
     applyModsToFile('armor.json', rawBaseData.armor!, mods),
     applyModsToFile('powerPlants.json', rawBaseData.powerPlants!, mods),
@@ -579,6 +595,7 @@ async function applyModsToCache(mods: Mod[]): Promise<void> {
     applyModsToFile('weapons.json', rawBaseData.weapons!, mods),
   ]);
 
+  cache.techTracks = (mergedTechTracks as { techTracks: TechTrackDefinition[] }).techTracks;
   cache.hulls = (mergedHulls as { hulls: Hull[] }).hulls;
   cache.stationHulls = (mergedHulls as { stationHulls?: Hull[] }).stationHulls || [];
   cache.armors = (mergedArmor as { armors: ArmorType[] }).armors;
