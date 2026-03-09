@@ -34,6 +34,7 @@ import {
   getMaxControlQualityForCore,
   getFireControlsForBattery,
   getSensorControlForSensor,
+  calculateCommandControlLifeSupportCoverageHp,
   getOrphanedFireControls,
   getOrphanedSensorControls,
   batteryHasFireControl,
@@ -640,6 +641,29 @@ describe('commandControlService', () => {
 
     it('returns 0 when no fire controls', () => {
       expect(getFireControlBonus('beam:turret', [])).toBe(0);
+    });
+  });
+
+  describe('calculateCommandControlLifeSupportCoverageHp', () => {
+    it('returns 0 for empty array', () => {
+      expect(calculateCommandControlLifeSupportCoverageHp([])).toBe(0);
+    });
+
+    it('returns 0 when no systems have lifeSupportCoverageHp', () => {
+      const cc = makeInstalledCC({ type: makeCCType({ lifeSupportCoverageHp: undefined }) });
+      expect(calculateCommandControlLifeSupportCoverageHp([cc])).toBe(0);
+    });
+
+    it('sums lifeSupportCoverageHp across all systems', () => {
+      const cockpit = makeInstalledCC({ type: makeCCType({ lifeSupportCoverageHp: 2 }) });
+      const deck = makeInstalledCC({ type: makeCCType({ lifeSupportCoverageHp: 5 }) });
+      expect(calculateCommandControlLifeSupportCoverageHp([cockpit, deck])).toBe(7);
+    });
+
+    it('treats missing lifeSupportCoverageHp as 0', () => {
+      const withCoverage = makeInstalledCC({ type: makeCCType({ lifeSupportCoverageHp: 3 }) });
+      const withoutCoverage = makeInstalledCC({ type: makeCCType() });
+      expect(calculateCommandControlLifeSupportCoverageHp([withCoverage, withoutCoverage])).toBe(3);
     });
   });
 });

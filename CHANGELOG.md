@@ -6,8 +6,19 @@
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
+### Refactoring
+
+- **Added test coverage for pdfExportService.ts (review 2.6):** 44 tests covering pure logic functions (`formatArcsShort`, `enrichSystemDisplayName`, `computeShipStats`), option toggling (`includeCombat`, `includeDamageDiagram`, `includeDetailedSystems`), mock-based rendering section verification (lore, systems detail, combat, damage diagram, footer), and snapshot regression tests. Exported `formatArcsShort`, `enrichSystemDisplayName`, `computeShipStats`, and `ShipStats` for testability.
+- **Added App.tsx integration tests (review 2.8):** 23 integration tests covering the top-level App component: loading/welcome flow, new warship creation, step navigation, hull selection with change confirmation, undo/redo button states, save/load round-trip, return-to-welcome, and station design. Includes a reusable Electron IPC mock helper (`src/test/electronMock.ts`) for rendering App with mocked native APIs.
+- **Replaced direct `console.error` calls with `logger` (review 2.7):** Three `console.error` calls in DamageDiagramSelection drag-and-drop handlers now use the dev-gated `logger.error` utility, consistent with the rest of the codebase.
+- **Extracted `calculateCommandControlLifeSupportCoverageHp` helper (review 2.5):** Replaced 3 copy-pasted `reduce` expressions across `designSnapshotService.ts`, `StepContentRenderer.tsx`, and `CraftPickerDialog.tsx` with a single function in `commandControlService.ts`. Named without "cockpit" since the `lifeSupportCoverageHp` field is data-driven and mods can add it to any command system.
+- **Decomposed App.tsx god component (review 2.3):** Extracted step completion logic into `stepCompletionService.ts` (pure function, 36 unit tests), ResourceBarChip segment configs into `resourceBarConfigs.ts`, and the 13-case step content switch into a `StepContentRenderer` component. Memoized `hasAnyInstalledComponents`, `clearAllComponents`, `handleHullSelect`, `handleArmorSelect`, `handleArmorClear`, `handleArmorRemoveLayer`, `handleStepClick`, `handleNext`, `handleBack` with `useMemo`/`useCallback`.
+- **Eliminated prop drilling in SummarySelection & DamageDiagramSelection (review 2.4):** Replaced 29 and 20 individual props with a single `state: WarshipState` object. `useWarshipState` now exposes a memoized `currentState` for direct consumption. StepContentRenderer props reduced from ~81 to ~63, and the App.tsx call site from ~60 to ~35 prop assignments.
+
 ### Bug Fixes
 
+- **Fixed auto-save recovery race condition:** The "Recover" button on the Welcome page deleted the auto-save file before the async recovery completed. If recovery failed (corrupt file, missing mods, deserialization error), the auto-save was already gone — turning a recoverable failure into permanent data loss. Recovery now awaits the full async process, clears the file only on success, and disables buttons while in-flight.
+- **Fixed save serialization reading global mod cache instead of per-design mods:** `serializeWarship()` called the global `getActiveMods()` from the data-loader singleton instead of using the design's own `designActiveMods`. If the global cache diverged (e.g. after mod editing), saves could record the wrong active mods. Active mods are now part of `WarshipState` and flow explicitly through serialization.
 - **Fixed Fortress Ship crew count:** Corrected crew from 120,000 to 12,000 to match the sourcebook.
 - **Fixed inconsistent cost/stats across views:** The builder app bar, Summary tab, and PDF export previously computed ship totals independently with divergent formulas. Introduced a single authoritative `computeDesignSnapshot()` service used by all three consumers. This fixes: incorrect tech track handling in Summary/PDF (always treated all techs as available), missing weapon magazine warhead costs in Summary/PDF totals, and ordnance cost discrepancies between views.
 

@@ -21,7 +21,7 @@ import { calculateSupportSystemsStats } from './supportSystemService';
 import { calculateWeaponStats, calculateWeaponMagazineWarheadCost } from './weaponService';
 import { calculateOrdnanceStats } from './ordnanceService';
 import { calculateDefenseStats } from './defenseService';
-import { calculateCommandControlStats } from './commandControlService';
+import { calculateCommandControlStats, calculateCommandControlLifeSupportCoverageHp } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
 import { calculateEmbarkedCraftStats } from './embarkedCraftService';
@@ -144,9 +144,7 @@ export function computeDesignSnapshot(input: DesignSnapshotInput): DesignSnapsho
     ? calculateTotalFTLStats(input.installedFTLDrive, hull)
     : { totalHullPoints: 0, totalPowerRequired: 0, totalCost: 0 };
   const ftlFuelStats = calculateTotalFTLFuelTankStats(input.installedFTLFuelTanks);
-  const cockpitLifeSupportCoverageHp = input.installedCommandControl.reduce(
-    (sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0,
-  );
+  const cockpitLifeSupportCoverageHp = calculateCommandControlLifeSupportCoverageHp(input.installedCommandControl);
   const supportStats = calculateSupportSystemsStats(
     input.installedLifeSupport, input.installedAccommodations, input.installedStoreSystems,
     input.installedGravitySystems, input.designProgressLevel, input.designTechTracks,

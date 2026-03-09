@@ -25,11 +25,12 @@ interface WelcomePageProps {
   onLoadWarship: () => void;
   onManageMods: () => void;
   onOpenLibrary?: () => void;
-  onRecoverAutoSave?: (content: string) => void;
+  onRecoverAutoSave?: (content: string) => Promise<boolean>;
 }
 
 export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onOpenLibrary, onRecoverAutoSave }: WelcomePageProps) {
   const [autoSaveContent, setAutoSaveContent] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(false);
   const [showGettingStarted, setShowGettingStarted] = useState(false);
 
   useEffect(() => {
@@ -91,17 +92,23 @@ export function WelcomePage({ onNewWarship, onLoadWarship, onManageMods, onOpenL
                   color="warning"
                   size="small"
                   variant="contained"
-                  onClick={() => {
-                    onRecoverAutoSave?.(autoSaveContent);
-                    setAutoSaveContent(null);
-                    clearAutoSave();
+                  disabled={recovering}
+                  onClick={async () => {
+                    setRecovering(true);
+                    const success = await onRecoverAutoSave?.(autoSaveContent) ?? false;
+                    if (success) {
+                      setAutoSaveContent(null);
+                    } else {
+                      setRecovering(false);
+                    }
                   }}
                 >
-                  Recover
+                  {recovering ? 'Recovering…' : 'Recover'}
                 </Button>
                 <Button
                   color="inherit"
                   size="small"
+                  disabled={recovering}
                   onClick={() => {
                     setAutoSaveContent(null);
                     clearAutoSave();

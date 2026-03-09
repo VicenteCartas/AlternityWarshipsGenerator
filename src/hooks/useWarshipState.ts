@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { Hull } from '../types/hull';
 import type { ShipArmor } from '../types/armor';
 import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
@@ -14,6 +14,7 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { ProgressLevel, TechTrack, DesignType, StationType, AppMode } from '../types/common';
 import type { DamageZone, HitLocationChart } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
+import type { Mod } from '../types/mod';
 import { useUndoHistory } from './useUndoHistory';
 import type { WarshipState } from '../services/saveService';
 
@@ -23,7 +24,7 @@ import type { WarshipState } from '../services/saveService';
  *
  * @param mode Current app mode — dirty-check only triggers when mode is 'builder'
  */
-export function useWarshipState(mode: AppMode) {
+export function useWarshipState(mode: AppMode, designActiveMods: Mod[]) {
   // ---- Design type ----
   const [designType, setDesignType] = useState<DesignType>('warship');
   const [stationType, setStationType] = useState<StationType | null>(null);
@@ -113,7 +114,11 @@ export function useWarshipState(mode: AppMode) {
     hitLocationChart,
     designProgressLevel,
     designTechTracks,
-  }), [warshipName, shipDescription, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, designProgressLevel, designTechTracks]);
+    activeMods: designActiveMods,
+  }), [warshipName, shipDescription, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, designProgressLevel, designTechTracks, designActiveMods]);
+
+  /** Memoized current state object — stable reference when no state has changed. */
+  const currentState: WarshipState = useMemo(() => buildCurrentState(), [buildCurrentState]);
 
   /**
    * Apply a WarshipState snapshot to all individual setters.
@@ -213,7 +218,7 @@ export function useWarshipState(mode: AppMode) {
     setShipDescription, setWarshipName,
     setDesignProgressLevel, setDesignTechTracks,
     // Helpers
-    buildCurrentState, applyState,
+    buildCurrentState, currentState, applyState,
     handleUndo, handleRedo, undoHistory,
     hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheckRef,
   };

@@ -94,7 +94,7 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
     const { calculateWeaponStats } = await import('../services/weaponService');
     const { calculateOrdnanceStats } = await import('../services/ordnanceService');
     const { calculateDefenseStats } = await import('../services/defenseService');
-    const { calculateCommandControlStats } = await import('../services/commandControlService');
+    const { calculateCommandControlStats, calculateCommandControlLifeSupportCoverageHp } = await import('../services/commandControlService');
     const { calculateSensorStats } = await import('../services/sensorService');
     const { calculateHangarMiscStats } = await import('../services/hangarMiscService');
 
@@ -104,7 +104,7 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
     const ftlStats = state.ftlDrive ? calculateTotalFTLStats(state.ftlDrive, hull) : { totalCost: 0 };
     const ftlFuelStats = calculateTotalFTLFuelTankStats(state.ftlFuelTanks);
     const supportStats = calculateSupportSystemsStats(state.lifeSupport, state.accommodations, state.storeSystems, state.gravitySystems, state.designProgressLevel, [],
-      state.commandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0),
+      calculateCommandControlLifeSupportCoverageHp(state.commandControl),
     );
     const weaponStats = calculateWeaponStats(state.weapons);
     const ordnanceStats = calculateOrdnanceStats(state.launchSystems, state.ordnanceDesigns);

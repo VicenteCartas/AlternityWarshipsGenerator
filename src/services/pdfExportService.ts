@@ -31,7 +31,7 @@ import { capitalize, logger } from './utilities';
  * Format arcs as short single-letter abbreviations separated by spaces.
  * Standard arcs: F S A P. Zero arcs: ZF ZS ZA ZP.
  */
-function formatArcsShort(arcs: FiringArc[]): string {
+export function formatArcsShort(arcs: FiringArc[]): string {
   if (arcs.length === 0) return '-';
   return arcs.map(a => {
     if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
@@ -202,7 +202,7 @@ function drawDamageTrackBoxes(ctx: PdfContext, label: string, count: number, x: 
 
 // ============ STATS CALCULATION ============
 
-interface ShipStats {
+export interface ShipStats {
   totalHP: number;
   usedHP: number;
   remainingHP: number;
@@ -226,7 +226,7 @@ interface ShipStats {
   supportStats: SupportSystemsStats;
 }
 
-function computeShipStats(data: ShipData): ShipStats {
+export function computeShipStats(data: ShipData): ShipStats {
   const snapshot = computeDesignSnapshot({
     hull: data.hull,
     armorLayers: data.armorLayers,
@@ -292,7 +292,7 @@ function computeShipStats(data: ShipData): ShipStats {
  * Handles launch systems (ordnance designs), weapons (warheads), hangars (craft), and magazines (ordnance designs).
  * Used by zone box rendering and zone height calculation.
  */
-function enrichSystemDisplayName(
+export function enrichSystemDisplayName(
   sysName: string,
   installedSystemId: string,
   data: ShipData,

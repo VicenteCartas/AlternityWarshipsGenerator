@@ -32,21 +32,7 @@ import { TabPanel } from './shared';
 import { FireDiagram, DamageZonesOverview } from './summary';
 import { PdfExportDialog, type PdfExportOptions } from './PdfExportDialog';
 import { BudgetChart } from './shared/BudgetChart';
-import type { Hull } from '../types/hull';
-import type { ShipArmor } from '../types/armor';
-import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
-import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
-import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
-import type { InstalledWeapon } from '../types/weapon';
-import type { InstalledDefenseSystem } from '../types/defense';
-import type { InstalledCommandControlSystem } from '../types/commandControl';
-import type { InstalledSensor } from '../types/sensor';
-import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
-import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
-import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
 import { calculateFuelTankCost } from '../services/powerPlantService';
 import { calculateEngineFuelTankCost, isEnginePowerGenerationAllowed } from '../services/engineService';
 import { calculateFTLFuelTankCost } from '../services/ftlDriveService';
@@ -58,71 +44,51 @@ import { getZoneLimitForHull } from '../services/damageDiagramService';
 import { getWeaponBatteries, getWeaponBatteryDisplayName, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { exportShipToPDF } from '../services/pdfExportService';
 import { logger } from '../services/utilities';
+import type { WarshipState } from '../services/saveService';
 
 
 interface SummarySelectionProps {
-  hull: Hull | null;
-  warshipName: string;
-  shipDescription: ShipDescription;
+  state: WarshipState;
   onShipDescriptionChange: (description: ShipDescription) => void;
-  armorLayers: ShipArmor[];
-  installedPowerPlants: InstalledPowerPlant[];
-  installedFuelTanks: InstalledFuelTank[];
-  installedEngines: InstalledEngine[];
-  installedEngineFuelTanks: InstalledEngineFuelTank[];
-  installedFTLDrive: InstalledFTLDrive | null;
-  installedFTLFuelTanks: InstalledFTLFuelTank[];
-  installedLifeSupport: InstalledLifeSupport[];
-  installedAccommodations: InstalledAccommodation[];
-  installedStoreSystems: InstalledStoreSystem[];
-  installedGravitySystems: InstalledGravitySystem[];
-  installedWeapons: InstalledWeapon[];
-  installedLaunchSystems: InstalledLaunchSystem[];
-  ordnanceDesigns: OrdnanceDesign[];
-  installedDefenses: InstalledDefenseSystem[];
-  installedCommandControl: InstalledCommandControlSystem[];
-  installedSensors: InstalledSensor[];
-  installedHangarMisc: InstalledHangarMiscSystem[];
-  damageDiagramZones: DamageZone[];
-  designProgressLevel: ProgressLevel;
-  designTechTracks: TechTrack[];
-  designType: DesignType;
-  stationType: StationType | null;
   currentFilePath: string | null;
   onShowNotification: (message: string, severity: 'success' | 'error' | 'warning' | 'info', action?: { label: string; onClick: () => void }) => void;
 }
 
 export function SummarySelection({
-  hull,
-  warshipName,
-  shipDescription,
+  state,
   onShipDescriptionChange,
-  armorLayers,
-  installedPowerPlants,
-  installedFuelTanks,
-  installedEngines,
-  installedEngineFuelTanks,
-  installedFTLDrive,
-  installedFTLFuelTanks,
-  installedLifeSupport,
-  installedAccommodations,
-  installedStoreSystems,
-  installedGravitySystems,
-  installedWeapons,
-  installedLaunchSystems,
-  ordnanceDesigns,
-  installedDefenses,
-  installedCommandControl,
-  installedSensors,
-  installedHangarMisc,
-  damageDiagramZones,
-  designProgressLevel,
-  designTechTracks,
-  designType,
-  stationType,
   currentFilePath,
   onShowNotification,
 }: SummarySelectionProps) {
+  // Destructure state into local aliases matching the old prop names
+  const {
+    hull,
+    name: warshipName,
+    shipDescription,
+    armorLayers,
+    powerPlants: installedPowerPlants,
+    fuelTanks: installedFuelTanks,
+    engines: installedEngines,
+    engineFuelTanks: installedEngineFuelTanks,
+    ftlDrive: installedFTLDrive,
+    ftlFuelTanks: installedFTLFuelTanks,
+    lifeSupport: installedLifeSupport,
+    accommodations: installedAccommodations,
+    storeSystems: installedStoreSystems,
+    gravitySystems: installedGravitySystems,
+    weapons: installedWeapons,
+    launchSystems: installedLaunchSystems,
+    ordnanceDesigns,
+    defenses: installedDefenses,
+    commandControl: installedCommandControl,
+    sensors: installedSensors,
+    hangarMisc: installedHangarMisc,
+    damageDiagramZones,
+    designProgressLevel,
+    designTechTracks,
+    designType,
+    stationType,
+  } = state;
   const [tabValue, setTabValue] = useState(0);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

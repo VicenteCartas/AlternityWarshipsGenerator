@@ -20,24 +20,15 @@ import CheckIcon from '@mui/icons-material/Check';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
-import type { Hull } from '../types/hull';
-import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
-import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
-import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
-import type { InstalledWeapon } from '../types/weapon';
-import type { InstalledDefenseSystem } from '../types/defense';
-import type { InstalledCommandControlSystem } from '../types/commandControl';
-import type { InstalledSensor } from '../types/sensor';
-import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { InstalledLaunchSystem, OrdnanceDesign } from '../types/ordnance';
 import { getLaunchSystemsData } from '../services/dataLoader';
+import { logger } from '../services/utilities';
 import type {
   DamageZone,
   ZoneSystemReference,
   ZoneCode,
   SystemDamageCategory,
 } from '../types/damageDiagram';
+import type { WarshipState } from '../services/saveService';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import {
   DAMAGE_CATEGORY_COLORS,
@@ -54,24 +45,7 @@ import {
 } from '../services/damageDiagramService';
 
 interface DamageDiagramSelectionProps {
-  hull: Hull;
-  installedPowerPlants: InstalledPowerPlant[];
-  installedFuelTanks: InstalledFuelTank[];
-  installedEngines: InstalledEngine[];
-  installedEngineFuelTanks: InstalledEngineFuelTank[];
-  installedFTLDrive: InstalledFTLDrive | null;
-  installedFTLFuelTanks: InstalledFTLFuelTank[];
-  installedLifeSupport: InstalledLifeSupport[];
-  installedAccommodations: InstalledAccommodation[];
-  installedStoreSystems: InstalledStoreSystem[];
-  installedGravitySystems: InstalledGravitySystem[];
-  installedWeapons: InstalledWeapon[];
-  installedLaunchSystems: InstalledLaunchSystem[];
-  ordnanceDesigns: OrdnanceDesign[];
-  installedDefenses: InstalledDefenseSystem[];
-  installedCommandControl: InstalledCommandControlSystem[];
-  installedSensors: InstalledSensor[];
-  installedHangarMisc: InstalledHangarMiscSystem[];
+  state: WarshipState;
   zones: DamageZone[];
   onZonesChange: (zones: DamageZone[]) => void;
 }
@@ -336,29 +310,34 @@ function buildUnassignedSystemsList(
 // ============== Main Component ==============
 
 export function DamageDiagramSelection({
-  hull,
-  installedPowerPlants,
-  installedFuelTanks,
-  installedEngines,
-  installedEngineFuelTanks,
-  installedFTLDrive,
-  installedFTLFuelTanks,
-  installedLifeSupport,
-  installedAccommodations,
-  installedStoreSystems,
-  installedGravitySystems,
-  installedWeapons,
-  installedLaunchSystems,
-  ordnanceDesigns,
-  installedDefenses,
-  installedCommandControl,
-  installedSensors,
-  installedHangarMisc,
+  state,
   zones,
   onZonesChange,
 }: DamageDiagramSelectionProps) {
+  // Destructure state into local aliases matching the old prop names
+  const {
+    hull: nullableHull,
+    powerPlants: installedPowerPlants,
+    fuelTanks: installedFuelTanks,
+    engines: installedEngines,
+    engineFuelTanks: installedEngineFuelTanks,
+    ftlDrive: installedFTLDrive,
+    ftlFuelTanks: installedFTLFuelTanks,
+    lifeSupport: installedLifeSupport,
+    accommodations: installedAccommodations,
+    storeSystems: installedStoreSystems,
+    gravitySystems: installedGravitySystems,
+    weapons: installedWeapons,
+    launchSystems: installedLaunchSystems,
+    ordnanceDesigns,
+    defenses: installedDefenses,
+    commandControl: installedCommandControl,
+    sensors: installedSensors,
+    hangarMisc: installedHangarMisc,
+  } = state;
 
-  // Filter state
+  // hull is guaranteed non-null because StepContentRenderer only renders this when a hull is selected
+  const hull = nullableHull!;
   const [categoryFilter, setCategoryFilter] = useState<SystemDamageCategory | 'all'>('all');
   // Pool sort state
   const [poolSortMode, setPoolSortMode] = useState<'category' | 'hp' | 'name'>('category');
@@ -765,7 +744,7 @@ export function DamageDiagramSelection({
       setDraggedZoneSystem(null);
       setDragSourceInfo(null);
     } catch (err) {
-      console.error('[DamageDiagram] dragStart error:', err);
+      logger.error('[DamageDiagram] dragStart error:', err);
     }
   }, []);
 
@@ -780,7 +759,7 @@ export function DamageDiagramSelection({
       setDraggedSystemId(null);
       setDragSourceInfo({ fromZone: zoneCode, refId: sys.id, systemRef: sys });
     } catch (err) {
-      console.error('[DamageDiagram] dragStartZone error:', err);
+      logger.error('[DamageDiagram] dragStartZone error:', err);
     }
   }, []);
 
@@ -854,7 +833,7 @@ export function DamageDiagramSelection({
         }
       }
     } catch (err) {
-      console.error('[DamageDiagram] drop error:', err);
+      logger.error('[DamageDiagram] drop error:', err);
     } finally {
       setDraggedSystemId(null);
       setDraggedZoneSystem(null);

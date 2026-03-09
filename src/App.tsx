@@ -38,26 +38,16 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import { WelcomePage } from './components/WelcomePage';
-import { HullSelection } from './components/HullSelection';
-import { ArmorSelection } from './components/ArmorSelection';
-import { PowerPlantSelection } from './components/PowerPlantSelection';
-import { EngineSelection } from './components/EngineSelection';
-import { FTLDriveSelection } from './components/FTLDriveSelection';
-import { SupportSystemsSelection } from './components/SupportSystemsSelection';
-import { WeaponSelection } from './components/WeaponSelection';
-import { DefenseSelection } from './components/DefenseSelection';
-import { CommandControlSelection } from './components/CommandControlSelection';
-import { SensorSelection } from './components/SensorSelection';
-import { HangarMiscSelection } from './components/HangarMiscSelection';
-import { DamageDiagramSelection } from './components/DamageDiagramSelection';
-import { SummarySelection } from './components/SummarySelection';
 import { AboutDialog } from './components/AboutDialog';
 import { KeyboardShortcutsDialog } from './components/KeyboardShortcutsDialog';
 import { ModManager } from './components/ModManager';
 import { DesignTypeDialog } from './components/DesignTypeDialog';
 import { ShipLibrary } from './components/library';
+import { StepContentRenderer } from './components/StepContentRenderer';
 import { ResourceBarChip } from './components/shared/ResourceBarChip';
 import { BUDGET_CATEGORY_COLORS } from './constants/domainColors';
+import { buildHpSegments, buildCostSegments, buildPowerSegments, POWER_CATEGORIES } from './constants/resourceBarConfigs';
+import { calculateStepCompletion, hasAnyInstalledComponents as checkHasAnyInstalled } from './services/stepCompletionService';
 import type { Mod } from './types/mod';
 import { StepHeader } from './components/shared/StepHeader';
 import { ConfirmDialog } from './components/shared';
@@ -94,9 +84,12 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeStep, setActiveStep] = useState(0);
 
+  // Per-design active mods (set at creation time or on load, locked during design)
+  const [designActiveMods, setDesignActiveMods] = useState<Mod[]>([]);
+
   // All warship design state (27 variables + setters, undo/redo, dirty tracking)
   const {
-    designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity,
+    designType, stationType, surfaceProvidesLifeSupport,
     selectedHull, armorLayers,
     installedPowerPlants, installedFuelTanks,
     installedEngines, installedEngineFuelTanks,
@@ -104,8 +97,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
     installedWeapons, ordnanceDesigns, installedLaunchSystems,
     installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
-    damageDiagramZones,
-    shipDescription, warshipName,
+    warshipName,
     designProgressLevel, designTechTracks,
     setSelectedHull, setArmorLayers,
     setInstalledPowerPlants, setInstalledFuelTanks,
@@ -117,10 +109,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setDamageDiagramZones,
     setShipDescription, setWarshipName,
     setDesignProgressLevel, setDesignTechTracks,
-    buildCurrentState, applyState,
+    buildCurrentState, currentState, applyState,
     handleUndo, handleRedo, undoHistory,
     hasUnsavedChanges, setHasUnsavedChanges, skipDirtyCheckRef,
-  } = useWarshipState(mode);
+  } = useWarshipState(mode, designActiveMods);
 
   // Compute visible steps based on design type, then apply house rule overrides
   const steps = useMemo(() => {
@@ -153,9 +145,6 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
 
   // Track the mode to return to when leaving the mod manager
   const [preModeForMods, setPreModeForMods] = useState<AppMode>('welcome');
-
-  // Per-design active mods (set at creation time or on load, locked during design)
-  const [designActiveMods, setDesignActiveMods] = useState<Mod[]>([]);
 
   // Tech track popover anchor
   const [techAnchorEl, setTechAnchorEl] = useState<HTMLElement | null>(null);
@@ -215,45 +204,8 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
 
   // Compute step completion status and count
   const { stepCompletion, completedStepCount } = useMemo(() => {
-    const completion = new Map<string, boolean>();
-    for (const step of steps) {
-      let completed = false;
-      switch (step.id) {
-        case 'hull': completed = selectedHull !== null; break;
-        case 'armor': completed = armorLayers.length > 0; break;
-        case 'power': completed = installedPowerPlants.length > 0; break;
-        case 'engines': completed = installedEngines.length > 0; break;
-        case 'ftl': completed = installedFTLDrive !== null; break;
-        case 'support': completed = installedLifeSupport.length > 0 || installedAccommodations.length > 0 || installedStoreSystems.length > 0; break;
-        case 'weapons': completed = installedWeapons.length > 0; break;
-        case 'defenses': completed = installedDefenses.length > 0; break;
-        case 'sensors': completed = installedSensors.length > 0; break;
-        case 'c4': completed = installedCommandControl.some(s => s.type.isRequired); break;
-        case 'hangars': completed = installedHangarMisc.length > 0; break;
-        case 'damage': {
-          if (damageDiagramZones.length === 0) { completed = false; break; }
-          const totalAssigned = damageDiagramZones.reduce((sum, z) => sum + z.systems.length, 0);
-          const totalSystems = installedPowerPlants.length + installedFuelTanks.length +
-            installedEngines.length + installedEngineFuelTanks.length +
-            (installedFTLDrive ? 1 : 0) + installedFTLFuelTanks.length +
-            installedLifeSupport.length + installedAccommodations.length +
-            installedStoreSystems.length + installedGravitySystems.length +
-            installedWeapons.length + installedLaunchSystems.length +
-            installedDefenses.length + installedCommandControl.length +
-            installedSensors.length + installedHangarMisc.length;
-          completed = totalAssigned >= totalSystems && totalSystems > 0;
-          break;
-        }
-        case 'summary': completed = summaryValidationState === 'valid'; break;
-      }
-      completion.set(step.id, completed);
-    }
-    return { stepCompletion: completion, completedStepCount: [...completion.values()].filter(Boolean).length };
-  }, [steps, selectedHull, armorLayers, installedPowerPlants, installedEngines, installedFTLDrive,
-    installedLifeSupport, installedAccommodations, installedStoreSystems, installedWeapons,
-    installedDefenses, installedSensors, installedCommandControl, installedHangarMisc,
-    damageDiagramZones, installedFuelTanks, installedEngineFuelTanks, installedFTLFuelTanks,
-    installedGravitySystems, installedLaunchSystems, summaryValidationState]);
+    return calculateStepCompletion(steps, currentState, summaryValidationState);
+  }, [steps, currentState, summaryValidationState]);
 
   // File save/load operations
   const {
@@ -336,6 +288,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       hitLocationChart: null,
       designProgressLevel: 9,
       designTechTracks: [],
+      activeMods: selectedMods,
     };
     applyState(freshState);
     setCurrentFilePath(null);
@@ -377,12 +330,12 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setMode('welcome');
   }, []);
 
-  const handleRecoverAutoSave = useCallback(async (content: string) => {
+  const handleRecoverAutoSave = useCallback(async (content: string): Promise<boolean> => {
     try {
       const saveFile = jsonToSaveFile(content);
       if (!saveFile) {
         showNotification('Auto-save file is corrupted', 'error');
-        return;
+        return false;
       }
 
       // Match saved mods against installed mods and apply them
@@ -413,7 +366,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       const loadResult = deserializeWarship(saveFile);
       if (!loadResult.success || !loadResult.state) {
         showNotification(`Failed to recover: ${loadResult.errors?.join(', ')}`, 'error');
-        return;
+        return false;
       }
 
       skipDirtyCheckRef.current = true;
@@ -431,8 +384,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       } else {
         showNotification(`Recovered: ${loadResult.state.name}`, 'success');
       }
+      return true;
     } catch (error) {
       showNotification(`Error recovering auto-save: ${error}`, 'error');
+      return false;
     }
   }, [applyState, showNotification, setCurrentFilePath, setHasUnsavedChanges, skipDirtyCheckRef, undoHistory]);
 
@@ -499,28 +454,12 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   }, []);
 
   // Check if any components are installed beyond just the hull
-  const hasAnyInstalledComponents =
-    armorLayers.length > 0 ||
-    installedPowerPlants.length > 0 ||
-    installedFuelTanks.length > 0 ||
-    installedEngines.length > 0 ||
-    installedEngineFuelTanks.length > 0 ||
-    installedFTLDrive !== null ||
-    installedFTLFuelTanks.length > 0 ||
-    installedLifeSupport.length > 0 ||
-    installedAccommodations.length > 0 ||
-    installedStoreSystems.length > 0 ||
-    installedGravitySystems.length > 0 ||
-    installedWeapons.length > 0 ||
-    ordnanceDesigns.length > 0 ||
-    installedLaunchSystems.length > 0 ||
-    installedDefenses.length > 0 ||
-    installedCommandControl.length > 0 ||
-    installedSensors.length > 0 ||
-    installedHangarMisc.length > 0 ||
-    damageDiagramZones.length > 0;
+  const hasAnyInstalledComponents = useMemo(
+    () => checkHasAnyInstalled(currentState),
+    [currentState],
+  );
 
-  const clearAllComponents = () => {
+  const clearAllComponents = useCallback(() => {
     setArmorLayers([]);
     setInstalledPowerPlants([]);
     setInstalledFuelTanks([]);
@@ -540,9 +479,14 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setInstalledSensors([]);
     setInstalledHangarMisc([]);
     setDamageDiagramZones([]);
-  };
+  }, [setArmorLayers, setInstalledPowerPlants, setInstalledFuelTanks, setInstalledEngines,
+    setInstalledEngineFuelTanks, setInstalledFTLDrive, setInstalledFTLFuelTanks,
+    setInstalledLifeSupport, setInstalledAccommodations, setInstalledStoreSystems,
+    setInstalledGravitySystems, setInstalledWeapons, setOrdnanceDesigns, setInstalledLaunchSystems,
+    setInstalledDefenses, setInstalledCommandControl, setInstalledSensors, setInstalledHangarMisc,
+    setDamageDiagramZones]);
 
-  const handleHullSelect = (hull: Hull) => {
+  const handleHullSelect = useCallback((hull: Hull) => {
     // If there's any build progress, warn before changing hull
     if (selectedHull && hasAnyInstalledComponents) {
       setPendingHull(hull);
@@ -551,9 +495,9 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     }
     setSelectedHull(hull);
     clearAllComponents();
-  };
+  }, [selectedHull, hasAnyInstalledComponents, setSelectedHull, clearAllComponents]);
 
-  const handleArmorSelect = (weight: ArmorWeight, type: ArmorType) => {
+  const handleArmorSelect = useCallback((weight: ArmorWeight, type: ArmorType) => {
     if (!selectedHull) return;
     const newLayer = buildShipArmor(selectedHull, type);
     if (isMultipleArmorLayersAllowed()) {
@@ -566,252 +510,31 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       // Single layer: replace entirely
       setArmorLayers([newLayer]);
     }
-  };
+  }, [selectedHull, setArmorLayers]);
 
-  const handleArmorClear = () => {
+  const handleArmorClear = useCallback(() => {
     setArmorLayers([]);
-  };
+  }, [setArmorLayers]);
 
-  const handleArmorRemoveLayer = (weight: ArmorWeight) => {
+  const handleArmorRemoveLayer = useCallback((weight: ArmorWeight) => {
     setArmorLayers(prev => prev.filter(l => l.weight !== weight));
-  };
+  }, [setArmorLayers]);
 
-  const handleStepClick = (step: number) => {
+  const handleStepClick = useCallback((step: number) => {
     // Allow navigation to any step, but show warning if prerequisites not met
     setActiveStep(step);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [steps.length]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const renderStepContent = () => {
-    // Most steps require a hull to be selected first
-    const requiresHull = activeStepId !== 'hull' && activeStepId !== 'summary';
-    if (requiresHull && !selectedHull) {
-      return (
-        <Typography color="text.secondary">
-          Please select a hull first.
-        </Typography>
-      );
-    }
-
-    switch (activeStepId) {
-      case 'hull':
-        return (
-          <HullSelection
-            selectedHull={selectedHull}
-            onHullSelect={handleHullSelect}
-            designType={designType}
-          />
-        );
-      case 'armor':
-        return (
-          <ArmorSelection
-            hull={selectedHull!}
-            armorLayers={armorLayers}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onArmorSelect={handleArmorSelect}
-            onArmorClear={handleArmorClear}
-            onArmorRemoveLayer={handleArmorRemoveLayer}
-          />
-        );
-      case 'power':
-        return (
-          <PowerPlantSelection
-            hull={selectedHull!}
-            installedPowerPlants={installedPowerPlants}
-            installedFuelTanks={installedFuelTanks}
-            usedHullPoints={usedHullPointsBeforePowerPlants}
-            totalPowerConsumed={totalPowerConsumed}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onPowerPlantsChange={setInstalledPowerPlants}
-            onFuelTanksChange={setInstalledFuelTanks}
-          />
-        );
-      case 'engines':
-        return (
-          <EngineSelection
-            hull={selectedHull!}
-            installedEngines={installedEngines}
-            installedFuelTanks={installedEngineFuelTanks}
-            usedHullPoints={usedHullPointsBeforeEngines}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            isRequired={steps.find(s => s.id === 'engines')?.required ?? true}
-            onEnginesChange={setInstalledEngines}
-            onFuelTanksChange={setInstalledEngineFuelTanks}
-          />
-        );
-      case 'ftl':
-        return (
-          <FTLDriveSelection
-            hull={selectedHull!}
-            installedFTLDrive={installedFTLDrive}
-            installedFTLFuelTanks={installedFTLFuelTanks}
-            installedPowerPlants={installedPowerPlants}
-            availablePower={totalPower}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onFTLDriveChange={setInstalledFTLDrive}
-            onFTLFuelTanksChange={setInstalledFTLFuelTanks}
-          />
-        );
-      case 'support':
-        return (
-          <SupportSystemsSelection
-            hull={selectedHull!}
-            installedLifeSupport={installedLifeSupport}
-            installedAccommodations={installedAccommodations}
-            installedStoreSystems={installedStoreSystems}
-            installedGravitySystems={installedGravitySystems}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            surfaceProvidesLifeSupport={surfaceProvidesLifeSupport}
-            surfaceProvidesGravity={surfaceProvidesGravity}
-            cockpitLifeSupportCoverageHp={installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0)}
-            onLifeSupportChange={setInstalledLifeSupport}
-            onAccommodationsChange={setInstalledAccommodations}
-            onStoreSystemsChange={setInstalledStoreSystems}
-            onGravitySystemsChange={setInstalledGravitySystems}
-          />
-        );
-      case 'weapons':
-        return (
-          <WeaponSelection
-            hull={selectedHull!}
-            installedWeapons={installedWeapons}
-            installedCommandControl={installedCommandControl}
-            ordnanceDesigns={ordnanceDesigns}
-            launchSystems={installedLaunchSystems}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onWeaponsChange={setInstalledWeapons}
-            onOrdnanceDesignsChange={setOrdnanceDesigns}
-            onLaunchSystemsChange={setInstalledLaunchSystems}
-          />
-        );
-      case 'defenses':
-        return (
-          <DefenseSelection
-            hull={selectedHull!}
-            installedDefenses={installedDefenses}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onDefensesChange={setInstalledDefenses}
-          />
-        );
-      case 'sensors':
-        return (
-          <SensorSelection
-            installedSensors={installedSensors}
-            installedCommandControl={installedCommandControl}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onSensorsChange={setInstalledSensors}
-          />
-        );
-      case 'c4':
-        return (
-          <CommandControlSelection
-            hull={selectedHull!}
-            installedSystems={installedCommandControl}
-            installedSensors={installedSensors}
-            installedWeapons={installedWeapons}
-            installedLaunchSystems={installedLaunchSystems}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            onSystemsChange={setInstalledCommandControl}
-          />
-        );
-      case 'hangars':
-        return (
-          <HangarMiscSelection
-            hull={selectedHull!}
-            installedSystems={installedHangarMisc}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            totalPassengersAndSuspended={totalPassengersAndSuspended}
-            ordnanceDesigns={ordnanceDesigns}
-            onSystemsChange={setInstalledHangarMisc}
-          />
-        );
-      case 'damage':
-        return (
-          <DamageDiagramSelection
-            hull={selectedHull!}
-            installedPowerPlants={installedPowerPlants}
-            installedFuelTanks={installedFuelTanks}
-            installedEngines={installedEngines}
-            installedEngineFuelTanks={installedEngineFuelTanks}
-            installedFTLDrive={installedFTLDrive}
-            installedFTLFuelTanks={installedFTLFuelTanks}
-            installedLifeSupport={installedLifeSupport}
-            installedAccommodations={installedAccommodations}
-            installedStoreSystems={installedStoreSystems}
-            installedGravitySystems={installedGravitySystems}
-            installedWeapons={installedWeapons}
-            installedLaunchSystems={installedLaunchSystems}
-            ordnanceDesigns={ordnanceDesigns}
-            installedDefenses={installedDefenses}
-            installedCommandControl={installedCommandControl}
-            installedSensors={installedSensors}
-            installedHangarMisc={installedHangarMisc}
-            zones={damageDiagramZones}
-            onZonesChange={setDamageDiagramZones}
-          />
-        );
-      case 'summary':
-        return (
-          <SummarySelection
-            hull={selectedHull}
-            warshipName={warshipName}
-            shipDescription={shipDescription}
-            onShipDescriptionChange={setShipDescription}
-            armorLayers={armorLayers}
-            installedPowerPlants={installedPowerPlants}
-            installedFuelTanks={installedFuelTanks}
-            installedEngines={installedEngines}
-            installedEngineFuelTanks={installedEngineFuelTanks}
-            installedFTLDrive={installedFTLDrive}
-            installedFTLFuelTanks={installedFTLFuelTanks}
-            installedLifeSupport={installedLifeSupport}
-            installedAccommodations={installedAccommodations}
-            installedStoreSystems={installedStoreSystems}
-            installedGravitySystems={installedGravitySystems}
-            installedWeapons={installedWeapons}
-            installedLaunchSystems={installedLaunchSystems}
-            ordnanceDesigns={ordnanceDesigns}
-            installedDefenses={installedDefenses}
-            installedCommandControl={installedCommandControl}
-            installedSensors={installedSensors}
-            installedHangarMisc={installedHangarMisc}
-            damageDiagramZones={damageDiagramZones}
-            designProgressLevel={designProgressLevel}
-            designTechTracks={designTechTracks}
-            designType={designType}
-            stationType={stationType}
-            currentFilePath={currentFilePath}
-            onShowNotification={showNotification}
-          />
-        );
-      default:
-        return (
-          <Typography color="text.secondary">
-            Step {activeStep + 1}: {steps[activeStep]?.label} - Coming soon...
-          </Typography>
-        );
-    }
-  };
+  }, []);
 
   // Show loading screen while data is being loaded
   if (mode === 'loading') {
@@ -1061,50 +784,19 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             />
             <ResourceBarChip
               label={`HP: ${remainingHullPoints} / ${totalHullPoints}`}
-              segments={[
-                { key: 'armor', label: 'Armor', value: hpBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
-                { key: 'powerPlants', label: 'Power Plants', value: hpBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
-                { key: 'engines', label: 'Engines', value: hpBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
-                { key: 'ftl', label: 'FTL Drive', value: hpBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
-                { key: 'support', label: 'Support Systems', value: hpBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
-                { key: 'weapons', label: 'Weapons', value: hpBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
-                { key: 'defenses', label: 'Defenses', value: hpBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
-                { key: 'commandControl', label: 'C4', value: hpBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
-                { key: 'sensors', label: 'Sensors', value: hpBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
-                { key: 'hangarMisc', label: 'Hangars & Misc', value: hpBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
-              ]}
+              segments={buildHpSegments(hpBreakdown)}
               capacity={totalHullPoints}
               isOverBudget={remainingHullPoints < 0}
               popoverTitle="Hull Points Breakdown"
               unit="HP"
-              breakdownRows={[
-                { key: 'armor', label: 'Armor', value: hpBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
-                { key: 'powerPlants', label: 'Power Plants', value: hpBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
-                { key: 'engines', label: 'Engines', value: hpBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
-                { key: 'ftl', label: 'FTL Drive', value: hpBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
-                { key: 'support', label: 'Support Systems', value: hpBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
-                { key: 'weapons', label: 'Weapons', value: hpBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
-                { key: 'defenses', label: 'Defenses', value: hpBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
-                { key: 'commandControl', label: 'C4', value: hpBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
-                { key: 'sensors', label: 'Sensors', value: hpBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
-                { key: 'hangarMisc', label: 'Hangars & Misc', value: hpBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
-              ]}
+              breakdownRows={buildHpSegments(hpBreakdown)}
               totalLabel="Total Used"
               totalValue={totalHullPoints - remainingHullPoints}
               ariaLabel="Show hull points breakdown"
             />
             <ResourceBarChip
               label={`Power: ${totalPower - totalPowerConsumed} / ${totalPower}`}
-              segments={[
-                ...(powerScenario.engines ? [{ key: 'engines', label: 'Engines', value: powerBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines }] : []),
-                ...(powerScenario.ftlDrive ? [{ key: 'ftl', label: 'FTL Drive', value: powerBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl }] : []),
-                ...(powerScenario.supportSystems ? [{ key: 'support', label: 'Support Systems', value: powerBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support }] : []),
-                ...(powerScenario.weapons ? [{ key: 'weapons', label: 'Weapons', value: powerBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons }] : []),
-                ...(powerScenario.defenses ? [{ key: 'defenses', label: 'Defenses', value: powerBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses }] : []),
-                ...(powerScenario.commandControl ? [{ key: 'commandControl', label: 'C4', value: powerBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl }] : []),
-                ...(powerScenario.sensors ? [{ key: 'sensors', label: 'Sensors', value: powerBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors }] : []),
-                ...(powerScenario.hangarMisc ? [{ key: 'hangarMisc', label: 'Hangars & Misc', value: powerBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc }] : []),
-              ]}
+              segments={buildPowerSegments(powerBreakdown, powerScenario)}
               capacity={totalPower}
               isOverBudget={totalPowerConsumed > totalPower}
               popoverTitle="Power Scenario"
@@ -1116,16 +808,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                     Power scenario — select active systems
                   </Typography>
-                  {([
-                    { key: 'engines', label: 'Engines', field: 'engines' as const, color: BUDGET_CATEGORY_COLORS.engines },
-                    { key: 'ftl', label: 'FTL Drive', field: 'ftlDrive' as const, color: BUDGET_CATEGORY_COLORS.ftl },
-                    { key: 'support', label: 'Support', field: 'supportSystems' as const, color: BUDGET_CATEGORY_COLORS.support },
-                    { key: 'weapons', label: 'Weapons', field: 'weapons' as const, color: BUDGET_CATEGORY_COLORS.weapons },
-                    { key: 'defenses', label: 'Defenses', field: 'defenses' as const, color: BUDGET_CATEGORY_COLORS.defenses },
-                    { key: 'commandControl', label: 'C4', field: 'commandControl' as const, color: BUDGET_CATEGORY_COLORS.commandControl },
-                    { key: 'sensors', label: 'Sensors', field: 'sensors' as const, color: BUDGET_CATEGORY_COLORS.sensors },
-                    { key: 'hangarMisc', label: 'Hangars & Misc', field: 'hangarMisc' as const, color: BUDGET_CATEGORY_COLORS.hangarMisc },
-                  ] as const).map((item) => (
+                  {POWER_CATEGORIES.map((item) => (
                     <Box
                       key={item.key}
                       sx={{
@@ -1137,15 +820,15 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
                         '&:hover': { bgcolor: 'action.hover' },
                         borderRadius: 0.5,
                       }}
-                      onClick={() => setPowerScenario({ ...powerScenario, [item.field]: !powerScenario[item.field] })}
+                      onClick={() => setPowerScenario({ ...powerScenario, [item.scenarioField]: !powerScenario[item.scenarioField] })}
                     >
                       <Checkbox
                         size="small"
-                        checked={powerScenario[item.field]}
+                        checked={powerScenario[item.scenarioField]}
                         tabIndex={-1}
                         sx={{ p: 0.25 }}
                       />
-                      <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
+                      <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: BUDGET_CATEGORY_COLORS[item.colorKey], flexShrink: 0 }} />
                       <Typography variant="body2" sx={{ flex: 1 }}>{item.label}</Typography>
                       <Typography variant="body2" color="text.secondary">{powerBreakdown[item.field]} PP</Typography>
                     </Box>
@@ -1156,34 +839,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
             />
             <ResourceBarChip
               label={`Cost: ${formatCost(totalCost)}`}
-              segments={[
-                { key: 'hull', label: 'Hull', value: costBreakdown.hull, color: BUDGET_CATEGORY_COLORS.hull },
-                { key: 'armor', label: 'Armor', value: costBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
-                { key: 'powerPlants', label: 'Power Plants', value: costBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
-                { key: 'engines', label: 'Engines', value: costBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
-                { key: 'ftl', label: 'FTL Drive', value: costBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
-                { key: 'support', label: 'Support Systems', value: costBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
-                { key: 'weapons', label: 'Weapons', value: costBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
-                { key: 'defenses', label: 'Defenses', value: costBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
-                { key: 'commandControl', label: 'C4', value: costBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
-                { key: 'sensors', label: 'Sensors', value: costBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
-                { key: 'hangarMisc', label: 'Hangars & Misc', value: costBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
-              ]}
+              segments={buildCostSegments(costBreakdown)}
               isCost
               popoverTitle="Cost Breakdown"
-              breakdownRows={[
-                { key: 'hull', label: 'Hull', value: costBreakdown.hull, color: BUDGET_CATEGORY_COLORS.hull },
-                { key: 'armor', label: 'Armor', value: costBreakdown.armor, color: BUDGET_CATEGORY_COLORS.armor },
-                { key: 'powerPlants', label: 'Power Plants', value: costBreakdown.powerPlants, color: BUDGET_CATEGORY_COLORS.powerPlants },
-                { key: 'engines', label: 'Engines', value: costBreakdown.engines, color: BUDGET_CATEGORY_COLORS.engines },
-                { key: 'ftl', label: 'FTL Drive', value: costBreakdown.ftlDrive, color: BUDGET_CATEGORY_COLORS.ftl },
-                { key: 'support', label: 'Support Systems', value: costBreakdown.supportSystems, color: BUDGET_CATEGORY_COLORS.support },
-                { key: 'weapons', label: 'Weapons', value: costBreakdown.weapons, color: BUDGET_CATEGORY_COLORS.weapons },
-                { key: 'defenses', label: 'Defenses', value: costBreakdown.defenses, color: BUDGET_CATEGORY_COLORS.defenses },
-                { key: 'commandControl', label: 'C4', value: costBreakdown.commandControl, color: BUDGET_CATEGORY_COLORS.commandControl },
-                { key: 'sensors', label: 'Sensors', value: costBreakdown.sensors, color: BUDGET_CATEGORY_COLORS.sensors },
-                { key: 'hangarMisc', label: 'Hangars & Misc', value: costBreakdown.hangarMisc, color: BUDGET_CATEGORY_COLORS.hangarMisc },
-              ]}
+              breakdownRows={buildCostSegments(costBreakdown)}
               totalLabel="Total"
               totalValue={totalCost}
               ariaLabel="Show cost breakdown"
@@ -1379,7 +1038,42 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
               isRequired={steps[activeStep]?.required}
             />
           )}
-          {renderStepContent()}
+          <StepContentRenderer
+              activeStepId={activeStepId}
+              activeStep={activeStep}
+              steps={steps}
+              state={currentState}
+              onHullSelect={handleHullSelect}
+              onArmorSelect={handleArmorSelect}
+              onArmorClear={handleArmorClear}
+              onArmorRemoveLayer={handleArmorRemoveLayer}
+              usedHullPointsBeforePowerPlants={usedHullPointsBeforePowerPlants}
+              totalPowerConsumed={totalPowerConsumed}
+              onPowerPlantsChange={setInstalledPowerPlants}
+              onFuelTanksChange={setInstalledFuelTanks}
+              usedHullPointsBeforeEngines={usedHullPointsBeforeEngines}
+              onEnginesChange={setInstalledEngines}
+              onEngineFuelTanksChange={setInstalledEngineFuelTanks}
+              totalPower={totalPower}
+              onFTLDriveChange={setInstalledFTLDrive}
+              onFTLFuelTanksChange={setInstalledFTLFuelTanks}
+              onLifeSupportChange={setInstalledLifeSupport}
+              onAccommodationsChange={setInstalledAccommodations}
+              onStoreSystemsChange={setInstalledStoreSystems}
+              onGravitySystemsChange={setInstalledGravitySystems}
+              onWeaponsChange={setInstalledWeapons}
+              onOrdnanceDesignsChange={setOrdnanceDesigns}
+              onLaunchSystemsChange={setInstalledLaunchSystems}
+              onDefensesChange={setInstalledDefenses}
+              onSensorsChange={setInstalledSensors}
+              onCommandControlChange={setInstalledCommandControl}
+              totalPassengersAndSuspended={totalPassengersAndSuspended}
+              onHangarMiscChange={setInstalledHangarMisc}
+              onZonesChange={setDamageDiagramZones}
+              onShipDescriptionChange={setShipDescription}
+              currentFilePath={currentFilePath}
+              onShowNotification={showNotification}
+            />
         </Paper>
 
         {/* Navigation Buttons */}

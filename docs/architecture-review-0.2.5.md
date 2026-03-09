@@ -25,68 +25,77 @@ Priority scale:
 
 ## P2 — High
 
-### 2.1 Auto-save recovery can delete the only recovery artifact before recovery succeeds
+### ~~2.1 Auto-save recovery can delete the only recovery artifact before recovery succeeds~~ ✅ RESOLVED
 
-**Files:** [src/components/WelcomePage.tsx](src/components/WelcomePage.tsx#L90-L99), [src/App.tsx](src/App.tsx#L380-L427)
+**Fixed in:** `WelcomePage.tsx` + `App.tsx` — Recovery is now fully async-safe. The WelcomePage Recover handler awaits `onRecoverAutoSave` (which returns `Promise<boolean>`). `clearAutoSave()` is only called by `App.tsx` after successful recovery. A `recovering` state disables both Recover and Dismiss buttons while recovery is in-flight. On failure, the recovery UI remains visible so the user can retry or dismiss.
 
-The WelcomePage "Recover" button calls `onRecoverAutoSave?.(autoSaveContent)` and immediately calls `clearAutoSave()` in the same click handler. The recovery handler in `App.tsx` is async — if it fails because the file is corrupt, mod matching fails, or deserialization throws, the auto-save has already been deleted by the WelcomePage.
+### ~~2.2 Save serialization depends on global mod cache state, not the design being saved~~ ✅ RESOLVED
 
-**Risk:** Turns a recoverable failure into permanent data loss on the most trust-sensitive path in the app.
-**Recommendation:** Only clear the auto-save after the async recovery promise resolves successfully. While recovery is in-flight, disable both Recover and Dismiss.
+**Fixed in:** `saveService.ts`, `useWarshipState.ts`, `App.tsx` — `activeMods` is now a field on `WarshipState`. `serializeWarship()` reads `state.activeMods` (the per-design mods) instead of calling the global `getActiveMods()` from the data-loader singleton. `useWarshipState` receives `designActiveMods` from App.tsx and includes it in `buildCurrentState()`. The `getActiveMods` import was removed from saveService.ts entirely.
 
-### 2.2 Save serialization depends on global mod cache state, not the design being saved
+### ~~2.3 App.tsx is a 1,409-line god component with zero test coverage~~ ✅ RESOLVED
 
-**Files:** [src/services/saveService.ts](src/services/saveService.ts#L273), [src/services/dataLoader.ts](src/services/dataLoader.ts#L639-L667)
+**Fixed in:** `stepCompletionService.ts`, `resourceBarConfigs.ts`, `StepContentRenderer.tsx`, `App.tsx`
 
-The app correctly tracks per-design mods in `designActiveMods` (App.tsx state), but `serializeWarship()` ignores that and reads `getActiveMods()` from the global data-loader singleton instead. This creates hidden coupling between runtime cache state and persistence.
+Extracted the four key sub-issues identified in the review:
+- **Step completion logic** → `stepCompletionService.ts` — pure `calculateStepCompletion()` + `hasAnyInstalledComponents()` functions, with 36 unit tests covering all 13 steps and edge cases (damage zone assignment, C4 required vs optional, summary validation states).
+- **ResourceBarChip segment duplication** → `resourceBarConfigs.ts` — `buildHpSegments()`, `buildCostSegments()`, `buildPowerSegments()` + shared `POWER_CATEGORIES` constant. Eliminates ~120 lines of duplicate segment/breakdownRows arrays.
+- **renderStepContent switch-case** → `StepContentRenderer` component — the 13-case switch (previously ~220 lines inline) now lives in its own file.
+- **Non-memoized inline functions** → wrapped `hasAnyInstalledComponents` in `useMemo`, `clearAllComponents`/`handleHullSelect`/`handleArmorSelect`/`handleArmorClear`/`handleArmorRemoveLayer`/`handleStepClick`/`handleNext`/`handleBack` in `useCallback`.
 
-If the global cache is changed by mod editing, data reloads, or any future multi-window support, a saved file can advertise the wrong active mods. Auto-save inherits the same flaw.
+App.tsx reduced from 1,409 lines to ~1,180 lines. Remaining structural issues (27 `useState` calls → reducer, prop drilling) tracked in ~~2.4~~, 3.10.
 
-**Recommendation:** Make active mods an explicit input to serialization — either in `WarshipState` or a separate serialization context parameter.
+### ~~2.4 SummarySelection receives 32 props — extreme prop drilling~~ ✅ RESOLVED
 
-### 2.3 App.tsx is a 1,409-line god component with zero test coverage
+**Fixed in:** `useWarshipState.ts`, `StepContentRenderer.tsx`, `SummarySelection.tsx`, `DamageDiagramSelection.tsx`, `App.tsx`
 
-**File:** [src/App.tsx](src/App.tsx)
+Replaced individual installed-system-array props with a single `state: WarshipState` object:
+- **SummarySelection**: 29 props → 4 (`state` + `onShipDescriptionChange` + `currentFilePath` + `onShowNotification`)
+- **DamageDiagramSelection**: 20 props → 3 (`state` + `zones` + `onZonesChange`)
+- **StepContentRenderer**: ~81 props → ~63 (data arrays replaced by single `state` prop; callbacks + derived values remain individual)
+- **App.tsx StepContentRenderer call site**: ~60 prop assignments → ~35
 
-App.tsx orchestrates all 27+ design state variables, step completion logic, hull change confirmation, armor selection, stepper rendering, 3 ResourceBarChip configs (each ~40 lines of duplicate segment arrays), keyboard shortcuts, Electron menu sync, mod management, auto-save recovery, and the full builder/welcome/library/mod routing. Despite being the single highest-risk file, it has no unit or integration tests.
+`useWarshipState` now exposes a memoized `currentState: WarshipState` object alongside `buildCurrentState()`. App.tsx uses `currentState` for step completion and installed-component checks, eliminating two `eslint-disable` comments for exhaustive-deps. Components destructure `WarshipState` fields into local aliases (e.g., `powerPlants: installedPowerPlants`) so all internal code stays unchanged.
 
-The root cause is that `useWarshipState` maintains 27+ separate `useState` calls, reassembles them in `buildCurrentState()`, and tears them apart in `applyState()`. Every new field must be declared, assembled, restored, and threaded through undo/save/load paths — making drift inevitable.
+### ~~2.5 `cockpitLifeSupportCoverageHp` calculation repeated 9 times across 7 files~~ ✅ RESOLVED
 
-Key sub-issues:
-- `stepCompletion` useMemo (lines 220-262) contains business logic that should live in a service
-- `renderStepContent()` is a 130-line switch-case that could be a map
-- ResourceBarChip segment arrays for HP/Power/Cost are duplicated between `segments` and `breakdownRows` props (3 chips x 2 copies = ~120 lines of pure duplication)
-- `handleArmorSelect`, `clearAllComponents`, `hasAnyInstalledComponents` are inline non-memoized functions
+**Fixed in:** `commandControlService.ts`, `designSnapshotService.ts`, `StepContentRenderer.tsx`, `CraftPickerDialog.tsx`
 
-**Recommendation:** At minimum, move step completion logic into a service (testable), extract ResourceBarChip configs, and add integration tests. Longer term, migrate to a single reducer-backed object for design state.
+Extracted `calculateCommandControlLifeSupportCoverageHp()` into `commandControlService.ts` — a single helper that sums `lifeSupportCoverageHp` across all installed command & control systems. Named without "cockpit" since the field is data-driven and mods can add it to any command system. Replaced 3 inline `reduce` expressions with calls to the new function. Consumer sites (`SupportSystemsSelection`, `supportSystemService`) already received the computed number as a parameter and needed no changes. Unit tests added covering empty arrays, missing fields, and multi-system summation.
 
-### 2.4 SummarySelection receives 32 props — extreme prop drilling
+**Note:** The original review listed 9 occurrences across 7 files, but prior refactoring (issues 1.1, 2.4) had already consolidated several of those sites. The remaining 3 inline reduce expressions were the ones eliminated here.
 
-**File:** [src/components/SummarySelection.tsx](src/components/SummarySelection.tsx)
-
-SummarySelection requires every installed system array individually (32 props). DamageDiagramSelection has 20. Adding any new system type requires updating the prop interface, the call site in App.tsx, and every intermediate component.
-
-**Recommendation:** Pass a single `WarshipState` or `DesignSnapshot` object where components need the full design. This interface already exists in saveService.ts.
-
-### 2.5 `cockpitLifeSupportCoverageHp` calculation repeated 9 times across 7 files
-
-**Files:** [src/App.tsx](src/App.tsx#L681), [src/hooks/useDesignCalculations.ts](src/hooks/useDesignCalculations.ts#L139), [src/components/SummarySelection.tsx](src/components/SummarySelection.tsx#L204), [src/components/CraftPickerDialog.tsx](src/components/CraftPickerDialog.tsx#L107), [src/services/pdfExportService.ts](src/services/pdfExportService.ts#L247)
-
-The expression `installedCommandControl.reduce((sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0)` is copy-pasted 9 times. A single field name change requires finding and updating all 9 sites.
-
-**Recommendation:** Create `calculateCockpitLifeSupportCoverage(installedCommandControl)` in commandControlService.ts.
-
-### 2.6 No test coverage for pdfExportService.ts (1,665 lines)
+### 2.6 ~~No test coverage for pdfExportService.ts (1,665 lines)~~ ✅ RESOLVED
 
 **File:** [src/services/pdfExportService.ts](src/services/pdfExportService.ts)
 
-The largest service file in the codebase has zero test coverage. It contains `computeShipStats` (duplicated and divergent business logic per 1.3), complex damage track rendering, page layout calculations, and format-sensitive string generation.
+~~The largest service file in the codebase has zero test coverage. It contains `computeShipStats` (duplicated and divergent business logic per 1.3), complex damage track rendering, page layout calculations, and format-sensitive string generation.~~
 
-### 2.7 Direct `console.error` calls in production code (DamageDiagramSelection)
+**Resolution:** Added 44 tests in `pdfExportService.test.ts` across four layers: (1) pure logic unit tests for `formatArcsShort`, `enrichSystemDisplayName`, and `computeShipStats`; (2) option toggling tests verifying `includeCombat`/`includeDamageDiagram`/`includeDetailedSystems` flags; (3) mock-based rendering verification for all PDF sections (lore, systems detail, combat, damage diagram, footer, page management); (4) snapshot regression tests capturing the full sequence of `pdf.text()` calls. Exported `formatArcsShort`, `enrichSystemDisplayName`, `computeShipStats`, and `ShipStats` for testability. Note: `computeShipStats` duplication (per 1.3) was already resolved by delegating to `computeDesignSnapshot`.
 
-**File:** [src/components/DamageDiagramSelection.tsx](src/components/DamageDiagramSelection.tsx#L768-L857)
+### ~~2.7 Direct `console.error` calls in production code (DamageDiagramSelection)~~ ✅ RESOLVED
 
-Three `console.error` calls in drag-and-drop handlers bypass the `logger` utility (which gates on `import.meta.env.DEV`). These will emit in production builds. All other modules correctly use `logger.error`.
+**File:** [src/components/DamageDiagramSelection.tsx](src/components/DamageDiagramSelection.tsx)
+
+~~Three `console.error` calls in drag-and-drop handlers bypass the `logger` utility (which gates on `import.meta.env.DEV`). These will emit in production builds. All other modules correctly use `logger.error`.~~
+
+**Fixed in:** `DamageDiagramSelection.tsx` — Replaced all three `console.error` calls in drag-and-drop handlers (`handleDragStartUnassigned`, `handleDragStartZoneSystem`, `handleDrop`) with `logger.error` from `utilities.ts`. Added the missing `logger` import. Production builds no longer emit console output from these error paths.
+
+### ~~2.8 No integration tests for App.tsx~~ ✅ RESOLVED
+
+**Fixed in:** `App.test.tsx`, `electronMock.ts`
+
+Added 23 integration tests that render the full App component with a mocked Electron IPC layer (via `src/test/electronMock.ts`) and real bundled game data. Tests cover:
+- **Loading & Welcome:** data loading → welcome transition, version display
+- **New Warship Flow:** DesignTypeDialog open, create warship → builder mode with correct defaults
+- **Step Navigation:** Next/Back buttons, stepper click, hull-required guard, first/last step button visibility
+- **Hull Selection & Change Confirmation:** hull select, confirmation dialog on change with components, cancel preserves state, confirm clears components
+- **Undo/Redo:** initial disabled states, enables after change
+- **Save Flow:** save dialog requires hull, save without hull shows warning, full save/load round-trip with file content capture
+- **Return to Welcome:** Electron menu event triggers mode transition
+- **Station Design:** ground base creation with correct default name, engines step excluded from stepper
+
+**Not covered (jsdom limitation):** Clicking undo/redo buttons through MUI Tooltip's `<span>` wrapper doesn't propagate `onClick` in jsdom. Undo logic itself is tested via `useUndoHistory.test.ts` unit tests.
 
 ---
 
@@ -134,11 +143,9 @@ Each undo snapshot stores a complete `WarshipState` (all 27+ arrays). With max h
 
 The `SystemCollectorConfig` interface uses `any` for all 5 function parameters with an eslint-disable pragma. A union type or generic constraint would preserve type safety.
 
-### 3.7 Non-memoized inline handlers in App.tsx
+### ~~3.7 Non-memoized inline handlers in App.tsx~~ ✅ RESOLVED
 
-**File:** [src/App.tsx](src/App.tsx#L523-L585)
-
-`handleArmorSelect`, `handleArmorClear`, `handleArmorRemoveLayer`, `handleStepClick`, `handleNext`, `handleBack`, `renderStepContent`, `clearAllComponents` are plain arrows without `useCallback`. They are recreated on every render, triggering unnecessary child re-renders.
+**Fixed in:** `App.tsx` — All handlers wrapped in `useCallback`; `hasAnyInstalledComponents` wrapped in `useMemo`; `renderStepContent` extracted to `StepContentRenderer` component. See 2.3 resolution.
 
 ### 3.8 `scanWarshipFilesSync` uses synchronous fs operations on the main process
 
@@ -151,6 +158,14 @@ The library scanner reads directories and files synchronously on the Electron ma
 **Files:** [src/components/DesignTypeDialog.tsx](src/components/DesignTypeDialog.tsx#L58), [src/components/ModManager.tsx](src/components/ModManager.tsx#L84), [src/components/OrdnanceDesignDialog.tsx](src/components/OrdnanceDesignDialog.tsx#L93), [src/components/shared/EditableDataGrid.tsx](src/components/shared/EditableDataGrid.tsx#L139)
 
 Four components suppress this lint rule for data loading patterns. Could be standardized with a shared `useAsyncLoad` hook.
+
+### 3.10 Migrate `useWarshipState` to a single reducer-backed object
+
+**File:** [src/hooks/useWarshipState.ts](src/hooks/useWarshipState.ts)
+
+`useWarshipState` manages 27+ separate `useState` calls and manually reassembles them in `buildCurrentState()` / tears them apart in `applyState()`. Every new design field must be declared, assembled, restored, and threaded through undo/save/load paths — making drift between these paths inevitable. This is the root cause of much of the complexity flagged in 2.3.
+
+**Recommendation:** Replace the 27 individual `useState` calls with a single `useReducer` (or `useImmerReducer`) backed by a `WarshipState` object. Actions like `SET_HULL`, `SET_ARMOR_LAYERS`, `APPLY_STATE` replace individual setters. `buildCurrentState()` becomes a no-op (the state already *is* the object), and `applyState()` becomes a single `APPLY_STATE` dispatch. This eliminates the assembly/disassembly boilerplate and makes it impossible for new fields to drift.
 
 ---
 
@@ -223,8 +238,8 @@ Still worth adding path validation as defense-in-depth (trivial: allowlist data 
 | Priority | Count | Key Themes |
 |----------|-------|------------|
 | P1 Critical | 1 | Three divergent computation sources producing different totals |
-| P2 High | 7 | Auto-save data loss risk, mod cache coupling, god component, prop drilling, missing tests |
-| P3 Medium | 9 | Inverted state model, incomplete tech tracks, module singletons, sync I/O |
+| P2 High | 8 | Auto-save data loss risk, mod cache coupling, god component, prop drilling, missing tests |
+| P3 Medium | 10 | Inverted state model, incomplete tech tracks, module singletons, sync I/O, reducer migration |
 | P4 Low | 9 | Metadata bugs, duplicated uploads, deprecated types, IPC defense-in-depth, minor patterns |
 
 ### Strengths of the codebase

@@ -29,7 +29,7 @@ import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscH
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
 import { getAllTechTrackCodes } from './formatters';
-import { getActiveMods } from './dataLoader';
+import type { Mod } from '../types/mod';
 
 /**
  * State representing the current warship configuration
@@ -64,6 +64,7 @@ export interface WarshipState {
   hitLocationChart: HitLocationChart | null;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
+  activeMods: Mod[];
 }
 
 /**
@@ -270,7 +271,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       })),
     } as SavedHitLocationChart : null,
     systems: [],
-    activeMods: getActiveMods().map(m => ({
+    activeMods: (state.activeMods || []).map(m => ({
       name: m.manifest.name,
       version: m.manifest.version,
     })),
@@ -920,6 +921,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
       hitLocationChart,
       designProgressLevel: saveFile.designProgressLevel || 7,
       designTechTracks: filterKnownTechTracks(saveFile.designTechTracks || [], warnings),
+      activeMods: [],
     },
     warnings: warnings.length > 0 ? warnings : undefined,
   };

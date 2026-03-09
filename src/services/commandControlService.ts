@@ -377,6 +377,18 @@ export function calculateCommandControlStats(
 // ============== Helpers ==============
 
 /**
+ * Calculate the total life support coverage HP provided by all installed command & control systems.
+ * Currently only cockpits contribute this, but the field is data-driven so mods can add it to any system.
+ */
+export function calculateCommandControlLifeSupportCoverageHp(
+  installedSystems: InstalledCommandControlSystem[]
+): number {
+  return installedSystems.reduce(
+    (sum, cc) => sum + (cc.type.lifeSupportCoverageHp || 0), 0,
+  );
+}
+
+/**
  * Check if a command system is already installed
  */
 export function hasCommandSystemInstalled(
