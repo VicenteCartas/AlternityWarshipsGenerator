@@ -559,7 +559,7 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
   {
@@ -571,7 +571,7 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
   {
@@ -583,7 +583,7 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
 ]
@@ -1212,7 +1212,7 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
   {
@@ -1224,7 +1224,7 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
   {
@@ -1236,7 +1236,7 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
     "x": 105,
   },
   {
-    "text": "3/8/2026",
+    "text": "1/15/2025",
     "x": 198,
   },
 ]

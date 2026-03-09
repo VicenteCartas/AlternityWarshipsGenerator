@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -22,6 +22,7 @@ import type { DesignType, StationType } from '../types/common';
 import type { Mod } from '../types/mod';
 import { getEnabledMods } from '../services/modService';
 import { getFriendlyFileName } from '../services/formatters';
+import { useAsyncData } from '../hooks/useAsyncData';
 
 interface DesignTypeDialogProps {
   open: boolean;
@@ -48,22 +49,11 @@ export function DesignTypeDialog({ open, onClose, onConfirm }: DesignTypeDialogP
   const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(true);
 
   // Enabled mods (read-only display)
-  const [enabledMods, setEnabledMods] = useState<Mod[]>([]);
-  const [modsLoading, setModsLoading] = useState(false);
-
-  // Load enabled mods when dialog opens
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setModsLoading(true); // eslint-disable-line react-hooks/set-state-in-effect -- loading flag before async call
-    getEnabledMods().then(mods => {
-      if (cancelled) return;
-      // Only show mods that have data files
-      setEnabledMods(mods.filter(m => m.files.length > 0));
-      setModsLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [open]);
+  const fetchEnabledMods = useCallback(
+    () => getEnabledMods().then(mods => mods.filter(m => m.files.length > 0)),
+    [],
+  );
+  const { data: enabledMods = [], loading: modsLoading } = useAsyncData(fetchEnabledMods, [open], { enabled: open });
 
   const handleConfirm = () => {
     onConfirm(

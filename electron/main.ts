@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -488,7 +489,7 @@ ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
  * Recursively scan a directory for .warship.json files and return lightweight metadata.
  * Reads only the top-level fields needed for library cards (no full deserialization).
  */
-function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDepth: number = 0): Array<{
+async function scanWarshipFiles(dirPath: string, maxDepth: number = 3, currentDepth: number = 0): Promise<Array<{
   filePath: string;
   name: string;
   designType: string | null;
@@ -504,7 +505,7 @@ function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDept
   modifiedAt: string | null;
   createdAt: string | null;
   fileSizeBytes: number;
-}> {
+}>> {
   const results: Array<{
     filePath: string;
     name: string;
@@ -527,7 +528,7 @@ function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDept
 
   let entries: fs.Dirent[];
   try {
-    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
   } catch {
     return results;
   }
@@ -535,11 +536,11 @@ function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDept
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
-      results.push(...scanWarshipFilesSync(fullPath, maxDepth, currentDepth + 1));
+      results.push(...await scanWarshipFiles(fullPath, maxDepth, currentDepth + 1));
     } else if (entry.isFile() && entry.name.endsWith('.warship.json')) {
       try {
-        const stat = fs.statSync(fullPath);
-        const content = fs.readFileSync(fullPath, 'utf-8');
+        const stat = await fsPromises.stat(fullPath);
+        const content = await fsPromises.readFile(fullPath, 'utf-8');
         const parsed = JSON.parse(content);
         results.push({
           filePath: fullPath,
@@ -569,10 +570,12 @@ function scanWarshipFilesSync(dirPath: string, maxDepth: number = 3, currentDept
 
 ipcMain.handle('scan-warship-files', async (_event, directoryPath: string) => {
   try {
-    if (!fs.existsSync(directoryPath)) {
+    try {
+      await fsPromises.access(directoryPath);
+    } catch {
       return { success: true, files: [] };
     }
-    const files = scanWarshipFilesSync(directoryPath);
+    const files = await scanWarshipFiles(directoryPath);
     return { success: true, files };
   } catch (error) {
     return { success: false, error: (error as Error).message, files: [] };

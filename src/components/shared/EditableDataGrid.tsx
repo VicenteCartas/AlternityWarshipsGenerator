@@ -132,14 +132,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
     onChange(next);
   }, [onChange]);
 
-  // Reset stacks when switching sections (columns change)
-  useEffect(() => {
-    undoStack.current = [];
-    redoStack.current = [];
-    setUndoLen(0); // eslint-disable-line react-hooks/set-state-in-effect -- syncing undo tracking state
-    setRedoLen(0);
-  }, [columns]);
-
   // Keyboard shortcuts: Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -463,14 +455,6 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
   const [popoverRowIndex, setPopoverRowIndex] = useState<number>(-1);
   const [popoverColumnKey, setPopoverColumnKey] = useState<string>('');
-
-  // Reset transient UI state when switching sections (columns change)
-  useEffect(() => {
-    setEditingCell(null); // eslint-disable-line react-hooks/set-state-in-effect -- resetting UI state on section change
-    setPopoverAnchor(null);
-    setPopoverRowIndex(-1);
-    setPopoverColumnKey('');
-  }, [columns]);
 
   const handlePopoverClick = (e: React.SyntheticEvent<HTMLElement>, rowIndex: number, columnKey: string) => {
     setPopoverAnchor(e.currentTarget);

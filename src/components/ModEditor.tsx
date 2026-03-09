@@ -775,6 +775,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                 </Typography>
               )}
               <EditableDataGrid
+                key={activeSection.id}
                 columns={activeSection.columns}
                 rows={previewMerged ? mergedPreviewData : (sectionData[activeSection.id] || [])}
                 onChange={rows => handleSectionDataChange(activeSection.id, rows)}

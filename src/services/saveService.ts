@@ -1,20 +1,12 @@
 import type { WarshipSaveFile, SavedPowerPlant, SavedFuelTank, SavedEngine, SavedEngineFuelTank, SavedFTLDrive, SavedFTLFuelTank, SavedLifeSupport, SavedAccommodation, SavedStoreSystem, SavedGravitySystem, SavedDefenseSystem, SavedCommandControlSystem, SavedSensor, SavedHangarMiscSystem, SavedWeapon, SavedOrdnanceDesign, SavedLaunchSystem, SavedDamageZone, SavedHitLocationChart, SavedLoadedCraft } from '../types/saveFile';
 import type { Hull } from '../types/hull';
 import type { ShipArmor } from '../types/armor';
-import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
-import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
-import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
-import type { InstalledDefenseSystem } from '../types/defense';
-import type { InstalledCommandControlSystem } from '../types/commandControl';
-import type { InstalledSensor } from '../types/sensor';
-import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { InstalledFTLDrive } from '../types/ftlDrive';
 import type { LoadedCraft } from '../types/embarkedCraft';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { OrdnanceDesign, InstalledLaunchSystem, MissileDesign, BombDesign, MineDesign } from '../types/ordnance';
-import type { ProgressLevel, TechTrack, DesignType, StationType } from '../types/common';
+import type { TechTrack, DesignType, StationType } from '../types/common';
 import type { DamageZone, HitLocationChart, SystemDamageCategory, ZoneCode } from '../types/damageDiagram';
-import type { ShipDescription } from '../types/summary';
 import { SAVE_FILE_VERSION } from '../types/saveFile';
 import { getAllHulls, getAllStationHulls } from './hullService';
 import { getAllArmorTypes, buildShipArmor } from './armorService';
@@ -29,43 +21,8 @@ import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscH
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
 import { getAllTechTrackCodes } from './formatters';
-import type { Mod } from '../types/mod';
-
-/**
- * State representing the current warship configuration
- */
-export interface WarshipState {
-  name: string;
-  shipDescription: ShipDescription;
-  designType: DesignType;
-  stationType: StationType | null;
-  surfaceProvidesLifeSupport: boolean;
-  surfaceProvidesGravity: boolean;
-  hull: Hull | null;
-  armorLayers: ShipArmor[];
-  powerPlants: InstalledPowerPlant[];
-  fuelTanks: InstalledFuelTank[];
-  engines: InstalledEngine[];
-  engineFuelTanks: InstalledEngineFuelTank[];
-  ftlDrive: InstalledFTLDrive | null;
-  ftlFuelTanks: InstalledFTLFuelTank[];
-  lifeSupport: InstalledLifeSupport[];
-  accommodations: InstalledAccommodation[];
-  storeSystems: InstalledStoreSystem[];
-  gravitySystems: InstalledGravitySystem[];
-  defenses: InstalledDefenseSystem[];
-  commandControl: InstalledCommandControlSystem[];
-  sensors: InstalledSensor[];
-  hangarMisc: InstalledHangarMiscSystem[];
-  weapons: InstalledWeapon[];
-  ordnanceDesigns: OrdnanceDesign[];
-  launchSystems: InstalledLaunchSystem[];
-  damageDiagramZones: DamageZone[];
-  hitLocationChart: HitLocationChart | null;
-  designProgressLevel: ProgressLevel;
-  designTechTracks: TechTrack[];
-  activeMods: Mod[];
-}
+import type { WarshipState } from '../types/warshipState';
+export type { WarshipState } from '../types/warshipState';
 
 /**
  * Result of loading a save file

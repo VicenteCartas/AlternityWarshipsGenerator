@@ -241,6 +241,7 @@ export function OrdnanceSelection({
   const [designDialogOpen, setDesignDialogOpen] = useState(false);
   const [designCategory, setDesignCategory] = useState<OrdnanceCategory>('missile');
   const [editingDesign, setEditingDesign] = useState<OrdnanceDesign | null>(null);
+  const [dialogKey, setDialogKey] = useState(0);
 
   // Get all data
   const allLaunchSystems = useMemo(() => getLaunchSystems(), []);
@@ -371,12 +372,14 @@ export function OrdnanceSelection({
   const openNewDesignDialog = (category: OrdnanceCategory) => {
     setDesignCategory(category);
     setEditingDesign(null);
+    setDialogKey(k => k + 1);
     setDesignDialogOpen(true);
   };
 
   const openEditDesignDialog = (design: OrdnanceDesign) => {
     setDesignCategory(design.category);
     setEditingDesign(design);
+    setDialogKey(k => k + 1);
     setDesignDialogOpen(true);
   };
 
@@ -894,6 +897,7 @@ export function OrdnanceSelection({
 
       {/* Ordnance Design Dialog */}
       <OrdnanceDesignDialog
+        key={dialogKey}
         open={designDialogOpen}
         category={designCategory}
         editingDesign={editingDesign}

@@ -59,7 +59,8 @@ import { buildShipArmor, sortArmorLayers, isMultipleArmorLayersAllowed } from '.
 import { isEnginePowerGenerationAllowed } from './services/engineService';
 import { formatCost, getTechTrackName, getStationTypeDisplayName, getAllTechTrackCodes, PL_NAMES } from './services/formatters';
 import { loadAllGameData, reloadAllGameData, reloadWithSpecificMods, type DataLoadResult } from './services/dataLoader';
-import { jsonToSaveFile, deserializeWarship, type WarshipState } from './services/saveService';
+import { jsonToSaveFile, deserializeWarship } from './services/saveService';
+import type { WarshipState } from './types/warshipState';
 import { getInstalledMods } from './services/modService';
 import { STEP_FULL_NAMES, getStepsForDesign } from './constants/steps';
 import { useNotification } from './hooks/useNotification';

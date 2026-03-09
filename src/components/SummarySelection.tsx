@@ -44,7 +44,7 @@ import { getZoneLimitForHull } from '../services/damageDiagramService';
 import { getWeaponBatteries, getWeaponBatteryDisplayName, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { exportShipToPDF } from '../services/pdfExportService';
 import { logger } from '../services/utilities';
-import type { WarshipState } from '../services/saveService';
+import type { WarshipState } from '../types/warshipState';
 
 
 interface SummarySelectionProps {

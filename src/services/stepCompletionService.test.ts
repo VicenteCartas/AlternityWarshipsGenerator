@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateStepCompletion, hasAnyInstalledComponents } from './stepCompletionService';
-import type { WarshipState } from './saveService';
+import type { WarshipState } from '../types/warshipState';
 import type { StepDef } from '../types/common';
 
 // Minimal empty state for testing

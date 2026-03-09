@@ -123,10 +123,8 @@ export function createEmptyZones(hull: Hull): DamageZone[] {
 
 // ============== ID Generation ==============
 
-let zoneRefCounter = 0;
-
 export function generateZoneSystemRefId(): string {
-  return `zsr-${Date.now()}-${++zoneRefCounter}`;
+  return `zsr-${crypto.randomUUID()}`;
 }
 
 // ============== System Categorization ==============

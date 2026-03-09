@@ -1,5 +1,5 @@
 import type { StepDef, StepId } from '../types/common';
-import type { WarshipState } from './saveService';
+import type { WarshipState } from '../types/warshipState';
 
 type SummaryValidationState = 'valid' | 'error' | 'warning';
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { AppMode } from '../types/common';
-import { serializeWarship, saveFileToJson, type WarshipState } from '../services/saveService';
+import { serializeWarship, saveFileToJson } from '../services/saveService';
+import type { WarshipState } from '../types/warshipState';
 import '../types/electron.d.ts';
 
 /** Auto-save interval in milliseconds (60 seconds) */

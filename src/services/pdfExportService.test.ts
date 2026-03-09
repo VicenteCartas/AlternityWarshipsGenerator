@@ -7,18 +7,14 @@
  * Layer 4: Snapshot test for full exportShipToPDF output
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ShipData, ShipStats, PdfExportOptions } from './pdfExportService';
+import type { ShipData } from './pdfExportService';
 import type { Hull } from '../types/hull';
-import type { ShipArmor } from '../types/armor';
-import type { InstalledPowerPlant } from '../types/powerPlant';
-import type { InstalledEngine } from '../types/engine';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
 import type { InstalledDefenseSystem } from '../types/defense';
 import type { InstalledCommandControlSystem } from '../types/commandControl';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { InstalledLaunchSystem, OrdnanceDesign } from '../types/ordnance';
-import type { DamageZone, HitLocationChart } from '../types/damageDiagram';
+import type { DamageZone } from '../types/damageDiagram';
 import type { ShipDescription } from '../types/summary';
 
 // ---- Mock all data-loading dependencies ----
@@ -474,7 +470,7 @@ describe('enrichSystemDisplayName', () => {
         hullPoints: 4,
         powerRequired: 0,
         cost: 1000000,
-        loadout: [{ name: 'Strike Fighter', quantity: 2, designCost: 500000, hullHp: 5 }],
+        loadout: [{ id: 'lc-1', filePath: '', name: 'Strike Fighter', hullName: 'Light Hull', quantity: 2, designCost: 500000, hullHp: 5, fileValid: true }],
       }] as InstalledHangarMiscSystem[],
     });
     const result = enrichSystemDisplayName('Hangar Bay', 'hm-hm-1', data);
@@ -939,9 +935,14 @@ describe('exportShipToPDF — snapshot', () => {
   let mockPdf: ReturnType<typeof createMockPdf>;
 
   beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2025-01-15T12:00:00Z') });
     mockPdf = createMockPdf();
     activeMockPdf = mockPdf;
     (globalThis as Record<string, unknown>).window = { electronAPI: undefined };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('produces a stable sequence of PDF text calls for a standard ship', async () => {

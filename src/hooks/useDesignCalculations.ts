@@ -15,6 +15,7 @@ import type { ProgressLevel, TechTrack, StepDef } from '../types/common';
 import { isEnginePowerGenerationAllowed } from '../services/engineService';
 import { getWeaponBatteries, batteryHasFireControl, getOrphanedFireControls, getOrphanedSensorControls, sensorHasSensorControl } from '../services/commandControlService';
 import { computeDesignSnapshot } from '../services/designSnapshotService';
+import { getLaunchSystems } from '../services/ordnanceService';
 
 export interface PowerScenario {
   engines: boolean;
@@ -219,6 +220,13 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     installedLifeSupport.forEach(ls => ls.type.techTracks.forEach(t => tracks.add(t)));
     installedAccommodations.forEach(acc => acc.type.techTracks.forEach(t => tracks.add(t)));
     installedStoreSystems.forEach(ss => ss.type.techTracks.forEach(t => tracks.add(t)));
+    installedGravitySystems.forEach(gs => gs.type.techTracks.forEach(t => tracks.add(t)));
+    installedWeapons.forEach(w => w.weaponType.techTracks.forEach(t => tracks.add(t)));
+    const launchSystemDefs = getLaunchSystems();
+    installedLaunchSystems.forEach(ls => {
+      const def = launchSystemDefs.find(d => d.id === ls.launchSystemType);
+      if (def) def.techTracks.forEach(t => tracks.add(t));
+    });
     installedDefenses.forEach(def => def.type.techTracks.forEach(t => tracks.add(t)));
     installedCommandControl.forEach(cc => cc.type.techTracks.forEach(t => tracks.add(t)));
     installedSensors.forEach(sensor => sensor.type.techTracks.forEach(t => tracks.add(t)));

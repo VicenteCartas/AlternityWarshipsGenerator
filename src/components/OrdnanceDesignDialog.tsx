@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -73,51 +73,31 @@ export function OrdnanceDesignDialog({
   onSave,
   onCancel,
 }: OrdnanceDesignDialogProps) {
-  // Design form state
-  const [designName, setDesignName] = useState('');
-  const [selectedPropulsion, setSelectedPropulsion] = useState<string>('');
-  const [selectedGuidance, setSelectedGuidance] = useState<string>('');
-  const [selectedWarhead, setSelectedWarhead] = useState<string>('');
+  // Design form state — initialised from props; parent remounts via key when dialog opens
+  const [designName, setDesignName] = useState(editingDesign?.name ?? '');
+  const [selectedPropulsion, setSelectedPropulsion] = useState<string>(
+    editingDesign && 'propulsionId' in editingDesign ? editingDesign.propulsionId ?? '' : '',
+  );
+  const [selectedGuidance, setSelectedGuidance] = useState<string>(
+    editingDesign && 'guidanceId' in editingDesign ? editingDesign.guidanceId ?? '' : '',
+  );
+  const [selectedWarhead, setSelectedWarhead] = useState<string>(editingDesign?.warheadId ?? '');
 
   // Stepper states
-  const [missileDesignStep, setMissileDesignStep] = useState(0);
-  const [bombDesignStep, setBombDesignStep] = useState(0);
-  const [mineDesignStep, setMineDesignStep] = useState(0);
+  const [missileDesignStep, setMissileDesignStep] = useState(
+    editingDesign && category === 'missile' ? 3 : 0,
+  );
+  const [bombDesignStep, setBombDesignStep] = useState(
+    editingDesign && category === 'bomb' ? 2 : 0,
+  );
+  const [mineDesignStep, setMineDesignStep] = useState(
+    editingDesign && category === 'mine' ? 3 : 0,
+  );
 
   // Get all data for design dialogs
   const allPropulsion = useMemo(() => getPropulsionSystems(), []);
   const allWarheads = useMemo(() => getWarheads(), []);
   const allGuidance = useMemo(() => getGuidanceSystems(), []);
-
-  // Reset state when dialog opens or category changes
-  /* eslint-disable react-hooks/set-state-in-effect -- syncing state from props when dialog opens */
-  useEffect(() => {
-    if (open) {
-      if (editingDesign) {
-        setDesignName(editingDesign.name);
-        if ('propulsionId' in editingDesign && editingDesign.propulsionId) {
-          setSelectedPropulsion(editingDesign.propulsionId);
-        }
-        if ('guidanceId' in editingDesign && editingDesign.guidanceId) {
-          setSelectedGuidance(editingDesign.guidanceId);
-        }
-        setSelectedWarhead(editingDesign.warheadId);
-        // Go to summary step when editing
-        if (category === 'missile') setMissileDesignStep(3);
-        else if (category === 'bomb') setBombDesignStep(2);
-        else setMineDesignStep(3);
-      } else {
-        setDesignName('');
-        setSelectedPropulsion('');
-        setSelectedGuidance('');
-        setSelectedWarhead('');
-        setMissileDesignStep(0);
-        setBombDesignStep(0);
-        setMineDesignStep(0);
-      }
-    }
-  }, [open, editingDesign, category]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Filter propulsion systems for current design category
   const filteredPropulsion = useMemo(() => {

@@ -8,6 +8,10 @@
  * Supports mod system: after loading base data, enabled mods are merged
  * in priority order. "add" mods merge items by ID (last-write-wins),
  * "replace" mods replace entire files.
+ * 
+ * All mutable state is encapsulated in a DataStore instance created via
+ * createDataStore(). A default instance is exported for production use;
+ * tests can create independent instances for isolation.
  */
 
 import type { TechTrackDefinition } from '../types/common';
@@ -49,6 +53,8 @@ const damageDiagramDataFallback = damageDiagramDataRaw as unknown as DamageDiagr
 import weaponsDataFallback from '../data/weapons.json';
 import techTracksDataFallback from '../data/techTracks.json';
 
+// ============== Types ==============
+
 // Cache for loaded data
 interface DataCache {
   techTracks: TechTrackDefinition[] | null;
@@ -86,6 +92,37 @@ interface DataCache {
   mountModifiers: Record<MountType, MountModifier> | null;
   gunConfigurations: Record<GunConfiguration, GunConfigModifier> | null;
   concealmentModifier: MountModifier | null;
+}
+
+// Cache for the raw base JSON data (pre-parsing) so we can re-merge mods without reloading from disk
+interface RawBaseDataCache {
+  techTracks: Record<string, unknown> | null;
+  hulls: Record<string, unknown> | null;
+  armor: Record<string, unknown> | null;
+  powerPlants: Record<string, unknown> | null;
+  fuelTank: Record<string, unknown> | null;
+  engines: Record<string, unknown> | null;
+  ftlDrives: Record<string, unknown> | null;
+  supportSystems: Record<string, unknown> | null;
+  defenses: Record<string, unknown> | null;
+  commandControl: Record<string, unknown> | null;
+  sensors: Record<string, unknown> | null;
+  hangarMisc: Record<string, unknown> | null;
+  ordnance: Record<string, unknown> | null;
+  damageDiagram: Record<string, unknown> | null;
+  weapons: Record<string, unknown> | null;
+}
+
+// Track files that failed to load from external source
+interface FailedFile {
+  fileName: string;
+  reason: string;
+}
+
+// Result of data loading
+export interface DataLoadResult {
+  failedFiles: FailedFile[];
+  isElectron: boolean;
 }
 
 // ============== Cache Factories ==============
@@ -134,47 +171,7 @@ function createEmptyRawBaseData(): RawBaseDataCache {
   };
 }
 
-const cache: DataCache = createEmptyCache();
-const pureBaseCache: DataCache = createEmptyCache();
-
-// Cache for the raw base JSON data (pre-parsing) so we can re-merge mods without reloading from disk
-interface RawBaseDataCache {
-  techTracks: Record<string, unknown> | null;
-  hulls: Record<string, unknown> | null;
-  armor: Record<string, unknown> | null;
-  powerPlants: Record<string, unknown> | null;
-  fuelTank: Record<string, unknown> | null;
-  engines: Record<string, unknown> | null;
-  ftlDrives: Record<string, unknown> | null;
-  supportSystems: Record<string, unknown> | null;
-  defenses: Record<string, unknown> | null;
-  commandControl: Record<string, unknown> | null;
-  sensors: Record<string, unknown> | null;
-  hangarMisc: Record<string, unknown> | null;
-  ordnance: Record<string, unknown> | null;
-  damageDiagram: Record<string, unknown> | null;
-  weapons: Record<string, unknown> | null;
-}
-
-const rawBaseData: RawBaseDataCache = createEmptyRawBaseData();
-
-let dataLoaded = false;
-let loadPromise: Promise<DataLoadResult> | null = null;
-
-// Track which mods are currently active (for save file references)
-let activeMods: Mod[] = [];
-
-// Track files that failed to load from external source
-interface FailedFile {
-  fileName: string;
-  reason: string;
-}
-
-// Result of data loading
-export interface DataLoadResult {
-  failedFiles: FailedFile[];
-  isElectron: boolean;
-}
+// ============== Pure Utility Functions (stateless) ==============
 
 /**
  * Load a data file using Electron IPC, with fallback to bundled data
@@ -367,306 +364,484 @@ async function applyModsToFile(
 }
 
 /**
- * Load all game data files
- * Call this once at app startup
- * Returns information about any files that failed to load from external sources
+ * Populate a DataCache from merged file data.
+ * Shared between initial load (pureBaseCache) and mod-merge (cache).
  */
-export async function loadAllGameData(): Promise<DataLoadResult> {
-  // Return existing promise if already loading
-  if (loadPromise) {
-    return loadPromise;
-  }
-
-  // Return immediately if already loaded
-  if (dataLoaded) {
-    return { failedFiles: [], isElectron: !!window.electronAPI };
-  }
-
-  loadPromise = (async () => {
-    logger.log('[DataLoader] Loading game data...');
-    const failedFiles: FailedFile[] = [];
-    const isElectron = !!window.electronAPI;
-
-    // Load all base data files in parallel
-    const [techTracksData, hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
-      loadDataFile('techTracks.json', techTracksDataFallback, failedFiles),
-      loadDataFile('hulls.json', hullsDataFallback, failedFiles),
-      loadDataFile('armor.json', armorDataFallback, failedFiles),
-      loadDataFile('powerPlants.json', powerPlantDataFallback, failedFiles),
-      loadDataFile('fuelTank.json', fuelTankDataFallback, failedFiles),
-      loadDataFile('engines.json', enginesDataFallback, failedFiles),
-      loadDataFile('ftlDrives.json', ftlDrivesDataFallback, failedFiles),
-      loadDataFile('supportSystems.json', supportSystemsDataFallback, failedFiles),
-      loadDataFile('defenses.json', defensesDataFallback, failedFiles),
-      loadDataFile('commandControl.json', commandControlDataFallback, failedFiles),
-      loadDataFile('sensors.json', sensorsDataFallback, failedFiles),
-      loadDataFile('hangarMisc.json', hangarMiscDataFallback, failedFiles),
-      loadDataFile('ordnance.json', ordnanceDataFallback, failedFiles),
-      loadDataFile('damageDiagram.json', damageDiagramDataFallback, failedFiles),
-      loadDataFile('weapons.json', weaponsDataFallback, failedFiles),
-    ]);
-
-    // Store raw base data for re-merging mods later (without reloading from disk)
-    rawBaseData.techTracks = techTracksData as Record<string, unknown>;
-    rawBaseData.hulls = hullsData as Record<string, unknown>;
-    rawBaseData.armor = armorData as Record<string, unknown>;
-    rawBaseData.powerPlants = powerPlantsData as Record<string, unknown>;
-    rawBaseData.fuelTank = fuelTankData as Record<string, unknown>;
-    rawBaseData.engines = enginesData as Record<string, unknown>;
-    rawBaseData.ftlDrives = ftlDrivesData as Record<string, unknown>;
-    rawBaseData.supportSystems = supportSystemsData as Record<string, unknown>;
-    rawBaseData.defenses = defensesData as Record<string, unknown>;
-    rawBaseData.commandControl = commandControlData as Record<string, unknown>;
-    rawBaseData.sensors = sensorsData as Record<string, unknown>;
-    rawBaseData.hangarMisc = hangarMiscData as Record<string, unknown>;
-    rawBaseData.ordnance = ordnanceData as Record<string, unknown>;
-    rawBaseData.damageDiagram = damageDiagramData as unknown as Record<string, unknown>;
-    rawBaseData.weapons = weaponsData as Record<string, unknown>;
-
-    // Store pure base data in pureBaseCache
-    pureBaseCache.techTracks = (techTracksData as { techTracks: TechTrackDefinition[] }).techTracks;
-    pureBaseCache.hulls = (hullsData as { hulls: Hull[] }).hulls;
-    pureBaseCache.stationHulls = (hullsData as { stationHulls?: Hull[] }).stationHulls || [];
-    pureBaseCache.armors = (armorData as { armors: ArmorType[] }).armors;
-    pureBaseCache.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
-    pureBaseCache.armorAllowMultipleLayers = (armorData as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
-    pureBaseCache.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
-    pureBaseCache.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
-    pureBaseCache.engineAllowPowerGeneration = (enginesData as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false;
-    pureBaseCache.engines = (enginesData as { engines: EngineType[] }).engines;
-    pureBaseCache.ftlDrives = (ftlDrivesData as { ftlDrives: FTLDriveType[] }).ftlDrives;
-    pureBaseCache.supportSystems = supportSystemsData as {
-      lifeSupport: LifeSupportType[];
-      accommodations: AccommodationType[];
-      storeSystems: StoreSystemType[];
-      gravitySystems: GravitySystemType[];
-    };
-    pureBaseCache.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
-    pureBaseCache.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
-    pureBaseCache.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
-    pureBaseCache.trackingTable = (sensorsData as { trackingTable?: TrackingTable }).trackingTable || null;
-    pureBaseCache.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
-    pureBaseCache.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
-    pureBaseCache.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
-    pureBaseCache.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
-    pureBaseCache.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-    pureBaseCache.damageDiagram = damageDiagramData;
-    pureBaseCache.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
-    pureBaseCache.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
-    pureBaseCache.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
-    pureBaseCache.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
-    pureBaseCache.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
-    pureBaseCache.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
-    pureBaseCache.concealmentModifier = (weaponsData as { concealmentModifier?: MountModifier }).concealmentModifier || null;
-
-    // Initially load with no mods — mods are applied per-design when
-    // creating a new design or loading a save file.
-    await applyModsToCache([]);
-
-    dataLoaded = true;
-    logger.log('[DataLoader] Game data loaded successfully');
-    
-    if (failedFiles.length > 0) {
-      logger.warn('[DataLoader] Some files failed to load from external sources:', failedFiles);
-    }
-    
-    return { failedFiles, isElectron };
-  })();
-
-  return loadPromise;
-}
-
-/**
- * Check if data has been loaded
- */
-export function isDataLoaded(): boolean {
-  return dataLoaded;
-}
-
-// ============== Getter Factory ==============
-
-/**
- * Factory for creating data getter functions.
- * Standardizes the pattern: check dataLoaded → fallback or cache lookup.
- */
-function createGetter<T>(
-  accessor: (source: DataCache) => T,
-  fallback: () => T
-): (pureBase?: boolean) => T {
-  return (pureBase = false): T => {
-    if (!dataLoaded) {
-      logger.warn('[DataLoader] Data not loaded, using fallback');
-      return fallback();
-    }
-    return accessor(pureBase ? pureBaseCache : cache);
-  };
-}
-
-// ============== Data Getters ==============
-
-/** Get all tech track definitions (base + mod-defined). Must call loadAllGameData first. */
-export const getTechTracksData = createGetter<TechTrackDefinition[]>(
-  (c) => c.techTracks!, () => (techTracksDataFallback as { techTracks: TechTrackDefinition[] }).techTracks
-);
-
-/** Get all hulls (must call loadAllGameData first) */
-export const getHullsData = createGetter<Hull[]>(
-  (c) => c.hulls!, () => (hullsDataFallback as { hulls: Hull[] }).hulls
-);
-
-/** Get all station hulls (must call loadAllGameData first) */
-export const getStationHullsData = createGetter<Hull[]>(
-  (c) => c.stationHulls!, () => (hullsDataFallback as { stationHulls?: Hull[] }).stationHulls || []
-);
-
-/** Get all armor types (must call loadAllGameData first) */
-export const getArmorTypesData = createGetter<ArmorType[]>(
-  (c) => c.armors!, () => (armorDataFallback as { armors: ArmorType[] }).armors
-);
-
-/** Get all armor weight configs (must call loadAllGameData first) */
-export const getArmorWeightsData = createGetter<ArmorWeightConfig[]>(
-  (c) => c.armorWeights!, () => (armorDataFallback as { armorWeights: ArmorWeightConfig[] }).armorWeights
-);
-
-/** Get whether multiple armor layers are allowed (must call loadAllGameData first) */
-export const getArmorAllowMultipleLayers = createGetter<boolean>(
-  (c) => c.armorAllowMultipleLayers, () => (armorDataFallback as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false
-);
-
-/** Get all power plant types (must call loadAllGameData first) */
-export const getPowerPlantsData = createGetter<PowerPlantType[]>(
-  (c) => c.powerPlants!, () => (powerPlantDataFallback as { powerPlants: PowerPlantType[] }).powerPlants
-);
-
-/** Get the fuel tank type (must call loadAllGameData first) */
-export const getFuelTankData = createGetter<FuelTankType>(
-  (c) => c.fuelTank!, () => (fuelTankDataFallback as { fuelTank: FuelTankType }).fuelTank
-);
-
-/** Get whether engine power generation house rule is enabled (must call loadAllGameData first) */
-export const getEngineAllowPowerGeneration = createGetter<boolean>(
-  (c) => c.engineAllowPowerGeneration, () => (enginesDataFallback as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false
-);
-
-/** Get all engine types (must call loadAllGameData first) */
-export const getEnginesData = createGetter<EngineType[]>(
-  (c) => c.engines!, () => (enginesDataFallback as { engines: EngineType[] }).engines
-);
-
-/** Get all FTL drive types (must call loadAllGameData first) */
-export const getFTLDrivesData = createGetter<FTLDriveType[]>(
-  (c) => c.ftlDrives!, () => (ftlDrivesDataFallback as { ftlDrives: FTLDriveType[] }).ftlDrives
-);
-
-/**
- * Apply a set of mods to the merged cache using the stored raw base data.
- * Updates activeMods and the cache; does NOT touch pureBaseCache.
- */
-async function applyModsToCache(mods: Mod[]): Promise<void> {
-  activeMods = mods;
-
-  if (!rawBaseData.hulls) {
-    logger.warn('[DataLoader] applyModsToCache called before base data loaded');
-    return;
-  }
-
-  const [
-    mergedTechTracks,
-    mergedHulls, mergedArmor, mergedPowerPlants, mergedFuelTank,
-    mergedEngines, mergedFtlDrives, mergedSupportSystems,
-    mergedDefenses, mergedCommandControl, mergedSensors,
-    mergedHangarMisc, mergedOrdnance, mergedDamageDiagram, mergedWeapons,
-  ] = await Promise.all([
-    applyModsToFile('techTracks.json', rawBaseData.techTracks!, mods),
-    applyModsToFile('hulls.json', rawBaseData.hulls!, mods),
-    applyModsToFile('armor.json', rawBaseData.armor!, mods),
-    applyModsToFile('powerPlants.json', rawBaseData.powerPlants!, mods),
-    applyModsToFile('fuelTank.json', rawBaseData.fuelTank!, mods),
-    applyModsToFile('engines.json', rawBaseData.engines!, mods),
-    applyModsToFile('ftlDrives.json', rawBaseData.ftlDrives!, mods),
-    applyModsToFile('supportSystems.json', rawBaseData.supportSystems!, mods),
-    applyModsToFile('defenses.json', rawBaseData.defenses!, mods),
-    applyModsToFile('commandControl.json', rawBaseData.commandControl!, mods),
-    applyModsToFile('sensors.json', rawBaseData.sensors!, mods),
-    applyModsToFile('hangarMisc.json', rawBaseData.hangarMisc!, mods),
-    applyModsToFile('ordnance.json', rawBaseData.ordnance!, mods),
-    applyModsToFile('damageDiagram.json', rawBaseData.damageDiagram!, mods),
-    applyModsToFile('weapons.json', rawBaseData.weapons!, mods),
-  ]);
-
-  cache.techTracks = (mergedTechTracks as { techTracks: TechTrackDefinition[] }).techTracks;
-  cache.hulls = (mergedHulls as { hulls: Hull[] }).hulls;
-  cache.stationHulls = (mergedHulls as { stationHulls?: Hull[] }).stationHulls || [];
-  cache.armors = (mergedArmor as { armors: ArmorType[] }).armors;
-  cache.armorWeights = (mergedArmor as { armorWeights: ArmorWeightConfig[] }).armorWeights;
-  cache.armorAllowMultipleLayers = (mergedArmor as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
-  cache.powerPlants = (mergedPowerPlants as { powerPlants: PowerPlantType[] }).powerPlants;
-  cache.fuelTank = (mergedFuelTank as { fuelTank: FuelTankType }).fuelTank;
-  cache.engineAllowPowerGeneration = (mergedEngines as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false;
-  cache.engines = (mergedEngines as { engines: EngineType[] }).engines;
-  cache.ftlDrives = (mergedFtlDrives as { ftlDrives: FTLDriveType[] }).ftlDrives;
-  cache.supportSystems = mergedSupportSystems as {
+function populateCache(
+  target: DataCache,
+  techTracksData: Record<string, unknown>,
+  hullsData: Record<string, unknown>,
+  armorData: Record<string, unknown>,
+  powerPlantsData: Record<string, unknown>,
+  fuelTankData: Record<string, unknown>,
+  enginesData: Record<string, unknown>,
+  ftlDrivesData: Record<string, unknown>,
+  supportSystemsData: Record<string, unknown>,
+  defensesData: Record<string, unknown>,
+  commandControlData: Record<string, unknown>,
+  sensorsData: Record<string, unknown>,
+  hangarMiscData: Record<string, unknown>,
+  ordnanceData: Record<string, unknown>,
+  damageDiagramData: Record<string, unknown> | DamageDiagramData,
+  weaponsData: Record<string, unknown>,
+): void {
+  target.techTracks = (techTracksData as { techTracks: TechTrackDefinition[] }).techTracks;
+  target.hulls = (hullsData as { hulls: Hull[] }).hulls;
+  target.stationHulls = (hullsData as { stationHulls?: Hull[] }).stationHulls || [];
+  target.armors = (armorData as { armors: ArmorType[] }).armors;
+  target.armorWeights = (armorData as { armorWeights: ArmorWeightConfig[] }).armorWeights;
+  target.armorAllowMultipleLayers = (armorData as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false;
+  target.powerPlants = (powerPlantsData as { powerPlants: PowerPlantType[] }).powerPlants;
+  target.fuelTank = (fuelTankData as { fuelTank: FuelTankType }).fuelTank;
+  target.engineAllowPowerGeneration = (enginesData as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false;
+  target.engines = (enginesData as { engines: EngineType[] }).engines;
+  target.ftlDrives = (ftlDrivesData as { ftlDrives: FTLDriveType[] }).ftlDrives;
+  target.supportSystems = supportSystemsData as {
     lifeSupport: LifeSupportType[];
     accommodations: AccommodationType[];
     storeSystems: StoreSystemType[];
     gravitySystems: GravitySystemType[];
   };
-  cache.defenseSystems = (mergedDefenses as { defenseSystems: DefenseSystemType[] }).defenseSystems;
-  cache.commandControlSystems = (mergedCommandControl as { commandSystems: CommandControlSystemType[] }).commandSystems;
-  cache.sensors = (mergedSensors as { sensors: SensorType[] }).sensors;
-  cache.trackingTable = (mergedSensors as { trackingTable?: TrackingTable }).trackingTable || null;
-  cache.hangarMiscSystems = (mergedHangarMisc as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
-  cache.launchSystems = (mergedOrdnance as { launchSystems: LaunchSystem[] }).launchSystems;
-  cache.propulsionSystems = (mergedOrdnance as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
-  cache.warheads = (mergedOrdnance as { warheads: Warhead[] }).warheads;
-  cache.guidanceSystems = (mergedOrdnance as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
-  cache.damageDiagram = mergedDamageDiagram as unknown as DamageDiagramData;
-  cache.beamWeapons = (mergedWeapons as { beamWeapons: BeamWeaponType[] }).beamWeapons;
-  cache.projectileWeapons = (mergedWeapons as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
-  cache.torpedoWeapons = (mergedWeapons as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
-  cache.specialWeapons = (mergedWeapons as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
-  cache.mountModifiers = (mergedWeapons as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
-  cache.gunConfigurations = (mergedWeapons as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
-  cache.concealmentModifier = (mergedWeapons as { concealmentModifier?: MountModifier }).concealmentModifier || null;
+  target.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
+  target.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
+  target.sensors = (sensorsData as { sensors: SensorType[] }).sensors;
+  target.trackingTable = (sensorsData as { trackingTable?: TrackingTable }).trackingTable || null;
+  target.hangarMiscSystems = (hangarMiscData as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems;
+  target.launchSystems = (ordnanceData as { launchSystems: LaunchSystem[] }).launchSystems;
+  target.propulsionSystems = (ordnanceData as { propulsionSystems: PropulsionSystem[] }).propulsionSystems;
+  target.warheads = (ordnanceData as { warheads: Warhead[] }).warheads;
+  target.guidanceSystems = (ordnanceData as { guidanceSystems: GuidanceSystem[] }).guidanceSystems;
+  target.damageDiagram = damageDiagramData as DamageDiagramData;
+  target.beamWeapons = (weaponsData as { beamWeapons: BeamWeaponType[] }).beamWeapons;
+  target.projectileWeapons = (weaponsData as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || [];
+  target.torpedoWeapons = (weaponsData as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || [];
+  target.specialWeapons = (weaponsData as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || [];
+  target.mountModifiers = (weaponsData as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null;
+  target.gunConfigurations = (weaponsData as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null;
+  target.concealmentModifier = (weaponsData as { concealmentModifier?: MountModifier }).concealmentModifier || null;
+}
+
+// ============== DataStore ==============
+
+/**
+ * Public interface for a DataStore instance.
+ * Encapsulates all mutable cache state and data getters.
+ */
+export interface DataStore {
+  loadAllGameData(): Promise<DataLoadResult>;
+  isDataLoaded(): boolean;
+  reloadWithSpecificMods(mods: Mod[]): Promise<void>;
+  reloadAllGameData(): Promise<DataLoadResult>;
+  getActiveMods(): Mod[];
+
+  getTechTracksData(pureBase?: boolean): TechTrackDefinition[];
+  getHullsData(pureBase?: boolean): Hull[];
+  getStationHullsData(pureBase?: boolean): Hull[];
+  getArmorTypesData(pureBase?: boolean): ArmorType[];
+  getArmorWeightsData(pureBase?: boolean): ArmorWeightConfig[];
+  getArmorAllowMultipleLayers(pureBase?: boolean): boolean;
+  getPowerPlantsData(pureBase?: boolean): PowerPlantType[];
+  getFuelTankData(pureBase?: boolean): FuelTankType;
+  getEngineAllowPowerGeneration(pureBase?: boolean): boolean;
+  getEnginesData(pureBase?: boolean): EngineType[];
+  getFTLDrivesData(pureBase?: boolean): FTLDriveType[];
+  getSensorsData(pureBase?: boolean): SensorType[];
+  getTrackingTableData(): TrackingTable | null;
+  getHangarMiscSystemsData(pureBase?: boolean): HangarMiscSystemType[];
+  getLaunchSystemsData(pureBase?: boolean): LaunchSystem[];
+  getPropulsionSystemsData(pureBase?: boolean): PropulsionSystem[];
+  getWarheadsData(pureBase?: boolean): Warhead[];
+  getGuidanceSystemsData(pureBase?: boolean): GuidanceSystem[];
+  getBeamWeaponsData(pureBase?: boolean): BeamWeaponType[];
+  getProjectileWeaponsData(pureBase?: boolean): ProjectileWeaponType[];
+  getTorpedoWeaponsData(pureBase?: boolean): TorpedoWeaponType[];
+  getSpecialWeaponsData(pureBase?: boolean): SpecialWeaponType[];
+  getMountModifiersData(pureBase?: boolean): Record<MountType, MountModifier> | null;
+  getGunConfigurationsData(pureBase?: boolean): Record<GunConfiguration, GunConfigModifier> | null;
+  getConcealmentModifierData(pureBase?: boolean): MountModifier | null;
+  getLifeSupportData(pureBase?: boolean): LifeSupportType[];
+  getAccommodationsData(pureBase?: boolean): AccommodationType[];
+  getStoreSystemsData(pureBase?: boolean): StoreSystemType[];
+  getGravitySystemsData(pureBase?: boolean): GravitySystemType[];
+  getDefenseSystemsData(pureBase?: boolean): DefenseSystemType[];
+  getCommandControlSystemsData(pureBase?: boolean): CommandControlSystemType[];
+  getDamageDiagramDataGetter(): DamageDiagramData | null;
 }
 
 /**
- * Re-apply a specific set of mods to the cached base data.
- * Used for per-design mod selection — avoids reloading base data from disk.
- * Base data must already be loaded via loadAllGameData().
+ * Create an independent DataStore instance.
+ * Each instance owns its own cache, pureBaseCache, rawBaseData, and load state.
+ * The default export uses a single shared instance; tests can create fresh ones.
  */
-export async function reloadWithSpecificMods(mods: Mod[]): Promise<void> {
-  if (!dataLoaded || !rawBaseData.hulls) {
-    logger.warn('[DataLoader] Cannot reload with specific mods — base data not loaded yet');
-    return;
+export function createDataStore(): DataStore {
+  // ---- Instance-level mutable state ----
+  const cache: DataCache = createEmptyCache();
+  const pureBaseCache: DataCache = createEmptyCache();
+  const rawBaseData: RawBaseDataCache = createEmptyRawBaseData();
+
+  let dataLoaded = false;
+  let loadPromise: Promise<DataLoadResult> | null = null;
+  let activeMods: Mod[] = [];
+
+  // ---- Getter factory (closes over instance state) ----
+
+  function createGetter<T>(
+    accessor: (source: DataCache) => T,
+    fallback: () => T
+  ): (pureBase?: boolean) => T {
+    return (pureBase = false): T => {
+      if (!dataLoaded) {
+        logger.warn('[DataLoader] Data not loaded, using fallback');
+        return fallback();
+      }
+      return accessor(pureBase ? pureBaseCache : cache);
+    };
   }
-  logger.log(`[DataLoader] Reloading cache with ${mods.length} specific mod(s)...`);
-  await applyModsToCache(mods);
-  logger.log('[DataLoader] Cache reloaded with specific mods');
+
+  // ---- Internal helpers ----
+
+  async function applyModsToCache(mods: Mod[]): Promise<void> {
+    activeMods = mods;
+
+    if (!rawBaseData.hulls) {
+      logger.warn('[DataLoader] applyModsToCache called before base data loaded');
+      return;
+    }
+
+    const [
+      mergedTechTracks,
+      mergedHulls, mergedArmor, mergedPowerPlants, mergedFuelTank,
+      mergedEngines, mergedFtlDrives, mergedSupportSystems,
+      mergedDefenses, mergedCommandControl, mergedSensors,
+      mergedHangarMisc, mergedOrdnance, mergedDamageDiagram, mergedWeapons,
+    ] = await Promise.all([
+      applyModsToFile('techTracks.json', rawBaseData.techTracks!, mods),
+      applyModsToFile('hulls.json', rawBaseData.hulls!, mods),
+      applyModsToFile('armor.json', rawBaseData.armor!, mods),
+      applyModsToFile('powerPlants.json', rawBaseData.powerPlants!, mods),
+      applyModsToFile('fuelTank.json', rawBaseData.fuelTank!, mods),
+      applyModsToFile('engines.json', rawBaseData.engines!, mods),
+      applyModsToFile('ftlDrives.json', rawBaseData.ftlDrives!, mods),
+      applyModsToFile('supportSystems.json', rawBaseData.supportSystems!, mods),
+      applyModsToFile('defenses.json', rawBaseData.defenses!, mods),
+      applyModsToFile('commandControl.json', rawBaseData.commandControl!, mods),
+      applyModsToFile('sensors.json', rawBaseData.sensors!, mods),
+      applyModsToFile('hangarMisc.json', rawBaseData.hangarMisc!, mods),
+      applyModsToFile('ordnance.json', rawBaseData.ordnance!, mods),
+      applyModsToFile('damageDiagram.json', rawBaseData.damageDiagram!, mods),
+      applyModsToFile('weapons.json', rawBaseData.weapons!, mods),
+    ]);
+
+    populateCache(
+      cache,
+      mergedTechTracks, mergedHulls, mergedArmor, mergedPowerPlants,
+      mergedFuelTank, mergedEngines, mergedFtlDrives, mergedSupportSystems,
+      mergedDefenses, mergedCommandControl, mergedSensors, mergedHangarMisc,
+      mergedOrdnance, mergedDamageDiagram, mergedWeapons,
+    );
+  }
+
+  // ---- Build all getters ----
+
+  const getTechTracksDataFn = createGetter<TechTrackDefinition[]>(
+    (c) => c.techTracks!, () => (techTracksDataFallback as { techTracks: TechTrackDefinition[] }).techTracks
+  );
+  const getHullsDataFn = createGetter<Hull[]>(
+    (c) => c.hulls!, () => (hullsDataFallback as { hulls: Hull[] }).hulls
+  );
+  const getStationHullsDataFn = createGetter<Hull[]>(
+    (c) => c.stationHulls!, () => (hullsDataFallback as { stationHulls?: Hull[] }).stationHulls || []
+  );
+  const getArmorTypesDataFn = createGetter<ArmorType[]>(
+    (c) => c.armors!, () => (armorDataFallback as { armors: ArmorType[] }).armors
+  );
+  const getArmorWeightsDataFn = createGetter<ArmorWeightConfig[]>(
+    (c) => c.armorWeights!, () => (armorDataFallback as { armorWeights: ArmorWeightConfig[] }).armorWeights
+  );
+  const getArmorAllowMultipleLayersFn = createGetter<boolean>(
+    (c) => c.armorAllowMultipleLayers, () => (armorDataFallback as { allowMultipleLayers?: boolean }).allowMultipleLayers ?? false
+  );
+  const getPowerPlantsDataFn = createGetter<PowerPlantType[]>(
+    (c) => c.powerPlants!, () => (powerPlantDataFallback as { powerPlants: PowerPlantType[] }).powerPlants
+  );
+  const getFuelTankDataFn = createGetter<FuelTankType>(
+    (c) => c.fuelTank!, () => (fuelTankDataFallback as { fuelTank: FuelTankType }).fuelTank
+  );
+  const getEngineAllowPowerGenerationFn = createGetter<boolean>(
+    (c) => c.engineAllowPowerGeneration, () => (enginesDataFallback as { allowEnginePowerGeneration?: boolean }).allowEnginePowerGeneration ?? false
+  );
+  const getEnginesDataFn = createGetter<EngineType[]>(
+    (c) => c.engines!, () => (enginesDataFallback as { engines: EngineType[] }).engines
+  );
+  const getFTLDrivesDataFn = createGetter<FTLDriveType[]>(
+    (c) => c.ftlDrives!, () => (ftlDrivesDataFallback as { ftlDrives: FTLDriveType[] }).ftlDrives
+  );
+  const getSensorsDataFn = createGetter<SensorType[]>(
+    (c) => c.sensors!, () => (sensorsDataFallback as { sensors: SensorType[] }).sensors
+  );
+  const getHangarMiscSystemsDataFn = createGetter<HangarMiscSystemType[]>(
+    (c) => c.hangarMiscSystems!, () => (hangarMiscDataFallback as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems
+  );
+  const getLaunchSystemsDataFn = createGetter<LaunchSystem[]>(
+    (c) => c.launchSystems!, () => (ordnanceDataFallback as { launchSystems: LaunchSystem[] }).launchSystems
+  );
+  const getPropulsionSystemsDataFn = createGetter<PropulsionSystem[]>(
+    (c) => c.propulsionSystems!, () => (ordnanceDataFallback as { propulsionSystems: PropulsionSystem[] }).propulsionSystems
+  );
+  const getWarheadsDataFn = createGetter<Warhead[]>(
+    (c) => c.warheads!, () => (ordnanceDataFallback as { warheads: Warhead[] }).warheads
+  );
+  const getGuidanceSystemsDataFn = createGetter<GuidanceSystem[]>(
+    (c) => c.guidanceSystems!, () => (ordnanceDataFallback as { guidanceSystems: GuidanceSystem[] }).guidanceSystems
+  );
+  const getBeamWeaponsDataFn = createGetter<BeamWeaponType[]>(
+    (c) => c.beamWeapons!, () => (weaponsDataFallback as { beamWeapons: BeamWeaponType[] }).beamWeapons
+  );
+  const getProjectileWeaponsDataFn = createGetter<ProjectileWeaponType[]>(
+    (c) => c.projectileWeapons!, () => (weaponsDataFallback as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || []
+  );
+  const getTorpedoWeaponsDataFn = createGetter<TorpedoWeaponType[]>(
+    (c) => c.torpedoWeapons!, () => (weaponsDataFallback as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || []
+  );
+  const getSpecialWeaponsDataFn = createGetter<SpecialWeaponType[]>(
+    (c) => c.specialWeapons!, () => (weaponsDataFallback as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || []
+  );
+  const getMountModifiersDataFn = createGetter<Record<MountType, MountModifier> | null>(
+    (c) => c.mountModifiers, () => (weaponsDataFallback as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null
+  );
+  const getGunConfigurationsDataFn = createGetter<Record<GunConfiguration, GunConfigModifier> | null>(
+    (c) => c.gunConfigurations, () => (weaponsDataFallback as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null
+  );
+  const getConcealmentModifierDataFn = createGetter<MountModifier | null>(
+    (c) => c.concealmentModifier, () => (weaponsDataFallback as { concealmentModifier?: MountModifier }).concealmentModifier || null
+  );
+  const getLifeSupportDataFn = createGetter<LifeSupportType[]>(
+    (c) => c.supportSystems?.lifeSupport || [], () => (supportSystemsDataFallback as { lifeSupport: LifeSupportType[] }).lifeSupport
+  );
+  const getAccommodationsDataFn = createGetter<AccommodationType[]>(
+    (c) => c.supportSystems?.accommodations || [], () => (supportSystemsDataFallback as { accommodations: AccommodationType[] }).accommodations
+  );
+  const getStoreSystemsDataFn = createGetter<StoreSystemType[]>(
+    (c) => c.supportSystems?.storeSystems || [], () => (supportSystemsDataFallback as { storeSystems: StoreSystemType[] }).storeSystems
+  );
+  const getGravitySystemsDataFn = createGetter<GravitySystemType[]>(
+    (c) => c.supportSystems?.gravitySystems || [], () => (supportSystemsDataFallback as { gravitySystems?: GravitySystemType[] }).gravitySystems || []
+  );
+  const getDefenseSystemsDataFn = createGetter<DefenseSystemType[]>(
+    (c) => c.defenseSystems!, () => (defensesDataFallback as { defenseSystems: DefenseSystemType[] }).defenseSystems
+  );
+  const getCommandControlSystemsDataFn = createGetter<CommandControlSystemType[]>(
+    (c) => c.commandControlSystems!, () => (commandControlDataFallback as { commandSystems: CommandControlSystemType[] }).commandSystems
+  );
+
+  // ---- Return the store object ----
+
+  // Assigned to a local variable so reloadAllGameData can call loadAllGameData
+  // without depending on `this` binding.
+  const store: DataStore = {
+    async loadAllGameData(): Promise<DataLoadResult> {
+      if (loadPromise) return loadPromise;
+      if (dataLoaded) return { failedFiles: [], isElectron: !!window.electronAPI };
+
+      loadPromise = (async () => {
+        logger.log('[DataLoader] Loading game data...');
+        const failedFiles: FailedFile[] = [];
+        const isElectron = !!window.electronAPI;
+
+        const [techTracksData, hullsData, armorData, powerPlantsData, fuelTankData, enginesData, ftlDrivesData, supportSystemsData, defensesData, commandControlData, sensorsData, hangarMiscData, ordnanceData, damageDiagramData, weaponsData] = await Promise.all([
+          loadDataFile('techTracks.json', techTracksDataFallback, failedFiles),
+          loadDataFile('hulls.json', hullsDataFallback, failedFiles),
+          loadDataFile('armor.json', armorDataFallback, failedFiles),
+          loadDataFile('powerPlants.json', powerPlantDataFallback, failedFiles),
+          loadDataFile('fuelTank.json', fuelTankDataFallback, failedFiles),
+          loadDataFile('engines.json', enginesDataFallback, failedFiles),
+          loadDataFile('ftlDrives.json', ftlDrivesDataFallback, failedFiles),
+          loadDataFile('supportSystems.json', supportSystemsDataFallback, failedFiles),
+          loadDataFile('defenses.json', defensesDataFallback, failedFiles),
+          loadDataFile('commandControl.json', commandControlDataFallback, failedFiles),
+          loadDataFile('sensors.json', sensorsDataFallback, failedFiles),
+          loadDataFile('hangarMisc.json', hangarMiscDataFallback, failedFiles),
+          loadDataFile('ordnance.json', ordnanceDataFallback, failedFiles),
+          loadDataFile('damageDiagram.json', damageDiagramDataFallback, failedFiles),
+          loadDataFile('weapons.json', weaponsDataFallback, failedFiles),
+        ]);
+
+        // Store raw base data for re-merging mods later
+        rawBaseData.techTracks = techTracksData as Record<string, unknown>;
+        rawBaseData.hulls = hullsData as Record<string, unknown>;
+        rawBaseData.armor = armorData as Record<string, unknown>;
+        rawBaseData.powerPlants = powerPlantsData as Record<string, unknown>;
+        rawBaseData.fuelTank = fuelTankData as Record<string, unknown>;
+        rawBaseData.engines = enginesData as Record<string, unknown>;
+        rawBaseData.ftlDrives = ftlDrivesData as Record<string, unknown>;
+        rawBaseData.supportSystems = supportSystemsData as Record<string, unknown>;
+        rawBaseData.defenses = defensesData as Record<string, unknown>;
+        rawBaseData.commandControl = commandControlData as Record<string, unknown>;
+        rawBaseData.sensors = sensorsData as Record<string, unknown>;
+        rawBaseData.hangarMisc = hangarMiscData as Record<string, unknown>;
+        rawBaseData.ordnance = ordnanceData as Record<string, unknown>;
+        rawBaseData.damageDiagram = damageDiagramData as unknown as Record<string, unknown>;
+        rawBaseData.weapons = weaponsData as Record<string, unknown>;
+
+        // Store pure base data in pureBaseCache
+        populateCache(
+          pureBaseCache,
+          techTracksData as Record<string, unknown>,
+          hullsData as Record<string, unknown>,
+          armorData as Record<string, unknown>,
+          powerPlantsData as Record<string, unknown>,
+          fuelTankData as Record<string, unknown>,
+          enginesData as Record<string, unknown>,
+          ftlDrivesData as Record<string, unknown>,
+          supportSystemsData as Record<string, unknown>,
+          defensesData as Record<string, unknown>,
+          commandControlData as Record<string, unknown>,
+          sensorsData as Record<string, unknown>,
+          hangarMiscData as Record<string, unknown>,
+          ordnanceData as Record<string, unknown>,
+          damageDiagramData,
+          weaponsData as Record<string, unknown>,
+        );
+
+        // Initially load with no mods — mods are applied per-design when
+        // creating a new design or loading a save file.
+        await applyModsToCache([]);
+
+        dataLoaded = true;
+        logger.log('[DataLoader] Game data loaded successfully');
+
+        if (failedFiles.length > 0) {
+          logger.warn('[DataLoader] Some files failed to load from external sources:', failedFiles);
+        }
+
+        return { failedFiles, isElectron };
+      })();
+
+      return loadPromise;
+    },
+
+    isDataLoaded(): boolean {
+      return dataLoaded;
+    },
+
+    async reloadWithSpecificMods(mods: Mod[]): Promise<void> {
+      if (!dataLoaded || !rawBaseData.hulls) {
+        logger.warn('[DataLoader] Cannot reload with specific mods — base data not loaded yet');
+        return;
+      }
+      logger.log(`[DataLoader] Reloading cache with ${mods.length} specific mod(s)...`);
+      await applyModsToCache(mods);
+      logger.log('[DataLoader] Cache reloaded with specific mods');
+    },
+
+    async reloadAllGameData(): Promise<DataLoadResult> {
+      dataLoaded = false;
+      loadPromise = null;
+      activeMods = [];
+      Object.assign(cache, createEmptyCache());
+      Object.assign(pureBaseCache, createEmptyCache());
+      Object.assign(rawBaseData, createEmptyRawBaseData());
+      return store.loadAllGameData();
+    },
+
+    getActiveMods(): Mod[] {
+      return activeMods;
+    },
+
+    getTechTracksData: getTechTracksDataFn,
+    getHullsData: getHullsDataFn,
+    getStationHullsData: getStationHullsDataFn,
+    getArmorTypesData: getArmorTypesDataFn,
+    getArmorWeightsData: getArmorWeightsDataFn,
+    getArmorAllowMultipleLayers: getArmorAllowMultipleLayersFn,
+    getPowerPlantsData: getPowerPlantsDataFn,
+    getFuelTankData: getFuelTankDataFn,
+    getEngineAllowPowerGeneration: getEngineAllowPowerGenerationFn,
+    getEnginesData: getEnginesDataFn,
+    getFTLDrivesData: getFTLDrivesDataFn,
+    getSensorsData: getSensorsDataFn,
+    getHangarMiscSystemsData: getHangarMiscSystemsDataFn,
+    getLaunchSystemsData: getLaunchSystemsDataFn,
+    getPropulsionSystemsData: getPropulsionSystemsDataFn,
+    getWarheadsData: getWarheadsDataFn,
+    getGuidanceSystemsData: getGuidanceSystemsDataFn,
+    getBeamWeaponsData: getBeamWeaponsDataFn,
+    getProjectileWeaponsData: getProjectileWeaponsDataFn,
+    getTorpedoWeaponsData: getTorpedoWeaponsDataFn,
+    getSpecialWeaponsData: getSpecialWeaponsDataFn,
+    getMountModifiersData: getMountModifiersDataFn,
+    getGunConfigurationsData: getGunConfigurationsDataFn,
+    getConcealmentModifierData: getConcealmentModifierDataFn,
+    getLifeSupportData: getLifeSupportDataFn,
+    getAccommodationsData: getAccommodationsDataFn,
+    getStoreSystemsData: getStoreSystemsDataFn,
+    getGravitySystemsData: getGravitySystemsDataFn,
+    getDefenseSystemsData: getDefenseSystemsDataFn,
+    getCommandControlSystemsData: getCommandControlSystemsDataFn,
+
+    getTrackingTableData(): TrackingTable | null {
+      if (!dataLoaded) {
+        logger.warn('[DataLoader] Data not loaded, using fallback');
+        return (sensorsDataFallback as { trackingTable?: TrackingTable }).trackingTable || null;
+      }
+      return cache.trackingTable;
+    },
+
+    getDamageDiagramDataGetter(): DamageDiagramData | null {
+      if (!dataLoaded) {
+        logger.warn('[DataLoader] Data not loaded, using fallback');
+        return damageDiagramDataFallback;
+      }
+      return cache.damageDiagram;
+    },
+  };
+
+  return store;
 }
 
-/**
- * Reload all game data (e.g., after user edits data files or changes mods)
- */
-export async function reloadAllGameData(): Promise<DataLoadResult> {
-  dataLoaded = false;
-  loadPromise = null;
-  activeMods = [];
-  Object.assign(cache, createEmptyCache());
-  Object.assign(pureBaseCache, createEmptyCache());
-  Object.assign(rawBaseData, createEmptyRawBaseData());
+// ============== Default Instance & Compatibility Exports ==============
 
-  return loadAllGameData();
-}
+// Single shared instance for production use — all existing imports keep working.
+const defaultStore = createDataStore();
 
-/**
- * Get the currently active (enabled) mods that were applied during data loading.
- * Used by save service to record which mods were active when saving.
- */
-export function getActiveMods(): Mod[] {
-  return activeMods;
-}
+export const loadAllGameData = defaultStore.loadAllGameData;
+export const isDataLoaded = defaultStore.isDataLoaded;
+export const reloadWithSpecificMods = defaultStore.reloadWithSpecificMods;
+export const reloadAllGameData = defaultStore.reloadAllGameData;
+export const getActiveMods = defaultStore.getActiveMods;
+
+export const getTechTracksData = defaultStore.getTechTracksData;
+export const getHullsData = defaultStore.getHullsData;
+export const getStationHullsData = defaultStore.getStationHullsData;
+export const getArmorTypesData = defaultStore.getArmorTypesData;
+export const getArmorWeightsData = defaultStore.getArmorWeightsData;
+export const getArmorAllowMultipleLayers = defaultStore.getArmorAllowMultipleLayers;
+export const getPowerPlantsData = defaultStore.getPowerPlantsData;
+export const getFuelTankData = defaultStore.getFuelTankData;
+export const getEngineAllowPowerGeneration = defaultStore.getEngineAllowPowerGeneration;
+export const getEnginesData = defaultStore.getEnginesData;
+export const getFTLDrivesData = defaultStore.getFTLDrivesData;
+export const getSensorsData = defaultStore.getSensorsData;
+export const getTrackingTableData = defaultStore.getTrackingTableData;
+export const getHangarMiscSystemsData = defaultStore.getHangarMiscSystemsData;
+export const getLaunchSystemsData = defaultStore.getLaunchSystemsData;
+export const getPropulsionSystemsData = defaultStore.getPropulsionSystemsData;
+export const getWarheadsData = defaultStore.getWarheadsData;
+export const getGuidanceSystemsData = defaultStore.getGuidanceSystemsData;
+export const getBeamWeaponsData = defaultStore.getBeamWeaponsData;
+export const getProjectileWeaponsData = defaultStore.getProjectileWeaponsData;
+export const getTorpedoWeaponsData = defaultStore.getTorpedoWeaponsData;
+export const getSpecialWeaponsData = defaultStore.getSpecialWeaponsData;
+export const getMountModifiersData = defaultStore.getMountModifiersData;
+export const getGunConfigurationsData = defaultStore.getGunConfigurationsData;
+export const getConcealmentModifierData = defaultStore.getConcealmentModifierData;
+export const getLifeSupportData = defaultStore.getLifeSupportData;
+export const getAccommodationsData = defaultStore.getAccommodationsData;
+export const getStoreSystemsData = defaultStore.getStoreSystemsData;
+export const getGravitySystemsData = defaultStore.getGravitySystemsData;
+export const getDefenseSystemsData = defaultStore.getDefenseSystemsData;
+export const getCommandControlSystemsData = defaultStore.getCommandControlSystemsData;
+export const getDamageDiagramDataGetter = defaultStore.getDamageDiagramDataGetter;
 
 /**
  * Get the path to the data directory (for user reference)
@@ -676,117 +851,4 @@ export async function getDataDirectoryPath(): Promise<string | null> {
     return null;
   }
   return window.electronAPI.getDataPath();
-}
-
-/** Get all sensor types (must call loadAllGameData first) */
-export const getSensorsData = createGetter<SensorType[]>(
-  (c) => c.sensors!, () => (sensorsDataFallback as { sensors: SensorType[] }).sensors
-);
-
-/** Get all hangar/misc system types (must call loadAllGameData first) */
-export const getHangarMiscSystemsData = createGetter<HangarMiscSystemType[]>(
-  (c) => c.hangarMiscSystems!, () => (hangarMiscDataFallback as { hangarMiscSystems: HangarMiscSystemType[] }).hangarMiscSystems
-);
-
-/** Get all launch systems (must call loadAllGameData first) */
-export const getLaunchSystemsData = createGetter<LaunchSystem[]>(
-  (c) => c.launchSystems!, () => (ordnanceDataFallback as { launchSystems: LaunchSystem[] }).launchSystems
-);
-
-/** Get all propulsion systems (must call loadAllGameData first) */
-export const getPropulsionSystemsData = createGetter<PropulsionSystem[]>(
-  (c) => c.propulsionSystems!, () => (ordnanceDataFallback as { propulsionSystems: PropulsionSystem[] }).propulsionSystems
-);
-
-/** Get all warheads (must call loadAllGameData first) */
-export const getWarheadsData = createGetter<Warhead[]>(
-  (c) => c.warheads!, () => (ordnanceDataFallback as { warheads: Warhead[] }).warheads
-);
-
-/** Get all guidance systems (must call loadAllGameData first) */
-export const getGuidanceSystemsData = createGetter<GuidanceSystem[]>(
-  (c) => c.guidanceSystems!, () => (ordnanceDataFallback as { guidanceSystems: GuidanceSystem[] }).guidanceSystems
-);
-
-/** Get all beam weapon types (must call loadAllGameData first) */
-export const getBeamWeaponsData = createGetter<BeamWeaponType[]>(
-  (c) => c.beamWeapons!, () => (weaponsDataFallback as { beamWeapons: BeamWeaponType[] }).beamWeapons
-);
-
-/** Get all projectile weapon types (must call loadAllGameData first) */
-export const getProjectileWeaponsData = createGetter<ProjectileWeaponType[]>(
-  (c) => c.projectileWeapons!, () => (weaponsDataFallback as { projectileWeapons?: ProjectileWeaponType[] }).projectileWeapons || []
-);
-
-/** Get all torpedo weapon types (must call loadAllGameData first) */
-export const getTorpedoWeaponsData = createGetter<TorpedoWeaponType[]>(
-  (c) => c.torpedoWeapons!, () => (weaponsDataFallback as { torpedoWeapons?: TorpedoWeaponType[] }).torpedoWeapons || []
-);
-
-/** Get all special weapon types (must call loadAllGameData first) */
-export const getSpecialWeaponsData = createGetter<SpecialWeaponType[]>(
-  (c) => c.specialWeapons!, () => (weaponsDataFallback as { specialWeapons?: SpecialWeaponType[] }).specialWeapons || []
-);
-
-/** Get mount modifiers (must call loadAllGameData first) */
-export const getMountModifiersData = createGetter<Record<MountType, MountModifier> | null>(
-  (c) => c.mountModifiers, () => (weaponsDataFallback as { mountModifiers?: Record<MountType, MountModifier> }).mountModifiers || null
-);
-
-/** Get gun configurations (must call loadAllGameData first) */
-export const getGunConfigurationsData = createGetter<Record<GunConfiguration, GunConfigModifier> | null>(
-  (c) => c.gunConfigurations, () => (weaponsDataFallback as { gunConfigurations?: Record<GunConfiguration, GunConfigModifier> }).gunConfigurations || null
-);
-
-/** Get concealment modifier (must call loadAllGameData first) */
-export const getConcealmentModifierData = createGetter<MountModifier | null>(
-  (c) => c.concealmentModifier, () => (weaponsDataFallback as { concealmentModifier?: MountModifier }).concealmentModifier || null
-);
-
-/** Get all life support types (must call loadAllGameData first) */
-export const getLifeSupportData = createGetter<LifeSupportType[]>(
-  (c) => c.supportSystems?.lifeSupport || [], () => (supportSystemsDataFallback as { lifeSupport: LifeSupportType[] }).lifeSupport
-);
-
-/** Get all accommodation types (must call loadAllGameData first) */
-export const getAccommodationsData = createGetter<AccommodationType[]>(
-  (c) => c.supportSystems?.accommodations || [], () => (supportSystemsDataFallback as { accommodations: AccommodationType[] }).accommodations
-);
-
-/** Get all store system types (must call loadAllGameData first) */
-export const getStoreSystemsData = createGetter<StoreSystemType[]>(
-  (c) => c.supportSystems?.storeSystems || [], () => (supportSystemsDataFallback as { storeSystems: StoreSystemType[] }).storeSystems
-);
-
-/** Get all gravity system types (must call loadAllGameData first) */
-export const getGravitySystemsData = createGetter<GravitySystemType[]>(
-  (c) => c.supportSystems?.gravitySystems || [], () => (supportSystemsDataFallback as { gravitySystems?: GravitySystemType[] }).gravitySystems || []
-);
-
-/** Get all defense system types (must call loadAllGameData first) */
-export const getDefenseSystemsData = createGetter<DefenseSystemType[]>(
-  (c) => c.defenseSystems!, () => (defensesDataFallback as { defenseSystems: DefenseSystemType[] }).defenseSystems
-);
-
-/** Get all command control system types (must call loadAllGameData first) */
-export const getCommandControlSystemsData = createGetter<CommandControlSystemType[]>(
-  (c) => c.commandControlSystems!, () => (commandControlDataFallback as { commandSystems: CommandControlSystemType[] }).commandSystems
-);
-
-/** Get the tracking table (must call loadAllGameData first) */
-export function getTrackingTableData(): TrackingTable | null {
-  if (!dataLoaded) {
-    logger.warn('[DataLoader] Data not loaded, using fallback');
-    return (sensorsDataFallback as { trackingTable?: TrackingTable }).trackingTable || null;
-  }
-  return cache.trackingTable;
-}
-
-/** Get damage diagram data (must call loadAllGameData first) */
-export function getDamageDiagramDataGetter(): DamageDiagramData | null {
-  if (!dataLoaded) {
-    logger.warn('[DataLoader] Data not loaded, using fallback');
-    return damageDiagramDataFallback;
-  }
-  return cache.damageDiagram;
 }

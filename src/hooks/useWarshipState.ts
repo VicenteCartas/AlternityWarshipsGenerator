@@ -1,63 +1,83 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import type { Hull } from '../types/hull';
-import type { ShipArmor } from '../types/armor';
-import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
-import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
-import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
-import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
-import type { InstalledWeapon } from '../types/weapon';
-import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
-import type { InstalledDefenseSystem } from '../types/defense';
-import type { InstalledCommandControlSystem } from '../types/commandControl';
-import type { InstalledSensor } from '../types/sensor';
-import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
-import type { ProgressLevel, TechTrack, DesignType, StationType, AppMode } from '../types/common';
-import type { DamageZone, HitLocationChart } from '../types/damageDiagram';
-import type { ShipDescription } from '../types/summary';
+import { useCallback, useMemo, useRef, useEffect, useReducer, useState } from 'react';
+import type { AppMode } from '../types/common';
 import type { Mod } from '../types/mod';
 import { useUndoHistory } from './useUndoHistory';
-import type { WarshipState } from '../services/saveService';
+import type { WarshipState } from '../types/warshipState';
 
-/**
- * Manages all warship design state: the 27+ design variables, undo/redo history,
- * state assembly/application, and dirty-change tracking.
- *
- * @param mode Current app mode — dirty-check only triggers when mode is 'builder'
- */
-export function useWarshipState(mode: AppMode, designActiveMods: Mod[]) {
-  // ---- Design type ----
-  const [designType, setDesignType] = useState<DesignType>('warship');
-  const [stationType, setStationType] = useState<StationType | null>(null);
-  const [surfaceProvidesLifeSupport, setSurfaceProvidesLifeSupport] = useState(false);
-  const [surfaceProvidesGravity, setSurfaceProvidesGravity] = useState(false);
+// ---------------------------------------------------------------------------
+// Internal state type: everything in WarshipState except activeMods,
+// which is injected from outside and not managed by this hook.
+// ---------------------------------------------------------------------------
+type DesignState = Omit<WarshipState, 'activeMods'>;
 
-  // ---- Core systems ----
-  const [selectedHull, setSelectedHull] = useState<Hull | null>(null);
-  const [armorLayers, setArmorLayers] = useState<ShipArmor[]>([]);
-  const [installedPowerPlants, setInstalledPowerPlants] = useState<InstalledPowerPlant[]>([]);
-  const [installedFuelTanks, setInstalledFuelTanks] = useState<InstalledFuelTank[]>([]);
-  const [installedEngines, setInstalledEngines] = useState<InstalledEngine[]>([]);
-  const [installedEngineFuelTanks, setInstalledEngineFuelTanks] = useState<InstalledEngineFuelTank[]>([]);
-  const [installedFTLDrive, setInstalledFTLDrive] = useState<InstalledFTLDrive | null>(null);
-  const [installedFTLFuelTanks, setInstalledFTLFuelTanks] = useState<InstalledFTLFuelTank[]>([]);
-  const [installedLifeSupport, setInstalledLifeSupport] = useState<InstalledLifeSupport[]>([]);
-  const [installedAccommodations, setInstalledAccommodations] = useState<InstalledAccommodation[]>([]);
-  const [installedStoreSystems, setInstalledStoreSystems] = useState<InstalledStoreSystem[]>([]);
-  const [installedGravitySystems, setInstalledGravitySystems] = useState<InstalledGravitySystem[]>([]);
-  const [installedWeapons, setInstalledWeapons] = useState<InstalledWeapon[]>([]);
-  const [ordnanceDesigns, setOrdnanceDesigns] = useState<OrdnanceDesign[]>([]);
-  const [installedLaunchSystems, setInstalledLaunchSystems] = useState<InstalledLaunchSystem[]>([]);
-  const [installedDefenses, setInstalledDefenses] = useState<InstalledDefenseSystem[]>([]);
-  const [installedCommandControl, setInstalledCommandControl] = useState<InstalledCommandControlSystem[]>([]);
-  const [installedSensors, setInstalledSensors] = useState<InstalledSensor[]>([]);
-  const [installedHangarMisc, setInstalledHangarMisc] = useState<InstalledHangarMiscSystem[]>([]);
+// ---------------------------------------------------------------------------
+// Reducer action types
+// ---------------------------------------------------------------------------
 
-  // ---- Damage diagram ----
-  const [damageDiagramZones, setDamageDiagramZones] = useState<DamageZone[]>([]);
-  const [hitLocationChart, setHitLocationChart] = useState<HitLocationChart | null>(null);
+/** Type-safe SET_FIELD action: each key of DesignState maps to a correctly-typed payload. */
+type SetFieldAction = {
+  [K in keyof DesignState]: {
+    type: 'SET_FIELD';
+    field: K;
+    value: DesignState[K] | ((prev: DesignState[K]) => DesignState[K]);
+  }
+}[keyof DesignState];
 
-  // ---- Description / name ----
-  const [shipDescription, setShipDescription] = useState<ShipDescription>({
+type WarshipAction =
+  | SetFieldAction
+  | { type: 'APPLY_STATE'; payload: DesignState };
+
+// ---------------------------------------------------------------------------
+// Reducer
+// ---------------------------------------------------------------------------
+
+function warshipReducer(state: DesignState, action: WarshipAction): DesignState {
+  switch (action.type) {
+    case 'SET_FIELD': {
+      const rawValue = action.value;
+      const newValue = typeof rawValue === 'function'
+        ? (rawValue as (prev: DesignState[typeof action.field]) => DesignState[typeof action.field])(state[action.field])
+        : rawValue;
+      // Bail out if reference hasn't changed (avoids unnecessary re-renders)
+      if (newValue === state[action.field]) return state;
+      return { ...state, [action.field]: newValue };
+    }
+    case 'APPLY_STATE':
+      return action.payload;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Initial state
+// ---------------------------------------------------------------------------
+
+const initialDesignState: DesignState = {
+  designType: 'warship',
+  stationType: null,
+  surfaceProvidesLifeSupport: false,
+  surfaceProvidesGravity: false,
+  hull: null,
+  armorLayers: [],
+  powerPlants: [],
+  fuelTanks: [],
+  engines: [],
+  engineFuelTanks: [],
+  ftlDrive: null,
+  ftlFuelTanks: [],
+  lifeSupport: [],
+  accommodations: [],
+  storeSystems: [],
+  gravitySystems: [],
+  weapons: [],
+  ordnanceDesigns: [],
+  launchSystems: [],
+  defenses: [],
+  commandControl: [],
+  sensors: [],
+  hangarMisc: [],
+  damageDiagramZones: [],
+  hitLocationChart: null,
+  shipDescription: {
     lore: '',
     imageData: null,
     imageMimeType: null,
@@ -66,105 +86,105 @@ export function useWarshipState(mode: AppMode, designActiveMods: Mod[]) {
     commissioningDate: '',
     classification: '',
     manufacturer: '',
-  });
-  const [warshipName, setWarshipName] = useState<string>('New Ship');
+  },
+  name: 'New Ship',
+  designProgressLevel: 9,
+  designTechTracks: [],
+};
 
-  // ---- Design constraints ----
-  const [designProgressLevel, setDesignProgressLevel] = useState<ProgressLevel>(9);
-  const [designTechTracks, setDesignTechTracks] = useState<TechTrack[]>([]);
+// ---------------------------------------------------------------------------
+// Setter factory — creates a dispatch-backed setter with the same signature
+// as React.Dispatch<React.SetStateAction<T>> for a given DesignState field.
+// ---------------------------------------------------------------------------
 
-  // ---- Unsaved changes tracking ----
+function createSetter<K extends keyof DesignState>(
+  dispatch: React.Dispatch<WarshipAction>,
+  field: K,
+): React.Dispatch<React.SetStateAction<DesignState[K]>> {
+  return (value: React.SetStateAction<DesignState[K]>) => {
+    dispatch({ type: 'SET_FIELD', field, value } as SetFieldAction);
+  };
+}
+
+/**
+ * Manages all warship design state: a single reducer-backed WarshipState object,
+ * undo/redo history, state application, and dirty-change tracking.
+ *
+ * @param mode Current app mode — dirty-check only triggers when mode is 'builder'
+ */
+export function useWarshipState(mode: AppMode, designActiveMods: Mod[]) {
+  const [state, dispatch] = useReducer(warshipReducer, initialDesignState);
+
+  // ---- Unsaved changes tracking (meta-state, not part of design) ----
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const skipDirtyCheckRef = useRef(true);
 
   // ---- Undo / redo history ----
   const undoHistory = useUndoHistory<WarshipState>(50);
 
-  /**
-   * Assemble the current design state from all individual useState values.
-   * Used for saving, undo snapshots, and duplication.
-   */
-  const buildCurrentState = useCallback((): WarshipState => ({
-    name: warshipName,
-    shipDescription,
-    designType,
-    stationType,
-    surfaceProvidesLifeSupport,
-    surfaceProvidesGravity,
-    hull: selectedHull,
-    armorLayers,
-    powerPlants: installedPowerPlants,
-    fuelTanks: installedFuelTanks,
-    engines: installedEngines,
-    engineFuelTanks: installedEngineFuelTanks,
-    ftlDrive: installedFTLDrive,
-    ftlFuelTanks: installedFTLFuelTanks,
-    lifeSupport: installedLifeSupport,
-    accommodations: installedAccommodations,
-    storeSystems: installedStoreSystems,
-    gravitySystems: installedGravitySystems,
-    defenses: installedDefenses,
-    commandControl: installedCommandControl,
-    sensors: installedSensors,
-    hangarMisc: installedHangarMisc,
-    weapons: installedWeapons,
-    ordnanceDesigns,
-    launchSystems: installedLaunchSystems,
-    damageDiagramZones,
-    hitLocationChart,
-    designProgressLevel,
-    designTechTracks,
-    activeMods: designActiveMods,
-  }), [warshipName, shipDescription, designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity, selectedHull, armorLayers, installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc, installedWeapons, ordnanceDesigns, installedLaunchSystems, damageDiagramZones, hitLocationChart, designProgressLevel, designTechTracks, designActiveMods]);
+  // ---- Setter functions (stable refs — dispatch never changes) ----
+  const setters = useMemo(() => ({
+    setDesignType: createSetter(dispatch, 'designType'),
+    setStationType: createSetter(dispatch, 'stationType'),
+    setSurfaceProvidesLifeSupport: createSetter(dispatch, 'surfaceProvidesLifeSupport'),
+    setSurfaceProvidesGravity: createSetter(dispatch, 'surfaceProvidesGravity'),
+    setSelectedHull: createSetter(dispatch, 'hull'),
+    setArmorLayers: createSetter(dispatch, 'armorLayers'),
+    setInstalledPowerPlants: createSetter(dispatch, 'powerPlants'),
+    setInstalledFuelTanks: createSetter(dispatch, 'fuelTanks'),
+    setInstalledEngines: createSetter(dispatch, 'engines'),
+    setInstalledEngineFuelTanks: createSetter(dispatch, 'engineFuelTanks'),
+    setInstalledFTLDrive: createSetter(dispatch, 'ftlDrive'),
+    setInstalledFTLFuelTanks: createSetter(dispatch, 'ftlFuelTanks'),
+    setInstalledLifeSupport: createSetter(dispatch, 'lifeSupport'),
+    setInstalledAccommodations: createSetter(dispatch, 'accommodations'),
+    setInstalledStoreSystems: createSetter(dispatch, 'storeSystems'),
+    setInstalledGravitySystems: createSetter(dispatch, 'gravitySystems'),
+    setInstalledWeapons: createSetter(dispatch, 'weapons'),
+    setOrdnanceDesigns: createSetter(dispatch, 'ordnanceDesigns'),
+    setInstalledLaunchSystems: createSetter(dispatch, 'launchSystems'),
+    setInstalledDefenses: createSetter(dispatch, 'defenses'),
+    setInstalledCommandControl: createSetter(dispatch, 'commandControl'),
+    setInstalledSensors: createSetter(dispatch, 'sensors'),
+    setInstalledHangarMisc: createSetter(dispatch, 'hangarMisc'),
+    setDamageDiagramZones: createSetter(dispatch, 'damageDiagramZones'),
+    setHitLocationChart: createSetter(dispatch, 'hitLocationChart'),
+    setShipDescription: createSetter(dispatch, 'shipDescription'),
+    setWarshipName: createSetter(dispatch, 'name'),
+    setDesignProgressLevel: createSetter(dispatch, 'designProgressLevel'),
+    setDesignTechTracks: createSetter(dispatch, 'designTechTracks'),
+  }), [dispatch]);
+
+  // ---- State assembly (now trivial — state already IS the object) ----
+
+  const buildCurrentState = useCallback(
+    (): WarshipState => ({ ...state, activeMods: designActiveMods }),
+    [state, designActiveMods],
+  );
 
   /** Memoized current state object — stable reference when no state has changed. */
-  const currentState: WarshipState = useMemo(() => buildCurrentState(), [buildCurrentState]);
+  const currentState: WarshipState = useMemo(
+    () => ({ ...state, activeMods: designActiveMods }),
+    [state, designActiveMods],
+  );
 
-  /**
-   * Apply a WarshipState snapshot to all individual setters.
-   * Used for undo/redo restore, loading from file, and duplication.
-   */
-  const applyState = useCallback((state: WarshipState) => {
-    setDesignType(state.designType);
-    setStationType(state.stationType);
-    setSurfaceProvidesLifeSupport(state.surfaceProvidesLifeSupport);
-    setSurfaceProvidesGravity(state.surfaceProvidesGravity);
-    setSelectedHull(state.hull);
-    setArmorLayers(state.armorLayers);
-    setInstalledPowerPlants(state.powerPlants);
-    setInstalledFuelTanks(state.fuelTanks);
-    setInstalledEngines(state.engines);
-    setInstalledEngineFuelTanks(state.engineFuelTanks);
-    setInstalledFTLDrive(state.ftlDrive);
-    setInstalledFTLFuelTanks(state.ftlFuelTanks);
-    setInstalledLifeSupport(state.lifeSupport);
-    setInstalledAccommodations(state.accommodations);
-    setInstalledStoreSystems(state.storeSystems);
-    setInstalledGravitySystems(state.gravitySystems);
-    setInstalledWeapons(state.weapons);
-    setOrdnanceDesigns(state.ordnanceDesigns);
-    setInstalledLaunchSystems(state.launchSystems);
-    setInstalledDefenses(state.defenses);
-    setInstalledCommandControl(state.commandControl);
-    setInstalledSensors(state.sensors);
-    setInstalledHangarMisc(state.hangarMisc);
-    setDamageDiagramZones(state.damageDiagramZones);
-    setHitLocationChart(state.hitLocationChart);
-    setShipDescription(state.shipDescription);
-    setWarshipName(state.name);
-    setDesignProgressLevel(state.designProgressLevel);
-    setDesignTechTracks(state.designTechTracks);
+  /** Apply a full WarshipState snapshot (used for undo/redo, load, duplication). */
+  const applyState = useCallback((newState: WarshipState) => {
+    // Strip activeMods (not managed here) before dispatching
+    const { activeMods: _, ...designState } = newState;
+    void _;
+    dispatch({ type: 'APPLY_STATE', payload: designState });
   }, []);
 
   const handleUndo = useCallback(() => {
-    const state = undoHistory.undo();
-    if (state) applyState(state);
+    const restored = undoHistory.undo();
+    if (restored) applyState(restored);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- undoHistory methods are stable refs
   }, [undoHistory.undo, applyState]);
 
   const handleRedo = useCallback(() => {
-    const state = undoHistory.redo();
-    if (state) applyState(state);
+    const restored = undoHistory.redo();
+    if (restored) applyState(restored);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- undoHistory methods are stable refs
   }, [undoHistory.redo, applyState]);
 
@@ -176,47 +196,47 @@ export function useWarshipState(mode: AppMode, designActiveMods: Mod[]) {
     }
     if (mode === 'builder') {
       setHasUnsavedChanges(true);
-      // Push to undo history (debounced; skipped during undo/redo restore)
       if (!undoHistory.isRestoringRef.current) {
-        undoHistory.pushState(buildCurrentState());
+        undoHistory.pushState({ ...state, activeMods: designActiveMods });
       } else {
         undoHistory.isRestoringRef.current = false;
       }
     }
-  }, [selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,
-    installedEngines, installedEngineFuelTanks, installedFTLDrive, installedFTLFuelTanks,
-    installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
-    installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
-    damageDiagramZones, hitLocationChart, warshipName, shipDescription,
-    designProgressLevel, designTechTracks, mode, buildCurrentState,
-    undoHistory]);
+  }, [state, mode, undoHistory, designActiveMods]);
 
   return {
-    // State values
-    designType, stationType, surfaceProvidesLifeSupport, surfaceProvidesGravity,
-    selectedHull, armorLayers,
-    installedPowerPlants, installedFuelTanks,
-    installedEngines, installedEngineFuelTanks,
-    installedFTLDrive, installedFTLFuelTanks,
-    installedLifeSupport, installedAccommodations, installedStoreSystems, installedGravitySystems,
-    installedWeapons, ordnanceDesigns, installedLaunchSystems,
-    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
-    damageDiagramZones, hitLocationChart,
-    shipDescription, warshipName,
-    designProgressLevel, designTechTracks,
+    // State values (using consumer-expected names)
+    designType: state.designType,
+    stationType: state.stationType,
+    surfaceProvidesLifeSupport: state.surfaceProvidesLifeSupport,
+    surfaceProvidesGravity: state.surfaceProvidesGravity,
+    selectedHull: state.hull,
+    armorLayers: state.armorLayers,
+    installedPowerPlants: state.powerPlants,
+    installedFuelTanks: state.fuelTanks,
+    installedEngines: state.engines,
+    installedEngineFuelTanks: state.engineFuelTanks,
+    installedFTLDrive: state.ftlDrive,
+    installedFTLFuelTanks: state.ftlFuelTanks,
+    installedLifeSupport: state.lifeSupport,
+    installedAccommodations: state.accommodations,
+    installedStoreSystems: state.storeSystems,
+    installedGravitySystems: state.gravitySystems,
+    installedWeapons: state.weapons,
+    ordnanceDesigns: state.ordnanceDesigns,
+    installedLaunchSystems: state.launchSystems,
+    installedDefenses: state.defenses,
+    installedCommandControl: state.commandControl,
+    installedSensors: state.sensors,
+    installedHangarMisc: state.hangarMisc,
+    damageDiagramZones: state.damageDiagramZones,
+    hitLocationChart: state.hitLocationChart,
+    shipDescription: state.shipDescription,
+    warshipName: state.name,
+    designProgressLevel: state.designProgressLevel,
+    designTechTracks: state.designTechTracks,
     // Setters
-    setDesignType, setStationType, setSurfaceProvidesLifeSupport, setSurfaceProvidesGravity,
-    setSelectedHull, setArmorLayers,
-    setInstalledPowerPlants, setInstalledFuelTanks,
-    setInstalledEngines, setInstalledEngineFuelTanks,
-    setInstalledFTLDrive, setInstalledFTLFuelTanks,
-    setInstalledLifeSupport, setInstalledAccommodations, setInstalledStoreSystems, setInstalledGravitySystems,
-    setInstalledWeapons, setOrdnanceDesigns, setInstalledLaunchSystems,
-    setInstalledDefenses, setInstalledCommandControl, setInstalledSensors, setInstalledHangarMisc,
-    setDamageDiagramZones, setHitLocationChart,
-    setShipDescription, setWarshipName,
-    setDesignProgressLevel, setDesignTechTracks,
+    ...setters,
     // Helpers
     buildCurrentState, currentState, applyState,
     handleUndo, handleRedo, undoHistory,

@@ -28,7 +28,18 @@ import type {
   ZoneCode,
   SystemDamageCategory,
 } from '../types/damageDiagram';
-import type { WarshipState } from '../services/saveService';
+import type { WarshipState } from '../types/warshipState';
+import type { InstalledPowerPlant, InstalledFuelTank } from '../types/powerPlant';
+import type { InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
+import type { InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
+import type { InstalledLifeSupport, InstalledAccommodation, InstalledStoreSystem, InstalledGravitySystem } from '../types/supportSystem';
+import type { InstalledDefenseSystem } from '../types/defense';
+import type { InstalledCommandControlSystem } from '../types/commandControl';
+import type { InstalledSensor } from '../types/sensor';
+import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { InstalledWeapon } from '../types/weapon';
+import type { InstalledItemBase } from '../types/common';
+import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import {
   DAMAGE_CATEGORY_COLORS,
@@ -107,18 +118,30 @@ function formatArcsShort(arcs: string[] | undefined): string {
  * Configuration for mapping an installed system array to unassigned systems.
  * Each entry describes how to extract id, name, and hullPoints from one type of installed item.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-interface SystemCollectorConfig {
+interface SystemCollectorConfig<T> {
   idPrefix: string;
   category: SystemDamageCategory;
   originalType: string;
-  getName: (item: any) => string;
-  getHullPoints: (item: any) => number;
-  getCategory?: (item: any) => SystemDamageCategory;
-  getFirepowerOrder?: (item: any) => number;
-  getArcs?: (item: any) => string[];
+  getName: (item: T) => string;
+  getHullPoints: (item: T) => number;
+  getCategory?: (item: T) => SystemDamageCategory;
+  getFirepowerOrder?: (item: T) => number;
+  getArcs?: (item: T) => string[];
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Type-erased collector entry for the heterogeneous array. */
+type SystemCollectorEntry = {
+  items: InstalledItemBase[];
+  config: SystemCollectorConfig<InstalledItemBase>;
+};
+
+/** Creates a type-safe collector entry — T is inferred from items and verified against config callbacks. */
+function collector<T extends InstalledItemBase>(
+  items: T[],
+  config: SystemCollectorConfig<T>
+): SystemCollectorEntry {
+  return { items, config } as SystemCollectorEntry;
+}
 
 /**
  * Build a list of individual systems that can be assigned to zones.
@@ -147,118 +170,85 @@ function buildUnassignedSystemsList(
   const allLaunchSystems = getLaunchSystemsData();
 
   // Config array: one entry per system type, in display order
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const collectors: { items: any[]; config: SystemCollectorConfig }[] = [
-    {
-      items: installedPowerPlants,
-      config: { idPrefix: 'pp', category: 'powerPlant', originalType: 'powerPlant',
-        getName: (pp: InstalledPowerPlant) => `${pp.type.name} (${pp.hullPoints} HP)`,
-        getHullPoints: (pp: InstalledPowerPlant) => pp.hullPoints },
-    },
-    {
-      items: installedFuelTanks,
-      config: { idPrefix: 'ppfuel', category: 'fuel', originalType: 'powerPlantFuel',
-        getName: (ft: InstalledFuelTank) => `Fuel Tank (${ft.forPowerPlantType.name}) (${ft.hullPoints} HP)`,
-        getHullPoints: (ft: InstalledFuelTank) => ft.hullPoints },
-    },
-    {
-      items: installedEngines,
-      config: { idPrefix: 'eng', category: 'engine', originalType: 'engine',
-        getName: (e: InstalledEngine) => `${e.type.name} Engine (${e.hullPoints} HP)`,
-        getHullPoints: (e: InstalledEngine) => e.hullPoints },
-    },
-    {
-      items: installedEngineFuelTanks,
-      config: { idPrefix: 'engfuel', category: 'fuel', originalType: 'engineFuel',
-        getName: (ft: InstalledEngineFuelTank) => `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`,
-        getHullPoints: (ft: InstalledEngineFuelTank) => ft.hullPoints },
-    },
-    {
-      items: installedFTLDrive ? [installedFTLDrive] : [],
-      config: { idPrefix: 'ftl', category: 'ftlDrive', originalType: 'ftlDrive',
-        getName: (f: InstalledFTLDrive) => `${f.type.name} (${f.hullPoints} HP)`,
-        getHullPoints: (f: InstalledFTLDrive) => f.hullPoints },
-    },
-    {
-      items: installedFTLFuelTanks,
-      config: { idPrefix: 'ftlfuel', category: 'fuel', originalType: 'ftlFuel',
-        getName: (ft: InstalledFTLFuelTank) => `Fuel Tank (${ft.forFTLDriveType.name}) (${ft.hullPoints} HP)`,
-        getHullPoints: (ft: InstalledFTLFuelTank) => ft.hullPoints },
-    },
-    {
-      items: installedLifeSupport,
-      config: { idPrefix: 'ls', category: 'support', originalType: 'lifeSupport',
-        getName: (ls: InstalledLifeSupport) => `${ls.type.name} x${ls.quantity}`,
-        getHullPoints: (ls: InstalledLifeSupport) => ls.type.hullPoints * ls.quantity },
-    },
-    {
-      items: installedAccommodations,
-      config: { idPrefix: 'acc', category: 'accommodation', originalType: 'accommodation',
-        getName: (a: InstalledAccommodation) => `${a.type.name} x${a.quantity}`,
-        getHullPoints: (a: InstalledAccommodation) => a.type.hullPoints * a.quantity },
-    },
-    {
-      items: installedStoreSystems,
-      config: { idPrefix: 'store', category: 'accommodation', originalType: 'storeSystem',
-        getName: (s: InstalledStoreSystem) => `${s.type.name} x${s.quantity}`,
-        getHullPoints: (s: InstalledStoreSystem) => s.type.hullPoints * s.quantity },
-    },
-    {
-      items: installedGravitySystems,
-      config: { idPrefix: 'grav', category: 'support', originalType: 'gravitySystem',
-        getName: (g: InstalledGravitySystem) => g.type.name,
-        getHullPoints: (g: InstalledGravitySystem) => g.hullPoints },
-    },
-    {
-      items: installedWeapons,
-      config: { idPrefix: 'wpn', category: 'weapon', originalType: 'weapon',
-        getName: (w: InstalledWeapon) => `${w.weaponType.name} (${w.gunConfiguration}, ${w.mountType}) x${w.quantity}`,
-        getHullPoints: (w: InstalledWeapon) => w.hullPoints * w.quantity,
-        getFirepowerOrder: (w: InstalledWeapon) => getFirepowerOrder(w.weaponType.firepower),
-        getArcs: (w: InstalledWeapon) => w.arcs },
-    },
-    {
-      items: installedLaunchSystems,
-      config: { idPrefix: 'launch', category: 'weapon', originalType: 'launchSystem',
-        getName: (ls: InstalledLaunchSystem) => {
-          const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
-          const ordnanceNames = (ls.loadout || []).map(lo => {
-            const design = ordnanceDesigns.find(d => d.id === lo.designId);
-            return design ? design.name : '';
-          }).filter(Boolean);
-          const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
-          return `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`;
-        },
-        getHullPoints: (ls: InstalledLaunchSystem) => ls.hullPoints,
-        getFirepowerOrder: () => 99 },
-    },
-    {
-      items: installedDefenses.filter(d => !d.subSystems || d.subSystems.length === 0),
-      config: { idPrefix: 'def', category: 'defense', originalType: 'defense',
-        getName: (d: InstalledDefenseSystem) => `${d.type.name} x${d.quantity}`,
-        getHullPoints: (d: InstalledDefenseSystem) => d.hullPoints },
-    },
-    {
-      items: installedCommandControl,
-      config: { idPrefix: 'cc', category: 'command', originalType: 'commandControl',
-        getName: (c: InstalledCommandControlSystem) => `${c.type.name} x${c.quantity}`,
-        getHullPoints: (c: InstalledCommandControlSystem) => c.hullPoints },
-    },
-    {
-      items: installedSensors,
-      config: { idPrefix: 'sen', category: 'sensor', originalType: 'sensor',
-        getName: (s: InstalledSensor) => `${s.type.name} x${s.quantity}`,
-        getHullPoints: (s: InstalledSensor) => s.hullPoints },
-    },
-    {
-      items: installedHangarMisc,
-      config: { idPrefix: 'hm', category: 'miscellaneous', originalType: 'hangarMisc',
-        getName: (hm: InstalledHangarMiscSystem) => `${hm.type.name} x${hm.quantity}`,
-        getHullPoints: (hm: InstalledHangarMiscSystem) => hm.hullPoints,
-        getCategory: (hm: InstalledHangarMiscSystem) =>
-          hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar'
-          : 'miscellaneous' },
-    },
+  const collectors: SystemCollectorEntry[] = [
+    collector(installedPowerPlants, {
+      idPrefix: 'pp', category: 'powerPlant', originalType: 'powerPlant',
+      getName: pp => `${pp.type.name} (${pp.hullPoints} HP)`,
+      getHullPoints: pp => pp.hullPoints }),
+    collector(installedFuelTanks, {
+      idPrefix: 'ppfuel', category: 'fuel', originalType: 'powerPlantFuel',
+      getName: ft => `Fuel Tank (${ft.forPowerPlantType.name}) (${ft.hullPoints} HP)`,
+      getHullPoints: ft => ft.hullPoints }),
+    collector(installedEngines, {
+      idPrefix: 'eng', category: 'engine', originalType: 'engine',
+      getName: e => `${e.type.name} Engine (${e.hullPoints} HP)`,
+      getHullPoints: e => e.hullPoints }),
+    collector(installedEngineFuelTanks, {
+      idPrefix: 'engfuel', category: 'fuel', originalType: 'engineFuel',
+      getName: ft => `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`,
+      getHullPoints: ft => ft.hullPoints }),
+    collector(installedFTLDrive ? [installedFTLDrive] : [], {
+      idPrefix: 'ftl', category: 'ftlDrive', originalType: 'ftlDrive',
+      getName: f => `${f.type.name} (${f.hullPoints} HP)`,
+      getHullPoints: f => f.hullPoints }),
+    collector(installedFTLFuelTanks, {
+      idPrefix: 'ftlfuel', category: 'fuel', originalType: 'ftlFuel',
+      getName: ft => `Fuel Tank (${ft.forFTLDriveType.name}) (${ft.hullPoints} HP)`,
+      getHullPoints: ft => ft.hullPoints }),
+    collector(installedLifeSupport, {
+      idPrefix: 'ls', category: 'support', originalType: 'lifeSupport',
+      getName: ls => `${ls.type.name} x${ls.quantity}`,
+      getHullPoints: ls => ls.type.hullPoints * ls.quantity }),
+    collector(installedAccommodations, {
+      idPrefix: 'acc', category: 'accommodation', originalType: 'accommodation',
+      getName: a => `${a.type.name} x${a.quantity}`,
+      getHullPoints: a => a.type.hullPoints * a.quantity }),
+    collector(installedStoreSystems, {
+      idPrefix: 'store', category: 'accommodation', originalType: 'storeSystem',
+      getName: s => `${s.type.name} x${s.quantity}`,
+      getHullPoints: s => s.type.hullPoints * s.quantity }),
+    collector(installedGravitySystems, {
+      idPrefix: 'grav', category: 'support', originalType: 'gravitySystem',
+      getName: g => g.type.name,
+      getHullPoints: g => g.hullPoints }),
+    collector(installedWeapons, {
+      idPrefix: 'wpn', category: 'weapon', originalType: 'weapon',
+      getName: w => `${w.weaponType.name} (${w.gunConfiguration}, ${w.mountType}) x${w.quantity}`,
+      getHullPoints: w => w.hullPoints * w.quantity,
+      getFirepowerOrder: w => getFirepowerOrder(w.weaponType.firepower),
+      getArcs: w => w.arcs }),
+    collector(installedLaunchSystems, {
+      idPrefix: 'launch', category: 'weapon', originalType: 'launchSystem',
+      getName: ls => {
+        const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
+        const ordnanceNames = (ls.loadout || []).map(lo => {
+          const design = ordnanceDesigns.find(d => d.id === lo.designId);
+          return design ? design.name : '';
+        }).filter(Boolean);
+        const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
+        return `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`;
+      },
+      getHullPoints: ls => ls.hullPoints,
+      getFirepowerOrder: () => 99 }),
+    collector(installedDefenses.filter(d => !d.subSystems || d.subSystems.length === 0), {
+      idPrefix: 'def', category: 'defense', originalType: 'defense',
+      getName: d => `${d.type.name} x${d.quantity}`,
+      getHullPoints: d => d.hullPoints }),
+    collector(installedCommandControl, {
+      idPrefix: 'cc', category: 'command', originalType: 'commandControl',
+      getName: c => `${c.type.name} x${c.quantity}`,
+      getHullPoints: c => c.hullPoints }),
+    collector(installedSensors, {
+      idPrefix: 'sen', category: 'sensor', originalType: 'sensor',
+      getName: s => `${s.type.name} x${s.quantity}`,
+      getHullPoints: s => s.hullPoints }),
+    collector(installedHangarMisc, {
+      idPrefix: 'hm', category: 'miscellaneous', originalType: 'hangarMisc',
+      getName: hm => `${hm.type.name} x${hm.quantity}`,
+      getHullPoints: hm => hm.hullPoints,
+      getCategory: hm =>
+        hm.type.category === 'hangar' || hm.type.category === 'cargo' ? 'hangar'
+        : 'miscellaneous' }),
   ];
 
   const systems: UnassignedSystem[] = [];

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -49,6 +49,7 @@ import { getSectionsForFile } from '../services/modEditorSchemas';
 import type { ModDataFileName } from '../types/mod';
 import { ModEditor } from './ModEditor';
 import type { ModSettings } from '../types/mod';
+import { useAsyncData } from '../hooks/useAsyncData';
 
 
 interface ModManagerProps {
@@ -57,8 +58,13 @@ interface ModManagerProps {
 }
 
 export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
-  const [mods, setMods] = useState<Mod[]>([]);
-  const [loading, setLoading] = useState(true);
+  const fetchMods = useCallback(async () => {
+    const installed = await getInstalledMods();
+    installed.sort((a, b) => a.priority - b.priority);
+    return installed;
+  }, []);
+  const { data: modsData, loading, refresh: refreshMods, setData: setMods } = useAsyncData(fetchMods, []);
+  const mods = modsData ?? [];
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmMod, setDeleteConfirmMod] = useState<Mod | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,19 +76,6 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const [newModAuthor, setNewModAuthor] = useState('');
   const [newModVersion, setNewModVersion] = useState('1.0.0');
   const [newModDescription, setNewModDescription] = useState('');
-
-  const loadMods = useCallback(async () => {
-    setLoading(true);
-    const installed = await getInstalledMods();
-    // Sort by priority
-    installed.sort((a, b) => a.priority - b.priority);
-    setMods(installed);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadMods(); // eslint-disable-line react-hooks/set-state-in-effect -- initial data load
-  }, [loadMods]);
 
   const persistSettings = useCallback(async (updatedMods: Mod[]) => {
     const settings: ModSettings = {
@@ -99,10 +92,10 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const handleToggleEnabled = useCallback(async (mod: Mod) => {
     setSaving(true);
     await setModEnabled(mod.folderName, !mod.enabled);
-    await loadMods();
+    await refreshMods();
     await onModsChanged();
     setSaving(false);
-  }, [loadMods, onModsChanged]);
+  }, [refreshMods, onModsChanged]);
 
   const handleMovePriority = useCallback(async (mod: Mod, direction: 'up' | 'down') => {
     const idx = mods.findIndex(m => m.folderName === mod.folderName);
@@ -121,7 +114,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     setMods(updated);
     await persistSettings(updated);
     setSaving(false);
-  }, [mods, persistSettings]);
+  }, [mods, persistSettings, setMods]);
 
   const handleCreateMod = useCallback(async () => {
     if (!newModName.trim()) return;
@@ -141,26 +134,24 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
       setNewModDescription('');
       
       // Load mods and find the newly created one to edit it immediately
-      const installed = await getInstalledMods();
-      installed.sort((a, b) => a.priority - b.priority);
-      setMods(installed);
-      
+      const installed = await refreshMods();
+
       const newMod = installed.find(m => m.folderName === folderName);
       if (newMod) {
         setEditingMod(newMod);
       }
     }
     setSaving(false);
-  }, [newModName, newModAuthor, newModVersion, newModDescription]);
+  }, [newModName, newModAuthor, newModVersion, newModDescription, refreshMods]);
 
   const handleDeleteMod = useCallback(async (mod: Mod) => {
     setSaving(true);
     await deleteMod(mod.folderName);
     setDeleteConfirmMod(null);
-    await loadMods();
+    await refreshMods();
     await onModsChanged();
     setSaving(false);
-  }, [loadMods, onModsChanged]);
+  }, [refreshMods, onModsChanged]);
 
   const handleExportMod = useCallback(async (mod: Mod) => {
     await exportMod(mod.folderName);
@@ -170,10 +161,10 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     setSaving(true);
     const folderName = await importMod();
     if (folderName) {
-      await loadMods();
+      await refreshMods();
     }
     setSaving(false);
-  }, [loadMods]);
+  }, [refreshMods]);
 
   const handleOpenModsFolder = useCallback(async () => {
     const modsPath = await getModsDirectoryPath();
@@ -184,8 +175,8 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
 
   const handleEditorBack = useCallback(async () => {
     setEditingMod(null);
-    await loadMods();
-  }, [loadMods]);
+    await refreshMods();
+  }, [refreshMods]);
 
   // Show mod editor if editing
   if (editingMod) {

@@ -8,13 +8,11 @@
 import type { LoadedCraft, EmbarkedCraftStats, BerthingType } from '../types/embarkedCraft';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 
-let nextId = 1;
-
 /**
  * Generate a unique ID for a loaded craft assignment
  */
 export function generateLoadedCraftId(): string {
-  return `craft-${nextId++}`;
+  return `craft-${crypto.randomUUID()}`;
 }
 
 /** Maximum HP for a craft to fit in a hangar (per rules) */

@@ -14,7 +14,7 @@ import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { DamageZone } from '../types/damageDiagram';
 import type { StepId, StepDef } from '../types/common';
 import type { ShipDescription } from '../types/summary';
-import type { WarshipState } from '../services/saveService';
+import type { WarshipState } from '../types/warshipState';
 import { calculateCommandControlLifeSupportCoverageHp } from '../services/commandControlService';
 import { HullSelection } from './HullSelection';
 import { ArmorSelection } from './ArmorSelection';
