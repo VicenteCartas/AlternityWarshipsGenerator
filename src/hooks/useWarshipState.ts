@@ -34,13 +34,13 @@ type WarshipAction =
 function warshipReducer(state: DesignState, action: WarshipAction): DesignState {
   switch (action.type) {
     case 'SET_FIELD': {
-      const rawValue = action.value;
+      const { field, value: rawValue } = action;
       const newValue = typeof rawValue === 'function'
-        ? (rawValue as (prev: DesignState[typeof action.field]) => DesignState[typeof action.field])(state[action.field])
+        ? (rawValue as (prev: DesignState[typeof field]) => DesignState[typeof field])(state[field])
         : rawValue;
       // Bail out if reference hasn't changed (avoids unnecessary re-renders)
-      if (newValue === state[action.field]) return state;
-      return { ...state, [action.field]: newValue };
+      if (newValue === state[field]) return state;
+      return { ...state, [field]: newValue };
     }
     case 'APPLY_STATE':
       return action.payload;

@@ -261,6 +261,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
       : 'New Station';
     const freshState: WarshipState = {
       name: defaultName,
+      createdAt: new Date().toISOString(),
       shipDescription: { lore: '', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
       designType: newDesignType,
       stationType: newStationType,

@@ -6,7 +6,7 @@
  * Layer 3: Mock-based rendering section verification
  * Layer 4: Snapshot test for full exportShipToPDF output
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ShipData } from './pdfExportService';
 import type { Hull } from '../types/hull';
 import type { InstalledWeapon, FiringArc } from '../types/weapon';
