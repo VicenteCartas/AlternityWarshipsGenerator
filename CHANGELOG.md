@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.5] - TODO
+## [0.3.0] - TODO
 
 ### Important
 
@@ -118,7 +118,6 @@ Full mod support added. Mods live in the user data folder and are managed throug
 ### Code Quality
 
 - Removed `as unknown` type casts in production code: widened event handler type in EditableDataGrid, centralized data boundary casts in dataLoader and ModEditor with typed helpers.
-- Added a second release-readiness architecture review in [docs/architecture-review-0.2.5.md](docs/architecture-review-0.2.5.md) covering calculation consistency, persistence/mod-state coupling, recovery flow safety, and state-ownership concerns.
 
 ### Fixes
 
