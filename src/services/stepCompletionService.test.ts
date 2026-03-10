@@ -7,6 +7,7 @@ import type { StepDef } from '../types/common';
 function makeEmptyState(overrides: Partial<WarshipState> = {}): WarshipState {
   return {
     name: 'Test',
+    createdAt: null,
     shipDescription: { lore: '', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
     designType: 'warship',
     stationType: null,

@@ -200,6 +200,7 @@ function makeMinimalSaveFile(overrides: Partial<WarshipSaveFile> = {}): WarshipS
 function makeMinimalState(overrides: Partial<WarshipState> = {}): WarshipState {
   return {
     name: 'Test Ship',
+    createdAt: null,
     shipDescription: { lore: '', imageData: null, imageMimeType: null, faction: '', role: '', commissioningDate: '', classification: '', manufacturer: '' },
     designType: 'warship',
     stationType: null,
@@ -266,13 +267,21 @@ describe('saveService', () => {
       expect(result.version).toBe(SAVE_FILE_VERSION);
     });
 
-    it('sets createdAt and modifiedAt to current timestamp', () => {
+    it('sets createdAt and modifiedAt to current timestamp for new designs', () => {
       const before = new Date().toISOString();
       const state = makeMinimalState();
       const result = serializeWarship(state);
       const after = new Date().toISOString();
       expect(result.createdAt >= before).toBe(true);
       expect(result.modifiedAt <= after).toBe(true);
+    });
+
+    it('preserves existing createdAt for previously saved designs', () => {
+      const originalCreatedAt = '2024-06-15T12:00:00Z';
+      const state = makeMinimalState({ createdAt: originalCreatedAt });
+      const result = serializeWarship(state);
+      expect(result.createdAt).toBe(originalCreatedAt);
+      expect(result.modifiedAt).not.toBe(originalCreatedAt);
     });
 
     it('omits designType when warship (default)', () => {
@@ -613,6 +622,13 @@ describe('saveService', () => {
       const result = deserializeWarship(saveFile);
       expect(result.state!.surfaceProvidesLifeSupport).toBe(false);
       expect(result.state!.surfaceProvidesGravity).toBe(false);
+    });
+
+    it('preserves createdAt from save file', () => {
+      const saveFile = makeMinimalSaveFile({ createdAt: '2024-06-15T12:00:00Z' });
+      const result = deserializeWarship(saveFile);
+      expect(result.success).toBe(true);
+      expect(result.state!.createdAt).toBe('2024-06-15T12:00:00Z');
     });
   });
 

@@ -77,7 +77,7 @@ export function getZoneLimitForHull(hullTypeId: string, hull?: Hull): number {
   const limitData = data.zoneLimits.hulls[hullTypeId];
   if (!limitData) {
     // Fallback: estimate zone limit from hull data if available
-    logger.warn(`No zone limit data for hull type: ${hullTypeId}`);
+    if (import.meta.env.DEV) logger.warn(`No zone limit data for hull type: ${hullTypeId}`);
     if (hull) {
       const config = getZoneConfigForHull(hull);
       const totalHP = hull.hullPoints + hull.bonusHullPoints;

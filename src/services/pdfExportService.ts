@@ -1315,7 +1315,7 @@ function renderShipImage(ctx: PdfContext, shipDescription: ShipDescription): voi
     ctx.pdf.addImage(imageData, imageFormat === 'JPG' ? 'JPEG' : imageFormat, ctx.margin, ctx.y, displayWidth, displayHeight);
     ctx.y += displayHeight + 5;
   } catch (e) {
-    logger.error('Failed to add image to PDF:', e);
+    if (import.meta.env.DEV) logger.error('Failed to add image to PDF:', e);
     ctx.pdf.setFontSize(7);
     ctx.pdf.setFont('helvetica', 'italic');
     ctx.pdf.text('(Image could not be rendered)', ctx.margin, ctx.y);

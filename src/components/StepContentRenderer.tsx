@@ -138,7 +138,6 @@ export function StepContentRenderer(props: StepContentProps) {
           usedHullPoints={props.usedHullPointsBeforeEngines}
           designProgressLevel={state.designProgressLevel}
           designTechTracks={state.designTechTracks}
-          isRequired={steps.find(s => s.id === 'engines')?.required ?? true}
           onEnginesChange={props.onEnginesChange}
           onFuelTanksChange={props.onEngineFuelTanksChange}
         />

@@ -10,13 +10,13 @@ import type { Hull } from '../types/hull';
 // ============== Debug Logger ==============
 
 /**
- * Debug-gated logger. Logs only when `import.meta.env.DEV` is true (Vite dev mode).
- * In production builds the calls remain but are no-ops, so they add negligible overhead.
+ * Debug-only logger. Call sites are guarded by `if (import.meta.env.DEV)` so
+ * Vite dead-code-eliminates both the call and its arguments in production builds.
  */
 export const logger = {
-  log: (...args: unknown[]) => { if (import.meta.env.DEV) console.log(...args); },
-  warn: (...args: unknown[]) => { if (import.meta.env.DEV) console.warn(...args); },
-  error: (...args: unknown[]) => { if (import.meta.env.DEV) console.error(...args); },
+  log: console.log.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
 };
 
 // ============== Percentage Breakpoint Interpolation ==============

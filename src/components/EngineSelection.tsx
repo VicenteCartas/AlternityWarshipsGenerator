@@ -61,7 +61,6 @@ interface EngineSelectionProps {
   usedHullPoints: number;
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
-  isRequired?: boolean;
   onEnginesChange: (engines: InstalledEngine[]) => void;
   onFuelTanksChange: (fuelTanks: InstalledEngineFuelTank[]) => void;
 }
@@ -73,7 +72,6 @@ export function EngineSelection({
   usedHullPoints,
   designProgressLevel,
   designTechTracks,
-  isRequired: _isRequired,  // eslint-disable-line @typescript-eslint/no-unused-vars
   onEnginesChange,
   onFuelTanksChange,
 }: EngineSelectionProps) {

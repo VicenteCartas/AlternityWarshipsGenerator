@@ -75,6 +75,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearRecentFiles: () =>
     ipcRenderer.invoke('clear-recent-files'),
   
+  // App settings
+  readAppSettings: () =>
+    ipcRenderer.invoke('read-app-settings'),
+  updateAppSettings: (settingsJson: string) =>
+    ipcRenderer.invoke('update-app-settings', settingsJson),
+
   // App mode management
   setBuilderMode: (mode: string) =>
     ipcRenderer.invoke('set-builder-mode', mode),

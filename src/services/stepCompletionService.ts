@@ -3,37 +3,38 @@ import type { WarshipState } from '../types/warshipState';
 
 type SummaryValidationState = 'valid' | 'error' | 'warning';
 
-/**
- * Determines whether a single step is completed based on the current design state.
- */
+type CompletionCheck = (state: WarshipState, summaryValidationState: SummaryValidationState) => boolean;
+
+const STEP_COMPLETION_CHECKS: Record<StepId, CompletionCheck> = {
+  hull: (s) => s.hull !== null,
+  armor: (s) => s.armorLayers.length > 0,
+  power: (s) => s.powerPlants.length > 0,
+  engines: (s) => s.engines.length > 0,
+  ftl: (s) => s.ftlDrive !== null,
+  support: (s) => s.lifeSupport.length > 0 || s.accommodations.length > 0 || s.storeSystems.length > 0,
+  weapons: (s) => s.weapons.length > 0,
+  defenses: (s) => s.defenses.length > 0,
+  sensors: (s) => s.sensors.length > 0,
+  c4: (s) => s.commandControl.some(c => c.type.isRequired),
+  hangars: (s) => s.hangarMisc.length > 0,
+  damage: (s) => {
+    if (s.damageDiagramZones.length === 0) return false;
+    const totalAssigned = s.damageDiagramZones.reduce((sum, z) => sum + z.systems.length, 0);
+    const totalSystems = s.powerPlants.length + s.fuelTanks.length +
+      s.engines.length + s.engineFuelTanks.length +
+      (s.ftlDrive ? 1 : 0) + s.ftlFuelTanks.length +
+      s.lifeSupport.length + s.accommodations.length +
+      s.storeSystems.length + s.gravitySystems.length +
+      s.weapons.length + s.launchSystems.length +
+      s.defenses.length + s.commandControl.length +
+      s.sensors.length + s.hangarMisc.length;
+    return totalAssigned >= totalSystems && totalSystems > 0;
+  },
+  summary: (_s, v) => v === 'valid',
+};
+
 function isStepCompleted(stepId: StepId, state: WarshipState, summaryValidationState: SummaryValidationState): boolean {
-  switch (stepId) {
-    case 'hull': return state.hull !== null;
-    case 'armor': return state.armorLayers.length > 0;
-    case 'power': return state.powerPlants.length > 0;
-    case 'engines': return state.engines.length > 0;
-    case 'ftl': return state.ftlDrive !== null;
-    case 'support': return state.lifeSupport.length > 0 || state.accommodations.length > 0 || state.storeSystems.length > 0;
-    case 'weapons': return state.weapons.length > 0;
-    case 'defenses': return state.defenses.length > 0;
-    case 'sensors': return state.sensors.length > 0;
-    case 'c4': return state.commandControl.some(s => s.type.isRequired);
-    case 'hangars': return state.hangarMisc.length > 0;
-    case 'damage': {
-      if (state.damageDiagramZones.length === 0) return false;
-      const totalAssigned = state.damageDiagramZones.reduce((sum, z) => sum + z.systems.length, 0);
-      const totalSystems = state.powerPlants.length + state.fuelTanks.length +
-        state.engines.length + state.engineFuelTanks.length +
-        (state.ftlDrive ? 1 : 0) + state.ftlFuelTanks.length +
-        state.lifeSupport.length + state.accommodations.length +
-        state.storeSystems.length + state.gravitySystems.length +
-        state.weapons.length + state.launchSystems.length +
-        state.defenses.length + state.commandControl.length +
-        state.sensors.length + state.hangarMisc.length;
-      return totalAssigned >= totalSystems && totalSystems > 0;
-    }
-    case 'summary': return summaryValidationState === 'valid';
-  }
+  return STEP_COMPLETION_CHECKS[stepId](state, summaryValidationState);
 }
 
 /**

@@ -110,13 +110,13 @@ export function SummarySelection({
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image file is too large. Maximum size is 5MB.');
+      onShowNotification('Image file is too large. Maximum size is 5MB.', 'warning');
       return;
     }
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+      onShowNotification('Please select an image file.', 'warning');
       return;
     }
 
@@ -137,7 +137,7 @@ export function SummarySelection({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [shipDescription, onShipDescriptionChange]);
+  }, [shipDescription, onShipDescriptionChange, onShowNotification]);
 
   const handleRemoveImage = () => {
     onShipDescriptionChange({
@@ -654,7 +654,7 @@ export function SummarySelection({
       
       showPdfNotification(pdfPath, filename);
     } catch (error) {
-      logger.error('Failed to export PDF:', error);
+      if (import.meta.env.DEV) logger.error('Failed to export PDF:', error);
       onShowNotification(`Failed to export PDF: ${error}`, 'error');
     }
   };
@@ -668,7 +668,7 @@ export function SummarySelection({
         try {
           await window.electronAPI!.openPath(pdfPath);
         } catch (e) {
-          logger.error('Failed to open PDF:', e);
+          if (import.meta.env.DEV) logger.error('Failed to open PDF:', e);
         }
       }
     } : undefined;

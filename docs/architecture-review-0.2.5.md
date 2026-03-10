@@ -160,57 +160,45 @@ Moved the `WarshipState` interface from `saveService.ts` into a dedicated `src/t
 
 ## P4 — Low
 
-### 4.1 `createdAt` is rewritten on every save
+### ~~4.1 `createdAt` is rewritten on every save~~ ✅ RESOLVED
 
-**File:** [src/services/saveService.ts](src/services/saveService.ts#L83-L93)
+**Fixed in:** `warshipState.ts`, `saveService.ts`, `useWarshipState.ts`
 
-`serializeWarship()` sets both `createdAt` and `modifiedAt` to `new Date().toISOString()` on every save. The library preserves both fields, but `createdAt` is not trustworthy metadata since it changes on every save.
+Added `createdAt: string | null` to `WarshipState`. `deserializeWarship()` now preserves the original `createdAt` from the save file. `serializeWarship()` uses `state.createdAt || now` — new designs get the current timestamp, re-saved designs keep their original. Three new tests cover the behavior.
 
-**Recommendation:** Preserve the original `createdAt` from the loaded save file; only update `modifiedAt`.
+### ~~4.2 Image upload validation is duplicated with blocking `alert()` calls~~ ✅ RESOLVED
 
-### 4.2 Image upload validation is duplicated with blocking `alert()` calls
+**Fixed in:** `SummarySelection.tsx`, `summary/index.ts` — Replaced both `alert()` calls in the image-upload handler with `onShowNotification(..., 'warning')` to use the app's snackbar system. Deleted the orphaned `DescriptionTab.tsx` component (exported but never imported or rendered) which contained the duplicate copy.
 
-**Files:** [src/components/SummarySelection.tsx](src/components/SummarySelection.tsx#L146-L170), [src/components/summary/DescriptionTab.tsx](src/components/summary/DescriptionTab.tsx#L35-L59)
+### ~~4.3 `@types/html2canvas` is deprecated~~ ✅ RESOLVED
 
-The image-upload handler is duplicated line-for-line, both using `alert()` for validation failures instead of the snackbar/notification system used everywhere else.
+**Fixed in:** `package.json` — Removed the `@types/html2canvas` dev dependency. `html2canvas@1.4.1` ships its own types via `typings: dist/types/index.d.ts`.
 
-**Recommendation:** Extract a shared image-upload helper and route errors through the notification path.
+### ~~4.4 Logger no-ops remain in production bundles~~ ✅ RESOLVED
 
-### 4.3 `@types/html2canvas` is deprecated
+**Fixed in:** All `logger.*()` call sites wrapped in `if (import.meta.env.DEV)` guards. Vite replaces the constant at build time and the minifier dead-code-eliminates both the call and its arguments. The logger definition simplified to direct `console.*` bindings since the guard is now at each call site. 29 call sites updated across 6 files.
 
-**File:** [package.json](package.json)
+### ~~4.5 Step completion logic switch should be a registry~~ ✅ RESOLVED
 
-The `@types/html2canvas` package (v0.5.35) provides types for an old API. Current `html2canvas` (v1.4.1) ships its own types. This dev dependency is unnecessary.
+**Fixed in:** `stepCompletionService.ts` — Replaced the 13-case `switch` with a `Record<StepId, CompletionCheck>` registry. The `Record` type enforces compile-time exhaustiveness (missing a `StepId` key is a type error), and each predicate is independently addressable for testing.
 
-### 4.4 Logger no-ops remain in production bundles
+### ~~4.6 Theme mode persistence uses localStorage instead of Electron store~~ ✅ RESOLVED
 
-**File:** [src/services/utilities.ts](src/services/utilities.ts#L17-L19)
+**Fixed in:** `electron/main.ts`, `electron/preload.ts`, `src/types/electron.d.ts`, `src/main.tsx`
 
-The `logger` checks `import.meta.env.DEV` at runtime, so the calls remain in production (arguments are still evaluated). Negligible overhead but could be eliminated with build-time constant replacement.
+Theme preference is now persisted to `settings.json` in the Electron `userData` directory via `read-app-settings` / `update-app-settings` IPC handlers, consistent with how recent files and mod settings are stored. `localStorage` is retained as a synchronous initial default and dev/web fallback. The `settings.json` file is extensible for future app preferences.
 
-### 4.5 Step completion logic switch should be a registry
+### ~~4.7 Unused variable suppression in EngineSelection and SensorSelection~~ ✅ RESOLVED
 
-**File:** [src/App.tsx](src/App.tsx#L220-L262)
+**Fixed in:** `eslint.config.js`, `EngineSelection.tsx`, `SensorSelection.tsx`, `StepContentRenderer.tsx`
 
-The step completion `useMemo` uses a 13-case `switch`. A `Map<StepId, (state) => boolean>` registry in `steps.ts` would be more extensible and testable.
+- **EngineSelection:** Removed the unused `isRequired` prop entirely — the `StepHeader` in `App.tsx` already renders "Optional" for non-required steps, so the prop was redundant.
+- **SensorSelection:** Removed the `eslint-disable-next-line` comment. The `_isZero` parameter is intentionally unused (sensors don't use zero-range arcs) but must match the `ArcRadarSelector` callback signature.
+- **ESLint config:** Added `argsIgnorePattern: '^_'` to `@typescript-eslint/no-unused-vars`, the standard convention for intentionally-unused callback parameters.
 
-### 4.6 Theme mode persistence uses localStorage instead of Electron store
+### ~~4.8 `createMenu()` rebuilds the entire menu on every mode change~~ ✅ RESOLVED
 
-**File:** [src/main.tsx](src/main.tsx#L13-L16)
-
-Theme preference is stored in `localStorage`. Clearing browser data resets it. Low priority since it's cosmetic.
-
-### 4.7 Unused variable suppression in EngineSelection and SensorSelection
-
-**Files:** [src/components/EngineSelection.tsx](src/components/EngineSelection.tsx#L76), [src/components/SensorSelection.tsx](src/components/SensorSelection.tsx#L168)
-
-Two components suppress `@typescript-eslint/no-unused-vars`. Should remove the unused variables rather than suppress.
-
-### 4.8 `createMenu()` rebuilds the entire menu on every mode change
-
-**File:** [electron/main.ts](electron/main.ts#L474-L478)
-
-The `set-builder-mode` IPC handler calls `createMenu()` on every mode transition, which also re-reads recent files from disk each time.
+**Fixed in:** `electron/main.ts` — Added `id` fields to the 6 mode-sensitive menu items (`new-design`, `load-design`, `recent-designs`, `save-design`, `save-design-as`, `duplicate-design`). Introduced `updateMenuForMode()` which uses `Menu.getApplicationMenu().getMenuItemById()` to toggle `enabled` state in-place. The `set-builder-mode` IPC handler now calls `updateMenuForMode()` instead of `createMenu()`, avoiding disk I/O (up to 11 `fs.existsSync` calls + `readFileSync`) and full menu template reconstruction on every mode transition. `createMenu()` is still called when the menu content actually changes (recent files added/cleared, app startup).
 
 ### 4.9 Electron IPC file handlers accept arbitrary paths (defense-in-depth)
 

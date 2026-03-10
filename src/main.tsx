@@ -7,13 +7,27 @@ import App from './App.tsx'
 
 const THEME_STORAGE_KEY = 'alternity-theme-mode';
 
+function isValidThemeMode(value: unknown): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 function Root() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    // Use localStorage as immediate default (sync); Electron settings override in useEffect
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    if (isValidThemeMode(stored)) return stored;
     return 'dark';
   });
+
+  // Hydrate from Electron app settings on mount
+  useEffect(() => {
+    window.electronAPI?.readAppSettings().then((result) => {
+      if (result.success && isValidThemeMode(result.settings?.themeMode)) {
+        setThemeMode(result.settings.themeMode);
+      }
+    });
+  }, []);
 
   // Listen for OS color scheme changes when in 'system' mode
   const [, setSystemDark] = useState(() =>
@@ -27,9 +41,10 @@ function Root() {
     return () => mql.removeEventListener('change', handler);
   }, []);
 
-  // Persist preference
+  // Persist preference to both localStorage (dev/web fallback) and Electron settings
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+    window.electronAPI?.updateAppSettings(JSON.stringify({ themeMode }));
   }, [themeMode]);
 
   // Auto-select content of number inputs on focus for quick editing

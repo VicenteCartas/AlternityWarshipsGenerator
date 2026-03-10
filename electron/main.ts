@@ -62,6 +62,32 @@ function clearRecentFiles(): void {
   createMenu();
 }
 
+// App settings management
+const appSettingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+interface AppSettings {
+  themeMode?: 'light' | 'dark' | 'system';
+}
+
+function readAppSettings(): AppSettings {
+  try {
+    if (fs.existsSync(appSettingsPath)) {
+      return JSON.parse(fs.readFileSync(appSettingsPath, 'utf-8')) as AppSettings;
+    }
+  } catch (error) {
+    console.error('Failed to read app settings:', error);
+  }
+  return {};
+}
+
+function writeAppSettings(settings: AppSettings): void {
+  try {
+    fs.writeFileSync(appSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Failed to write app settings:', error);
+  }
+}
+
 function createMenu() {
   const isMac = process.platform === 'darwin';
   const recentFiles = loadRecentFiles();
@@ -114,6 +140,7 @@ function createMenu() {
       label: 'File',
       submenu: [
         {
+          id: 'new-design',
           label: 'New Design',
           accelerator: 'CmdOrCtrl+N',
           enabled: !isInMods,
@@ -122,6 +149,7 @@ function createMenu() {
           },
         },
         {
+          id: 'load-design',
           label: 'Load Design...',
           accelerator: 'CmdOrCtrl+O',
           enabled: !isInMods,
@@ -130,12 +158,14 @@ function createMenu() {
           },
         },
         {
+          id: 'recent-designs',
           label: 'Recent Designs',
           enabled: !isInMods,
           submenu: recentFilesSubmenu,
         },
         { type: 'separator' },
         {
+          id: 'save-design',
           label: 'Save Design',
           accelerator: 'CmdOrCtrl+S',
           enabled: isInBuilder,
@@ -144,6 +174,7 @@ function createMenu() {
           },
         },
         {
+          id: 'save-design-as',
           label: 'Save Design As...',
           accelerator: 'CmdOrCtrl+Shift+S',
           enabled: isInBuilder,
@@ -152,6 +183,7 @@ function createMenu() {
           },
         },
         {
+          id: 'duplicate-design',
           label: 'Duplicate Design',
           accelerator: 'CmdOrCtrl+Shift+D',
           enabled: isInBuilder,
@@ -266,6 +298,29 @@ function createMenu() {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+/** Toggle enabled state of mode-sensitive menu items without rebuilding the menu. */
+function updateMenuForMode() {
+  const menu = Menu.getApplicationMenu();
+  if (!menu) return;
+
+  const isInMods = currentAppMode === 'mods';
+  const isInBuilder = currentAppMode === 'builder';
+
+  const modeItems: Record<string, boolean> = {
+    'new-design': !isInMods,
+    'load-design': !isInMods,
+    'recent-designs': !isInMods,
+    'save-design': isInBuilder,
+    'save-design-as': isInBuilder,
+    'duplicate-design': isInBuilder,
+  };
+
+  for (const [id, enabled] of Object.entries(modeItems)) {
+    const item = menu.getMenuItemById(id);
+    if (item) item.enabled = enabled;
+  }
 }
 
 function createWindow() {
@@ -476,10 +531,25 @@ ipcMain.handle('clear-recent-files', async () => {
   return { success: true };
 });
 
+// App settings
+ipcMain.handle('read-app-settings', async () => {
+  return { success: true, settings: readAppSettings() };
+});
+
+ipcMain.handle('update-app-settings', async (_event, settingsJson: string) => {
+  try {
+    const settings = JSON.parse(settingsJson) as AppSettings;
+    writeAppSettings(settings);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 // App mode management - updates menu state
 ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
   currentAppMode = mode as 'loading' | 'welcome' | 'builder' | 'mods' | 'library';
-  createMenu(); // Recreate menu with updated enabled state
+  updateMenuForMode(); // Toggle enabled state without rebuilding the entire menu
   return { success: true };
 });
 

@@ -73,6 +73,16 @@ export interface SelectDirectoryResult {
   filePath?: string;
 }
 
+export interface AppSettings {
+  themeMode?: 'light' | 'dark' | 'system';
+}
+
+export interface AppSettingsResult {
+  success: boolean;
+  error?: string;
+  settings?: AppSettings;
+}
+
 export interface ElectronAPI {
   // Menu event listeners
   onNewWarship: (callback: () => void) => void;
@@ -106,6 +116,10 @@ export interface ElectronAPI {
   getRecentFiles: () => Promise<string[]>;
   clearRecentFiles: () => Promise<FileOperationResult>;
   
+  // App settings
+  readAppSettings: () => Promise<AppSettingsResult>;
+  updateAppSettings: (settingsJson: string) => Promise<FileOperationResult>;
+
   // App mode management
   setBuilderMode: (mode: string) => Promise<FileOperationResult>;
   

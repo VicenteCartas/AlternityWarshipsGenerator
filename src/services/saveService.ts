@@ -47,7 +47,7 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
     surfaceProvidesLifeSupport: state.surfaceProvidesLifeSupport || undefined,
     surfaceProvidesGravity: state.surfaceProvidesGravity || undefined,
     name: state.name,
-    createdAt: now,
+    createdAt: state.createdAt || now,
     modifiedAt: now,
     lore: state.shipDescription.lore || undefined,
     imageData: state.shipDescription.imageData,
@@ -841,6 +841,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     success: true,
     state: {
       name: saveFile.name || 'Unnamed Design',
+      createdAt: saveFile.createdAt || null,
       shipDescription: {
         lore: saveFile.lore || '',
         imageData: saveFile.imageData ?? null,

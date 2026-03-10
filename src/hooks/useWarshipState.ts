@@ -88,6 +88,7 @@ const initialDesignState: DesignState = {
     manufacturer: '',
   },
   name: 'New Ship',
+  createdAt: null,
   designProgressLevel: 9,
   designTechTracks: [],
 };

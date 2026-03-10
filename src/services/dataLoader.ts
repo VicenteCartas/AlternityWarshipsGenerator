@@ -184,24 +184,24 @@ async function loadDataFile<T>(
 ): Promise<T> {
   // If not in Electron, use bundled data (not a failure, just development mode)
   if (!window.electronAPI) {
-    logger.log(`[DataLoader] No Electron API, using bundled ${fileName}`);
+    if (import.meta.env.DEV) logger.log(`[DataLoader] No Electron API, using bundled ${fileName}`);
     return fallbackData;
   }
 
   try {
     const result = await window.electronAPI.readDataFile(fileName);
     if (result.success && result.content) {
-      logger.log(`[DataLoader] Loaded ${fileName} from ${result.path}`);
+      if (import.meta.env.DEV) logger.log(`[DataLoader] Loaded ${fileName} from ${result.path}`);
       return JSON.parse(result.content) as T;
     } else {
       const reason = result.error || 'Unknown error';
-      logger.warn(`[DataLoader] Failed to load ${fileName}: ${reason}, using bundled data`);
+      if (import.meta.env.DEV) logger.warn(`[DataLoader] Failed to load ${fileName}: ${reason}, using bundled data`);
       failedFiles.push({ fileName, reason });
       return fallbackData;
     }
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown error';
-    logger.error(`[DataLoader] Error loading ${fileName}:`, error);
+    if (import.meta.env.DEV) logger.error(`[DataLoader] Error loading ${fileName}:`, error);
     failedFiles.push({ fileName, reason });
     return fallbackData;
   }
@@ -348,7 +348,7 @@ async function applyModsToFile(
 
     const modFileData = await getModFileData(mod.folderName, fileName);
     if (!modFileData || typeof modFileData !== 'object') {
-      logger.warn(`[DataLoader] Skipping invalid mod data: ${mod.folderName}/${fileName}`);
+      if (import.meta.env.DEV) logger.warn(`[DataLoader] Skipping invalid mod data: ${mod.folderName}/${fileName}`);
       continue;
     }
 
@@ -356,7 +356,7 @@ async function applyModsToFile(
     const modeDesc = Object.keys(sectionModes).length > 0
       ? Object.entries(sectionModes).map(([k, m]) => `${k}:${m}`).join(', ')
       : 'add (default)';
-    logger.log(`[DataLoader] Applying mod "${mod.manifest.name}" [${modeDesc}] to ${fileName}`);
+    if (import.meta.env.DEV) logger.log(`[DataLoader] Applying mod "${mod.manifest.name}" [${modeDesc}] to ${fileName}`);
     data = applyModToFileData(data, modFileData as Record<string, unknown>, sectionModes, mod.manifest.name);
   }
 
@@ -491,7 +491,7 @@ export function createDataStore(): DataStore {
   ): (pureBase?: boolean) => T {
     return (pureBase = false): T => {
       if (!dataLoaded) {
-        logger.warn('[DataLoader] Data not loaded, using fallback');
+        if (import.meta.env.DEV) logger.warn('[DataLoader] Data not loaded, using fallback');
         return fallback();
       }
       return accessor(pureBase ? pureBaseCache : cache);
@@ -504,7 +504,7 @@ export function createDataStore(): DataStore {
     activeMods = mods;
 
     if (!rawBaseData.hulls) {
-      logger.warn('[DataLoader] applyModsToCache called before base data loaded');
+      if (import.meta.env.DEV) logger.warn('[DataLoader] applyModsToCache called before base data loaded');
       return;
     }
 
@@ -644,7 +644,7 @@ export function createDataStore(): DataStore {
       if (dataLoaded) return { failedFiles: [], isElectron: !!window.electronAPI };
 
       loadPromise = (async () => {
-        logger.log('[DataLoader] Loading game data...');
+        if (import.meta.env.DEV) logger.log('[DataLoader] Loading game data...');
         const failedFiles: FailedFile[] = [];
         const isElectron = !!window.electronAPI;
 
@@ -708,10 +708,10 @@ export function createDataStore(): DataStore {
         await applyModsToCache([]);
 
         dataLoaded = true;
-        logger.log('[DataLoader] Game data loaded successfully');
+        if (import.meta.env.DEV) logger.log('[DataLoader] Game data loaded successfully');
 
         if (failedFiles.length > 0) {
-          logger.warn('[DataLoader] Some files failed to load from external sources:', failedFiles);
+          if (import.meta.env.DEV) logger.warn('[DataLoader] Some files failed to load from external sources:', failedFiles);
         }
 
         return { failedFiles, isElectron };
@@ -726,12 +726,12 @@ export function createDataStore(): DataStore {
 
     async reloadWithSpecificMods(mods: Mod[]): Promise<void> {
       if (!dataLoaded || !rawBaseData.hulls) {
-        logger.warn('[DataLoader] Cannot reload with specific mods — base data not loaded yet');
+        if (import.meta.env.DEV) logger.warn('[DataLoader] Cannot reload with specific mods — base data not loaded yet');
         return;
       }
-      logger.log(`[DataLoader] Reloading cache with ${mods.length} specific mod(s)...`);
+      if (import.meta.env.DEV) logger.log(`[DataLoader] Reloading cache with ${mods.length} specific mod(s)...`);
       await applyModsToCache(mods);
-      logger.log('[DataLoader] Cache reloaded with specific mods');
+      if (import.meta.env.DEV) logger.log('[DataLoader] Cache reloaded with specific mods');
     },
 
     async reloadAllGameData(): Promise<DataLoadResult> {
@@ -781,7 +781,7 @@ export function createDataStore(): DataStore {
 
     getTrackingTableData(): TrackingTable | null {
       if (!dataLoaded) {
-        logger.warn('[DataLoader] Data not loaded, using fallback');
+        if (import.meta.env.DEV) logger.warn('[DataLoader] Data not loaded, using fallback');
         return (sensorsDataFallback as { trackingTable?: TrackingTable }).trackingTable || null;
       }
       return cache.trackingTable;
@@ -789,7 +789,7 @@ export function createDataStore(): DataStore {
 
     getDamageDiagramDataGetter(): DamageDiagramData | null {
       if (!dataLoaded) {
-        logger.warn('[DataLoader] Data not loaded, using fallback');
+        if (import.meta.env.DEV) logger.warn('[DataLoader] Data not loaded, using fallback');
         return damageDiagramDataFallback;
       }
       return cache.damageDiagram;

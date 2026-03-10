@@ -58,6 +58,10 @@ export function createMockElectronAPI() {
     getRecentFiles: vi.fn().mockResolvedValue([]),
     clearRecentFiles: vi.fn().mockResolvedValue({ success: true }),
 
+    // App settings
+    readAppSettings: vi.fn().mockResolvedValue({ success: true, settings: {} }),
+    updateAppSettings: vi.fn().mockResolvedValue({ success: true }),
+
     // App mode
     setBuilderMode: vi.fn().mockResolvedValue({ success: true }),
 

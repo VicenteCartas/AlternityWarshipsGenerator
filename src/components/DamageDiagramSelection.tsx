@@ -734,7 +734,7 @@ export function DamageDiagramSelection({
       setDraggedZoneSystem(null);
       setDragSourceInfo(null);
     } catch (err) {
-      logger.error('[DamageDiagram] dragStart error:', err);
+      if (import.meta.env.DEV) logger.error('[DamageDiagram] dragStart error:', err);
     }
   }, []);
 
@@ -749,7 +749,7 @@ export function DamageDiagramSelection({
       setDraggedSystemId(null);
       setDragSourceInfo({ fromZone: zoneCode, refId: sys.id, systemRef: sys });
     } catch (err) {
-      logger.error('[DamageDiagram] dragStartZone error:', err);
+      if (import.meta.env.DEV) logger.error('[DamageDiagram] dragStartZone error:', err);
     }
   }, []);
 
@@ -823,7 +823,7 @@ export function DamageDiagramSelection({
         }
       }
     } catch (err) {
-      logger.error('[DamageDiagram] drop error:', err);
+      if (import.meta.env.DEV) logger.error('[DamageDiagram] drop error:', err);
     } finally {
       setDraggedSystemId(null);
       setDraggedZoneSystem(null);

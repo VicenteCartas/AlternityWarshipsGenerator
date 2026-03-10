@@ -20,6 +20,7 @@ import type { Mod } from './mod';
  */
 export interface WarshipState {
   name: string;
+  createdAt: string | null;
   shipDescription: ShipDescription;
   designType: DesignType;
   stationType: StationType | null;
