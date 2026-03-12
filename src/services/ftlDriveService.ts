@@ -1,6 +1,7 @@
-import type { FTLDriveType, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
+import type { FTLDriveType, FTLSubSystem, InstalledFTLDrive, InstalledFTLFuelTank } from '../types/ftlDrive';
 import type { Hull } from '../types/hull';
 import { getFTLDrivesData } from './dataLoader';
+import { getZoneLimitForHull } from './damageDiagramService';
 import { generateId, interpolateByPercentage } from './utilities';
 
 /**
@@ -133,6 +134,70 @@ export function validateFTLInstallation(
  */
 export function generateFTLDriveId(): string {
   return generateId('ftl');
+}
+
+// ============== Zone Limit / Split Helpers ==============
+
+/**
+ * Generate a unique FTL sub-system ID
+ */
+export function generateFTLSubSystemId(): string {
+  return generateId('ftlsub');
+}
+
+/**
+ * Check whether an FTL drive's total HP exceeds the zone limit for the given hull.
+ */
+export function doesFTLExceedZoneLimit(
+  drive: InstalledFTLDrive,
+  hullId: string
+): boolean {
+  const zoneLimit = getZoneLimitForHull(hullId);
+  return drive.hullPoints > zoneLimit;
+}
+
+/**
+ * Get the zone limit for a given hull, for display purposes.
+ */
+export function getZoneLimitForFTLWarning(hullId: string): number {
+  return getZoneLimitForHull(hullId);
+}
+
+/**
+ * Split an FTL drive into N equal sub-systems for zone assignment.
+ * @param drive The installed FTL drive to split
+ * @param splitCount Number of sections (2 or 4)
+ * @returns Updated drive with subSystems populated
+ */
+export function splitFTLDrive(
+  drive: InstalledFTLDrive,
+  splitCount: 2 | 4
+): InstalledFTLDrive {
+  const totalHp = drive.hullPoints;
+  const baseHp = Math.floor(totalHp / splitCount);
+  const remainder = totalHp % splitCount;
+
+  const subSystems: FTLSubSystem[] = [];
+  for (let i = 0; i < splitCount; i++) {
+    subSystems.push({
+      id: generateFTLSubSystemId(),
+      label: `Section ${i + 1}`,
+      // Distribute remainder: first sub-systems get +1 HP each
+      hullPoints: baseHp + (i < remainder ? 1 : 0),
+    });
+  }
+
+  return { ...drive, subSystems };
+}
+
+/**
+ * Remove the split from an FTL drive, reverting to a single system.
+ */
+export function unsplitFTLDrive(
+  drive: InstalledFTLDrive
+): InstalledFTLDrive {
+  const { subSystems: _, ...rest } = drive;
+  return rest as InstalledFTLDrive;
 }
 
 // ============== FTL Fuel Tank Functions ==============

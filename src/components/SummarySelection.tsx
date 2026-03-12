@@ -1419,7 +1419,7 @@ export function SummarySelection({
 
       {/* Damage Zones Tab */}
             <TabPanel value={tabValue} index={4}>
-        <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} armorLayers={armorLayers} />
+        <DamageZonesOverview zones={damageDiagramZones} hull={hull} warshipName={warshipName} armorLayers={armorLayers} installedDefenses={installedDefenses} />
       </TabPanel>
     </Box>
   );

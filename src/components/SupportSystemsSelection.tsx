@@ -474,26 +474,27 @@ export function SupportSystemsSelection({
               <Chip label="Artificial Gravity Available" icon={<CheckCircleIcon />} color="success" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
                 At Progress Level {designProgressLevel} with {designTechTracks.length > 0 ? `Tech Tracks: ${designTechTracks.join(', ')}` : 'all tech tracks available'},
-                artificial gravity is automatically included in your life support systems at no extra cost.
+                artificial gravity is automatically included in your life support systems at no extra cost
+                via {stats.matchedGravityRule?.name || 'advanced technology'}.
                 This protects crew from deadly accelerations and provides normal gravity throughout the ship.
               </Typography>
             </Box>
           ) : hasInstalledGravitySystem ? (
             <Box>
-              <Chip label="Centrifugal Gravity Installed" color="info" sx={{ mb: 2 }} />
+              <Chip label={`${installedGravitySystems[0].type.name} Installed`} color="info" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
-                Your ship uses centrifugal force (spin gravity) to simulate artificial gravity.
+                {installedGravitySystems[0].type.description}
               </Typography>
             </Box>
           ) : (
             <Box>
               <Chip label="No Artificial Gravity" icon={<WarningAmberIcon />} color="warning" sx={{ mb: 2 }} />
               <Typography variant="body2" color="text.secondary">
-                Artificial gravity requires Progress Level 6+ with Gravity (G) technology, or Progress Level 8+ with Energy Transformation (X) technology.
+                Your current progress level and tech tracks do not provide automatic artificial gravity.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Without artificial gravity, the ship can simulate gravity through constant acceleration (thrust gravity)
-                or by installing a spin system.
+                or by installing a gravity system below.
               </Typography>
             </Box>
           )}

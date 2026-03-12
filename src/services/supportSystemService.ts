@@ -4,6 +4,7 @@ import type {
   AccommodationType,
   StoreSystemType,
   GravitySystemType,
+  ArtificialGravityRule,
   InstalledLifeSupport,
   InstalledAccommodation,
   InstalledStoreSystem,
@@ -16,6 +17,7 @@ import {
   getAccommodationsData,
   getStoreSystemsData,
   getGravitySystemsData,
+  getArtificialGravityRulesData,
 } from './dataLoader';
 
 // ============== Getters ==============
@@ -86,6 +88,28 @@ export function calculateGravitySystemCost(
   return hullPoints * gravityType.costPerHullPoint;
 }
 
+// ============== Artificial Gravity Rule Matching ==============
+
+/** Find the first matching artificial gravity rule for the given PL and tech tracks */
+export function findMatchingGravityRule(
+  rules: ArtificialGravityRule[],
+  designProgressLevel: ProgressLevel,
+  designTechTracks: TechTrack[],
+): ArtificialGravityRule | null {
+  for (const rule of rules) {
+    if (designProgressLevel < rule.minProgressLevel) continue;
+    // If the rule requires specific tech tracks, check the design has at least one
+    // (empty designTechTracks means all tech available)
+    if (rule.techTracks.length > 0) {
+      const hasTech = designTechTracks.length === 0 ||
+        rule.techTracks.some(t => designTechTracks.includes(t));
+      if (!hasTech) continue;
+    }
+    return rule;
+  }
+  return null;
+}
+
 // ============== Calculations ==============
 
 export function calculateSupportSystemsStats(
@@ -103,6 +127,7 @@ export function calculateSupportSystemsStats(
   let lifeSupportCost = 0;
   let totalCoverage = 0;
   let recyclingFromLifeSupport = 0;
+  let recyclingReductionFromLifeSupport = 0;
 
   for (const ls of lifeSupport) {
     const extraHp = ls.extraHp || 0;
@@ -111,7 +136,10 @@ export function calculateSupportSystemsStats(
     lifeSupportCost += ls.type.cost * ls.quantity + (ls.type.expandable && extraHp > 0 ? extraHp * (ls.type.expansionCostPerHp || 0) : 0);
     totalCoverage += ls.type.coveragePerHullPoint * ls.quantity + (ls.type.expandable && extraHp > 0 ? extraHp * (ls.type.expansionValuePerHp || 0) : 0);
     if (ls.type.recyclingCapacity) {
-      recyclingFromLifeSupport += ls.type.recyclingCapacity * ls.quantity;
+      const capacity = ls.type.recyclingCapacity * ls.quantity;
+      recyclingFromLifeSupport += capacity;
+      // Symbiotic hull recycling works like a recycler: reduces consumption to 10%
+      recyclingReductionFromLifeSupport += capacity * 0.9;
     }
   }
 
@@ -222,12 +250,12 @@ export function calculateSupportSystemsStats(
   // Gravity system check
   const hasGravitySystemInstalled = gravitySystems.length > 0;
   
-  // Artificial gravity: available at PL6+ with G-tech, or PL8+ with X-tech, or via spin system
-  const hasGravityTech = designTechTracks.length === 0 || designTechTracks.includes('G');
-  const hasEnergyTech = designTechTracks.length === 0 || designTechTracks.includes('X');
-  const hasArtificialGravity = 
-    (designProgressLevel >= 6 && hasGravityTech) ||
-    (designProgressLevel >= 8 && hasEnergyTech);
+  // Artificial gravity: check data-driven rules
+  const artificialGravityRules = getArtificialGravityRulesData();
+  const matchedGravityRule = findMatchingGravityRule(
+    artificialGravityRules, designProgressLevel, designTechTracks
+  );
+  const hasArtificialGravity = matchedGravityRule !== null;
 
   return {
     lifeSupportHP,
@@ -260,11 +288,12 @@ export function calculateSupportSystemsStats(
     peopleFed,
     feedsReduction,
     recyclingCapacity: recyclingFromLifeSupport + recyclingCapacity,
-    recyclingReduction,
+    recyclingReduction: recyclingReductionFromLifeSupport + recyclingReduction,
     additionalStoresDays,
     baseStoreDays,
     
     hasArtificialGravity,
+    matchedGravityRule,
     hasGravitySystemInstalled,
   };
 }

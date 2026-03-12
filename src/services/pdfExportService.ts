@@ -24,6 +24,7 @@ import type { FiringArc } from '../types/weapon';
 import { getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
 import { getAllLoadedCraft } from './embarkedCraftService';
 import { computeDesignSnapshot } from './designSnapshotService';
+import { calculateDefenseStats } from './defenseService';
 import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
 import { capitalize, logger } from './utilities';
 
@@ -763,7 +764,14 @@ function renderSystemsDetailSection(
 
   // Row 3: Toughness, Target Modifier
   addLabel(ctx, 'Toughness', hull.toughness.toString(), ctx.margin);
-  addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + col3W + 10);
+  // Show shield toughness if ablative shields are installed
+  const fullSheetDefenseStats = calculateDefenseStats(data.installedDefenses, hull.hullPoints, hull.toughness);
+  if (fullSheetDefenseStats.shieldToughness) {
+    addLabel(ctx, 'Shield Toughness', fullSheetDefenseStats.shieldToughness, ctx.margin + col3W / 2 + 5);
+    addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + col3W + 10);
+  } else {
+    addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + col3W + 10);
+  }
   ctx.y += 5;
 
   // Row 4: Armor
@@ -1627,6 +1635,10 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
 
   // Toughness & Target Modifier
   addLabel(ctx, 'Toughness', hull.toughness.toString(), ctx.margin);
+  const compactDefenseStats = calculateDefenseStats(data.installedDefenses, hull.hullPoints, hull.toughness);
+  if (compactDefenseStats.shieldToughness) {
+    addLabel(ctx, 'Shield', compactDefenseStats.shieldToughness, ctx.margin + 40);
+  }
   addLabel(ctx, 'Target Modifier', hull.targetModifier >= 0 ? `+${hull.targetModifier}` : hull.targetModifier.toString(), ctx.margin + 60);
   ctx.y += 5;
 

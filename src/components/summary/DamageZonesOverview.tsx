@@ -10,17 +10,21 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import type { Hull } from '../../types/hull';
 import type { ShipArmor } from '../../types/armor';
 import type { DamageZone } from '../../types/damageDiagram';
+import type { InstalledDefenseSystem } from '../../types/defense';
 import { getZoneLimitForHull } from '../../services/damageDiagramService';
+import { calculateDefenseStats } from '../../services/defenseService';
 
 interface DamageZonesOverviewProps {
   zones: DamageZone[];
   hull: Hull;
   warshipName: string;
   armorLayers: ShipArmor[];
+  installedDefenses?: InstalledDefenseSystem[];
 }
 
-export function DamageZonesOverview({ zones, hull, warshipName, armorLayers }: DamageZonesOverviewProps) {
+export function DamageZonesOverview({ zones, hull, warshipName, armorLayers, installedDefenses }: DamageZonesOverviewProps) {
   const zoneLimit = getZoneLimitForHull(hull.id, hull);
+  const defenseStats = installedDefenses ? calculateDefenseStats(installedDefenses, hull.hullPoints, hull.toughness) : null;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -31,6 +35,9 @@ export function DamageZonesOverview({ zones, hull, warshipName, armorLayers }: D
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <Chip label={`Toughness: ${hull.toughness}`} size="small" variant="outlined" />
+          {defenseStats?.shieldToughness && (
+            <Chip label={`Shield Toughness: ${defenseStats.shieldToughness}`} size="small" variant="outlined" color={defenseStats.shieldToughness !== hull.toughness ? 'success' : 'default'} />
+          )}
           <Chip label={`Damage Track: S:${hull.damageTrack.stun} W:${hull.damageTrack.wound} M:${hull.damageTrack.mortal} C:${hull.damageTrack.critical}`} size="small" variant="outlined" />
           {armorLayers.map((layer) => (
             <Box key={layer.weight} sx={{ display: 'contents' }}>

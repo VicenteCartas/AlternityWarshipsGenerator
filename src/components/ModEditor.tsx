@@ -786,6 +786,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                 disableDelete={activeSection.dataType === 'object'}
                 readOnly={previewMerged}
                 rowHighlightColor={previewMerged ? previewRowHighlight : undefined}
+                modTechTracks={sectionData['techTracks']}
               />
             </>
           )}

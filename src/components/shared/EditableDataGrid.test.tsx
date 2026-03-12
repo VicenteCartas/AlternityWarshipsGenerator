@@ -146,4 +146,57 @@ describe('EditableDataGrid', () => {
       expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('modTechTracks', () => {
+    const techTrackColumns: ColumnDef[] = [
+      { key: 'id', label: 'ID', type: 'text', required: true, width: 100 },
+      { key: 'name', label: 'Name', type: 'text', required: true, width: 200 },
+      { key: 'techTracks', label: 'Tech Tracks', type: 'techTracks', width: 150 },
+    ];
+
+    const techTrackRows = [
+      { id: 'sys-1', name: 'System 1', techTracks: [] },
+    ];
+
+    const techTrackDefaultItem = { id: '', name: '', techTracks: [] };
+
+    it('shows mod-defined tech tracks in popover alongside base tracks', async () => {
+      const user = userEvent.setup();
+      renderGrid({
+        columns: techTrackColumns,
+        rows: techTrackRows,
+        defaultItem: techTrackDefaultItem,
+        modTechTracks: [{ code: 'B', name: 'Biotech' }],
+      });
+
+      // Click the tech tracks cell to open the popover
+      const techTrackCell = screen.getByText('—');
+      await user.click(techTrackCell);
+
+      // Base tracks should be present (mocked as G, D, A, M, F)
+      expect(screen.getByText('G — Track-G')).toBeInTheDocument();
+      expect(screen.getByText('D — Track-D')).toBeInTheDocument();
+
+      // Mod-defined track should also be present
+      expect(screen.getByText('B — Biotech')).toBeInTheDocument();
+    });
+
+    it('does not show mod-defined tracks when modTechTracks is not provided', async () => {
+      const user = userEvent.setup();
+      renderGrid({
+        columns: techTrackColumns,
+        rows: techTrackRows,
+        defaultItem: techTrackDefaultItem,
+      });
+
+      const techTrackCell = screen.getByText('—');
+      await user.click(techTrackCell);
+
+      // Base tracks should be present
+      expect(screen.getByText('G — Track-G')).toBeInTheDocument();
+
+      // Mod-defined track should NOT be present
+      expect(screen.queryByText(/B — Biotech/)).not.toBeInTheDocument();
+    });
+  });
 });

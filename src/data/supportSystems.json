@@ -191,6 +191,20 @@
       "description": "Basic berthing for 20 passengers with bunks, includes one airlock."
     },
     {
+      "id": "passenger-quarters",
+      "name": "Passenger Quarters",
+      "progressLevel": 6,
+      "techTracks": [],
+      "hullPoints": 2,
+      "powerRequired": 0,
+      "cost": 20000,
+      "capacity": 6,
+      "category": "passenger",
+      "includesAirlock": true,
+      "storesDaysPerPerson": 100,
+      "description": "Shared quarters for 6 passengers with common facilities, includes one airlock."
+    },
+    {
       "id": "passenger-suite-2nd-class",
       "name": "Passenger Suite (2nd class)",
       "progressLevel": 6,
@@ -297,6 +311,22 @@
       "costPerHullPoint": 50000,
       "powerRequired": 0,
       "description": "A ship designed to spin on its axis as it travels forward, using centrifugal force to simulate the force of gravity. This acceleration is toward the skin of the ship, so the ship must be designed so that the 'floor' is the outside surface of the spinning hull sections."
+    }
+  ],
+  "artificialGravityRules": [
+    {
+      "id": "gravity-manipulation",
+      "name": "Gravity Manipulation",
+      "description": "Gravity technology allows artificial gravity generation as part of standard life support systems.",
+      "minProgressLevel": 6,
+      "techTracks": ["G"]
+    },
+    {
+      "id": "energy-transformation",
+      "name": "Energy Transformation",
+      "description": "Advanced energy transformation technology can replicate gravity effects at higher progress levels.",
+      "minProgressLevel": 8,
+      "techTracks": ["X"]
     }
   ]
 }

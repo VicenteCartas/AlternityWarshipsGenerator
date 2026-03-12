@@ -84,6 +84,17 @@ export interface GravitySystemType {
   description: string;
 }
 
+/** Rule defining a tech track + PL combo that grants free artificial gravity */
+export interface ArtificialGravityRule {
+  id: string;
+  name: string;
+  description: string;
+  /** Minimum progress level required */
+  minProgressLevel: ProgressLevel;
+  /** Tech tracks that qualify (if empty, always qualifies at the given PL) */
+  techTracks: TechTrack[];
+}
+
 export interface InstalledGravitySystem extends InstalledItemBase {
   type: GravitySystemType;
   /** Calculated hull points based on hull size and hullPercentage */
@@ -148,6 +159,8 @@ export interface SupportSystemsStats extends BaseSystemStats {
   // Gravity
   /** Whether artificial gravity is available based on PL and tech */
   hasArtificialGravity: boolean;
+  /** The matched rule that grants artificial gravity, if any */
+  matchedGravityRule: ArtificialGravityRule | null;
   /** Whether at least one gravity system is installed */
   hasGravitySystemInstalled: boolean;
 }

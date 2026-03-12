@@ -29,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
@@ -40,6 +41,7 @@ import {
   updateModSettings,
   createMod,
   deleteMod,
+  duplicateMod,
   exportMod,
   importMod,
   setModEnabled,
@@ -156,6 +158,15 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const handleExportMod = useCallback(async (mod: Mod) => {
     await exportMod(mod.folderName);
   }, []);
+
+  const handleDuplicateMod = useCallback(async (mod: Mod) => {
+    setSaving(true);
+    const folderName = await duplicateMod(mod.folderName);
+    if (folderName) {
+      await refreshMods();
+    }
+    setSaving(false);
+  }, [refreshMods]);
 
   const handleImportMod = useCallback(async () => {
     setSaving(true);
@@ -383,6 +394,11 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
                         <Tooltip title="Edit mod data">
                           <IconButton size="small" onClick={() => setEditingMod(mod)}>
                             <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Duplicate mod">
+                          <IconButton size="small" onClick={() => handleDuplicateMod(mod)} disabled={saving}>
+                            <ContentCopyIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Export to .altmod.json">

@@ -147,6 +147,7 @@ export interface ElectronAPI {
   updateModSettings: (settingsJson: string) => Promise<FileOperationResult>;
   exportMod: (folderName: string) => Promise<FileOperationResult>;
   importMod: () => Promise<ImportModResult>;
+  duplicateMod: (folderName: string) => Promise<ImportModResult>;
   getModsPath: () => Promise<string>;
 }
 

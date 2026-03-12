@@ -46,6 +46,9 @@ import {
   getZoneLimitForDefenseWarning,
   splitDefenseSystem,
   unsplitDefenseSystem,
+  calculateShieldToughness,
+  calculateExtraGenerators,
+  getNextToughnessThreshold,
 } from '../services/defenseService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName } from '../services/formatters';
@@ -69,6 +72,7 @@ export function DefenseSelection({
   const [selectedDefense, setSelectedDefense] = useState<DefenseSystemType | null>(null);
   const [defenseQuantity, setDefenseQuantity] = useState<string>('1');
   const [editingDefenseId, setEditingDefenseId] = useState<string | null>(null);
+  const [extraGenerators, setExtraGenerators] = useState<string>('0');
   const formRef = useRef<HTMLDivElement>(null);
 
   // Get filtered defense types
@@ -83,8 +87,8 @@ export function DefenseSelection({
 
   // Calculate stats
   const stats = useMemo(
-    () => calculateDefenseStats(installedDefenses),
-    [installedDefenses]
+    () => calculateDefenseStats(installedDefenses, hull.hullPoints, hull.toughness),
+    [installedDefenses, hull.hullPoints, hull.toughness]
   );
 
   // Group defenses by category for display
@@ -124,8 +128,10 @@ export function DefenseSelection({
     if (type.fixedCoverage && type.coverage > 0) {
       const fullCoverage = calculateUnitsForFullCoverage(type, hull.hullPoints);
       setDefenseQuantity(fullCoverage.toString());
+      setExtraGenerators('0');
     } else {
       setDefenseQuantity('1');
+      setExtraGenerators('0');
     }
     setEditingDefenseId(null);
     // Scroll to form - use center to show the form in the middle of the viewport
@@ -136,7 +142,13 @@ export function DefenseSelection({
 
   const handleAddDefense = () => {
     if (!selectedDefense) return;
-    const quantity = parseInt(defenseQuantity, 10) || 1;
+    // For allowExtraUnits screens, total quantity = base + extra
+    let quantity = parseInt(defenseQuantity, 10) || 1;
+    if (selectedDefense.allowExtraUnits) {
+      const extra = parseInt(extraGenerators, 10) || 0;
+      const baseCoverage = calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints);
+      quantity = baseCoverage + extra;
+    }
 
     const hullPts = calculateDefenseHullPoints(selectedDefense, hull.hullPoints, quantity);
     const power = calculateDefensePower(selectedDefense, hull.hullPoints, quantity);
@@ -160,6 +172,7 @@ export function DefenseSelection({
           setSelectedDefense(null);
           setDefenseQuantity('1');
           setEditingDefenseId(null);
+          setExtraGenerators('0');
           return;
         }
         // Update quantity for stackable systems
@@ -198,12 +211,20 @@ export function DefenseSelection({
     setSelectedDefense(null);
     setDefenseQuantity('1');
     setEditingDefenseId(null);
+    setExtraGenerators('0');
   };
 
   const handleEditDefense = (installed: InstalledDefenseSystem) => {
     setSelectedDefense(installed.type);
     setDefenseQuantity(installed.quantity.toString());
     setEditingDefenseId(installed.id);
+    // Restore extra generators for allowExtraUnits screens
+    if (installed.type.allowExtraUnits) {
+      const extra = calculateExtraGenerators(installed.type, hull.hullPoints, installed.quantity);
+      setExtraGenerators(extra.toString());
+    } else {
+      setExtraGenerators('0');
+    }
   };
 
   const handleDuplicateDefense = (defense: InstalledDefenseSystem) => {
@@ -280,10 +301,20 @@ export function DefenseSelection({
   }, [installedDefenses]);
 
   // Calculate preview values
-  const previewQuantity = parseInt(defenseQuantity, 10) || 1;
+  const previewExtra = parseInt(extraGenerators, 10) || 0;
+  const previewQuantity = selectedDefense?.allowExtraUnits
+    ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) + previewExtra
+    : parseInt(defenseQuantity, 10) || 1;
   const previewHullPts = selectedDefense ? calculateDefenseHullPoints(selectedDefense, hull.hullPoints, previewQuantity) : 0;
   const previewPower = selectedDefense ? calculateDefensePower(selectedDefense, hull.hullPoints, previewQuantity) : 0;
   const previewCost = selectedDefense ? calculateDefenseCost(selectedDefense, hull.hullPoints, previewQuantity) : 0;
+  // Preview toughness for allowExtraUnits screens
+  const previewShieldToughness = selectedDefense?.allowExtraUnits
+    ? calculateShieldToughness(selectedDefense, previewQuantity, hull.toughness)
+    : null;
+  const previewNextThreshold = selectedDefense?.allowExtraUnits && previewShieldToughness
+    ? getNextToughnessThreshold(selectedDefense, previewShieldToughness)
+    : null;
 
   const getCategoryLabel = (category: string): string => {
     switch (category) {
@@ -335,6 +366,8 @@ export function DefenseSelection({
                   <Typography variant="body2" sx={{ flex: 1 }}>
                     {defense.type.name}
                     {defense.quantity > 1 && !defense.type.fixedCoverage && ` (×${defense.quantity})`}
+                    {defense.type.allowExtraUnits && defense.quantity > calculateUnitsForFullCoverage(defense.type, hull.hullPoints) && 
+                      ` (${calculateUnitsForFullCoverage(defense.type, hull.hullPoints)} + ${defense.quantity - calculateUnitsForFullCoverage(defense.type, hull.hullPoints)} extra)`}
                   </Typography>
                   <Chip
                     label={`${defense.hullPoints} HP`}
@@ -355,6 +388,15 @@ export function DefenseSelection({
                     color="primary"
                     variant="outlined"
                   />
+                  {/* Shield toughness for ablative shields */}
+                  {defense.type.toughnessThresholds?.length && (
+                    <Chip
+                      label={`Shield: ${calculateShieldToughness(defense.type, defense.quantity, hull.toughness)}`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
                   <Chip
                     label={formatCost(defense.cost)}
                     size="small"
@@ -457,8 +499,8 @@ export function DefenseSelection({
                       </Button>
                     </Tooltip>
                   )}
-                  {/* Edit button - not shown for percentage-based or fixed coverage systems */}
-                  {!(defense.type.hullPercentage > 0) && !defense.type.fixedCoverage && (
+                  {/* Edit button - not shown for percentage-based or fixed coverage screens (except allowExtraUnits) */}
+                  {!(defense.type.hullPercentage > 0) && (!defense.type.fixedCoverage || defense.type.allowExtraUnits) && (
                     <IconButton
                       aria-label="Edit defense"
                       size="small"
@@ -538,6 +580,9 @@ export function DefenseSelection({
     // Determine if quantity input should be shown
     const showQuantityInput = !(selectedDefense.hullPercentage > 0) && !selectedDefense.fixedCoverage;
 
+    // Extra generators input for allowExtraUnits screens (e.g. ablative shield)
+    const showExtraGenerators = selectedDefense.fixedCoverage && selectedDefense.allowExtraUnits;
+
     return (
       <Paper ref={formRef} variant="outlined" sx={configFormSx}>
         <form onSubmit={(e) => { e.preventDefault(); handleAddDefense(); }}>
@@ -576,19 +621,45 @@ export function DefenseSelection({
                 style: { textAlign: 'center', width: 40 } 
               }}
               sx={{ width: 90 }}
-              label={selectedDefense.allowVariableSize ? "Size" : "Quantity"}
+              label="Quantity"
+            />
+          )}
+          {/* Extra generators for ablative shield toughness upgrade */}
+          {showExtraGenerators && (
+            <TextField
+              type="number"
+              size="small"
+              value={extraGenerators}
+              onChange={(e) => setExtraGenerators(e.target.value)}
+              inputProps={{ 
+                min: 0, 
+                max: 9999,
+                style: { textAlign: 'center', width: 50 } 
+              }}
+              sx={{ width: 120 }}
+              label="Extra Generators"
             />
           )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               HP: {previewHullPts} | Power: {previewPower}
-              {selectedDefense.fixedCoverage && ` | Qty: ${calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints)}`}
+              {selectedDefense.fixedCoverage && !selectedDefense.allowExtraUnits && ` | Qty: ${calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints)}`}
+              {selectedDefense.allowExtraUnits && ` | Qty: ${previewQuantity} (${calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints)} base + ${previewExtra} extra)`}
               {' | '}
               {selectedDefense.shieldPoints 
                 ? `${selectedDefense.shieldPoints * (selectedDefense.fixedCoverage ? calculateUnitsForFullCoverage(selectedDefense, hull.hullPoints) : previewQuantity)} shield points`
                 : selectedDefense.effect}
               {` | Cost: ${formatCost(previewCost)}`}
             </Typography>
+            {/* Shield toughness preview */}
+            {previewShieldToughness && (
+              <Typography variant="caption" color="text.secondary">
+                Shield Toughness: <strong>{previewShieldToughness}</strong>
+                {previewShieldToughness === hull.toughness && ' (from hull)'}
+                {previewShieldToughness !== hull.toughness && ` (upgraded from ${hull.toughness})`}
+                {previewNextThreshold && ` — ${previewNextThreshold.generators - previewQuantity} more generators for ${previewNextThreshold.toughness}`}
+              </Typography>
+            )}
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 type="button"
@@ -598,6 +669,7 @@ export function DefenseSelection({
                   setSelectedDefense(null);
                   setDefenseQuantity('1');
                   setEditingDefenseId(null);
+                  setExtraGenerators('0');
                 }}
               >
                 Cancel
@@ -763,6 +835,13 @@ export function DefenseSelection({
             <Chip
               label="Repair System"
               color="primary"
+              variant="outlined"
+            />
+          )}
+          {stats.shieldToughness && (
+            <Chip
+              label={`Shield Toughness: ${stats.shieldToughness}`}
+              color={stats.shieldToughness !== hull.toughness ? 'success' : 'primary'}
               variant="outlined"
             />
           )}

@@ -550,7 +550,7 @@ export function WeaponSelection({
               {Object.entries(mountModifiers).map(([key, mod]) => {
                 const isAvailable = selectedWeapon ? (
                   (!mod.allowedCategories || mod.allowedCategories.includes(activeTab)) &&
-                  (!mod.minProgressLevel || selectedWeapon.progressLevel >= mod.minProgressLevel)
+                  (!mod.minProgressLevel || designProgressLevel >= mod.minProgressLevel)
                 ) : true;
                 
                 const tooltipText = `${mod.costMultiplier}× cost, ${mod.hpMultiplier}× HP — ${mod.allowsZeroArc ? '1 zero + ' : ''}${mod.standardArcs ?? 1} arc${(mod.standardArcs ?? 1) > 1 ? 's' : ''}${mod.allowedCategories ? ` (${mod.allowedCategories.join(', ')} only)` : ''}${mod.minProgressLevel ? ` (PL${mod.minProgressLevel}+)` : ''}`;

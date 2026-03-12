@@ -71,6 +71,13 @@ export function calculateHangarMiscCost(
 }
 
 /**
+ * Calculate expansion bonus for expandable systems using the generic formula.
+ */
+function expansionBonus(type: HangarMiscSystemType, extraHp: number): number {
+  return type.expandable && type.expansionValuePerHp ? extraHp * type.expansionValuePerHp : 0;
+}
+
+/**
  * Calculate capacity for a system (hangars, cargo, etc.)
  */
 export function calculateHangarMiscCapacity(
@@ -79,54 +86,52 @@ export function calculateHangarMiscCapacity(
   quantity: number,
   extraHp: number = 0
 ): number {
-  // Fixed cargo capacity per unit (additive)
+  // Cargo capacity per unit
   if (type.cargoCapacity) {
-    return type.cargoCapacity * quantity;
+    return type.cargoCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Evacuation capacity - can be fixed per unit or expandable with extra HP
+  // Evacuation capacity - supports both generic expansion and legacy evacCapacityPerHP
   if (type.evacCapacity) {
     if (type.expandable && type.evacCapacityPerHP) {
-      // Expandable evac system: base capacity × quantity + extra capacity per extra HP
       return (type.evacCapacity * quantity) + (extraHp * type.evacCapacityPerHP);
     }
-    // Fixed evacuation capacity per unit (escape pods, reentry capsules)
-    return type.evacCapacity * quantity;
+    return type.evacCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed prisoners capacity per unit (brig)
+  // Prisoners capacity per unit (brig)
   if (type.prisonersCapacity) {
-    return type.prisonersCapacity * quantity;
+    return type.prisonersCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed scientist capacity per unit (lab section)
+  // Scientist capacity per unit (lab section)
   if (type.scientistCapacity) {
-    return type.scientistCapacity * quantity;
+    return type.scientistCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed bed capacity per unit (sick bay)
+  // Bed capacity per unit (sick bay)
   if (type.bedCapacity) {
-    return type.bedCapacity * quantity;
+    return type.bedCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed hangar capacity per unit
+  // Hangar capacity per unit
   if (type.hangarCapacity) {
-    return type.hangarCapacity * quantity;
+    return type.hangarCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed docking clamp capacity per unit
+  // Docking clamp capacity per unit
   if (type.dockCapacity) {
-    return type.dockCapacity * quantity;
+    return type.dockCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed ordnance capacity per unit (magazine)
+  // Ordnance capacity per unit (magazine)
   if (type.ordnanceCapacity) {
-    return type.ordnanceCapacity * quantity;
+    return type.ordnanceCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed fuel collection capacity per unit (fuel collector)
+  // Fuel collection capacity per unit (fuel collector)
   if (type.fuelCollectionCapacity) {
-    return type.fuelCollectionCapacity * quantity;
+    return type.fuelCollectionCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed power points storage capacity per unit (accumulator)
+  // Power points storage capacity per unit (accumulator)
   if (type.powerPointsCapacity) {
-    return type.powerPointsCapacity * quantity;
+    return type.powerPointsCapacity * quantity + expansionBonus(type, extraHp);
   }
-  // Fixed troop capacity per unit (boarding pod)
+  // Troop capacity per unit (boarding pod)
   if (type.troopCapacity) {
-    return type.troopCapacity * quantity;
+    return type.troopCapacity * quantity + expansionBonus(type, extraHp);
   }
   // Coverage-based systems (security suite) - HP of hull covered per HP installed
   if (type.coveragePerHullPoint) {

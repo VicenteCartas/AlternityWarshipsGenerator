@@ -230,10 +230,17 @@
       "cost": 500000,
       "costPer": "unit",
       "coverage": 20,
+      "fixedCoverage": true,
+      "allowExtraUnits": true,
+      "toughnessThresholds": [
+        { "generators": 3, "toughness": "Light" },
+        { "generators": 10, "toughness": "Medium" },
+        { "generators": 30, "toughness": "Heavy" },
+        { "generators": 100, "toughness": "Super-heavy" }
+      ],
       "effect": "Converts damage to shield points",
       "damageCheckBonus": 0,
       "description": "Generates an ablative shield that absorbs damage. Requires capacitors or energy compilers to store absorbed energy. Only one screen type can be active at a time.",
-      "allowVariableSize": true,
       "requiresComponents": ["capacitor", "energy-compiler"]
     },
     {

@@ -201,7 +201,7 @@ function buildUnassignedSystemsList(
       idPrefix: 'engfuel', category: 'fuel', originalType: 'engineFuel',
       getName: ft => `Fuel Tank (${ft.forEngineType.name}) (${ft.hullPoints} HP)`,
       getHullPoints: ft => ft.hullPoints }, assignedSystemIds),
-    ...collector(installedFTLDrive ? [installedFTLDrive] : [], {
+    ...collector(installedFTLDrive && (!installedFTLDrive.subSystems || installedFTLDrive.subSystems.length === 0) ? [installedFTLDrive] : [], {
       idPrefix: 'ftl', category: 'ftlDrive', originalType: 'ftlDrive',
       getName: f => `${f.type.name} (${f.hullPoints} HP)`,
       getHullPoints: f => f.hullPoints }, assignedSystemIds),
@@ -279,6 +279,21 @@ function buildUnassignedSystemsList(
           originalType: 'defense',
         });
       }
+    }
+  }
+
+  // Expand FTL drive sub-systems: each sub-system becomes its own assignable entry
+  if (installedFTLDrive && installedFTLDrive.subSystems && installedFTLDrive.subSystems.length > 0) {
+    for (const sub of installedFTLDrive.subSystems) {
+      const id = `ftl-${installedFTLDrive.id}-${sub.id}`;
+      if (assignedSystemIds.has(id)) continue;
+      systems.push({
+        id,
+        name: `${installedFTLDrive.type.name} — ${sub.label}`,
+        hullPoints: sub.hullPoints,
+        category: 'ftlDrive',
+        originalType: 'ftlDrive',
+      });
     }
   }
 

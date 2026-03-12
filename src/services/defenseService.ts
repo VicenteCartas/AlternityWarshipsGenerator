@@ -4,6 +4,7 @@ import type {
   InstalledDefenseSystem,
   DefenseStats,
 } from '../types/defense';
+import type { ToughnessRating } from '../types/hull';
 import { generateId } from './utilities';
 import { getDefenseSystemsData } from './dataLoader';
 import { getZoneLimitForHull } from './damageDiagramService';
@@ -179,10 +180,74 @@ export function calculateTotalCoverage(
   return type.coverage * quantity;
 }
 
+// ============== Toughness ==============
+
+/** Ordered toughness ratings from weakest to strongest */
+const TOUGHNESS_ORDER: ToughnessRating[] = ['Good', 'Small Craft', 'Light', 'Medium', 'Heavy', 'Super-heavy'];
+
+function toughnessIndex(rating: ToughnessRating): number {
+  return TOUGHNESS_ORDER.indexOf(rating);
+}
+
+/**
+ * Calculate the effective ablative shield toughness.
+ * The shield defaults to the hull's toughness, then upgrades if enough
+ * generators are installed to reach a higher threshold.
+ */
+export function calculateShieldToughness(
+  type: DefenseSystemType,
+  totalGenerators: number,
+  hullToughness: ToughnessRating
+): ToughnessRating {
+  let best = hullToughness;
+  if (!type.toughnessThresholds?.length) return best;
+  const sorted = [...type.toughnessThresholds].sort((a, b) => b.generators - a.generators);
+  for (const t of sorted) {
+    if (totalGenerators >= t.generators && toughnessIndex(t.toughness) > toughnessIndex(best)) {
+      best = t.toughness;
+      break;
+    }
+  }
+  return best;
+}
+
+/**
+ * Calculate how many extra generators are installed beyond full coverage.
+ */
+export function calculateExtraGenerators(
+  type: DefenseSystemType,
+  shipHullPoints: number,
+  totalGenerators: number
+): number {
+  const baseCoverage = calculateUnitsForFullCoverage(type, shipHullPoints);
+  return Math.max(0, totalGenerators - baseCoverage);
+}
+
+/**
+ * Get the next toughness threshold above the current shield toughness.
+ * Returns null if already at the maximum or no thresholds exist.
+ */
+export function getNextToughnessThreshold(
+  type: DefenseSystemType,
+  currentToughness: ToughnessRating
+): { generators: number; toughness: ToughnessRating } | null {
+  if (!type.toughnessThresholds?.length) return null;
+  const currentIdx = toughnessIndex(currentToughness);
+  const sorted = [...type.toughnessThresholds].sort((a, b) => a.generators - b.generators);
+  for (const t of sorted) {
+    if (toughnessIndex(t.toughness) > currentIdx) {
+      return t;
+    }
+  }
+  return null;
+}
+
 // ============== Stats Calculation ==============
 
 export function calculateDefenseStats(
-  installedDefenses: InstalledDefenseSystem[]
+  installedDefenses: InstalledDefenseSystem[],
+  shipHullPoints: number = 0,
+  hullToughness: ToughnessRating = 'Light'
 ): DefenseStats {
   let totalHullPoints = 0;
   let totalPowerRequired = 0;
@@ -192,6 +257,8 @@ export function calculateDefenseStats(
   let totalShieldPoints = 0;
   let damageCheckBonus = 0;
   let activeScreenType: string | null = null;
+  let shieldToughness: ToughnessRating | null = null;
+  let extraShieldGenerators = 0;
 
   for (const defense of installedDefenses) {
     totalHullPoints += defense.hullPoints;
@@ -206,6 +273,11 @@ export function calculateDefenseStats(
         screenCoverage += coverage;
         if (!activeScreenType) {
           activeScreenType = type.name;
+        }
+        // Calculate shield toughness for screens with toughness thresholds
+        if (type.toughnessThresholds?.length) {
+          shieldToughness = calculateShieldToughness(type, defense.quantity, hullToughness);
+          extraShieldGenerators = calculateExtraGenerators(type, shipHullPoints, defense.quantity);
         }
         break;
       case 'countermeasure':
@@ -233,6 +305,8 @@ export function calculateDefenseStats(
     damageCheckBonus,
     hasActiveScreen: activeScreenType !== null,
     activeScreenType,
+    shieldToughness,
+    extraShieldGenerators,
   };
 }
 

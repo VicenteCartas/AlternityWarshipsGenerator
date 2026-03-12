@@ -153,7 +153,7 @@ export function computeDesignSnapshot(input: DesignSnapshotInput): DesignSnapsho
   const weaponStats = calculateWeaponStats(input.installedWeapons);
   const weaponMagazineWarheadCost = calculateWeaponMagazineWarheadCost(input.installedWeapons);
   const ordnanceStats = calculateOrdnanceStats(input.installedLaunchSystems, input.ordnanceDesigns);
-  const defenseStats = calculateDefenseStats(input.installedDefenses);
+  const defenseStats = calculateDefenseStats(input.installedDefenses, hull.hullPoints, hull.toughness);
   const ccStats = calculateCommandControlStats(input.installedCommandControl, hull.hullPoints);
   const sensorStats = calculateSensorStats(input.installedSensors);
   const hangarMiscStats = calculateHangarMiscStats(input.installedHangarMisc);

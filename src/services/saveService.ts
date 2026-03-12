@@ -86,6 +86,13 @@ export function serializeWarship(state: WarshipState): WarshipSaveFile {
       id: state.ftlDrive.id,
       typeId: state.ftlDrive.type.id,
       hullPoints: state.ftlDrive.hullPoints,
+      ...(state.ftlDrive.subSystems ? {
+        subSystems: state.ftlDrive.subSystems.map(ss => ({
+          id: ss.id,
+          label: ss.label,
+          hullPoints: ss.hullPoints,
+        }))
+      } : {}),
     } as SavedFTLDrive : null,
     ftlFuelTanks: (state.ftlFuelTanks || []).map((ft): SavedFTLFuelTank => ({
       id: ft.id,
@@ -509,6 +516,7 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
         id: saveFile.ftlDrive.id || generateFTLDriveId(),
         type: ftlType,
         hullPoints: saveFile.ftlDrive.hullPoints,
+        ...(saveFile.ftlDrive.subSystems ? { subSystems: saveFile.ftlDrive.subSystems } : {}),
       };
     } else {
       warnings.push(`FTL drive type not found: ${saveFile.ftlDrive.typeId}`);

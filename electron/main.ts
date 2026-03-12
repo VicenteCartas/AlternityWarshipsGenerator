@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 
 // App version - keep in sync with src/constants/version.ts
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const APP_NAME = 'Alternity Warship Generator';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1010,6 +1010,55 @@ ipcMain.handle('import-mod', async () => {
     writeModSettings(settings);
 
     return { success: true, folderName };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Duplicate a mod (copy all files to a new folder)
+ipcMain.handle('duplicate-mod', async (_event, folderName: string) => {
+  try {
+    const modsDir = getModsDir();
+    const sourceDir = path.join(modsDir, folderName);
+    const manifestPath = path.join(sourceDir, 'mod.json');
+    if (!fs.existsSync(manifestPath)) {
+      return { success: false, error: 'Source mod not found' };
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    const copyName = `${manifest.name} (Copy)`;
+    const baseSlug = copyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    // Find a unique folder name
+    let targetSlug = baseSlug;
+    let targetDir = path.join(modsDir, targetSlug);
+    let suffix = 1;
+    while (fs.existsSync(targetDir)) {
+      targetSlug = `${baseSlug}-${suffix}`;
+      targetDir = path.join(modsDir, targetSlug);
+      suffix++;
+    }
+
+    // Create folder and write updated manifest
+    fs.mkdirSync(targetDir, { recursive: true });
+    const newManifest = { ...manifest, name: copyName };
+    fs.writeFileSync(path.join(targetDir, 'mod.json'), JSON.stringify(newManifest, null, 2), 'utf-8');
+
+    // Copy all data files
+    for (const dataFile of MOD_DATA_FILES) {
+      const srcFile = path.join(sourceDir, dataFile);
+      if (fs.existsSync(srcFile)) {
+        fs.copyFileSync(srcFile, path.join(targetDir, dataFile));
+      }
+    }
+
+    // Add to settings as disabled
+    const settings = readModSettings();
+    const maxPriority = settings.mods.reduce((max, m) => Math.max(max, m.priority), 0);
+    settings.mods.push({ folderName: targetSlug, enabled: false, priority: maxPriority + 1 });
+    writeModSettings(settings);
+
+    return { success: true, folderName: targetSlug };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

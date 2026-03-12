@@ -23,6 +23,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import WarningIcon from '@mui/icons-material/Warning';
+import CallSplitIcon from '@mui/icons-material/CallSplit';
+import MergeIcon from '@mui/icons-material/MergeType';
 import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx } from '../constants/tableStyles';
 import { TruncatedDescription } from './shared';
 import type { Hull } from '../types/hull';
@@ -47,6 +49,10 @@ import {
   isFixedSizeDrive,
   calculateFixedSizeHullPoints,
   calculateMinFuelTankHP,
+  doesFTLExceedZoneLimit,
+  getZoneLimitForFTLWarning,
+  splitFTLDrive,
+  unsplitFTLDrive,
 } from '../services/ftlDriveService';
 import { filterByDesignConstraints } from '../services/utilities';
 import { formatCost, getTechTrackName, formatFTLRating } from '../services/formatters';
@@ -223,6 +229,16 @@ export function FTLDriveSelection({
     setSelectedType(installedFTLDrive.type);
     setHullPointsInput(installedFTLDrive.hullPoints.toString());
     setIsEditing(true);
+  };
+
+  const handleSplitFTLDrive = (splitCount: 2 | 4) => {
+    if (!installedFTLDrive) return;
+    onFTLDriveChange(splitFTLDrive(installedFTLDrive, splitCount));
+  };
+
+  const handleUnsplitFTLDrive = () => {
+    if (!installedFTLDrive) return;
+    onFTLDriveChange(unsplitFTLDrive(installedFTLDrive));
   };
 
   // ============== Fuel Tank Handlers ==============
@@ -411,70 +427,171 @@ export function FTLDriveSelection({
           <Typography variant="subtitle2" gutterBottom>
             Installed FTL Drive
           </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              p: 1,
-              bgcolor: 'action.hover',
-              borderRadius: 1,
-            }}
-          >
-            <Typography variant="body2" sx={{ flex: 1 }}>
-              {installedFTLDrive.type.name}
-            </Typography>
-            <Chip
-              label={`${installedFTLDrive.hullPoints} HP (${totalStats.hullPercentage.toFixed(1)}%)`}
-              size="small"
-              variant="outlined"
-            />
-            <Chip
-              label={`${totalStats.totalPowerRequired} Power`}
-              size="small"
-              variant="outlined"
-            />
-            {/* For fuel-requiring drives, show fuel efficiency note instead of ftlRating */}
-            {installedFTLDrive.type.requiresFuel && installedFTLDrive.type.fuelEfficiencyNote ? (
-              <Chip
-                label={installedFTLDrive.type.fuelEfficiencyNote}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            ) : (
-              <Chip
-                label={formatFTLRating(totalStats.ftlRating, installedFTLDrive.type.performanceUnit)}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            )}
-            <Chip
-              label={formatCost(totalStats.totalCost)}
-              size="small"
-              variant="outlined"
-            />
-            {/* Only show edit button for variable-size drives */}
-            {!isFixedSizeDrive(installedFTLDrive.type) && (
-              <IconButton
-                aria-label="Edit FTL drive"
-                size="small"
-                color="primary"
-                onClick={handleEditFTLDrive}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            )}
-            <IconButton
-              aria-label="Remove FTL drive"
-              size="small"
-              color="error"
-              onClick={handleRemoveFTLDrive}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Box>
+          {(() => {
+            const exceedsZoneLimit = doesFTLExceedZoneLimit(installedFTLDrive, hull.id);
+            const zoneLimit = getZoneLimitForFTLWarning(hull.id);
+            const isSplit = !!(installedFTLDrive.subSystems && installedFTLDrive.subSystems.length > 0);
+            return (
+              <>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {installedFTLDrive.type.name}
+                  </Typography>
+                  <Chip
+                    label={`${installedFTLDrive.hullPoints} HP (${totalStats.hullPercentage.toFixed(1)}%)`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${totalStats.totalPowerRequired} Power`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {/* For fuel-requiring drives, show fuel efficiency note instead of ftlRating */}
+                  {installedFTLDrive.type.requiresFuel && installedFTLDrive.type.fuelEfficiencyNote ? (
+                    <Chip
+                      label={installedFTLDrive.type.fuelEfficiencyNote}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ) : (
+                    <Chip
+                      label={formatFTLRating(totalStats.ftlRating, installedFTLDrive.type.performanceUnit)}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  <Chip
+                    label={formatCost(totalStats.totalCost)}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {/* Zone limit warning */}
+                  {exceedsZoneLimit && !isSplit && (
+                    <Tooltip title={`This drive's ${installedFTLDrive.hullPoints} HP exceeds the zone limit of ${zoneLimit} HP. Split it into sections for zone assignment.`}>
+                      <Chip
+                        icon={<WarningIcon />}
+                        label="Exceeds Zone Limit"
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    </Tooltip>
+                  )}
+                  {/* Split indicator */}
+                  {isSplit && (
+                    <Chip
+                      icon={<CallSplitIcon />}
+                      label={`${installedFTLDrive.subSystems!.length} Sections`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Split buttons — always available for percentage-based FTL drives */}
+                  {!isSplit && (
+                    <>
+                      <Tooltip title="Split into 2 sections for zone assignment">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<CallSplitIcon />}
+                          onClick={() => handleSplitFTLDrive(2)}
+                          sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                        >
+                          Split ×2
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Split into 4 sections for zone assignment">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<CallSplitIcon />}
+                          onClick={() => handleSplitFTLDrive(4)}
+                          sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                        >
+                          Split ×4
+                        </Button>
+                      </Tooltip>
+                    </>
+                  )}
+                  {/* Merge button */}
+                  {isSplit && (
+                    <Tooltip title="Merge sections back into a single system">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<MergeIcon />}
+                        onClick={handleUnsplitFTLDrive}
+                        sx={{ minWidth: 'auto', px: 1, py: 0.25, fontSize: '0.75rem', textTransform: 'none' }}
+                      >
+                        Merge
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {/* Only show edit button for variable-size drives */}
+                  {!isFixedSizeDrive(installedFTLDrive.type) && (
+                    <IconButton
+                      aria-label="Edit FTL drive"
+                      size="small"
+                      color="primary"
+                      onClick={handleEditFTLDrive}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <IconButton
+                    aria-label="Remove FTL drive"
+                    size="small"
+                    color="error"
+                    onClick={handleRemoveFTLDrive}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Sub-system rows */}
+                {isSplit && installedFTLDrive.subSystems!.map((sub) => (
+                  <Box
+                    key={sub.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 0.75,
+                      pl: 4,
+                      ml: 2,
+                      borderLeft: '2px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'action.hover',
+                      borderRadius: '0 4px 4px 0',
+                      mt: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                      {installedFTLDrive.type.name} — {sub.label}
+                    </Typography>
+                    <Chip
+                      label={`${sub.hullPoints} HP`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+                ))}
+              </>
+            );
+          })()}
           {installedFTLDrive.type.notes && (
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
               Note: {installedFTLDrive.type.notes}

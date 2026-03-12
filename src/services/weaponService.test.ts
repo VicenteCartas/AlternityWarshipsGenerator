@@ -502,39 +502,37 @@ describe('weaponService', () => {
 
   describe('isMountTypeAvailable', () => {
     it('standard mount is available for all weapons', () => {
-      const w = makeWeapon({ progressLevel: 6 });
-      expect(isMountTypeAvailable(w, 'standard', 'beam')).toBe(true);
-      expect(isMountTypeAvailable(w, 'standard', 'projectile')).toBe(true);
-      expect(isMountTypeAvailable(w, 'standard', 'torpedo')).toBe(true);
+      expect(isMountTypeAvailable('standard', 'beam', 8)).toBe(true);
+      expect(isMountTypeAvailable('standard', 'projectile', 8)).toBe(true);
+      expect(isMountTypeAvailable('standard', 'torpedo', 8)).toBe(true);
     });
 
     it('bank mount is only available for beam category', () => {
-      const w = makeWeapon({ progressLevel: 8 });
-      expect(isMountTypeAvailable(w, 'bank', 'beam')).toBe(true);
-      expect(isMountTypeAvailable(w, 'bank', 'projectile')).toBe(false);
-      expect(isMountTypeAvailable(w, 'bank', 'torpedo')).toBe(false);
-      expect(isMountTypeAvailable(w, 'bank', 'special')).toBe(false);
+      expect(isMountTypeAvailable('bank', 'beam', 8)).toBe(true);
+      expect(isMountTypeAvailable('bank', 'projectile', 8)).toBe(false);
+      expect(isMountTypeAvailable('bank', 'torpedo', 8)).toBe(false);
+      expect(isMountTypeAvailable('bank', 'special', 8)).toBe(false);
     });
 
-    it('bank mount requires PL 8+', () => {
-      const w7 = makeWeapon({ progressLevel: 7 });
-      const w8 = makeWeapon({ progressLevel: 8 });
-      const w9 = makeWeapon({ progressLevel: 9 });
-      expect(isMountTypeAvailable(w7, 'bank', 'beam')).toBe(false);
-      expect(isMountTypeAvailable(w8, 'bank', 'beam')).toBe(true);
-      expect(isMountTypeAvailable(w9, 'bank', 'beam')).toBe(true);
+    it('bank mount requires design PL 8+ (not weapon PL)', () => {
+      // PL 6 beam at design PL 7 — bank NOT available
+      expect(isMountTypeAvailable('bank', 'beam', 7)).toBe(false);
+      // PL 6 beam at design PL 8 — bank available (any beam can use banks at PL 8+)
+      expect(isMountTypeAvailable('bank', 'beam', 8)).toBe(true);
+      // PL 7 beam at design PL 8 — bank available
+      expect(isMountTypeAvailable('bank', 'beam', 8)).toBe(true);
+      // PL 7 beam at design PL 9 — bank available
+      expect(isMountTypeAvailable('bank', 'beam', 9)).toBe(true);
     });
 
     it('turret mount available for all categories', () => {
-      const w = makeWeapon({ progressLevel: 6 });
-      expect(isMountTypeAvailable(w, 'turret', 'beam')).toBe(true);
-      expect(isMountTypeAvailable(w, 'turret', 'torpedo')).toBe(true);
+      expect(isMountTypeAvailable('turret', 'beam', 8)).toBe(true);
+      expect(isMountTypeAvailable('turret', 'torpedo', 8)).toBe(true);
     });
 
     it('fixed mount available for all categories', () => {
-      const w = makeWeapon({ progressLevel: 6 });
-      expect(isMountTypeAvailable(w, 'fixed', 'beam')).toBe(true);
-      expect(isMountTypeAvailable(w, 'fixed', 'projectile')).toBe(true);
+      expect(isMountTypeAvailable('fixed', 'beam', 8)).toBe(true);
+      expect(isMountTypeAvailable('fixed', 'projectile', 8)).toBe(true);
     });
   });
 

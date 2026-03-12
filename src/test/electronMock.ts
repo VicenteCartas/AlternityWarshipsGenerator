@@ -89,6 +89,7 @@ export function createMockElectronAPI() {
     updateModSettings: vi.fn().mockResolvedValue({ success: true }),
     exportMod: vi.fn().mockResolvedValue({ success: true }),
     importMod: vi.fn().mockResolvedValue({ success: true }),
+    duplicateMod: vi.fn().mockResolvedValue({ success: true }),
     getModsPath: vi.fn().mockResolvedValue('/mock/mods'),
   };
 

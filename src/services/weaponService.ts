@@ -88,12 +88,14 @@ export function sortWeapons<T extends WeaponType>(weapons: T[]): T[] {
 }
 
 /**
- * Check if a mount type is available for a weapon
+ * Check if a mount type is available for a weapon.
+ * minProgressLevel is checked against the design PL, not the weapon PL.
+ * Banks become available at PL 8 for all beam weapons, not just PL 8+ beams.
  */
 export function isMountTypeAvailable(
-  weapon: WeaponType,
   mountType: MountType,
-  category: WeaponCategory
+  category: WeaponCategory,
+  designProgressLevel: number
 ): boolean {
   const mountMod = getMountModifiers(mountType);
   
@@ -101,7 +103,7 @@ export function isMountTypeAvailable(
     return false;
   }
   
-  if (mountMod.minProgressLevel && weapon.progressLevel < mountMod.minProgressLevel) {
+  if (mountMod.minProgressLevel && designProgressLevel < mountMod.minProgressLevel) {
     return false;
   }
   

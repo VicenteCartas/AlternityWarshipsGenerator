@@ -95,6 +95,22 @@ export interface FTLDriveType {
   fuelEfficiencyNote?: string;
 }
 
+// ============== Sub-Systems (for zone splitting) ==============
+
+/**
+ * A sub-system created when an FTL drive is split for zone assignment.
+ * Each sub-system represents a portion of the parent FTL drive that can be
+ * independently assigned to a damage zone.
+ */
+export interface FTLSubSystem {
+  /** Unique identifier for this sub-system */
+  id: string;
+  /** Display label (e.g., "Section 1", "Section 2") */
+  label: string;
+  /** Hull points allocated to this sub-system */
+  hullPoints: number;
+}
+
 /**
  * An installed FTL fuel tank on a ship
  */
@@ -115,4 +131,11 @@ export interface InstalledFTLDrive extends InstalledItemBase {
   
   /** Hull points allocated to this drive */
   hullPoints: number;
+
+  /**
+   * Optional sub-systems for zone assignment.
+   * When present, the damage diagram shows these instead of the parent drive.
+   * The parent drive's total HP is the sum of all sub-system HP.
+   */
+  subSystems?: FTLSubSystem[];
 }

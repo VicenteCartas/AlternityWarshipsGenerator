@@ -120,6 +120,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-mod', folderName),
   importMod: () =>
     ipcRenderer.invoke('import-mod'),
+  duplicateMod: (folderName: string) =>
+    ipcRenderer.invoke('duplicate-mod', folderName),
   getModsPath: () =>
     ipcRenderer.invoke('get-mods-path'),
 });

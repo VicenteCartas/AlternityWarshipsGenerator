@@ -37,6 +37,7 @@ vi.mock('./dataLoader', () => {
     getAccommodationsData: emptyFn(),
     getStoreSystemsData: emptyFn(),
     getGravitySystemsData: emptyFn(),
+    getArtificialGravityRulesData: emptyFn(),
     getBeamWeaponsData: emptyFn(),
     getProjectileWeaponsData: emptyFn(),
     getTorpedoWeaponsData: emptyFn(),

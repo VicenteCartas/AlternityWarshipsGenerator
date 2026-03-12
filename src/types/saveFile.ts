@@ -64,6 +64,12 @@ export interface SavedFTLDrive {
   typeId: string;
   /** Size in hull points (determines hull percentage) */
   hullPoints: number;
+  /** Optional sub-systems for zone assignment (when split) */
+  subSystems?: Array<{
+    id: string;
+    label: string;
+    hullPoints: number;
+  }>;
 }
 
 /**

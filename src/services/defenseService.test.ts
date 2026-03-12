@@ -27,6 +27,9 @@ import {
   doesDefenseExceedZoneLimit,
   splitDefenseSystem,
   unsplitDefenseSystem,
+  calculateShieldToughness,
+  calculateExtraGenerators,
+  getNextToughnessThreshold,
 } from './defenseService';
 import { getDefenseSystemsData } from './dataLoader';
 import { getZoneLimitForHull } from './damageDiagramService';
@@ -387,6 +390,134 @@ describe('defenseService', () => {
 
     it('returns null for empty list', () => {
       expect(getActiveScreenTypeName([])).toBeNull();
+    });
+  });
+
+  // ---------- Shield Toughness ----------
+
+  describe('calculateShieldToughness', () => {
+    const ablativeType = makeDefenseType({
+      id: 'ablative-shield-generator',
+      name: 'Ablative Shield Generator',
+      category: 'screen',
+      fixedCoverage: true,
+      allowExtraUnits: true,
+      toughnessThresholds: [
+        { generators: 3, toughness: 'Light' },
+        { generators: 10, toughness: 'Medium' },
+        { generators: 30, toughness: 'Heavy' },
+        { generators: 100, toughness: 'Super-heavy' },
+      ],
+    });
+
+    it('returns hull toughness when no thresholds are met', () => {
+      expect(calculateShieldToughness(ablativeType, 2, 'Small Craft')).toBe('Small Craft');
+    });
+
+    it('returns hull toughness when hull is already at threshold level', () => {
+      expect(calculateShieldToughness(ablativeType, 5, 'Medium')).toBe('Medium');
+    });
+
+    it('upgrades from Small Craft to Light at 3 generators', () => {
+      expect(calculateShieldToughness(ablativeType, 3, 'Small Craft')).toBe('Light');
+    });
+
+    it('upgrades from Light to Medium at 10 generators', () => {
+      expect(calculateShieldToughness(ablativeType, 10, 'Light')).toBe('Medium');
+    });
+
+    it('upgrades from Light to Heavy at 30 generators', () => {
+      expect(calculateShieldToughness(ablativeType, 30, 'Light')).toBe('Heavy');
+    });
+
+    it('upgrades to Super-heavy at 100 generators', () => {
+      expect(calculateShieldToughness(ablativeType, 100, 'Light')).toBe('Super-heavy');
+    });
+
+    it('does not downgrade hull toughness', () => {
+      // 5 generators = Light threshold, but hull is Heavy → stays Heavy
+      expect(calculateShieldToughness(ablativeType, 5, 'Heavy')).toBe('Heavy');
+    });
+
+    it('returns hull toughness if no thresholds field', () => {
+      const noThresholds = makeDefenseType({ category: 'screen' });
+      expect(calculateShieldToughness(noThresholds, 50, 'Medium')).toBe('Medium');
+    });
+  });
+
+  describe('calculateExtraGenerators', () => {
+    const ablativeType = makeDefenseType({ coverage: 20 });
+
+    it('returns 0 when quantity matches full coverage', () => {
+      // 100 HP ship → 5 units for full coverage
+      expect(calculateExtraGenerators(ablativeType, 100, 5)).toBe(0);
+    });
+
+    it('returns extra when quantity exceeds full coverage', () => {
+      expect(calculateExtraGenerators(ablativeType, 100, 8)).toBe(3);
+    });
+
+    it('returns 0 when quantity is below full coverage', () => {
+      expect(calculateExtraGenerators(ablativeType, 100, 3)).toBe(0);
+    });
+  });
+
+  describe('getNextToughnessThreshold', () => {
+    const ablativeType = makeDefenseType({
+      toughnessThresholds: [
+        { generators: 3, toughness: 'Light' },
+        { generators: 10, toughness: 'Medium' },
+        { generators: 30, toughness: 'Heavy' },
+        { generators: 100, toughness: 'Super-heavy' },
+      ],
+    });
+
+    it('returns Light threshold when current is Small Craft', () => {
+      const next = getNextToughnessThreshold(ablativeType, 'Small Craft');
+      expect(next).toEqual({ generators: 3, toughness: 'Light' });
+    });
+
+    it('returns Medium threshold when current is Light', () => {
+      const next = getNextToughnessThreshold(ablativeType, 'Light');
+      expect(next).toEqual({ generators: 10, toughness: 'Medium' });
+    });
+
+    it('returns null when already at Super-heavy', () => {
+      expect(getNextToughnessThreshold(ablativeType, 'Super-heavy')).toBeNull();
+    });
+
+    it('returns null for type with no thresholds', () => {
+      expect(getNextToughnessThreshold(makeDefenseType(), 'Light')).toBeNull();
+    });
+  });
+
+  describe('calculateDefenseStats shieldToughness', () => {
+    it('returns shieldToughness for ablative shields with toughness thresholds', () => {
+      const ablativeType = makeDefenseType({
+        id: 'ablative-shield-generator',
+        coverage: 20,
+        category: 'screen',
+        toughnessThresholds: [
+          { generators: 3, toughness: 'Light' },
+          { generators: 10, toughness: 'Medium' },
+        ],
+      });
+      const defense = makeInstalledDefense({
+        type: ablativeType,
+        quantity: 10, // meets Medium threshold
+        hullPoints: 10,
+        powerRequired: 20,
+        cost: 5000000,
+      });
+      const stats = calculateDefenseStats([defense], 100, 'Light');
+      expect(stats.shieldToughness).toBe('Medium');
+      expect(stats.extraShieldGenerators).toBe(5); // 10 total - 5 base (100/20)
+    });
+
+    it('returns null for screens without toughness thresholds', () => {
+      const stats = calculateDefenseStats([makeInstalledDefense()], 100, 'Light');
+      expect(stats.shieldToughness).toBeNull();
+      expect(stats.extraShieldGenerators).toBe(0);
     });
   });
 

@@ -1,4 +1,19 @@
 import type { ProgressLevel, TechTrack, InstalledSystemBase, PowerConsumingStats, CostPer, PowerPer } from './common';
+import type { ToughnessRating } from './hull';
+
+// ============== Toughness Threshold ==============
+
+/**
+ * A threshold defining the minimum number of generators needed
+ * to achieve a given shield toughness rating.
+ * Used by ablative shields to upgrade shield toughness beyond the hull default.
+ */
+export interface ToughnessThreshold {
+  /** Minimum number of generators required */
+  generators: number;
+  /** Toughness rating achieved at this threshold */
+  toughness: ToughnessRating;
+}
 
 // ============== Defense System Types ==============
 
@@ -40,14 +55,16 @@ export interface DefenseSystemType {
   incompatibleWith?: string[];
   /** ID of another defense system that must be installed before this one can be installed */
   requiresInstalled?: string;
-  /** If true, allows variable sizing even for coverage-based systems (minimum is full coverage) */
-  allowVariableSize?: boolean;
   /** IDs of components that this system requires at least one of to function */
   requiresComponents?: string[];
   /** If true, coverage must exactly match full hull - no editing allowed (for screens) */
   fixedCoverage?: boolean;
   /** If true, coverage must be in multiples of full hull coverage (for countermeasures) */
   coverageMultiples?: boolean;
+  /** If true, extra units beyond full coverage are allowed (for ablative shield toughness upgrades) */
+  allowExtraUnits?: boolean;
+  /** Toughness thresholds for extra units — shield toughness = max(hull toughness, highest matched threshold) */
+  toughnessThresholds?: ToughnessThreshold[];
 }
 
 // ============== Sub-Systems (for zone splitting) ==============
@@ -92,4 +109,8 @@ export interface DefenseStats extends PowerConsumingStats {
   hasActiveScreen: boolean;
   /** The active screen type name (if any) */
   activeScreenType: string | null;
+  /** The effective toughness of the ablative shield (null if no ablative shield installed) */
+  shieldToughness: ToughnessRating | null;
+  /** Number of extra generators beyond full coverage (0 if none) */
+  extraShieldGenerators: number;
 }

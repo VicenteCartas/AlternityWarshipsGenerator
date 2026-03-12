@@ -157,6 +157,20 @@ export async function importMod(): Promise<string | null> {
 }
 
 /**
+ * Duplicate an existing mod (copies all files to a new folder).
+ * Returns the new folder name on success, or null on failure.
+ */
+export async function duplicateMod(folderName: string): Promise<string | null> {
+  if (!window.electronAPI) return null;
+  const result = await window.electronAPI.duplicateMod(folderName);
+  if (!result.success) {
+    if (import.meta.env.DEV) logger.error('[ModService] Failed to duplicate mod:', result.error);
+    return null;
+  }
+  return result.folderName || null;
+}
+
+/**
  * Get the path to the mods directory.
  */
 export async function getModsDirectoryPath(): Promise<string | null> {

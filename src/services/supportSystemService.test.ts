@@ -4,6 +4,7 @@ import type {
   AccommodationType,
   StoreSystemType,
   GravitySystemType,
+  ArtificialGravityRule,
   InstalledLifeSupport,
   InstalledAccommodation,
   InstalledStoreSystem,
@@ -16,6 +17,7 @@ vi.mock('./dataLoader', () => ({
   getAccommodationsData: vi.fn(),
   getStoreSystemsData: vi.fn(),
   getGravitySystemsData: vi.fn(),
+  getArtificialGravityRulesData: vi.fn(),
 }));
 
 import {
@@ -34,6 +36,7 @@ import {
   calculateGravitySystemHullPoints,
   calculateGravitySystemCost,
   calculateSupportSystemsStats,
+  findMatchingGravityRule,
 } from './supportSystemService';
 
 import {
@@ -41,12 +44,14 @@ import {
   getAccommodationsData,
   getStoreSystemsData,
   getGravitySystemsData,
+  getArtificialGravityRulesData,
 } from './dataLoader';
 
 const mockGetLifeSupportData = vi.mocked(getLifeSupportData);
 const mockGetAccommodationsData = vi.mocked(getAccommodationsData);
 const mockGetStoreSystemsData = vi.mocked(getStoreSystemsData);
 const mockGetGravitySystemsData = vi.mocked(getGravitySystemsData);
+const mockGetArtificialGravityRulesData = vi.mocked(getArtificialGravityRulesData);
 
 // ============== Test Data ==============
 
@@ -106,11 +111,17 @@ const makeGravitySystem = (overrides?: Partial<GravitySystemType>): GravitySyste
   ...overrides,
 });
 
+const defaultGravityRules: ArtificialGravityRule[] = [
+  { id: 'gravity-manipulation', name: 'Gravity Manipulation', description: 'G-tech gravity', minProgressLevel: 6, techTracks: ['G'] },
+  { id: 'energy-transformation', name: 'Energy Transformation', description: 'X-tech gravity', minProgressLevel: 8, techTracks: ['X'] },
+];
+
 // ============== Tests ==============
 
 describe('supportSystemService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetArtificialGravityRulesData.mockReturnValue(defaultGravityRules);
   });
 
   // ============== Getter Tests ==============
@@ -277,6 +288,17 @@ describe('supportSystemService', () => {
       expect(result.totalCoverage).toBe(25); // 10*1 + 3*5
     });
 
+    it('life support recyclingCapacity contributes to recyclingReduction', () => {
+      const ls: InstalledLifeSupport[] = [
+        { id: 'ls1', type: makeLifeSupport({ recyclingCapacity: 20 }), quantity: 2 },
+      ];
+      const result = calculateSupportSystemsStats(ls, [], [], [], 8, ['P', 'M']);
+      // 20 * 2 = 40 people recycled
+      expect(result.recyclingCapacity).toBe(40);
+      // Reduces consumption to 10%, so saves 90%: 40 * 0.9 = 36
+      expect(result.recyclingReduction).toBe(36);
+    });
+
     it('accumulates crew accommodation stats', () => {
       const acc: InstalledAccommodation[] = [
         {
@@ -383,21 +405,25 @@ describe('supportSystemService', () => {
     it('hasArtificialGravity true at PL6 with G-tech', () => {
       const result = calculateSupportSystemsStats([], [], [], [], 6, ['G']);
       expect(result.hasArtificialGravity).toBe(true);
+      expect(result.matchedGravityRule?.id).toBe('gravity-manipulation');
     });
 
     it('hasArtificialGravity true at PL8 with X-tech', () => {
       const result = calculateSupportSystemsStats([], [], [], [], 8, ['X']);
       expect(result.hasArtificialGravity).toBe(true);
+      expect(result.matchedGravityRule?.id).toBe('energy-transformation');
     });
 
     it('hasArtificialGravity true when no tech restrictions', () => {
       const result = calculateSupportSystemsStats([], [], [], [], 6, []);
       expect(result.hasArtificialGravity).toBe(true);
+      expect(result.matchedGravityRule).not.toBeNull();
     });
 
     it('hasArtificialGravity false at PL6 without G or X tech', () => {
       const result = calculateSupportSystemsStats([], [], [], [], 6, ['D', 'A']);
       expect(result.hasArtificialGravity).toBe(false);
+      expect(result.matchedGravityRule).toBeNull();
     });
 
     it('sums totals across all subsystem categories', () => {
@@ -417,6 +443,62 @@ describe('supportSystemService', () => {
       expect(result.totalHullPoints).toBe(11); // 1 + 2 + 3 + 5
       expect(result.totalPowerRequired).toBe(7); // 1 + 2 + 0 + 4
       expect(result.totalCost).toBe(1000); // 100 + 200 + 300 + 400
+    });
+  });
+
+  // ============== findMatchingGravityRule Tests ==============
+
+  describe('findMatchingGravityRule', () => {
+    it('matches G-tech rule at PL6', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 6, ['G']);
+      expect(rule?.id).toBe('gravity-manipulation');
+    });
+
+    it('matches X-tech rule at PL8', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 8, ['X']);
+      expect(rule?.id).toBe('energy-transformation');
+    });
+
+    it('returns first matching rule when multiple match', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 8, ['G', 'X']);
+      expect(rule?.id).toBe('gravity-manipulation');
+    });
+
+    it('returns null when no rules match', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 6, ['D']);
+      expect(rule).toBeNull();
+    });
+
+    it('returns null when PL is too low', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 7, ['X']);
+      expect(rule).toBeNull();
+    });
+
+    it('matches when designTechTracks is empty (all tech available)', () => {
+      const rule = findMatchingGravityRule(defaultGravityRules, 6, []);
+      expect(rule?.id).toBe('gravity-manipulation');
+    });
+
+    it('returns null for empty rules array', () => {
+      const rule = findMatchingGravityRule([], 8, ['G']);
+      expect(rule).toBeNull();
+    });
+
+    it('matches a rule with empty techTracks (always qualifies at PL)', () => {
+      const universalRule: ArtificialGravityRule[] = [
+        { id: 'universal', name: 'Universal Gravity', description: '', minProgressLevel: 9, techTracks: [] },
+      ];
+      expect(findMatchingGravityRule(universalRule, 9, ['D'])).not.toBeNull();
+      expect(findMatchingGravityRule(universalRule, 8, ['D'])).toBeNull();
+    });
+
+    it('supports custom mod rules for other tech tracks', () => {
+      const customRules: ArtificialGravityRule[] = [
+        ...defaultGravityRules,
+        { id: 'dimensional-gravity', name: 'Dimensional Gravity', description: 'D-tech gravity', minProgressLevel: 7, techTracks: ['D'] },
+      ];
+      const rule = findMatchingGravityRule(customRules, 7, ['D']);
+      expect(rule?.id).toBe('dimensional-gravity');
     });
   });
 });

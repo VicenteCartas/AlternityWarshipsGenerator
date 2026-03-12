@@ -7,6 +7,11 @@ vi.mock('./dataLoader', () => ({
   getFTLDrivesData: vi.fn(),
 }));
 
+// Mock the damageDiagramService module
+vi.mock('./damageDiagramService', () => ({
+  getZoneLimitForHull: vi.fn(),
+}));
+
 import {
   getAllFTLDriveTypes,
   calculateFTLHullPercentage,
@@ -25,11 +30,18 @@ import {
   getTotalFTLFuelTankHP,
   calculateTotalFTLFuelTankStats,
   calculateJumpDriveMaxDistance,
+  generateFTLSubSystemId,
+  doesFTLExceedZoneLimit,
+  getZoneLimitForFTLWarning,
+  splitFTLDrive,
+  unsplitFTLDrive,
 } from './ftlDriveService';
 
 import { getFTLDrivesData } from './dataLoader';
+import { getZoneLimitForHull } from './damageDiagramService';
 
 const mockGetFTLDrivesData = vi.mocked(getFTLDrivesData);
+const mockGetZoneLimitForHull = vi.mocked(getZoneLimitForHull);
 
 // ============== Test Data ==============
 
@@ -432,6 +444,152 @@ describe('ftlDriveService', () => {
       const drive = makeFixedDrive();
       // 15 fuel / 100 hull = 15%, rating at 15% = 3
       expect(calculateJumpDriveMaxDistance(drive, 15, 100)).toBe(3);
+    });
+  });
+
+  describe('generateFTLSubSystemId', () => {
+    it('generates unique IDs with ftlsub prefix', () => {
+      const id1 = generateFTLSubSystemId();
+      const id2 = generateFTLSubSystemId();
+      expect(id1).toContain('ftlsub');
+      expect(id1).not.toBe(id2);
+    });
+  });
+
+  describe('doesFTLExceedZoneLimit', () => {
+    it('returns true when drive HP exceeds zone limit', () => {
+      mockGetZoneLimitForHull.mockReturnValue(50);
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 100,
+      };
+      expect(doesFTLExceedZoneLimit(drive, 'medium-hull')).toBe(true);
+    });
+
+    it('returns false when drive HP fits within zone limit', () => {
+      mockGetZoneLimitForHull.mockReturnValue(50);
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 30,
+      };
+      expect(doesFTLExceedZoneLimit(drive, 'medium-hull')).toBe(false);
+    });
+
+    it('returns false when drive HP equals zone limit', () => {
+      mockGetZoneLimitForHull.mockReturnValue(50);
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 50,
+      };
+      expect(doesFTLExceedZoneLimit(drive, 'medium-hull')).toBe(false);
+    });
+  });
+
+  describe('getZoneLimitForFTLWarning', () => {
+    it('returns zone limit from damageDiagramService', () => {
+      mockGetZoneLimitForHull.mockReturnValue(75);
+      expect(getZoneLimitForFTLWarning('medium-hull')).toBe(75);
+    });
+  });
+
+  describe('splitFTLDrive', () => {
+    it('splits into 2 equal sections', () => {
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 100,
+      };
+      const result = splitFTLDrive(drive, 2);
+      expect(result.subSystems).toHaveLength(2);
+      expect(result.subSystems![0].hullPoints).toBe(50);
+      expect(result.subSystems![1].hullPoints).toBe(50);
+      expect(result.subSystems![0].label).toBe('Section 1');
+      expect(result.subSystems![1].label).toBe('Section 2');
+    });
+
+    it('splits into 4 sections', () => {
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 100,
+      };
+      const result = splitFTLDrive(drive, 4);
+      expect(result.subSystems).toHaveLength(4);
+      expect(result.subSystems!.every(s => s.hullPoints === 25)).toBe(true);
+    });
+
+    it('distributes remainder to first sub-systems', () => {
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 101,
+      };
+      const result = splitFTLDrive(drive, 4);
+      expect(result.subSystems).toHaveLength(4);
+      expect(result.subSystems![0].hullPoints).toBe(26);
+      expect(result.subSystems![1].hullPoints).toBe(25);
+      expect(result.subSystems![2].hullPoints).toBe(25);
+      expect(result.subSystems![3].hullPoints).toBe(25);
+    });
+
+    it('preserves parent drive properties', () => {
+      const driveType = makeStarDrive();
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: driveType,
+        hullPoints: 100,
+      };
+      const result = splitFTLDrive(drive, 2);
+      expect(result.id).toBe('ftl-1');
+      expect(result.type).toBe(driveType);
+      expect(result.hullPoints).toBe(100);
+    });
+
+    it('generates unique IDs for each sub-system', () => {
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 100,
+      };
+      const result = splitFTLDrive(drive, 4);
+      const ids = result.subSystems!.map(s => s.id);
+      expect(new Set(ids).size).toBe(4);
+    });
+  });
+
+  describe('unsplitFTLDrive', () => {
+    it('removes subSystems from drive', () => {
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: makeStarDrive(),
+        hullPoints: 100,
+        subSystems: [
+          { id: 'sub-1', label: 'Section 1', hullPoints: 50 },
+          { id: 'sub-2', label: 'Section 2', hullPoints: 50 },
+        ],
+      };
+      const result = unsplitFTLDrive(drive);
+      expect(result.subSystems).toBeUndefined();
+    });
+
+    it('preserves other properties', () => {
+      const driveType = makeStarDrive();
+      const drive: InstalledFTLDrive = {
+        id: 'ftl-1',
+        type: driveType,
+        hullPoints: 100,
+        subSystems: [
+          { id: 'sub-1', label: 'Section 1', hullPoints: 50 },
+          { id: 'sub-2', label: 'Section 2', hullPoints: 50 },
+        ],
+      };
+      const result = unsplitFTLDrive(drive);
+      expect(result.id).toBe('ftl-1');
+      expect(result.type).toBe(driveType);
+      expect(result.hullPoints).toBe(100);
     });
   });
 });

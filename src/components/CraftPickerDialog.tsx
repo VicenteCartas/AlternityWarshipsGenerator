@@ -108,7 +108,7 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
     );
     const weaponStats = calculateWeaponStats(state.weapons);
     const ordnanceStats = calculateOrdnanceStats(state.launchSystems, state.ordnanceDesigns);
-    const defenseStats = calculateDefenseStats(state.defenses);
+    const defenseStats = calculateDefenseStats(state.defenses, hull.hullPoints, hull.toughness);
     const ccStats = calculateCommandControlStats(state.commandControl, hull.hullPoints);
     const sensorStats = calculateSensorStats(state.sensors);
     const hmStats = calculateHangarMiscStats(state.hangarMisc);

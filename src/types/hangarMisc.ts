@@ -71,6 +71,8 @@ export interface HangarMiscSystemType {
   baseHullPoints?: number;
   /** Whether this system can be expanded with extra HP */
   expandable?: boolean;
+  /** Additional capacity value per extra HP when expanded */
+  expansionValuePerHp?: number;
   /** Cost per additional HP when expanded */
   expansionCostPerHp?: number;
   /** Effect or bonus provided */

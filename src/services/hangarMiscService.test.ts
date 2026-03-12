@@ -263,6 +263,85 @@ describe('hangarMiscService', () => {
       const type = makeHangarType({ hangarCapacity: undefined, troopCapacity: 5 } as any);
       expect(calculateHangarMiscCapacity(type, 100, 2)).toBe(10);
     });
+
+    // ---- Expansion tests for all capacity types ----
+
+    it('expands cargo capacity with extra HP', () => {
+      const type = makeCargoType({ cargoCapacity: 50, expandable: true, expansionValuePerHp: 25 });
+      // base: 50 * 2 = 100, extra: 3 * 25 = 75, total = 175
+      expect(calculateHangarMiscCapacity(type, 100, 2, 3)).toBe(175);
+    });
+
+    it('does not expand cargo capacity when not expandable', () => {
+      const type = makeCargoType({ cargoCapacity: 50, expandable: false });
+      expect(calculateHangarMiscCapacity(type, 100, 2, 3)).toBe(100);
+    });
+
+    it('expands hangar capacity with extra HP', () => {
+      const type = makeHangarType({ hangarCapacity: 10, expandable: true, expansionValuePerHp: 1 });
+      // base: 10 * 2 = 20, extra: 4 * 1 = 4, total = 24
+      expect(calculateHangarMiscCapacity(type, 100, 2, 4)).toBe(24);
+    });
+
+    it('expands dock capacity with extra HP', () => {
+      const type = makeHangarType({ hangarCapacity: undefined, dockCapacity: 10, expandable: true, expansionValuePerHp: 5 });
+      // base: 10 * 2 = 20, extra: 3 * 5 = 15, total = 35
+      expect(calculateHangarMiscCapacity(type, 100, 2, 3)).toBe(35);
+    });
+
+    it('expands ordnance capacity with extra HP', () => {
+      const type = makeHangarType({ hangarCapacity: undefined, ordnanceCapacity: 4, expandable: true, expansionValuePerHp: 4 });
+      // base: 4 * 2 = 8, extra: 5 * 4 = 20, total = 28
+      expect(calculateHangarMiscCapacity(type, 100, 2, 5)).toBe(28);
+    });
+
+    it('expands prisoners capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, prisonersCapacity: 4, expandable: true, expansionValuePerHp: 2 } as any);
+      // base: 4 * 1 = 4, extra: 2 * 2 = 4, total = 8
+      expect(calculateHangarMiscCapacity(type, 100, 1, 2)).toBe(8);
+    });
+
+    it('expands scientist capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, scientistCapacity: 4, expandable: true, expansionValuePerHp: 2 } as any);
+      // base: 4 * 1 = 4, extra: 3 * 2 = 6, total = 10
+      expect(calculateHangarMiscCapacity(type, 100, 1, 3)).toBe(10);
+    });
+
+    it('expands bed capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, bedCapacity: 4, expandable: true, expansionValuePerHp: 2 } as any);
+      // base: 4 * 2 = 8, extra: 2 * 2 = 4, total = 12
+      expect(calculateHangarMiscCapacity(type, 100, 2, 2)).toBe(12);
+    });
+
+    it('expands fuel collection capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, fuelCollectionCapacity: 1, expandable: true, expansionValuePerHp: 1 } as any);
+      // base: 1 * 2 = 2, extra: 3 * 1 = 3, total = 5
+      expect(calculateHangarMiscCapacity(type, 100, 2, 3)).toBe(5);
+    });
+
+    it('expands power points capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, powerPointsCapacity: 10, expandable: true, expansionValuePerHp: 10 } as any);
+      // base: 10 * 1 = 10, extra: 2 * 10 = 20, total = 30
+      expect(calculateHangarMiscCapacity(type, 100, 1, 2)).toBe(30);
+    });
+
+    it('expands troop capacity with extra HP', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = makeHangarType({ hangarCapacity: undefined, troopCapacity: 10, expandable: true, expansionValuePerHp: 5 } as any);
+      // base: 10 * 2 = 20, extra: 2 * 5 = 10, total = 30
+      expect(calculateHangarMiscCapacity(type, 100, 2, 2)).toBe(30);
+    });
+
+    it('ignores extraHp when expansionValuePerHp is not set', () => {
+      const type = makeHangarType({ hangarCapacity: 10, expandable: true });
+      // expandable but no expansionValuePerHp → no bonus
+      expect(calculateHangarMiscCapacity(type, 100, 2, 5)).toBe(20);
+    });
   });
 
   describe('createInstalledHangarMiscSystem', () => {

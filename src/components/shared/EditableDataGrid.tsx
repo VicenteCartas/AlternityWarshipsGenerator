@@ -46,6 +46,8 @@ interface EditableDataGridProps {
   readOnly?: boolean;
   /** Optional function that returns an sx color string for a row's left-border highlight, or undefined for no highlight. */
   rowHighlightColor?: (row: Record<string, unknown>, index: number) => string | undefined;
+  /** Additional tech track rows from the current mod being edited (unsaved). Merged into the tech track popover. */
+  modTechTracks?: Record<string, unknown>[];
 }
 
 type EditingCell = { rowIndex: number; columnKey: string } | null;
@@ -73,7 +75,33 @@ const setNestedValue = (obj: Record<string, unknown>, key: string, value: unknow
  * Generic editable data grid for the mod editor.
  * Supports inline cell editing, add/delete/duplicate rows, and import from base.
  */
-export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete, readOnly, rowHighlightColor }: EditableDataGridProps) {
+export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseData, activeModsData, disableAdd, disableDelete, readOnly, rowHighlightColor, modTechTracks }: EditableDataGridProps) {
+  // Combine cached tech track codes with any unsaved mod-defined tech tracks
+  const effectiveTechTrackCodes = useMemo(() => {
+    const codes = new Set(getAllTechTrackCodes().filter(t => t !== '-'));
+    if (modTechTracks) {
+      for (const row of modTechTracks) {
+        const code = row.code as string;
+        if (code && /^[A-Z]$/.test(code)) {
+          codes.add(code);
+        }
+      }
+    }
+    return Array.from(codes);
+  }, [modTechTracks]);
+
+  // Build a name lookup that includes unsaved mod-defined tech track names
+  const getEffectiveTechTrackName = useCallback((track: string): string => {
+    // Check unsaved mod tracks first (they may override or supplement cached names)
+    if (modTechTracks) {
+      const modDef = modTechTracks.find(r => r.code === track);
+      if (modDef && typeof modDef.name === 'string' && modDef.name) {
+        return modDef.name;
+      }
+    }
+    return getTechTrackName(track as TechTrack);
+  }, [modTechTracks]);
+
   // Filter activeModsData to only items that differ from base (mod-contributed items)
   const modOnlyData = useMemo(() => {
     if (!activeModsData || !baseData) return activeModsData;
@@ -761,7 +789,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
             {popoverColumnKey === 'techTracks' ? 'Tech Tracks' : columns.find(c => c.key === popoverColumnKey)?.label || 'Select Options'}
           </Typography>
           {popoverColumnKey === 'techTracks' ? (
-            getAllTechTrackCodes().filter(t => t !== '-').map(track => {
+            effectiveTechTrackCodes.map(track => {
               const current = popoverRowIndex >= 0 ? ((rows[popoverRowIndex]?.techTracks as TechTrack[]) || []) : [];
               return (
                 <FormControlLabel
@@ -773,7 +801,7 @@ export function EditableDataGrid({ columns, rows, onChange, defaultItem, baseDat
                       size="small"
                     />
                   }
-                  label={`${track} — ${getTechTrackName(track)}`}
+                  label={`${track} — ${getEffectiveTechTrackName(track)}`}
                   sx={{ display: 'block', '& .MuiTypography-root': { fontSize: '0.8rem' } }}
                 />
               );

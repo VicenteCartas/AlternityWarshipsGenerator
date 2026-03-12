@@ -20,7 +20,7 @@ import type { ArmorType, ArmorWeightConfig } from '../types/armor';
 import type { PowerPlantType, FuelTankType } from '../types/powerPlant';
 import type { EngineType } from '../types/engine';
 import type { FTLDriveType } from '../types/ftlDrive';
-import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystemType } from '../types/supportSystem';
+import type { LifeSupportType, AccommodationType, StoreSystemType, GravitySystemType, ArtificialGravityRule } from '../types/supportSystem';
 import type { DefenseSystemType } from '../types/defense';
 import type { CommandControlSystemType } from '../types/commandControl';
 import type { SensorType, TrackingTable } from '../types/sensor';
@@ -73,6 +73,7 @@ interface DataCache {
     accommodations: AccommodationType[];
     storeSystems: StoreSystemType[];
     gravitySystems: GravitySystemType[];
+    artificialGravityRules: ArtificialGravityRule[];
   } | null;
   defenseSystems: DefenseSystemType[] | null;
   commandControlSystems: CommandControlSystemType[] | null;
@@ -401,6 +402,7 @@ function populateCache(
     accommodations: AccommodationType[];
     storeSystems: StoreSystemType[];
     gravitySystems: GravitySystemType[];
+    artificialGravityRules: ArtificialGravityRule[];
   };
   target.defenseSystems = (defensesData as { defenseSystems: DefenseSystemType[] }).defenseSystems;
   target.commandControlSystems = (commandControlData as { commandSystems: CommandControlSystemType[] }).commandSystems;
@@ -463,6 +465,7 @@ export interface DataStore {
   getAccommodationsData(pureBase?: boolean): AccommodationType[];
   getStoreSystemsData(pureBase?: boolean): StoreSystemType[];
   getGravitySystemsData(pureBase?: boolean): GravitySystemType[];
+  getArtificialGravityRulesData(pureBase?: boolean): ArtificialGravityRule[];
   getDefenseSystemsData(pureBase?: boolean): DefenseSystemType[];
   getCommandControlSystemsData(pureBase?: boolean): CommandControlSystemType[];
   getDamageDiagramDataGetter(): DamageDiagramData | null;
@@ -627,6 +630,9 @@ export function createDataStore(): DataStore {
   const getGravitySystemsDataFn = createGetter<GravitySystemType[]>(
     (c) => c.supportSystems?.gravitySystems || [], () => (supportSystemsDataFallback as { gravitySystems?: GravitySystemType[] }).gravitySystems || []
   );
+  const getArtificialGravityRulesDataFn = createGetter<ArtificialGravityRule[]>(
+    (c) => c.supportSystems?.artificialGravityRules || [], () => (supportSystemsDataFallback as { artificialGravityRules?: ArtificialGravityRule[] }).artificialGravityRules || []
+  );
   const getDefenseSystemsDataFn = createGetter<DefenseSystemType[]>(
     (c) => c.defenseSystems!, () => (defensesDataFallback as { defenseSystems: DefenseSystemType[] }).defenseSystems
   );
@@ -776,6 +782,7 @@ export function createDataStore(): DataStore {
     getAccommodationsData: getAccommodationsDataFn,
     getStoreSystemsData: getStoreSystemsDataFn,
     getGravitySystemsData: getGravitySystemsDataFn,
+    getArtificialGravityRulesData: getArtificialGravityRulesDataFn,
     getDefenseSystemsData: getDefenseSystemsDataFn,
     getCommandControlSystemsData: getCommandControlSystemsDataFn,
 
@@ -839,6 +846,7 @@ export const getLifeSupportData = defaultStore.getLifeSupportData;
 export const getAccommodationsData = defaultStore.getAccommodationsData;
 export const getStoreSystemsData = defaultStore.getStoreSystemsData;
 export const getGravitySystemsData = defaultStore.getGravitySystemsData;
+export const getArtificialGravityRulesData = defaultStore.getArtificialGravityRulesData;
 export const getDefenseSystemsData = defaultStore.getDefenseSystemsData;
 export const getCommandControlSystemsData = defaultStore.getCommandControlSystemsData;
 export const getDamageDiagramDataGetter = defaultStore.getDamageDiagramDataGetter;
