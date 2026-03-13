@@ -1045,7 +1045,8 @@ function renderSystemsSummaryTable(
               checkNewPage(ctx, 5);
               ctx.pdf.setFontSize(6);
               ctx.pdf.setFont('helvetica', 'italic');
-              ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}`, detailIndent, ctx.y);
+              const areaStr = wh.area ? ` (AoE: ${wh.area.rangeOrdinary}/${wh.area.rangeGood}/${wh.area.rangeAmazing})` : '';
+              ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}${areaStr}`, detailIndent, ctx.y);
               ctx.pdf.text(formatCost(wh.cost * loadedItem.quantity), detailColCost, ctx.y);
               ctx.pdf.setFont('helvetica', 'normal');
               ctx.y += 3;
@@ -1523,7 +1524,8 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
             checkNewPage(ctx, 6);
             ctx.pdf.setFontSize(5.5);
             ctx.pdf.setFont('helvetica', 'italic');
-            ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}`, wCols[0], ctx.y);
+            const areaStr = wh.area ? ` (AoE: ${wh.area.rangeOrdinary}/${wh.area.rangeGood}/${wh.area.rangeAmazing})` : '';
+            ctx.pdf.text(`    > ${wh.name} x${loadedItem.quantity}${areaStr}`, wCols[0], ctx.y);
             ctx.pdf.setFontSize(6.5);
             ctx.pdf.setFont('helvetica', 'normal');
             ctx.y += 3.5;

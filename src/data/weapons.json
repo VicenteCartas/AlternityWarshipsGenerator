@@ -1138,7 +1138,12 @@
       "firepower": "M",
       "fireModes": [
         "F"
-      ]
+      ],
+      "magazineCapacity": 16,
+      "maxWarheadSize": 2,
+      "expandable": true,
+      "expansionValuePerHp": 4,
+      "expansionCostPerHp": 50000
     },
     {
       "id": "bomb-salvo",
@@ -1160,7 +1165,12 @@
       "firepower": "M",
       "fireModes": [
         "F"
-      ]
+      ],
+      "magazineCapacity": 16,
+      "maxWarheadSize": 2,
+      "expandable": true,
+      "expansionValuePerHp": 4,
+      "expansionCostPerHp": 50000
     },
     {
       "id": "kinetic-converter",
@@ -1359,6 +1369,12 @@
       "damageType": "En",
       "firepower": "SH",
       "damage": "2d8w/2d8m/2d8c",
+      "area": {
+        "rangeAmazing": "100m",
+        "rangeGood": "200m",
+        "rangeOrdinary": "300m",
+        "notes": "TA"
+      },
       "description": "The null torpedo uses advanced energy transformation technology to deliver a devastating warhead that can cause critical damage to even the largest vessels.",
       "fireModes": ["F"]
     }
@@ -1419,7 +1435,7 @@
       "damage": "d6w/d6+1w/d6m",
       "description": "The thermal inducer projects a beam that excites molecular motion in the target, causing rapid heating. Accuracy improves with consecutive hits on the same target.",
       "fireModes": ["F"],
-      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -3 steps."
+      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -4 steps."
     },
     {
       "id": "thermal-nullifier",
@@ -1438,7 +1454,7 @@
       "damage": "d6+3w/d6+4w/d6+2m",
       "description": "An advanced version of the thermal inducer, the thermal nullifier delivers more devastating thermal damage. Accuracy improves with consecutive hits.",
       "fireModes": ["F"],
-      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -3 steps."
+      "specialEffect": "Accuracy improves by -1 step per consecutive round on same target, to maximum of -4 steps."
     },
     {
       "id": "tractor-beam",

@@ -12,7 +12,9 @@ import {
   Button,
   Stack,
   TextField,
+  Tooltip,
 } from '@mui/material';
+import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import type { ProgressLevel, TechTrack } from '../types/common';
@@ -28,8 +30,9 @@ import {
   canLoadOrdnance,
   addOrdnanceToLoadout,
   removeOrdnanceFromLoadout,
+  getWarheads,
 } from '../services/ordnanceService';
-import { formatCost } from '../services/formatters';
+import { formatCost, getAreaEffectTooltip } from '../services/formatters';
 import { OrdnanceDesignDialog } from './OrdnanceDesignDialog';
 
 interface LaunchSystemEditFormProps {
@@ -311,6 +314,7 @@ export function LaunchSystemEditForm({
                   <TableCell sx={{ fontWeight: 'bold' }}>Design</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Area</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
@@ -320,11 +324,19 @@ export function LaunchSystemEditForm({
                   const canLoad = design.capacityRequired <= remainingCap;
                   const maxQty = Math.floor(remainingCap / design.capacityRequired);
                   const isLoaded = currentLoadout.some(item => item.designId === design.id);
+                  const warhead = getWarheads().find(w => w.id === design.warheadId);
                   return (
                     <TableRow key={design.id}>
                       <TableCell>{design.name}</TableCell>
                       <TableCell sx={{ textTransform: 'capitalize' }}>{design.category}</TableCell>
                       <TableCell sx={{ textTransform: 'capitalize' }}>{design.size} ({design.capacityRequired})</TableCell>
+                      <TableCell>
+                        {warhead?.area ? (
+                          <Tooltip title={getAreaEffectTooltip(warhead.area)}>
+                            <BlurCircularIcon fontSize="small" color="primary" />
+                          </Tooltip>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell>{formatCost(design.totalCost)}</TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.5}>

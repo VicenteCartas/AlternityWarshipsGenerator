@@ -18,10 +18,12 @@ import {
   Stack,
   TextField,
   Chip,
+  Tooltip,
 } from '@mui/material';
+import BlurCircularIcon from '@mui/icons-material/BlurCircular';
 import type { InstalledWeapon } from '../types/weapon';
 import type { LoadedOrdnance, Warhead } from '../types/ordnance';
-import { formatCost } from '../services/formatters';
+import { formatCost, getAreaEffectTooltip } from '../services/formatters';
 import { getWarheads } from '../services/ordnanceService';
 import { filterByDesignConstraints } from '../services/utilities';
 import {
@@ -221,6 +223,7 @@ export function WeaponMagazineEditForm({
                 <TableCell sx={{ fontWeight: 'bold' }}>Size</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Dmg Type/FP</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Damage</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Area</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
@@ -237,6 +240,13 @@ export function WeaponMagazineEditForm({
                     <TableCell>{wh.size}</TableCell>
                     <TableCell>{wh.damageType}/{wh.firepower}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{wh.damage}</TableCell>
+                    <TableCell>
+                      {wh.area ? (
+                        <Tooltip title={getAreaEffectTooltip(wh.area)}>
+                          <BlurCircularIcon fontSize="small" color="primary" />
+                        </Tooltip>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{formatCost(wh.cost)}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
