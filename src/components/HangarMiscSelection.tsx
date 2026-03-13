@@ -251,6 +251,11 @@ export function HangarMiscSelection({
       return `${capacity} troops`;
     }
     
+    // For facility patron capacity, show "X patrons"
+    if (system.patronCapacity) {
+      return `${capacity} patrons`;
+    }
+    
     // For coverage systems (security suite), show "Covers X HP"
     if (system.coveragePerHullPoint) {
       return `Covers ${capacity} HP`;
@@ -274,7 +279,7 @@ export function HangarMiscSelection({
   const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
   const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
   const totalPeople = hull.crew + totalPassengersAndSuspended;
-  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity || selectedSystem.evacCapacity)
+  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.patronCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity || selectedSystem.evacCapacity)
     ? ` | ${formatCapacity(selectedSystem, previewCapacity)}${selectedSystem.evacCapacity && totalPeople > 0 ? ` (${Math.round((previewCapacity / totalPeople) * 100)}%)` : ''}`
     : '';
   const previewServiceStr = selectedSystem?.cargoServiceCapacity
@@ -351,7 +356,7 @@ export function HangarMiscSelection({
                   </Typography>
                   <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
                   <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
-                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.ordnanceCapacity || system.type.evacCapacity) && (
+                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.patronCapacity || system.type.ordnanceCapacity || system.type.evacCapacity) && (
                     <Chip 
                       label={`${formatCapacity(system.type, system.capacity)}${system.type.evacCapacity && totalPeople > 0 ? ` (${Math.round((system.capacity / totalPeople) * 100)}%)` : ''}`} 
                       size="small" 
@@ -627,6 +632,7 @@ export function HangarMiscSelection({
                   </TableCell>
                   <TableCell>{system.powerRequired}</TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.baseCost ? `${formatCost(system.baseCost)} + ` : ''}
                     {formatCost(system.cost)}
                     {system.costPer === 'systemHp' && '/HP'}
                   </TableCell>
@@ -641,6 +647,8 @@ export function HangarMiscSelection({
                       ? `${system.powerPointsCapacity} PP stored`
                       : system.troopCapacity
                       ? `${system.troopCapacity} troops`
+                      : system.patronCapacity
+                      ? `${system.patronCapacity} patrons`
                       : system.ordnanceCapacity
                       ? `${system.ordnanceCapacity} ordnance pts`
                       : system.capacityPerHull || '-'}
@@ -686,6 +694,9 @@ export function HangarMiscSelection({
           )}
           {stats.totalMagazineCapacity > 0 && (
             <Chip label={`Magazine: ${stats.totalMagazineCapacity} pts`} color="primary" variant="outlined" />
+          )}
+          {stats.totalPatronCapacity > 0 && (
+            <Chip label={`Patrons: ${stats.totalPatronCapacity}`} color="primary" variant="outlined" />
           )}
           {embarkedCraftStats.totalEmbarkedCost > 0 && (
             <Chip label={`Embarked: ${formatCost(embarkedCraftStats.totalEmbarkedCost)}`} color="default" variant="outlined" />

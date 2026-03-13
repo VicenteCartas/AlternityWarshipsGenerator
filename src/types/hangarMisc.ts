@@ -57,6 +57,8 @@ export interface HangarMiscSystemType {
   powerPointsCapacity?: number;
   /** For fixed systems: troop capacity per unit (boarding pod) */
   troopCapacity?: number;
+  /** For fixed systems: patron capacity per unit (facilities like bars, entertainment bays) */
+  patronCapacity?: number;
   /** For coverage systems: HP of hull covered per HP of system (e.g., security suite) */
   coveragePerHullPoint?: number;
   /** For cargo service systems: HP of cargo serviced per unit (e.g., autocargo) */
@@ -109,4 +111,6 @@ export interface HangarMiscStats extends PowerConsumingStats {
   totalEvacCapacity: number;
   /** Total magazine capacity (ordnance size points) */
   totalMagazineCapacity: number;
+  /** Total patron capacity (people) */
+  totalPatronCapacity: number;
 }

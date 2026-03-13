@@ -81,6 +81,8 @@ const COL_POWER_PER: ColumnDef = {
 const COL_EXPANDABLE: ColumnDef = { key: 'expandable', label: 'Expand.', type: 'boolean', width: 80, description: 'Whether additional HP can be added beyond the base amount' };
 const COL_EXP_VALUE_PER_HP: ColumnDef = { key: 'expansionValuePerHp', label: 'Exp. Val/HP', type: 'number', min: 0, width: 110, description: 'Effect value gained per additional hull point spent on expansion' };
 const COL_EXP_COST_PER_HP: ColumnDef = { key: 'expansionCostPerHp', label: 'Exp. Cost/HP', type: 'number', min: 0, width: 110, description: 'Credit cost per additional hull point spent on expansion' };
+const COL_EXP_POWER_PER_HP: ColumnDef = { key: 'expansionPowerPerHp', label: 'Exp. Pow/HP', type: 'number', min: 0, width: 110, description: 'Additional power required per extra hull point of expansion' };
+const COL_EXP_HP_STEP: ColumnDef = { key: 'expansionHpStep', label: 'Exp. HP Step', type: 'number', min: 0, width: 110, description: 'Required step size for extra HP (e.g. 5 = must add in multiples of 5)' };
 
 const SHIP_CLASS_OPTIONS = [
   { value: 'small-craft', label: 'Small Craft' },
@@ -506,6 +508,7 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       { key: 'powerPointsCapacity', label: 'PP Cap.', type: 'number', min: 0, width: 80, description: 'Power points storage capacity' },
       { key: 'cargoServiceCapacity', label: 'Cargo Svc.', type: 'number', min: 0, width: 90, description: 'Cargo service capacity in units' },
       { key: 'troopCapacity', label: 'Troop Cap.', type: 'number', min: 0, width: 90, description: 'Troop capacity' },
+      { key: 'patronCapacity', label: 'Patron Cap.', type: 'number', min: 0, width: 100, description: 'Patron capacity (temporary visitors)' },
       { key: 'coveragePerHullPoint', label: 'Coverage/HP', type: 'number', min: 0, width: 110, description: 'Coverage percentage per hull point' },
       { key: 'effect', label: 'Effect', type: 'text', width: 250, description: 'Special effect description' },
       COL_DESC,
@@ -693,12 +696,14 @@ export const EDITOR_SECTIONS: EditorSection[] = [
       COL_EXPANDABLE,
       COL_EXP_VALUE_PER_HP,
       COL_EXP_COST_PER_HP,
+      COL_EXP_POWER_PER_HP,
+      COL_EXP_HP_STEP,
       { key: 'rateOfFire', label: 'RoF', type: 'number', min: 0, width: 70, description: 'Ordnance launched per round' },
       { key: 'spaceReload', label: 'Space Rld', type: 'boolean', width: 90, description: 'Can reload in space' },
       { key: 'ordnanceTypes', label: 'Ord. Types', type: 'multiselect', width: 120, description: 'Compatible ordnance types', options: [{ value: 'missile', label: 'Missile' }, { value: 'bomb', label: 'Bomb' }, { value: 'mine', label: 'Mine' }] },
       COL_DESC,
     ],
-    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, capacity: 1, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, rateOfFire: 1, spaceReload: false, ordnanceTypes: ['missile'], description: '' },
+    defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], hullPoints: 1, powerRequired: 0, cost: 50000, capacity: 1, expandable: false, expansionValuePerHp: 0, expansionCostPerHp: 0, expansionPowerPerHp: 0, expansionHpStep: 0, rateOfFire: 1, spaceReload: false, ordnanceTypes: ['missile'], description: '' },
   },
 
   // ---- Ordnance: Propulsion ----

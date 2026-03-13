@@ -433,6 +433,25 @@ describe('ordnanceService', () => {
       expect(result.totalCapacity).toBe(4);
       expect(result.cost).toBe(5000);
     });
+
+    it('adds expansion power for systems with expansionPowerPerHp', () => {
+      const ls = makeLaunchSystem({
+        hullPoints: 5,
+        powerRequired: 2,
+        cost: 100000,
+        capacity: 10,
+        expandable: true,
+        expansionValuePerHp: 2,
+        expansionCostPerHp: 10000,
+        expansionPowerPerHp: 0.4,
+      });
+      // 5 extra HP: power = 2 base + round(5 * 0.4) = 2 + 2 = 4
+      const result = calculateLaunchSystemStats(ls, 1, 5);
+      expect(result.hullPoints).toBe(10); // 5 base + 5 extra
+      expect(result.powerRequired).toBe(4); // 2 base + round(5 * 0.4)
+      expect(result.totalCapacity).toBe(20); // 10 base + 5 * 2
+      expect(result.cost).toBe(150000); // 100000 base + 5 * 10000
+    });
   });
 
   // ---------- Capacity Functions ----------

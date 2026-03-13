@@ -158,7 +158,10 @@ export function calculateLaunchSystemStats(
     totalCapacity += extraCapacity;
   }
 
-  const powerRequired = launchSystem.powerRequired * quantity;
+  let powerRequired = launchSystem.powerRequired * quantity;
+  if (launchSystem.expandable && launchSystem.expansionPowerPerHp && extraHp > 0) {
+    powerRequired += Math.round(extraHp * launchSystem.expansionPowerPerHp);
+  }
 
   return { hullPoints, powerRequired, cost, totalCapacity };
 }

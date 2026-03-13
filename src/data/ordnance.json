@@ -73,11 +73,15 @@
       "powerRequired": 2,
       "cost": 100000,
       "capacity": 10,
-      "expandable": false,
+      "expandable": true,
+      "expansionValuePerHp": 2,
+      "expansionCostPerHp": 10000,
+      "expansionPowerPerHp": 0.4,
+      "expansionHpStep": 5,
       "rateOfFire": 10,
       "spaceReload": false,
       "ordnanceTypes": ["mine"],
-      "description": "Mine deployment system. Deploys mine patterns (10 mines minimum for effectiveness)."
+      "description": "Mine deployment system with two or more mine rails. Deploys mine patterns (10 mines minimum for effectiveness). Capacity can be expanded in blocks of 5 HP."
     },
     {
       "id": "ordnance-cell",

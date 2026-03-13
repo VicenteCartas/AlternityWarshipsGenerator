@@ -757,6 +757,8 @@ function renderSystemsDetailSection(
   if (supportStats.troopCapacity > 0) personnelExtras.push(`Troops: ${supportStats.troopCapacity}`);
   if (supportStats.passengerCapacity > 0) personnelExtras.push(`Passengers: ${supportStats.passengerCapacity}`);
   if (supportStats.suspendedCapacity > 0) personnelExtras.push(`Stasis: ${supportStats.suspendedCapacity}`);
+  const totalPatronCapacity = (data.installedHangarMisc || []).reduce((sum, hm) => sum + (hm.type.patronCapacity && hm.capacity ? hm.capacity : 0), 0);
+  if (totalPatronCapacity > 0) personnelExtras.push(`Patrons: ${totalPatronCapacity}`);
   if (personnelExtras.length > 0) {
     addLabel(ctx, 'Personnel', personnelExtras.join(', '), ctx.margin + col3W + 10);
   }

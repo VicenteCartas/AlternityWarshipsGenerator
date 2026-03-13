@@ -129,6 +129,10 @@ export interface ExpandableFields {
   expansionValuePerHp?: number;
   /** Cost per additional HP (if expandable) */
   expansionCostPerHp?: number;
+  /** Additional power required per extra HP (if expandable) */
+  expansionPowerPerHp?: number;
+  /** Required step size for extra HP allocation (e.g. 5 means must add HP in multiples of 5) */
+  expansionHpStep?: number;
 }
 
 // ============== Base Installed Item Interfaces ==============

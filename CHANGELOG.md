@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - 2026-03-11
+## [0.4.0] - 2026-03-12
 
 ### Important
 
@@ -31,6 +31,9 @@
 
 ### Bug Fixes
 
+- **Fixed Hangar base cost not shown in selection table:** The Hangars & Misc selection table showed only `$25K/HP` for the Hangar, omitting the `$100K` base installation cost. Per Table 5-17, a hangar costs $100K plus $25K per hull point. The table now shows `$100K + $25K/HP`. The actual installed cost calculation was already correct.
+- **Fixed Minelayer not expandable:** Per Table 5-10, the Minelayer has an "Extra capacity" row allowing +5 HP / +2 Power / +$50K / +10 capacity blocks. The minelayer is now expandable with HP-step enforcement (must add in multiples of 5 HP). Added `expansionPowerPerHp` support to the launch system calculation so expansion power scales correctly.
+- **Fixed X-Ray Laser medium range:** X-Ray Laser (and its Mod variant) had medium range listed as 3 instead of the correct 2 per Table 5-8 in the sourcebook.
 - **Ablative Shield Generator now uses fixed coverage like all other screens:** The generator previously allowed arbitrary sizing (1 HP / 2 PP regardless of hull size). It now auto-calculates the required number of units based on hull size (1 unit per 20 hull points), consistent with Magnetic Screen, Deflection Inducer, Particle Screen, and Displacer. Removed the unused `allowVariableSize` type field.
 - **Fixed mod-defined tech tracks not selectable for systems in the same mod:** When editing a mod that adds new tech tracks (e.g., "Biotech"), the tech track popover in other sections (weapons, support systems, etc.) only showed tracks from the global data cache, which didn't include the current mod's unsaved tech track additions. The EditableDataGrid now receives the mod's in-progress tech track definitions and merges them into the popover, so new tech tracks can be assigned to systems within the same mod.
 - **Fixed bank mount restricted to PL 8+ weapons only:** Bank mounts were only available for beam weapons whose own progress level was 8 or higher. Per the Warships rules, banks become available at PL 8 as a technology — any beam weapon (including PL 6 and PL 7 beams) can be mounted in a bank when the design's progress level is 8+.
@@ -92,6 +95,7 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - **Ablative Shield Toughness Upgrade:** The Ablative Shield Generator now supports purchasing extra generators beyond full hull coverage to upgrade the shield's toughness rating, per the Warships rulebook (Step 8, p.89). The shield inherits the hull's toughness by default, and extra generators raise it to Light (3+), Medium (10+), Heavy (30+), or Super-heavy (100+). The Defense step shows an "Extra Generators" input, live toughness preview with next-threshold hints, and a Shield Toughness chip on installed shields. The summary Damage Zones overview and both PDF export sheets display the shield toughness when active. Toughness thresholds are fully data-driven (`toughnessThresholds` in `defenses.json`), so mods can customize breakpoints or add toughness upgrades to other screens. The mod editor exposes a new "Extra Units" toggle.
 - **Expandable capacity for Hangars & Misc systems:** All capacity types (hangars, cargo, docking, ordnance/magazines, prisoners, scientists, beds, troops, fuel, power) now support the generic `expandable` / `expansionValuePerHp` / `expansionCostPerHp` pattern, matching how launch systems and support systems already work. No base systems are expandable by default (matching base rules), but modders can make any hangar/misc system expandable via the Mod Editor (new Exp. Val/HP and Exp. Cost/HP columns).
 - **Data-driven artificial gravity rules:** Artificial gravity eligibility (previously hardcoded to G-tech at PL6+ or X-tech at PL8+) is now defined by `artificialGravityRules` in `supportSystems.json`. Mods can add new rules to grant free artificial gravity for other tech track + progress level combinations. The gravity status UI now shows the matched rule name and installed gravity systems use their actual name/description instead of hardcoded "Centrifugal Gravity" text.
+- **Patron capacity for Hangars & Misc facilities:** Added `patronCapacity` field to Hangar & Misc system types for facilities that attract temporary visitors (bars, entertainment bays, commerce decks, etc.). Displayed as a "Patrons" chip in the Hangars & Misc step, Support Systems step, and PDF Personnel row. Fully supported in the mod editor. Does not affect life support, stores, or evacuation calculations.
 
 ### Improvements
 

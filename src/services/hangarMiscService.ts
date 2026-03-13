@@ -133,6 +133,10 @@ export function calculateHangarMiscCapacity(
   if (type.troopCapacity) {
     return type.troopCapacity * quantity + expansionBonus(type, extraHp);
   }
+  // Patron capacity per unit (facilities like bars, entertainment bays)
+  if (type.patronCapacity) {
+    return type.patronCapacity * quantity + expansionBonus(type, extraHp);
+  }
   // Coverage-based systems (security suite) - HP of hull covered per HP installed
   if (type.coveragePerHullPoint) {
     const hullPts = calculateHangarMiscHullPoints(type, shipHullPoints, quantity);
@@ -208,6 +212,7 @@ export function calculateHangarMiscStats(installedSystems: InstalledHangarMiscSy
   let totalCargoCapacity = 0;
   let totalEvacCapacity = 0;
   let totalMagazineCapacity = 0;
+  let totalPatronCapacity = 0;
 
   for (const system of installedSystems) {
     totalHullPoints += system.hullPoints;
@@ -226,6 +231,9 @@ export function calculateHangarMiscStats(installedSystems: InstalledHangarMiscSy
     } else if (system.type.category === 'emergency') {
       totalEvacCapacity += system.capacity || 0;
     }
+    if (system.type.patronCapacity) {
+      totalPatronCapacity += system.capacity || 0;
+    }
   }
 
   return {
@@ -237,5 +245,6 @@ export function calculateHangarMiscStats(installedSystems: InstalledHangarMiscSy
     totalCargoCapacity,
     totalEvacCapacity,
     totalMagazineCapacity,
+    totalPatronCapacity,
   };
 }

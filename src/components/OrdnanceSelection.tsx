@@ -550,8 +550,12 @@ export function OrdnanceSelection({
                 type="number"
                 size="small"
                 value={extraHp}
-                onChange={(e) => setExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+                onChange={(e) => {
+                  const raw = Math.max(0, parseInt(e.target.value, 10) || 0);
+                  const step = selectedLaunchSystem.expansionHpStep || 1;
+                  setExtraHp(step > 1 ? Math.round(raw / step) * step : raw);
+                }}
+                inputProps={{ min: 0, step: selectedLaunchSystem.expansionHpStep || 1, style: { textAlign: 'center', width: 40 } }}
                 sx={{ width: 100 }}
                 label="Extra HP"
               />
