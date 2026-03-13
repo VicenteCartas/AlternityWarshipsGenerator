@@ -385,7 +385,6 @@ interface SupportSystemsSelectionProps {
   surfaceProvidesLifeSupport?: boolean;
   surfaceProvidesGravity?: boolean;
   cockpitLifeSupportCoverageHp?: number;
-  totalPatronCapacity?: number;
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
@@ -403,7 +402,6 @@ export function SupportSystemsSelection({
   surfaceProvidesLifeSupport = false,
   surfaceProvidesGravity = false,
   cockpitLifeSupportCoverageHp = 0,
-  totalPatronCapacity = 0,
   onLifeSupportChange,
   onAccommodationsChange,
   onStoreSystemsChange,
@@ -690,13 +688,6 @@ export function SupportSystemsSelection({
           {stats.suspendedCapacity > 0 && (
             <Chip
               label={`Suspended: ${stats.suspendedCapacity}`}
-              color="primary"
-              variant="outlined"
-            />
-          )}
-          {totalPatronCapacity > 0 && (
-            <Chip
-              label={`Patrons: ${totalPatronCapacity}`}
               color="primary"
               variant="outlined"
             />

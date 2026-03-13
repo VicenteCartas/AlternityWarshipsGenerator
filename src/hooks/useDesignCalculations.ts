@@ -109,7 +109,6 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
         summaryValidationState: 'error' as const,
         uniqueTechTracks: [] as TechTrack[],
         totalPassengersAndSuspended: 0,
-        totalPatronCapacity: 0,
       };
     }
 
@@ -238,8 +237,6 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
     const totalPassengersAndSuspended =
       snapshot.supportStats.passengerCapacity + snapshot.supportStats.suspendedCapacity + snapshot.supportStats.troopCapacity;
 
-    const totalPatronCapacity = snapshot.hangarMiscStats.totalPatronCapacity;
-
     return {
       usedHullPointsBeforePowerPlants,
       usedHullPointsBeforeEngines,
@@ -255,7 +252,6 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       summaryValidationState,
       uniqueTechTracks,
       totalPassengersAndSuspended,
-      totalPatronCapacity,
     };
   }, [
     selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,

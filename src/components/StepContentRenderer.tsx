@@ -71,7 +71,6 @@ export interface StepContentProps {
   onCommandControlChange: (v: InstalledCommandControlSystem[]) => void;
   // Hangars
   totalPassengersAndSuspended: number;
-  totalPatronCapacity: number;
   onHangarMiscChange: (v: InstalledHangarMiscSystem[]) => void;
   // Damage
   onZonesChange: (v: DamageZone[]) => void;
@@ -170,7 +169,6 @@ export function StepContentRenderer(props: StepContentProps) {
           surfaceProvidesLifeSupport={state.surfaceProvidesLifeSupport}
           surfaceProvidesGravity={state.surfaceProvidesGravity}
           cockpitLifeSupportCoverageHp={calculateCommandControlLifeSupportCoverageHp(state.commandControl)}
-          totalPatronCapacity={props.totalPatronCapacity}
           onLifeSupportChange={props.onLifeSupportChange}
           onAccommodationsChange={props.onAccommodationsChange}
           onStoreSystemsChange={props.onStoreSystemsChange}
