@@ -636,10 +636,28 @@ describe('damageDiagramService', () => {
       expect(scoreAS).toBeGreaterThan(scoreFP);
     });
 
-    it('scores fore zones higher for sensors', () => {
+    it('scores fore zones higher for sensors without arcs', () => {
       const scoreF = getZonePlacementScore('F', 'sensor', 0.5);
       const scoreA = getZonePlacementScore('A', 'sensor', 0.5);
       expect(scoreF).toBeGreaterThan(scoreA);
+    });
+
+    it('aligns sensors with arcs like weapons (forward sensor to fore zone)', () => {
+      const scoreF = getZonePlacementScore('F', 'sensor', 0.5, ['forward']);
+      const scoreA = getZonePlacementScore('A', 'sensor', 0.5, ['forward']);
+      expect(scoreF).toBeGreaterThan(scoreA);
+    });
+
+    it('aligns aft sensor to aft zone', () => {
+      const scoreA = getZonePlacementScore('A', 'sensor', 0.5, ['aft']);
+      const scoreF = getZonePlacementScore('F', 'sensor', 0.5, ['aft']);
+      expect(scoreA).toBeGreaterThan(scoreF);
+    });
+
+    it('aligns forward+port sensor to FP zone', () => {
+      const scoreFP = getZonePlacementScore('FP', 'sensor', 0.5, ['forward', 'port']);
+      const scoreAS = getZonePlacementScore('AS', 'sensor', 0.5, ['forward', 'port']);
+      expect(scoreFP).toBeGreaterThan(scoreAS);
     });
 
     it('scores outer zones higher for defenses', () => {

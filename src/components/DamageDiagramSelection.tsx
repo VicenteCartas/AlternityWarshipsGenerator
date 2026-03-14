@@ -256,7 +256,8 @@ function buildUnassignedSystemsList(
     ...collector(installedSensors, {
       idPrefix: 'sen', category: 'sensor', originalType: 'sensor',
       getName: s => `${s.type.name} x${s.quantity}`,
-      getHullPoints: s => s.hullPoints }, assignedSystemIds),
+      getHullPoints: s => s.hullPoints,
+      getArcs: s => s.arcs }, assignedSystemIds),
     ...collector(installedHangarMisc, {
       idPrefix: 'hm', category: 'miscellaneous', originalType: 'hangarMisc',
       getName: hm => `${hm.type.name} x${hm.quantity}`,

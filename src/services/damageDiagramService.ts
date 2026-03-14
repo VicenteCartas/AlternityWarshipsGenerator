@@ -392,7 +392,11 @@ export function getZonePlacementScore(
       score += props.depth * 5 + props.foreAft * 3;
       break;
     case 'sensor':
-      score += (1 - props.foreAft) * 4;
+      if (arcs && arcs.length > 0) {
+        score += getArcAlignmentScore(zoneCode, arcs) * 6;
+      } else {
+        score += (1 - props.foreAft) * 4;
+      }
       break;
     case 'defense':
       score += (1 - props.depth) * 3;
