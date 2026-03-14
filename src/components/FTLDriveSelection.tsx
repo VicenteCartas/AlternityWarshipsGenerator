@@ -93,7 +93,12 @@ export function FTLDriveSelection({
 
   // Get all FTL drives, then filter by design constraints
   const availableDrives = useMemo(() => {
-    return filterByDesignConstraints(getAllFTLDriveTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllFTLDriveTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.baseCost !== b.baseCost) return a.baseCost - b.baseCost;
+        return a.costPerHullPoint - b.costPerHullPoint;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   const totalStats = useMemo(

@@ -6,6 +6,12 @@
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
+### Game Rules
+
+- **Warhead-based projectile weapons no longer show fixed damage/firepower:** Accelerator, Heavy Accelerator, Bomb Projector, Bomb Salvo, and Tunneling Driver now correctly derive their damage, firepower, and damage type from the loaded warhead rather than displaying hardcoded default values. The weapon table shows "Warhead" in the Type/FP and Damage columns for these weapons. Per the Warships sourcebook, the previously listed stats assumed a specific nuke warhead and were only defaults.
+- **Tunneling Driver now has an integrated magazine:** Added `magazineCapacity: 16`, `maxWarheadSize: 2`, and expandable magazine support to the Tunneling Driver, matching the other warhead-delivery weapons per the sourcebook rules ("Any warhead of size 2 or smaller may be delivered").
+- **Warhead weapons show "Warhead" for area effect:** Since all warheads are area-effect weapons, warhead-based weapons now display "Warhead" in the Area column and an "Area: Warhead" chip on installed weapons, indicating that the area effect depends on the loaded warhead.
+
 ### Refactoring
 
 - **Migrated `useWarshipState` to a single reducer-backed object (review 3.10):** Replaced 31 individual `useState` calls with a single `useReducer` backed by a `DesignState` object. Eliminates four synchronized code paths (`useState` declarations, `buildCurrentState()` assembly, `applyState()` teardown, dirty-tracking `useEffect` dependency array) that had to stay in lockstep for every new field. The hook's return interface is unchanged — all consumers (App.tsx, StepContentRenderer, step components) required zero modifications.
@@ -38,6 +44,8 @@
 - **Fixed mod-defined tech tracks not selectable for systems in the same mod:** When editing a mod that adds new tech tracks (e.g., "Biotech"), the tech track popover in other sections (weapons, support systems, etc.) only showed tracks from the global data cache, which didn't include the current mod's unsaved tech track additions. The EditableDataGrid now receives the mod's in-progress tech track definitions and merges them into the popover, so new tech tracks can be assigned to systems within the same mod.
 - **Fixed bank mount restricted to PL 8+ weapons only:** Bank mounts were only available for beam weapons whose own progress level was 8 or higher. Per the Warships rules, banks become available at PL 8 as a technology — any beam weapon (including PL 6 and PL 7 beams) can be mounted in a bank when the design's progress level is 8+.
 - **Added missing Passenger Quarters accommodation:** The passenger accommodation progression jumped from Passenger Bunkroom (20 passengers) to Passenger Suite (4 passengers), skipping the 6-person Passenger Quarters that parallels Crew Quarters and Troop Quarters.
+- **Fixed weapon arcs not auto-trimmed when changing mount type during edit:** When editing a weapon and switching from a wider mount (e.g., turret with 3 arcs) to a narrower one (e.g., standard with 1 arc), the selected arcs were not adjusted, leaving the weapon in an invalid state that couldn't be saved. Arcs are now automatically trimmed to fit the new mount type's limits while preserving the user's selections where possible. This also prevents orphaned zero arcs from persisting when their corresponding standard arc is removed.
+- **Weapons now require all free arc slots to be assigned:** Previously a weapon could be saved with fewer standard or zero arcs than its mount type provides. Since all arcs are free for the mount, all slots must be filled — both standard arcs and zero arcs (for eligible weapons). The Add/Update button is disabled with a tooltip showing the reason when arcs are incomplete.
 - **Fixed `createdAt` being overwritten on every save (review 4.1):** `serializeWarship()` set `createdAt` to the current timestamp on every save, making the creation date unreliable. Added `createdAt` to `WarshipState`, preserved it from loaded save files during deserialization, and only generated a new timestamp for first-time saves.
 - **Fixed auto-save recovery race condition:** The "Recover" button on the Welcome page deleted the auto-save file before the async recovery completed. If recovery failed (corrupt file, missing mods, deserialization error), the auto-save was already gone — turning a recoverable failure into permanent data loss. Recovery now awaits the full async process, clears the file only on success, and disables buttons while in-flight.
 - **Fixed Symbiotic Hull recycling having no effect on stores calculation:** The Symbiotic Hull's `recyclingCapacity` was tracked but never contributed to `recyclingReduction`, so its recycling-for-20-people benefit was cosmetic only. Now correctly reduces stores consumption to 10% for the covered people, matching the Recycler Unit behavior described in the rules.
@@ -68,6 +76,10 @@ Full mod support added. Mods live in the user data folder and are managed throug
 - Mods can define new Technology Tracks (single uppercase letter + name) that equipment in the same mod can reference.
 - Tech track definitions are loaded from `techTracks.json` data file and merged from mods.
 - Unknown tech tracks in save files (from unloaded mods) are stripped with a warning on load.
+
+### Improvements
+
+- **Mod data sorted with base data in builder steps:** Items added by mods now appear sorted alongside base game data (by progress level or ship class) instead of appended at the end of selection tables. Affects Hull, Power Plant, Engine, FTL Drive, Command & Control, and Support Systems steps. Steps that already sorted (Weapons, Defenses, Sensors, Hangars & Misc) were unaffected.
 
 ### New Features
 

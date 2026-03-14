@@ -409,21 +409,41 @@ export function SupportSystemsSelection({
 }: SupportSystemsSelectionProps) {
   const [activeTab, setActiveTab] = useState(0);
 
-  // Get filtered types
+  // Get filtered types, sorted by PL
   const availableLifeSupport = useMemo(() => {
-    return filterByDesignConstraints(getAllLifeSupportTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllLifeSupportTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.cost - b.cost;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   const availableAccommodations = useMemo(() => {
-    return filterByDesignConstraints(getAllAccommodationTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllAccommodationTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.cost - b.cost;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   const availableStoreSystems = useMemo(() => {
-    return filterByDesignConstraints(getAllStoreSystemTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllStoreSystemTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.cost - b.cost;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   const availableGravitySystems = useMemo(() => {
-    return filterByDesignConstraints(getAllGravitySystemTypes(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getAllGravitySystemTypes(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPercentage !== b.hullPercentage) return a.hullPercentage - b.hullPercentage;
+        return a.costPerHullPoint - b.costPerHullPoint;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   // Calculate stats

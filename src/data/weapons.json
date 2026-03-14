@@ -1132,10 +1132,7 @@
       "rangeShort": 4,
       "rangeMedium": 6,
       "rangeLong": 8,
-      "damageType": "En",
-      "damage": "2d6s/2d6w/2d6m",
       "description": "Using matter transmission technology, the bomb projector teleports explosive warheads directly to the target location.",
-      "firepower": "M",
       "fireModes": [
         "F"
       ],
@@ -1159,10 +1156,7 @@
       "rangeShort": 5,
       "rangeMedium": 7,
       "rangeLong": 10,
-      "damageType": "En",
-      "damage": "2d6s/2d6w/2d6m",
       "description": "A larger version of the bomb projector capable of teleporting multiple warheads simultaneously.",
-      "firepower": "M",
       "fireModes": [
         "F"
       ],
@@ -1215,14 +1209,16 @@
       "rangeShort": 5,
       "rangeMedium": 10,
       "rangeLong": 20,
-      "damageType": "En",
-      "damage": "2d6s/2d6w/2d6m",
-      "description": "Using quantum tunneling technology, this weapon phases its projectiles through the target's armor before releasing their energy payload.",
-      "firepower": "M",
+      "description": "The tunneling driver employs quantum tunneling to launch a warhead that materializes inside the target, bypassing armor and shields. Any warhead of size 2 or smaller may be used.",
       "fireModes": [
         "F",
         "G"
-      ]
+      ],
+      "magazineCapacity": 16,
+      "maxWarheadSize": 2,
+      "expandable": true,
+      "expansionValuePerHp": 4,
+      "expansionCostPerHp": 50000
     },
     {
       "id": "black-hole-gun",
@@ -1258,10 +1254,7 @@
       "rangeShort": 3,
       "rangeMedium": 5,
       "rangeLong": 7,
-      "damageType": "En",
-      "firepower": "M",
-      "damage": "2d6s/2d6w/2d6m",
-      "description": "The accelerator uses a linear accelerator to throw an unguided warhead at the enemy. Any warhead of size 2 or smaller may be used as the payload (the listed damage and firepower assume a low-yield nuke). The warheads are area-effect weapons.",
+      "description": "The accelerator uses a linear accelerator to throw an unguided warhead at the enemy. Any warhead of size 2 or smaller may be used as the payload. The warheads are area-effect weapons.",
       "fireModes": [
         "F",
         "G"
@@ -1284,10 +1277,7 @@
       "rangeShort": 4,
       "rangeMedium": 8,
       "rangeLong": 10,
-      "damageType": "En",
-      "firepower": "H",
-      "damage": "2d6w/2d6m/2d6c",
-      "description": "The heavy accelerator fires any warhead of size four or smaller; the default figures represent a high-yield nuke. The warheads are area-effect weapons.",
+      "description": "The heavy accelerator fires any warhead of size four or smaller. The warheads are area-effect weapons.",
       "fireModes": [
         "F",
         "G"

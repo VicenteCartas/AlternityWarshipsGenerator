@@ -112,7 +112,7 @@ export function CommandControlSelection({
     [installedSystems, hull.hullPoints]
   );
 
-  // Group systems by category for display
+  // Group systems by category for display, sorted by PL within each group
   const systemsByCategory = useMemo(() => {
     const groups: Record<CommandControlCategory, CommandControlSystemType[]> = {
       command: [],
@@ -121,6 +121,13 @@ export function CommandControlSelection({
     };
     for (const system of availableSystems) {
       groups[system.category].push(system);
+    }
+    for (const category of Object.keys(groups) as CommandControlCategory[]) {
+      groups[category].sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.cost - b.cost;
+      });
     }
     return groups;
   }, [availableSystems]);

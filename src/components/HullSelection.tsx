@@ -15,6 +15,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import type { Hull, ShipClass, HullCategory } from '../types/hull';
+import { SHIP_CLASS_ORDER } from '../types/common';
 import type { DesignType } from '../types/common';
 import {
   getAllHulls,
@@ -49,7 +50,15 @@ export function HullSelection({ selectedHull, onHullSelect, designType }: HullSe
       filtered = filtered.filter((h) => h.category === categoryFilter);
     }
 
-    return filtered;
+    return [...filtered].sort((a, b) => {
+      const catA = a.category === 'military' ? 0 : 1;
+      const catB = b.category === 'military' ? 0 : 1;
+      if (catA !== catB) return catA - catB;
+      const classA = SHIP_CLASS_ORDER.indexOf(a.shipClass);
+      const classB = SHIP_CLASS_ORDER.indexOf(b.shipClass);
+      if (classA !== classB) return classA - classB;
+      return a.hullPoints - b.hullPoints;
+    });
   }, [allHulls, shipClassFilter, categoryFilter]);
 
   // Count hulls by ship class (respecting category filter)

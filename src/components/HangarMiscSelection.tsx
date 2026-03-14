@@ -84,7 +84,11 @@ export function HangarMiscSelection({
     
     return availableSystems
       .filter((s) => s.category === category && !installedSingleInstallIds.includes(s.id))
-      .sort((a, b) => a.progressLevel - b.progressLevel);
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.name.localeCompare(b.name);
+      });
   };
 
   // Count installed systems by category

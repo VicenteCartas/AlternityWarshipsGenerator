@@ -85,7 +85,12 @@ export function PowerPlantSelection({
 
   // Get power plants filtered by ship class, then apply design constraints
   const availablePowerPlants = useMemo(() => {
-    return filterByDesignConstraints(getPowerPlantTypesForShipClass(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getPowerPlantTypesForShipClass(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.powerPerHullPoint !== b.powerPerHullPoint) return a.powerPerHullPoint - b.powerPerHullPoint;
+        return a.baseCost - b.baseCost;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   // Get installed power plants that require fuel (for the fuel tank dropdown)

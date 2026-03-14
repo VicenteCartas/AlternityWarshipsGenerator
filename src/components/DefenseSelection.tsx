@@ -717,7 +717,11 @@ export function DefenseSelection({
           </TableHead>
           <TableBody>
             {defenses
-              .sort((a, b) => a.progressLevel - b.progressLevel)
+              .sort((a, b) => {
+                if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+                if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+                return a.cost - b.cost;
+              })
               .map((defense) => {
                 const isSelected = selectedDefense?.id === defense.id;
                 const hpDisplay = defense.hullPercentage > 0 ? `${defense.hullPercentage}%` : defense.hullPoints;

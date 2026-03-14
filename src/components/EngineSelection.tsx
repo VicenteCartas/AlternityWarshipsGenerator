@@ -88,7 +88,12 @@ export function EngineSelection({
 
   // Get engines filtered by ship class, then apply design constraints
   const availableEngines = useMemo(() => {
-    return filterByDesignConstraints(getEngineTypesForShipClass(), designProgressLevel, designTechTracks);
+    return filterByDesignConstraints(getEngineTypesForShipClass(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.baseCost !== b.baseCost) return a.baseCost - b.baseCost;
+        return a.costPerHullPoint - b.costPerHullPoint;
+      });
   }, [designProgressLevel, designTechTracks]);
 
   // Get unique engine types that require fuel (from installed engines)

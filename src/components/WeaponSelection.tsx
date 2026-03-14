@@ -63,6 +63,7 @@ import {
   canUseZeroArcs,
   getDefaultArcs,
   getFreeArcCount,
+  trimArcsToMountLimits,
   formatArcs,
   validateArcs,
   generateWeaponId,
@@ -176,9 +177,14 @@ export function WeaponSelection({
   // Handler for mount type change - also resets arcs to defaults
   const handleMountTypeChange = (newMountType: MountType) => {
     setMountType(newMountType);
-    // Reset arcs to defaults for the new mount type (only for new weapons, not when editing)
-    if (selectedWeapon && !editingWeaponId) {
-      setSelectedArcs(getDefaultArcs(newMountType, shipClass, canUseZeroArcs(selectedWeapon)));
+    if (selectedWeapon) {
+      if (editingWeaponId) {
+        // Editing: trim arcs to fit the new mount type, preserving user's selections
+        setSelectedArcs(trimArcsToMountLimits(selectedArcs, newMountType, shipClass, canUseZeroArcs(selectedWeapon)));
+      } else {
+        // New weapon: reset arcs to defaults for the new mount type
+        setSelectedArcs(getDefaultArcs(newMountType, shipClass, canUseZeroArcs(selectedWeapon)));
+      }
     }
   };
 
@@ -446,10 +452,10 @@ export function WeaponSelection({
                       />
                     </Tooltip>
                   )}
-                  {weapon.weaponType.area && (
-                    <Tooltip title={getAreaEffectTooltip(weapon.weaponType.area)}>
+                  {(weapon.weaponType.area || isWeaponMagazine(weapon.weaponType)) && (
+                    <Tooltip title={weapon.weaponType.area ? getAreaEffectTooltip(weapon.weaponType.area) : 'Area Effect: depends on loaded warhead'}>
                       <Chip 
-                        label="Area" 
+                        label={weapon.weaponType.area ? 'Area' : 'Area: Warhead'}
                         size="small" 
                         color="warning" 
                         variant="outlined"
@@ -626,15 +632,19 @@ export function WeaponSelection({
               <Button type="button" variant="outlined" size="small" onClick={handleCancelEdit}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                size="small"
-                startIcon={editingWeaponId ? <SaveIcon /> : <AddIcon />}
-                disabled={!!arcValidationError}
-              >
-                {editingWeaponId ? 'Update' : 'Add'}
-              </Button>
+              <Tooltip title={arcValidationError || ''} disableHoverListener={!arcValidationError}>
+                <span>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="small"
+                    startIcon={editingWeaponId ? <SaveIcon /> : <AddIcon />}
+                    disabled={!!arcValidationError}
+                  >
+                    {editingWeaponId ? 'Update' : 'Add'}
+                  </Button>
+                </span>
+              </Tooltip>
             </Box>
           </Box>
         </Box>
@@ -724,10 +734,14 @@ export function WeaponSelection({
                     <Tooltip title={getAreaEffectTooltip(weapon.area)}>
                       <BlurCircularIcon fontSize="small" color="primary" />
                     </Tooltip>
+                  ) : isWeaponMagazine(weapon) ? (
+                    <Tooltip title="Area Effect: depends on loaded warhead">
+                      <BlurCircularIcon fontSize="small" color="primary" />
+                    </Tooltip>
                   ) : '-'}
                 </TableCell>
-                <TableCell>{`${weapon.damageType}/${weapon.firepower}`}</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage}</TableCell>
+                <TableCell>{weapon.damageType && weapon.firepower ? `${weapon.damageType}/${weapon.firepower}` : 'Warhead'}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{weapon.damage || 'Warhead'}</TableCell>
                 <TableCell>{weapon.fireModes.join('/')}</TableCell>
                 {isSpecial && (
                   <TableCell sx={{ maxWidth: 200 }}>

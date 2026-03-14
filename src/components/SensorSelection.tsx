@@ -77,7 +77,10 @@ export function SensorSelection({
   const getSensorsByCategory = (category: SensorCategory) => {
     return availableSensors
       .filter((s) => s.category === category)
-      .sort((a, b) => a.progressLevel - b.progressLevel);
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        return a.name.localeCompare(b.name);
+      });
   };
 
   // Get installed sensors by category

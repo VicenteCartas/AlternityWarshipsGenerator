@@ -477,6 +477,46 @@ export function getDefaultArcs(
 }
 
 /**
+ * Trim arcs to fit a mount type's limits, preserving the user's selections where possible.
+ * Used when changing mount type during editing to keep arcs valid.
+ */
+export function trimArcsToMountLimits(
+  arcs: FiringArc[],
+  mountType: MountType,
+  shipClass: ShipClass,
+  canUseZero: boolean
+): FiringArc[] {
+  const freeArcs = getFreeArcCount(mountType, shipClass);
+  const mountMod = getMountModifiers(mountType);
+
+  const standardArcs = arcs.filter(a => !a.startsWith('zero-'));
+  const zeroArcs = arcs.filter(a => a.startsWith('zero-'));
+
+  // Trim standard arcs to the new mount's limit
+  const trimmedStandard = standardArcs.slice(0, freeArcs.standardArcs);
+
+  // If mount doesn't allow zero arcs or weapon can't use them, remove all zero arcs
+  if (!mountMod.allowsZeroArc || !canUseZero) {
+    return trimmedStandard.length > 0 ? trimmedStandard : ['forward'];
+  }
+
+  // Keep only zero arcs whose corresponding standard arc is still selected
+  // Exception: small-craft get all zero arcs freely regardless of standard arcs
+  const isSmallCraft = shipClass === 'small-craft';
+  const standardSet = new Set(trimmedStandard);
+  let trimmedZero = isSmallCraft
+    ? zeroArcs
+    : zeroArcs.filter(a => standardSet.has(a.replace('zero-', '') as FiringArc));
+
+  // Trim zero arcs to limit
+  const maxZero = isSmallCraft ? 4 : freeArcs.zeroArcs;
+  trimmedZero = trimmedZero.slice(0, maxZero);
+
+  const result = [...trimmedZero, ...trimmedStandard];
+  return result.length > 0 ? result : ['forward'];
+}
+
+/**
  * Validate arc selection
  * Returns error message if invalid, empty string if valid
  */
@@ -523,6 +563,23 @@ export function validateArcs(
   
   if (standardArcs.length > maxFreeStandardArcs) {
     return `Maximum ${maxFreeStandardArcs} standard arc(s) allowed for this mount type`;
+  }
+  
+  // Require all free standard arcs to be assigned (they're free, no reason to leave empty)
+  if (standardArcs.length < maxFreeStandardArcs) {
+    return `Select all ${maxFreeStandardArcs} standard arc(s) for this mount type`;
+  }
+  
+  // Require all free zero arcs to be assigned when the weapon supports them
+  if (canUseZero && maxFreeZeroArcs > 0) {
+    if (isSmallCraft) {
+      // Small craft get all 4 zero arcs for free
+      if (zeroArcs.length < 4) {
+        return `Select all 4 zero arc(s) for small craft`;
+      }
+    } else if (zeroArcs.length < maxFreeZeroArcs) {
+      return `Select ${maxFreeZeroArcs} zero arc(s) for this mount type`;
+    }
   }
   
   return '';

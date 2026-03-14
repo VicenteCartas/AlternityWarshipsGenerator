@@ -1497,7 +1497,8 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       checkNewPage(ctx, 8);
       const wt = weapon.weaponType;
       const rangeText = `${wt.rangeShort}/${wt.rangeMedium}/${wt.rangeLong}`;
-      const typeText = `${wt.damageType}/${wt.firepower}`;
+      const typeText = wt.damageType && wt.firepower ? `${wt.damageType}/${wt.firepower}` : 'Warhead';
+      const damageText = wt.damage ? wt.damage.substring(0, 22) : 'Warhead';
       const batteryKey = `${wt.id}:${weapon.mountType}`;
       const linkedFC = fireControls.find(fc => fc.linkedWeaponBatteryKey === batteryKey);
       const fcText = linkedFC ? (linkedFC.type.stepBonus ? linkedFC.type.stepBonus.toString() : 'Yes') : '-';
@@ -1511,7 +1512,7 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       ctx.pdf.text(fcText, wCols[3], ctx.y);
       ctx.pdf.text(accText, wCols[4], ctx.y);
       ctx.pdf.text(typeText, wCols[5], ctx.y);
-      ctx.pdf.text(wt.damage.substring(0, 22), wCols[6], ctx.y);
+      ctx.pdf.text(damageText, wCols[6], ctx.y);
       ctx.pdf.text(weapon.quantity.toString(), wCols[7], ctx.y);
       ctx.y += 4;
 

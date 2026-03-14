@@ -40,6 +40,7 @@ import {
   canUseZeroArcs,
   getDefaultArcs,
   validateArcs,
+  trimArcsToMountLimits,
   getArcDisplayName,
   formatArcs,
   generateWeaponId,
@@ -799,8 +800,12 @@ describe('weaponService', () => {
   });
 
   describe('validateArcs', () => {
-    it('returns empty string for valid standard mount', () => {
-      expect(validateArcs(['forward'], 'standard', 'medium', true)).toBe('');
+    it('returns empty string for valid standard mount with zero arc', () => {
+      expect(validateArcs(['zero-forward', 'forward'], 'standard', 'medium', true)).toBe('');
+    });
+
+    it('returns empty string for valid standard mount without zero eligibility', () => {
+      expect(validateArcs(['forward'], 'standard', 'medium', false)).toBe('');
     });
 
     it('rejects empty arcs', () => {
@@ -860,6 +865,108 @@ describe('weaponService', () => {
         ['zero-forward', 'zero-starboard', 'zero-port', 'zero-aft', 'forward'],
         'standard', 'small-craft', true
       )).toBe('');
+    });
+
+    it('rejects turret with fewer standard arcs than required', () => {
+      expect(validateArcs(['forward'], 'turret', 'medium', false))
+        .toContain('Select all 3 standard arc(s)');
+    });
+
+    it('rejects sponson with fewer standard arcs than required', () => {
+      expect(validateArcs(['forward'], 'sponson', 'medium', false))
+        .toContain('Select all 2 standard arc(s)');
+    });
+
+    it('rejects turret with 2 standard arcs when 3 required', () => {
+      expect(validateArcs(['forward', 'starboard'], 'turret', 'medium', true))
+        .toContain('Select all 3 standard arc(s)');
+    });
+
+    it('rejects standard mount missing zero arc when weapon supports them', () => {
+      expect(validateArcs(['forward'], 'standard', 'medium', true))
+        .toContain('Select 1 zero arc(s)');
+    });
+
+    it('rejects turret missing zero arc when weapon supports them', () => {
+      expect(validateArcs(['forward', 'starboard', 'port'], 'turret', 'medium', true))
+        .toContain('Select 1 zero arc(s)');
+    });
+
+    it('rejects small-craft with fewer than 4 zero arcs', () => {
+      expect(validateArcs(
+        ['zero-forward', 'forward'],
+        'standard', 'small-craft', true
+      )).toContain('Select all 4 zero arc(s)');
+    });
+
+    it('does not require zero arcs on fixed mount even if weapon supports them', () => {
+      expect(validateArcs(['forward'], 'fixed', 'medium', true)).toBe('');
+    });
+  });
+
+  describe('trimArcsToMountLimits', () => {
+    it('trims turret arcs to standard mount (1 standard)', () => {
+      const result = trimArcsToMountLimits(
+        ['forward', 'starboard', 'port'], 'standard', 'medium', false
+      );
+      expect(result).toEqual(['forward']);
+    });
+
+    it('trims turret arcs with zero arc to standard mount', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'forward', 'starboard', 'port'], 'standard', 'medium', true
+      );
+      expect(result).toEqual(['zero-forward', 'forward']);
+    });
+
+    it('removes zero arcs when switching to fixed mount', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'forward', 'starboard', 'port'], 'fixed', 'medium', true
+      );
+      expect(result).toEqual(['forward']);
+    });
+
+    it('trims turret arcs to sponson mount (2 standard)', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'forward', 'starboard', 'port'], 'sponson', 'medium', true
+      );
+      expect(result).toEqual(['zero-forward', 'forward', 'starboard']);
+    });
+
+    it('removes orphaned zero arcs whose standard arc was trimmed', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-starboard', 'forward', 'starboard', 'port'], 'standard', 'medium', true
+      );
+      // Only 'forward' kept as standard; zero-starboard is orphaned (starboard trimmed)
+      expect(result).toEqual(['forward']);
+    });
+
+    it('returns ["forward"] when all arcs trimmed', () => {
+      const result = trimArcsToMountLimits([], 'standard', 'medium', true);
+      expect(result).toEqual(['forward']);
+    });
+
+    it('does not change arcs already within limits', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'forward'], 'standard', 'medium', true
+      );
+      expect(result).toEqual(['zero-forward', 'forward']);
+    });
+
+    it('removes zero arcs when weapon cannot use them', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'forward'], 'standard', 'medium', false
+      );
+      expect(result).toEqual(['forward']);
+    });
+
+    it('preserves all zero arcs for small-craft when present in input', () => {
+      const result = trimArcsToMountLimits(
+        ['zero-forward', 'zero-starboard', 'zero-port', 'zero-aft', 'forward', 'starboard', 'port'],
+        'standard', 'small-craft', true
+      );
+      // Standard mount = 1 standard arc; small-craft keeps all zero arcs freely
+      expect(result).toEqual(['zero-forward', 'zero-starboard', 'zero-port', 'zero-aft', 'forward']);
     });
   });
 

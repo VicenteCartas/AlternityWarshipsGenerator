@@ -23,6 +23,7 @@ import type { Hull } from '../types/hull';
 import type { ArmorType, ArmorWeight, ShipArmor } from '../types/armor';
 import type { ProgressLevel, TechTrack } from '../types/common';
 import {
+  getArmorWeights,
   getArmorWeightsForShipClass,
   getArmorTypesByWeight,
   calculateArmorHullPoints,
@@ -82,15 +83,28 @@ export function ArmorSelection({
     return counts;
   }, [allFilteredByConstraints, availableWeights]);
 
-  // Get armor types filtered by weight, then apply design constraints
+  // Build weight → hullPercentage map for sorting (handles mod-defined weights)
+  const weightHullPct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const w of getArmorWeights()) map.set(w.id, w.hullPercentage);
+    return map;
+  }, []);
+
+  // Get armor types filtered by weight, then apply design constraints, sorted by PL → weight → name
   const filteredTypes = useMemo(() => {
     const byWeight = getArmorTypesByWeight(hull.shipClass, weightFilter);
     const byConstraints = filterByDesignConstraints(byWeight, designProgressLevel, designTechTracks);
-    if (multiLayerAllowed) {
-      return byConstraints.filter(t => !usedWeights.has(t.armorWeight) || armorLayers.some(l => l.type.id === t.id));
-    }
-    return byConstraints;
-  }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks, multiLayerAllowed, usedWeights, armorLayers]);
+    const filtered = multiLayerAllowed
+      ? byConstraints.filter(t => !usedWeights.has(t.armorWeight) || armorLayers.some(l => l.type.id === t.id))
+      : byConstraints;
+    return [...filtered].sort((a, b) => {
+      if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+      const pctA = weightHullPct.get(a.armorWeight) ?? 99;
+      const pctB = weightHullPct.get(b.armorWeight) ?? 99;
+      if (pctA !== pctB) return pctA - pctB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [hull.shipClass, weightFilter, designProgressLevel, designTechTracks, multiLayerAllowed, usedWeights, armorLayers, weightHullPct]);
 
   const handleWeightFilterChange = (
     _event: React.MouseEvent<HTMLElement>,

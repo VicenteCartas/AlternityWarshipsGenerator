@@ -115,12 +115,12 @@ export interface BaseWeaponType extends ExpandableFields {
   rangeMedium: number;
   /** Long range in megameters */
   rangeLong: number;
-  /** Damage type: En (Energy), LI (Low-Impact), HI (High-Impact) */
-  damageType: string;
-  /** Firepower rating: S (Small), L (Light), H (Heavy), SH (Super-Heavy), Gd (Good/Point Defense) */
-  firepower: FirepowerRating;
-  /** Damage for Ordinary/Good/Amazing hits */
-  damage: string;
+  /** Damage type: En (Energy), LI (Low-Impact), HI (High-Impact). Omitted for warhead-based weapons (damage comes from loaded warhead). */
+  damageType?: string;
+  /** Firepower rating: S (Small), L (Light), H (Heavy), SH (Super-Heavy), Gd (Good/Point Defense). Omitted for warhead-based weapons. */
+  firepower?: FirepowerRating;
+  /** Damage for Ordinary/Good/Amazing hits. Omitted for warhead-based weapons (damage comes from loaded warhead). */
+  damage?: string;
   /** Fire modes available (array of individual modes) */
   fireModes: FireMode[];
   /** Description */
