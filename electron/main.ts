@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 
 // App version - keep in sync with src/constants/version.ts
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '1.0.0';
 const APP_NAME = 'Alternity Warship Generator';
 
 let mainWindow: BrowserWindow | null = null;
