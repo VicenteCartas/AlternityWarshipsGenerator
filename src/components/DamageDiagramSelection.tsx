@@ -53,6 +53,7 @@ import {
   getFirepowerOrder,
   calculateDamageDiagramStats,
   canWeaponBeInZone,
+  selectBestZone,
 } from '../services/damageDiagramService';
 
 interface DamageDiagramSelectionProps {
@@ -229,7 +230,7 @@ function buildUnassignedSystemsList(
       idPrefix: 'wpn', category: 'weapon', originalType: 'weapon',
       getName: w => `${w.weaponType.name} (${w.gunConfiguration}, ${w.mountType}) x${w.quantity}`,
       getHullPoints: w => w.hullPoints * w.quantity,
-      getFirepowerOrder: w => getFirepowerOrder(w.weaponType.firepower),
+      getFirepowerOrder: w => getFirepowerOrder(w.weaponType.firepower ?? ''),
       getArcs: w => w.arcs }, assignedSystemIds),
     ...collector(installedLaunchSystems, {
       idPrefix: 'launch', category: 'weapon', originalType: 'launchSystem',
@@ -669,13 +670,7 @@ export function DamageDiagramSelection({
       }
       if (candidateZones.length === 0) continue;
 
-      // Pick zone with most remaining space for balanced distribution
-      let bestZone = candidateZones[0];
-      let bestSpace = bestZone.maxHullPoints - bestZone.totalHullPoints;
-      for (const zone of candidateZones) {
-        const space = zone.maxHullPoints - zone.totalHullPoints;
-        if (space > bestSpace) { bestSpace = space; bestZone = zone; }
-      }
+      const bestZone = selectBestZone(candidateZones, system.category, system.arcs);
 
       const newRef: ZoneSystemReference = {
         id: generateZoneSystemRefId(), systemType: system.category, name: system.name,
@@ -704,12 +699,7 @@ export function DamageDiagramSelection({
       }
       if (candidateZones.length === 0) continue;
 
-      let bestZone = candidateZones[0];
-      let bestSpace = bestZone.maxHullPoints - bestZone.totalHullPoints;
-      for (const zone of candidateZones) {
-        const space = zone.maxHullPoints - zone.totalHullPoints;
-        if (space > bestSpace) { bestSpace = space; bestZone = zone; }
-      }
+      const bestZone = selectBestZone(candidateZones, system.category, system.arcs);
 
       const newRef: ZoneSystemReference = {
         id: generateZoneSystemRefId(), systemType: system.category, name: system.name,

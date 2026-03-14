@@ -261,6 +261,187 @@ export function sortSystemsByDamagePriority(systems: ZoneSystemReference[]): Zon
   });
 }
 
+// ============== Smart Zone Placement ==============
+
+/**
+ * Spatial properties of each zone for smart auto-assignment.
+ * - depth: 0 (surface/outer) to 1 (deep core) — how protected the zone is
+ * - foreAft: 0 (fully fore) to 1 (fully aft) — longitudinal position
+ * - portStarboard: -1 (full port) to 1 (full starboard), 0 = centerline
+ */
+interface ZoneProperties {
+  depth: number;
+  foreAft: number;
+  portStarboard: number;
+}
+
+const ZONE_PROPERTIES: Record<ZoneCode, ZoneProperties> = {
+  // Outer edges
+  'F':   { depth: 0,   foreAft: 0,    portStarboard: 0 },
+  'A':   { depth: 0,   foreAft: 1,    portStarboard: 0 },
+  'P':   { depth: 0,   foreAft: 0.5,  portStarboard: -1 },
+  'S':   { depth: 0,   foreAft: 0.5,  portStarboard: 1 },
+  // Mid zones (corners)
+  'FP':  { depth: 0.4, foreAft: 0.25, portStarboard: -0.5 },
+  'FS':  { depth: 0.4, foreAft: 0.25, portStarboard: 0.5 },
+  'AP':  { depth: 0.4, foreAft: 0.75, portStarboard: -0.5 },
+  'AS':  { depth: 0.4, foreAft: 0.75, portStarboard: 0.5 },
+  // Center axis (inner)
+  'FC':  { depth: 0.7, foreAft: 0.3,  portStarboard: 0 },
+  'AC':  { depth: 0.7, foreAft: 0.7,  portStarboard: 0 },
+  // Deep core (12-zone)
+  'CF':  { depth: 1,   foreAft: 0.45, portStarboard: 0 },
+  'CA':  { depth: 1,   foreAft: 0.55, portStarboard: 0 },
+  // 20-zone outer ring
+  'FFP': { depth: 0.2, foreAft: 0.15, portStarboard: -0.5 },
+  'FFC': { depth: 0.4, foreAft: 0.15, portStarboard: 0 },
+  'FFS': { depth: 0.2, foreAft: 0.15, portStarboard: 0.5 },
+  'AAP': { depth: 0.2, foreAft: 0.85, portStarboard: -0.5 },
+  'AAC': { depth: 0.4, foreAft: 0.85, portStarboard: 0 },
+  'AAS': { depth: 0.2, foreAft: 0.85, portStarboard: 0.5 },
+  // 20-zone center sides
+  'PC':  { depth: 0.6, foreAft: 0.5,  portStarboard: -0.5 },
+  'SC':  { depth: 0.6, foreAft: 0.5,  portStarboard: 0.5 },
+};
+
+/**
+ * Spatial position each directional arc "pulls" toward.
+ * Forward = bow (foreAft 0, centerline), Aft = stern (foreAft 1, centerline),
+ * Port = midship port side, Starboard = midship starboard side.
+ */
+const ARC_POSITIONS: Record<string, { foreAft: number; portStarboard: number }> = {
+  forward:   { foreAft: 0,   portStarboard: 0 },
+  aft:       { foreAft: 1,   portStarboard: 0 },
+  port:      { foreAft: 0.5, portStarboard: -1 },
+  starboard: { foreAft: 0.5, portStarboard: 1 },
+};
+
+/**
+ * Compute how well a zone aligns with a weapon's firing arcs by finding the
+ * centroid of all arc directions, then scoring by proximity.
+ * Multi-arc weapons (e.g. forward+port+starboard turret) naturally land in
+ * the geometric middle of their coverage — the zone that makes physical sense
+ * for reaching all arcs.
+ * Returns 0–1 where 1 = perfect alignment.
+ */
+function getArcAlignmentScore(zoneCode: ZoneCode, arcs: string[]): number {
+  const props = ZONE_PROPERTIES[zoneCode];
+
+  // Compute centroid of all directional arcs
+  let sumFA = 0;
+  let sumPS = 0;
+  let count = 0;
+  for (const arc of arcs) {
+    const pos = ARC_POSITIONS[arc];
+    if (pos) {
+      sumFA += pos.foreAft;
+      sumPS += pos.portStarboard;
+      count++;
+    }
+  }
+
+  if (count === 0) return 0.5; // No directional arcs (zero-range, high, low)
+
+  const centroidFA = sumFA / count;
+  const centroidPS = sumPS / count;
+
+  // Distance from zone to centroid (portStarboard scaled by /2 since it spans -1..1 vs foreAft 0..1)
+  const dFA = props.foreAft - centroidFA;
+  const dPS = (props.portStarboard - centroidPS) / 2;
+  const distance = Math.sqrt(dFA * dFA + dPS * dPS);
+
+  // Max distance in normalized space is sqrt(1 + 1) ≈ 1.414
+  return Math.max(0, 1 - distance / Math.SQRT2);
+}
+
+/**
+ * Score how suitable a zone is for a given system category.
+ * Higher score = better placement. Incorporates zone spatial properties
+ * and a balance bonus from remaining capacity.
+ */
+export function getZonePlacementScore(
+  zoneCode: ZoneCode,
+  category: SystemDamageCategory,
+  remainingSpaceRatio: number,
+  arcs?: string[],
+): number {
+  const props = ZONE_PROPERTIES[zoneCode];
+
+  // Small balance bonus to spread systems across zones when preferences are equal
+  let score = remainingSpaceRatio * 2;
+
+  switch (category) {
+    case 'command':
+      score += props.depth * 12;
+      break;
+    case 'powerPlant':
+      score += props.depth * 10;
+      break;
+    case 'ftlDrive':
+      score += props.depth * 10;
+      break;
+    case 'engine':
+      score += props.foreAft * 10;
+      break;
+    case 'weapon':
+      if (arcs && arcs.length > 0) {
+        score += getArcAlignmentScore(zoneCode, arcs) * 10;
+      }
+      break;
+    case 'fuel':
+      score += props.depth * 5 + props.foreAft * 3;
+      break;
+    case 'sensor':
+      score += (1 - props.foreAft) * 4;
+      break;
+    case 'defense':
+      score += (1 - props.depth) * 3;
+      break;
+    case 'support':
+      score += props.depth * 3;
+      break;
+    case 'accommodation':
+      score += props.depth * 2;
+      break;
+    case 'hangar':
+      score += (1 - props.depth) * 2;
+      break;
+    case 'communication':
+      score += (1 - props.depth) * 1;
+      break;
+    case 'miscellaneous':
+      break;
+  }
+
+  return score;
+}
+
+/**
+ * Select the best zone for a system from a list of candidate zones.
+ * Uses spatial scoring to place systems in contextually appropriate locations.
+ */
+export function selectBestZone(
+  candidateZones: DamageZone[],
+  category: SystemDamageCategory,
+  arcs?: string[],
+): DamageZone {
+  let bestZone = candidateZones[0];
+  let bestScore = -Infinity;
+
+  for (const zone of candidateZones) {
+    const remainingRatio = zone.maxHullPoints > 0
+      ? (zone.maxHullPoints - zone.totalHullPoints) / zone.maxHullPoints
+      : 0;
+    const score = getZonePlacementScore(zone.code, category, remainingRatio, arcs);
+    if (score > bestScore) {
+      bestScore = score;
+      bestZone = zone;
+    }
+  }
+
+  return bestZone;
+}
+
 // ============== Zone Validation ==============
 
 /**

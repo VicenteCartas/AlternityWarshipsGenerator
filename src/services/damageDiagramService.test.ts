@@ -22,6 +22,8 @@ import {
   createDefaultHitLocationChart,
   validateDamageDiagram,
   isDamageDiagramComplete,
+  getZonePlacementScore,
+  selectBestZone,
 } from './damageDiagramService';
 import { getDamageDiagramDataGetter } from './dataLoader';
 
@@ -544,6 +546,185 @@ describe('damageDiagramService', () => {
         makeZone({ systems: [makeZoneSystemRef()], totalHullPoints: 100, maxHullPoints: 96 }),
       ];
       expect(isDamageDiagramComplete(zones, 0)).toBe(false);
+    });
+  });
+
+  // ---------- Smart Zone Placement ----------
+
+  describe('getZonePlacementScore', () => {
+    it('scores deep zones higher for command systems', () => {
+      const scoreF = getZonePlacementScore('F', 'command', 0.5);
+      const scoreFC = getZonePlacementScore('FC', 'command', 0.5);
+      const scoreCF = getZonePlacementScore('CF', 'command', 0.5);
+      expect(scoreCF).toBeGreaterThan(scoreFC);
+      expect(scoreFC).toBeGreaterThan(scoreF);
+    });
+
+    it('scores deep zones higher for power plants', () => {
+      const scoreF = getZonePlacementScore('F', 'powerPlant', 0.5);
+      const scoreCF = getZonePlacementScore('CF', 'powerPlant', 0.5);
+      expect(scoreCF).toBeGreaterThan(scoreF);
+    });
+
+    it('scores deep zones higher for FTL drives', () => {
+      const scoreA = getZonePlacementScore('A', 'ftlDrive', 0.5);
+      const scoreCA = getZonePlacementScore('CA', 'ftlDrive', 0.5);
+      expect(scoreCA).toBeGreaterThan(scoreA);
+    });
+
+    it('scores aft zones higher for engines', () => {
+      const scoreF = getZonePlacementScore('F', 'engine', 0.5);
+      const scoreA = getZonePlacementScore('A', 'engine', 0.5);
+      const scoreAC = getZonePlacementScore('AC', 'engine', 0.5);
+      expect(scoreA).toBeGreaterThan(scoreF);
+      expect(scoreA).toBeGreaterThan(scoreAC);
+    });
+
+    it('scores forward zones higher for forward weapons', () => {
+      const scoreF = getZonePlacementScore('F', 'weapon', 0.5, ['forward']);
+      const scoreA = getZonePlacementScore('A', 'weapon', 0.5, ['forward']);
+      expect(scoreF).toBeGreaterThan(scoreA);
+    });
+
+    it('scores aft zones higher for aft weapons', () => {
+      const scoreF = getZonePlacementScore('F', 'weapon', 0.5, ['aft']);
+      const scoreA = getZonePlacementScore('A', 'weapon', 0.5, ['aft']);
+      expect(scoreA).toBeGreaterThan(scoreF);
+    });
+
+    it('scores port zones higher for port weapons', () => {
+      const scoreP = getZonePlacementScore('P', 'weapon', 0.5, ['port']);
+      const scoreS = getZonePlacementScore('S', 'weapon', 0.5, ['port']);
+      expect(scoreP).toBeGreaterThan(scoreS);
+    });
+
+    it('scores starboard zones higher for starboard weapons', () => {
+      const scoreP = getZonePlacementScore('P', 'weapon', 0.5, ['starboard']);
+      const scoreS = getZonePlacementScore('S', 'weapon', 0.5, ['starboard']);
+      expect(scoreS).toBeGreaterThan(scoreP);
+    });
+
+    it('scores forward-port zone well for forward+port weapon', () => {
+      const scoreFP = getZonePlacementScore('FP', 'weapon', 0.5, ['forward', 'port']);
+      const scoreAS = getZonePlacementScore('AS', 'weapon', 0.5, ['forward', 'port']);
+      expect(scoreFP).toBeGreaterThan(scoreAS);
+    });
+
+    it('picks FP as best for forward+port weapon (centroid between arcs)', () => {
+      const scoreFP = getZonePlacementScore('FP', 'weapon', 0.5, ['forward', 'port']);
+      const scoreF = getZonePlacementScore('F', 'weapon', 0.5, ['forward', 'port']);
+      const scoreP = getZonePlacementScore('P', 'weapon', 0.5, ['forward', 'port']);
+      expect(scoreFP).toBeGreaterThan(scoreF);
+      expect(scoreFP).toBeGreaterThan(scoreP);
+    });
+
+    it('picks forward centerline zone for forward+port+starboard turret', () => {
+      const scoreF = getZonePlacementScore('F', 'weapon', 0.5, ['forward', 'port', 'starboard']);
+      const scoreP = getZonePlacementScore('P', 'weapon', 0.5, ['forward', 'port', 'starboard']);
+      const scoreS = getZonePlacementScore('S', 'weapon', 0.5, ['forward', 'port', 'starboard']);
+      const scoreA = getZonePlacementScore('A', 'weapon', 0.5, ['forward', 'port', 'starboard']);
+      expect(scoreF).toBeGreaterThan(scoreP);
+      expect(scoreF).toBeGreaterThan(scoreS);
+      expect(scoreF).toBeGreaterThan(scoreA);
+    });
+
+    it('picks aft-starboard zone for aft+starboard weapon', () => {
+      const scoreAS = getZonePlacementScore('AS', 'weapon', 0.5, ['aft', 'starboard']);
+      const scoreF = getZonePlacementScore('F', 'weapon', 0.5, ['aft', 'starboard']);
+      const scoreFP = getZonePlacementScore('FP', 'weapon', 0.5, ['aft', 'starboard']);
+      expect(scoreAS).toBeGreaterThan(scoreF);
+      expect(scoreAS).toBeGreaterThan(scoreFP);
+    });
+
+    it('scores fore zones higher for sensors', () => {
+      const scoreF = getZonePlacementScore('F', 'sensor', 0.5);
+      const scoreA = getZonePlacementScore('A', 'sensor', 0.5);
+      expect(scoreF).toBeGreaterThan(scoreA);
+    });
+
+    it('scores outer zones higher for defenses', () => {
+      const scoreF = getZonePlacementScore('F', 'defense', 0.5);
+      const scoreCF = getZonePlacementScore('CF', 'defense', 0.5);
+      expect(scoreF).toBeGreaterThan(scoreCF);
+    });
+
+    it('includes balance bonus from remaining space', () => {
+      const scoreFull = getZonePlacementScore('F', 'miscellaneous', 0);
+      const scoreEmpty = getZonePlacementScore('F', 'miscellaneous', 1);
+      expect(scoreEmpty).toBeGreaterThan(scoreFull);
+    });
+  });
+
+  describe('selectBestZone', () => {
+    it('selects deep zone for command on a 6-zone ship', () => {
+      const zones: DamageZone[] = [
+        makeZone({ code: 'F', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'FC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'P', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'S', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'AC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'A', maxHullPoints: 22, totalHullPoints: 0 }),
+      ];
+      const best = selectBestZone(zones, 'command');
+      expect(['FC', 'AC']).toContain(best.code);
+    });
+
+    it('selects aft zone for engines on a 6-zone ship', () => {
+      const zones: DamageZone[] = [
+        makeZone({ code: 'F', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'FC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'P', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'S', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'AC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'A', maxHullPoints: 22, totalHullPoints: 0 }),
+      ];
+      const best = selectBestZone(zones, 'engine');
+      expect(best.code).toBe('A');
+    });
+
+    it('selects forward zone for forward weapon', () => {
+      const zones: DamageZone[] = [
+        makeZone({ code: 'F', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'FC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'P', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'S', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'AC', maxHullPoints: 22, totalHullPoints: 0 }),
+        makeZone({ code: 'A', maxHullPoints: 22, totalHullPoints: 0 }),
+      ];
+      const best = selectBestZone(zones, 'weapon', ['forward']);
+      expect(best.code).toBe('F');
+    });
+
+    it('respects remaining capacity when primary zone is full', () => {
+      const zones: DamageZone[] = [
+        makeZone({ code: 'CF', maxHullPoints: 96, totalHullPoints: 96 }),
+        makeZone({ code: 'CA', maxHullPoints: 96, totalHullPoints: 0 }),
+        makeZone({ code: 'F', maxHullPoints: 96, totalHullPoints: 0 }),
+      ];
+      // CF is best for command but full, so candidates passed in won't include it
+      // CA should be chosen over F since it's deep
+      const candidates = zones.filter(z => z.maxHullPoints - z.totalHullPoints >= 5);
+      const best = selectBestZone(candidates, 'command');
+      expect(best.code).toBe('CA');
+    });
+
+    it('selects deep zone for power plant on 12-zone ship', () => {
+      const zones: DamageZone[] = [
+        makeZone({ code: 'F', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'FC', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'FP', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'FS', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'P', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'CF', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'S', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'AP', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'CA', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'AS', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'AC', maxHullPoints: 195, totalHullPoints: 0 }),
+        makeZone({ code: 'A', maxHullPoints: 195, totalHullPoints: 0 }),
+      ];
+      const best = selectBestZone(zones, 'powerPlant');
+      expect(['CF', 'CA']).toContain(best.code);
     });
   });
 });
