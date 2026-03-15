@@ -27,7 +27,7 @@ A desktop application for generating Warships, Space Stations, and Bases for the
 
 ### Export & Library
 
-- **PDF export** — BattleTech TRO-style ship sheets with lore, systems detail, combat tables, and damage zones
+- **PDF export** — technical readout style ship sheets with lore, systems detail, combat tables, and damage zones
 - **Copy stats to clipboard** — Formatted text for forums, Discord, or campaign docs
 - **Ship Library** — Browse and search saved designs with thumbnail cards, filter by name/class/PL
 - **Save/Load** — Save designs to `.warship.json` files with automatic migration of older formats
