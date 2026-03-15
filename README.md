@@ -127,7 +127,6 @@ The installers will be created in the `release/` folder.
 │   ├── preload.ts      # Preload script for IPC
 │   └── tsconfig.json   # TypeScript config for Electron
 ├── scripts/            # Build scripts
-├── rules/              # Sourcebook rules text (reference)
 ├── src/
 │   ├── components/     # React components for each build step
 │   │   ├── shared/     # Reusable UI components
