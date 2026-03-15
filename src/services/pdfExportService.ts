@@ -25,20 +25,11 @@ import { getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceS
 import { getAllLoadedCraft } from './embarkedCraftService';
 import { computeDesignSnapshot } from './designSnapshotService';
 import { calculateDefenseStats } from './defenseService';
-import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName } from './formatters';
+import { formatCost, formatAccuracyModifier, formatAcceleration, getStationTypeDisplayName, formatArcsShort } from './formatters';
 import { capitalize, logger } from './utilities';
 
-/**
- * Format arcs as short single-letter abbreviations separated by spaces.
- * Standard arcs: F S A P. Zero arcs: ZF ZS ZA ZP.
- */
-export function formatArcsShort(arcs: FiringArc[]): string {
-  if (arcs.length === 0) return '-';
-  return arcs.map(a => {
-    if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
-    return a.charAt(0).toUpperCase();
-  }).join(' ');
-}
+// formatArcsShort re-exported from formatters
+export { formatArcsShort } from './formatters';
 
 // ============ INTERFACES ============
 
@@ -306,7 +297,7 @@ export function enrichSystemDisplayName(
       const ordAbbrevs = (matchedLS.loadout || []).map(lo => {
         const design = (data.ordnanceDesigns || []).find(d => d.id === lo.designId);
         if (!design) return null;
-        const abbr = design.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+        const abbr = design.name.split(/\s+/).map(w => w.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).map(w => w.charAt(0).toUpperCase()).join('');
         return `${lo.quantity}x${abbr}`;
       }).filter(Boolean);
       if (ordAbbrevs.length > 0) {
@@ -324,7 +315,7 @@ export function enrichSystemDisplayName(
       const whAbbrevs = (matchedW.magazineLoadout || []).map(lo => {
         const wh = allWarheads.find(w => w.id === lo.designId);
         if (!wh) return null;
-        const abbr = wh.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+        const abbr = wh.name.split(/\s+/).map(w => w.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).map(w => w.charAt(0).toUpperCase()).join('');
         return `${lo.quantity}x${abbr}`;
       }).filter(Boolean);
       if (whAbbrevs.length > 0) {
@@ -341,7 +332,7 @@ export function enrichSystemDisplayName(
       // Craft in hangars/docking clamps
       if ((matchedHM.loadout || []).length > 0) {
         const craftAbbrevs = (matchedHM.loadout || []).map(c => {
-          const abbr = c.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+          const abbr = c.name.split(/\s+/).map(w => w.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).map(w => w.charAt(0).toUpperCase()).join('');
           return `${c.quantity}x${abbr}`;
         });
         if (craftAbbrevs.length > 0) {
@@ -353,7 +344,7 @@ export function enrichSystemDisplayName(
         const ordAbbrevs = (matchedHM.ordnanceLoadout || []).map(lo => {
           const design = (data.ordnanceDesigns || []).find(d => d.id === lo.designId);
           if (!design) return null;
-          const abbr = design.name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+          const abbr = design.name.split(/\s+/).map(w => w.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).map(w => w.charAt(0).toUpperCase()).join('');
           return `${lo.quantity}x${abbr}`;
         }).filter(Boolean);
         if (ordAbbrevs.length > 0) {
@@ -787,7 +778,8 @@ function renderSystemsDetailSection(
 
   // Row 5: Acceleration, FTL (only if design has engines or FTL)
   if (hasEngines || data.installedFTLDrive) {
-    addLabel(ctx, 'Acceleration', hasEngines ? stats.totalAcceleration.toString() : 'N/A', ctx.margin);
+    const isPL6Scale = data.installedEngines.length > 0 && data.installedEngines[0].type.usesPL6Scale;
+    addLabel(ctx, 'Acceleration', hasEngines ? formatAcceleration(stats.totalAcceleration, isPL6Scale) : 'N/A', ctx.margin);
     if (data.installedFTLDrive) {
       addLabel(ctx, 'FTL', data.installedFTLDrive.type.name, ctx.margin + col3W + 10);
     } else {

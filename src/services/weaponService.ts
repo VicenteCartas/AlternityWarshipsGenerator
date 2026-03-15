@@ -602,27 +602,5 @@ export function getArcDisplayName(arc: FiringArc): string {
   return names[arc];
 }
 
-/**
- * Format arcs for display in weapon lists (includes Zero- prefix for clarity)
- */
-export function formatArcs(arcs: FiringArc[]): string {
-  if (arcs.length === 0) return 'None';
-  
-  // Check if all zero arcs are selected
-  const zeroArcs = arcs.filter(a => a.startsWith('zero-'));
-  const standardArcs = arcs.filter(a => !a.startsWith('zero-'));
-  
-  const parts: string[] = [];
-  
-  // If all 4 zero arcs, show as "All Zero"
-  if (zeroArcs.length === 4) {
-    parts.push('All Zero');
-  } else {
-    // Add Zero- prefix for zero arcs in list view
-    parts.push(...zeroArcs.map(arc => 'Zero-' + getArcDisplayName(arc)));
-  }
-  
-  parts.push(...standardArcs.map(getArcDisplayName));
-  
-  return parts.join(', ');
-}
+// formatArcs is re-exported from formatters for backward compatibility
+export { formatArcs } from './formatters';

@@ -1,6 +1,6 @@
 import type { ShipClass } from '../types/hull';
 import type { TechTrack, DesignType, StationType, ProgressLevel } from '../types/common';
-import type { AreaEffect } from '../types/weapon';
+import type { AreaEffect, FiringArc } from '../types/weapon';
 import { getTechTracksData } from './dataLoader';
 
 /**
@@ -305,3 +305,67 @@ export const PL_NAMES: Record<ProgressLevel, string> = {
   8: 'PL8 - Energy Age',
   9: 'PL9 - Matter Age',
 };
+
+// ============ Firing Arc Formatting ============
+
+/** Canonical clockwise display order for firing arcs */
+const ARC_ORDER: FiringArc[] = [
+  'forward', 'starboard', 'aft', 'port',
+  'zero-forward', 'zero-starboard', 'zero-aft', 'zero-port',
+];
+
+/**
+ * Sort arcs into canonical clockwise order (Fwd → Stbd → Aft → Port),
+ * standard arcs first, then zero arcs.
+ */
+export function sortArcs(arcs: FiringArc[]): FiringArc[] {
+  return [...arcs].sort((a, b) => ARC_ORDER.indexOf(a) - ARC_ORDER.indexOf(b));
+}
+
+const ARC_DISPLAY_NAMES: Record<FiringArc, string> = {
+  'forward': 'Fwd',
+  'starboard': 'Stbd',
+  'port': 'Port',
+  'aft': 'Aft',
+  'zero-forward': 'Fwd',
+  'zero-starboard': 'Stbd',
+  'zero-port': 'Port',
+  'zero-aft': 'Aft',
+};
+
+/**
+ * Format arcs for display (e.g. "Fwd, Stbd, Port" or "All Zero, Fwd").
+ * Arcs are always sorted in canonical clockwise order.
+ */
+export function formatArcs(arcs: FiringArc[]): string {
+  if (arcs.length === 0) return 'None';
+
+  const sorted = sortArcs(arcs);
+  const zeroArcs = sorted.filter(a => a.startsWith('zero-'));
+  const standardArcs = sorted.filter(a => !a.startsWith('zero-'));
+
+  const parts: string[] = [];
+
+  if (zeroArcs.length === 4) {
+    parts.push('All Zero');
+  } else {
+    parts.push(...zeroArcs.map(arc => 'Zero-' + ARC_DISPLAY_NAMES[arc]));
+  }
+
+  parts.push(...standardArcs.map(arc => ARC_DISPLAY_NAMES[arc]));
+
+  return parts.join(', ');
+}
+
+/**
+ * Format arcs as short single-letter abbreviations separated by spaces.
+ * Standard arcs: F S A P. Zero arcs: ZF ZS ZA ZP.
+ * Arcs are always sorted in canonical clockwise order.
+ */
+export function formatArcsShort(arcs: FiringArc[]): string {
+  if (arcs.length === 0) return '-';
+  return sortArcs(arcs).map(a => {
+    if (a.startsWith('zero-')) return 'Z' + a.replace('zero-', '').charAt(0).toUpperCase();
+    return a.charAt(0).toUpperCase();
+  }).join(' ');
+}

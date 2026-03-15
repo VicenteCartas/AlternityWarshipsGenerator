@@ -394,8 +394,8 @@ describe('formatArcsShort', () => {
     expect(formatArcsShort(['zero-forward', 'zero-aft'])).toBe('ZF ZA');
   });
 
-  it('formats mixed standard and zero arcs', () => {
-    expect(formatArcsShort(['forward', 'zero-starboard', 'aft'])).toBe('F ZS A');
+  it('formats mixed standard and zero arcs in canonical order', () => {
+    expect(formatArcsShort(['forward', 'zero-starboard', 'aft'])).toBe('F A ZS');
   });
 
   it('formats single arc', () => {
@@ -527,6 +527,26 @@ describe('enrichSystemDisplayName', () => {
     });
     const result = enrichSystemDisplayName('Missile Rack', 'launch-ls-1', data);
     expect(result).toBe('Missile Rack');
+  });
+
+  it('strips parentheses from craft names in abbreviations', () => {
+    const data = makeMinimalShipData({
+      installedHangarMisc: [{
+        id: 'hm-1',
+        type: {
+          id: 'hangar-bay', name: 'Hangar Bay', progressLevel: 7, techTracks: [],
+          category: 'hangar', hullPoints: 4, powerRequired: 0, cost: 1000000, costPer: 'unit',
+          description: 'A hangar bay',
+        },
+        quantity: 1,
+        hullPoints: 4,
+        powerRequired: 0,
+        cost: 1000000,
+        loadout: [{ id: 'lc-1', filePath: '', name: 'Fighter (Light)', hullName: 'Light Hull', quantity: 3, designCost: 500000, hullHp: 5, fileValid: true }],
+      }] as InstalledHangarMiscSystem[],
+    });
+    const result = enrichSystemDisplayName('Hangar Bay', 'hm-hm-1', data);
+    expect(result).toBe('Hangar Bay (3xFL)');
   });
 });
 

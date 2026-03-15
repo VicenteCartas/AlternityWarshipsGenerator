@@ -6,6 +6,11 @@
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
+### Bug Fixes
+
+- **Firing arcs now always display in canonical clockwise order:** Weapon and sensor arcs (Forward → Starboard → Aft → Port, then zero arcs) are now sorted consistently in the PDF export, summary tab, and all arc formatting functions, regardless of the order the user selected them. Consolidated `formatArcs` and `formatArcsShort` into `formatters.ts`.
+- **Fixed broken parentheses in PDF damage zone abbreviations:** When craft or ordnance names contained parentheses (e.g. "Fighter (Light)"), the PDF abbreviation logic included the parenthesis characters, producing malformed output like `Hangar (2xF()`. Abbreviations now strip non-alphanumeric characters before taking initials.
+
 ### Game Rules
 
 - **Warhead-based projectile weapons no longer show fixed damage/firepower:** Accelerator, Heavy Accelerator, Bomb Projector, Bomb Salvo, and Tunneling Driver now correctly derive their damage, firepower, and damage type from the loaded warhead rather than displaying hardcoded default values. The weapon table shows "Warhead" in the Type/FP and Damage columns for these weapons. Per the Warships sourcebook, the previously listed stats assumed a specific nuke warhead and were only defaults.
@@ -39,6 +44,7 @@
 
 ### Bug Fixes
 
+- **Fixed acceleration not capped to 2 decimals in PDF export:** The full-sheet PDF printed raw floating-point acceleration values instead of rounding to 2 decimal places.
 - **Fixed Hangar base cost not shown in selection table:** The Hangars & Misc selection table showed only `$25K/HP` for the Hangar, omitting the `$100K` base installation cost. Per Table 5-17, a hangar costs $100K plus $25K per hull point. The table now shows `$100K + $25K/HP`. The actual installed cost calculation was already correct.
 - **Fixed Minelayer not expandable:** Per Table 5-10, the Minelayer has an "Extra capacity" row allowing +5 HP / +2 Power / +$50K / +10 capacity blocks. The minelayer is now expandable with HP-step enforcement (must add in multiples of 5 HP). Added `expansionPowerPerHp` support to the launch system calculation so expansion power scales correctly.
 - **Fixed X-Ray Laser medium range:** X-Ray Laser (and its Mod variant) had medium range listed as 3 instead of the correct 2 per Table 5-8 in the sourcebook.

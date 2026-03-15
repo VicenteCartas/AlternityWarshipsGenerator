@@ -19,7 +19,7 @@ import type { InstalledCommandControlSystem } from '../../types/commandControl';
 import type { InstalledSensor } from '../../types/sensor';
 import type { InstalledHangarMiscSystem } from '../../types/hangarMisc';
 import type { InstalledLaunchSystem } from '../../types/ordnance';
-import { formatCost } from '../../services/formatters';
+import { formatCost, formatArcs } from '../../services/formatters';
 import { getLaunchSystemsData } from '../../services/dataLoader';
 import { calculateFuelTankCost } from '../../services/powerPlantService';
 import { calculateEngineFuelTankCost } from '../../services/engineService';
@@ -230,7 +230,7 @@ export function SystemsTab({
               {installedWeapons.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell sx={{ width: '40%' }}>
-                    {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{w.arcs.join(', ')}]
+                    {w.quantity}x {w.gunConfiguration} {w.weaponType.name} ({w.mountType}{w.concealed ? ', concealed' : ''}) [{formatArcs(w.arcs)}]
                   </TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{w.hullPoints * w.quantity} HP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{w.powerRequired * w.quantity === 0 ? '0' : `-${w.powerRequired * w.quantity}`} PP</TableCell>
@@ -298,7 +298,7 @@ export function SystemsTab({
             <TableBody>
               {installedSensors.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name} [{s.arcs.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ')}]</TableCell>
+                  <TableCell sx={{ width: '40%' }}>{s.quantity}x {s.type.name} [{formatArcs(s.arcs)}]</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{s.hullPoints} HP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{s.powerRequired === 0 ? '0' : `-${s.powerRequired}`} PP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{formatCost(s.cost)}</TableCell>
