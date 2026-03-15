@@ -6,10 +6,6 @@
 
 - Save file version is now 1.2. Older saves (1.0 and 1.1) migrate automatically.
 
-### Documentation
-
-- Updated README.md with current feature set (stations/bases, mod system, ship library, undo/redo, themes, carrier complement, weapon magazines, defense/FTL splitting, etc.), current tech stack versions (React 19, MUI v7, Vite 7, Electron 40, TypeScript 5.9), expanded project structure, and test commands.
-
 ### Mod System
 
 Full mod support added. Mods live in the user data folder and are managed through a dedicated Mod Manager screen.
