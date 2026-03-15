@@ -20,7 +20,6 @@ import { getZoneConfigForHull, createDefaultHitLocationChart } from './damageDia
 import { calculatePowerPlantCost, calculatePowerGenerated, calculateFuelTankCost } from './powerPlantService';
 import { calculateEnginePowerRequired, calculateEnginePowerGenerated, calculateEngineCost, calculateEngineFuelTankCost } from './engineService';
 import { calculateFTLPowerRequired, calculateFTLCost, calculateFTLFuelTankCost } from './ftlDriveService';
-import type { FiringArc } from '../types/weapon';
 import { getWarheads, getPropulsionSystems, getLaunchSystems } from './ordnanceService';
 import { getAllLoadedCraft } from './embarkedCraftService';
 import { computeDesignSnapshot } from './designSnapshotService';
