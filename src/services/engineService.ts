@@ -67,6 +67,7 @@ export function calculateEnginePowerGenerated(engine: EngineType, hullPoints: nu
  * Calculate power required for an engine installation
  */
 export function calculateEnginePowerRequired(engine: EngineType, hullPoints: number): number {
+  if (typeof engine.powerPerHullPoint !== 'number') return 0;
   return Math.ceil(engine.powerPerHullPoint * hullPoints);
 }
 
@@ -74,7 +75,7 @@ export function calculateEnginePowerRequired(engine: EngineType, hullPoints: num
  * Calculate cost for an engine installation
  */
 export function calculateEngineCost(engine: EngineType, hullPoints: number): number {
-  return engine.baseCost + (engine.costPerHullPoint * hullPoints);
+  return (engine.baseCost || 0) + ((engine.costPerHullPoint || 0) * hullPoints);
 }
 
 /**

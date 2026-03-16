@@ -244,6 +244,22 @@ describe('engineService', () => {
       const engine = makeEngineType({ powerPerHullPoint: 0 });
       expect(calculateEnginePowerRequired(engine, 20)).toBe(0);
     });
+
+    it('returns 0 when powerPerHullPoint is undefined (power-generating-only engines)', () => {
+      const { powerPerHullPoint: _, ...engine } = makeEngineType();
+      expect(calculateEnginePowerRequired(engine as EngineType, 10)).toBe(0);
+    });
+
+    it('never returns NaN for non-numeric powerPerHullPoint', () => {
+      const badValues = [undefined, null, 'abc', {}, true, [1]];
+      for (const badValue of badValues) {
+        const engine = makeEngineType();
+        Object.assign(engine, { powerPerHullPoint: badValue });
+        const result = calculateEnginePowerRequired(engine, 10);
+        expect(result).not.toBeNaN();
+        expect(result).toBe(0);
+      }
+    });
   });
 
   describe('calculateEngineCost', () => {

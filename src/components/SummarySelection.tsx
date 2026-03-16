@@ -1030,7 +1030,7 @@ export function SummarySelection({
                         <TableCell sx={{ width: '40%' }}>{eng.type.name}</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{eng.hullPoints} HP</TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>
-                          -{Math.ceil(eng.hullPoints * eng.type.powerPerHullPoint)} PP
+                          -{Math.ceil(eng.hullPoints * (eng.type.powerPerHullPoint || 0))} PP
                           {(eng.type.powerGeneratedPerHullPoint ?? 0) > 0 && ` / +${Math.ceil(eng.type.powerGeneratedPerHullPoint! * eng.hullPoints)} PP`}
                         </TableCell>
                         <TableCell align="right" sx={{ width: '20%' }}>{formatCost(eng.type.baseCost + eng.hullPoints * eng.type.costPerHullPoint)}</TableCell>

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2] - 2026-03-16
+
+### Improvements
+
+- **Accommodations sort order:** Accommodations in the Support Systems step now sort by PL, then category (crew → troop → passenger → suspended), then HP, then cost, then capacity.
+
+### Bug Fixes
+
+- **NaN values when engines have missing or non-numeric power fields:** Mods with engines that only generate power (omitting `powerPerHullPoint`) or have non-numeric `powerGeneratedPerHullPoint` caused NaN to appear in the Power Scenario dropdown, Engines step preview, Systems Summary, PDF export power section, and budget charts. Added `typeof` number guards in `calculateEnginePowerRequired` and `calculateEnginePowerGenerated`, defensive `|| 0` fallbacks in display code, and safe defaults in `calculateEngineCost`.
+
 ## [1.0.1] - 2026-03-15
 
 ### Bug Fixes

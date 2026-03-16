@@ -422,11 +422,16 @@ export function SupportSystemsSelection({
   }, [designProgressLevel, designTechTracks]);
 
   const availableAccommodations = useMemo(() => {
+    const categoryOrder: Record<string, number> = { crew: 0, troop: 1, passenger: 2, suspended: 3 };
     return filterByDesignConstraints(getAllAccommodationTypes(), designProgressLevel, designTechTracks)
       .sort((a, b) => {
         if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        const catA = categoryOrder[a.category] ?? 99;
+        const catB = categoryOrder[b.category] ?? 99;
+        if (catA !== catB) return catA - catB;
         if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
-        return a.cost - b.cost;
+        if (a.cost !== b.cost) return a.cost - b.cost;
+        return a.capacity - b.capacity;
       });
   }, [designProgressLevel, designTechTracks]);
 

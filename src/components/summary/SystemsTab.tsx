@@ -163,7 +163,7 @@ export function SystemsTab({
                 <TableRow key={eng.id}>
                   <TableCell sx={{ width: '40%' }}>{eng.type.name}</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{eng.hullPoints} HP</TableCell>
-                  <TableCell align="right" sx={{ width: '20%' }}>-{eng.hullPoints * eng.type.powerPerHullPoint} PP</TableCell>
+                  <TableCell align="right" sx={{ width: '20%' }}>-{eng.hullPoints * (eng.type.powerPerHullPoint || 0)} PP</TableCell>
                   <TableCell align="right" sx={{ width: '20%' }}>{formatCost(eng.type.baseCost + eng.hullPoints * eng.type.costPerHullPoint)}</TableCell>
                 </TableRow>
               ))}

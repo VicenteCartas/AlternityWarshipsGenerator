@@ -595,7 +595,7 @@ export function EngineSelection({
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {previewStats && (
                             <Typography variant="caption" color="text.secondary">
-                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
+                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint ?? 0} | Power: {previewStats.powerRequired}
                               {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
                               {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                               {' | Cost: '}{formatCost(previewStats.engineCost)}
@@ -885,7 +885,7 @@ export function EngineSelection({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {previewStats && (
                 <Typography variant="caption" color="text.secondary">
-                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint} | Power: {previewStats.powerRequired}
+                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint ?? 0} | Power: {previewStats.powerRequired}
                   {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
                   {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
                   {' | Cost: '}{formatCost(previewStats.engineCost)}
@@ -1010,7 +1010,7 @@ export function EngineSelection({
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                      {engine.powerPerHullPoint}
+                      {engine.powerPerHullPoint ?? '-'}
                     </Typography>
                   </TableCell>
                   {powerGenerationAllowed && (
