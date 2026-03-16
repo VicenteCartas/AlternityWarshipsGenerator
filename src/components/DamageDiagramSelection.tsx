@@ -39,7 +39,7 @@ import type { InstalledSensor } from '../types/sensor';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
 import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledItemBase } from '../types/common';
-import type { OrdnanceDesign, InstalledLaunchSystem } from '../types/ordnance';
+import type { InstalledLaunchSystem } from '../types/ordnance';
 import { ZONE_NAMES } from '../types/damageDiagram';
 import {
   DAMAGE_CATEGORY_COLORS,
@@ -175,7 +175,6 @@ function buildUnassignedSystemsList(
   installedGravitySystems: InstalledGravitySystem[],
   installedWeapons: InstalledWeapon[],
   installedLaunchSystems: InstalledLaunchSystem[],
-  ordnanceDesigns: OrdnanceDesign[],
   installedDefenses: InstalledDefenseSystem[],
   installedCommandControl: InstalledCommandControlSystem[],
   installedSensors: InstalledSensor[],
@@ -319,7 +318,6 @@ export function DamageDiagramSelection({
     gravitySystems: installedGravitySystems,
     weapons: installedWeapons,
     launchSystems: installedLaunchSystems,
-    ordnanceDesigns,
     defenses: installedDefenses,
     commandControl: installedCommandControl,
     sensors: installedSensors,
@@ -373,14 +371,14 @@ export function DamageDiagramSelection({
       installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
       installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
       installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
-      ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+      installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
       new Set()
     );
   }, [
     installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
     installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
     installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
-    ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
   ]);
 
   // Keep zone system names in sync with canonical names (handles renames across versions)
@@ -437,14 +435,14 @@ export function DamageDiagramSelection({
       installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
       installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
       installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
-      ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+      installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
       assignedSystemIds
     );
   }, [
     installedPowerPlants, installedFuelTanks, installedEngines, installedEngineFuelTanks,
     installedFTLDrive, installedFTLFuelTanks, installedLifeSupport, installedAccommodations,
     installedStoreSystems, installedGravitySystems, installedWeapons, installedLaunchSystems,
-    ordnanceDesigns, installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
+    installedDefenses, installedCommandControl, installedSensors, installedHangarMisc,
     assignedSystemIds,
   ]);
 

@@ -573,7 +573,7 @@ describe('engineService', () => {
       getEngineAllowPowerGeneration.mockReturnValue(true);
 
       const engine = makeEngineType();
-      delete (engine as Record<string, unknown>).powerGeneratedPerHullPoint;
+      engine.powerGeneratedPerHullPoint = undefined;
       expect(calculateEnginePowerGenerated(engine, 10)).toBe(0);
 
       getEngineAllowPowerGeneration.mockReturnValue(false);
@@ -597,7 +597,8 @@ describe('engineService', () => {
       const badValues = ['abc', {}, true, '0.5', [1]];
       for (const badValue of badValues) {
         const engine = makeEngineType();
-        (engine as Record<string, unknown>).powerGeneratedPerHullPoint = badValue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        engine.powerGeneratedPerHullPoint = badValue as any;
         const result = calculateEnginePowerGenerated(engine, 10);
         expect(result).not.toBeNaN();
         expect(typeof result).toBe('number');
