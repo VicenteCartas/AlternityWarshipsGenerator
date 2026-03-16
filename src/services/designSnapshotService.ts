@@ -21,7 +21,7 @@ import { calculateSupportSystemsStats } from './supportSystemService';
 import { calculateWeaponStats, calculateWeaponMagazineWarheadCost } from './weaponService';
 import { calculateOrdnanceStats } from './ordnanceService';
 import { calculateDefenseStats } from './defenseService';
-import { calculateCommandControlStats, calculateCommandControlLifeSupportCoverageHp } from './commandControlService';
+import { calculateCommandControlStats, calculateCommandControlLifeSupportCoverageHp, getEffectiveCrew } from './commandControlService';
 import { calculateSensorStats } from './sensorService';
 import { calculateHangarMiscStats } from './hangarMiscService';
 import { calculateEmbarkedCraftStats } from './embarkedCraftService';
@@ -115,6 +115,9 @@ export interface DesignSnapshot {
   sensors: { hp: number; power: number; cost: number };
   hangarMisc: { hp: number; power: number; cost: number };
   embarkedCraft: { cost: number; invalidFileCount: number };
+
+  // Derived crew count (cockpit seats for small craft, hull.crew otherwise)
+  effectiveCrew: number;
 
   // Full subsystem stats needed by validation and PDF detail sections
   supportStats: SupportSystemsStats;
@@ -259,6 +262,7 @@ export function computeDesignSnapshot(input: DesignSnapshotInput): DesignSnapsho
     hangarMisc: { hp: hangarMiscStats.totalHullPoints, power: hangarMiscStats.totalPowerRequired, cost: hangarMiscStats.totalCost },
     embarkedCraft: { cost: embarkedCraftStats.totalEmbarkedCost, invalidFileCount: embarkedCraftStats.invalidFileCount },
 
+    effectiveCrew: getEffectiveCrew(hull, input.installedCommandControl),
     supportStats,
     ordnanceStats,
     sensorStats,

@@ -273,10 +273,12 @@ export function CommandControlSelection({
   const handleAddSystem = () => {
     if (!selectedSystem) return;
     
-    // Handle Fire Control
+    // Handle weapon-linked systems (Fire Control, Attack Computer)
     if (selectedSystem.linkedSystemType === 'weapon') {
       if (!selectedBattery) return;
-      const cost = calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems);
+      const cost = selectedSystem.costPer === 'linkedHp'
+        ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems)
+        : selectedSystem.cost;
       const hullPts = calculateCommandControlHullPoints(selectedSystem, hull.hullPoints, 1);
       const power = calculateCommandControlPower(selectedSystem, 1);
       
@@ -488,7 +490,10 @@ export function CommandControlSelection({
   const previewCost = useMemo(() => {
     if (!selectedSystem) return 0;
     if (selectedSystem.linkedSystemType === 'weapon') {
-      return selectedBattery ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems) : 0;
+      if (!selectedBattery) return 0;
+      return selectedSystem.costPer === 'linkedHp'
+        ? calculateFireControlCost(selectedSystem, selectedBattery, installedWeapons, installedLaunchSystems)
+        : selectedSystem.cost;
     }
     if (selectedSystem.linkedSystemType === 'sensor') {
       return selectedSensorId ? calculateSensorControlCost(selectedSystem, selectedSensorId, installedSensors) : 0;

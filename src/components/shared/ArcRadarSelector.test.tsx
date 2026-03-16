@@ -115,15 +115,17 @@ describe('ArcRadarSelector', () => {
       expect(onArcToggle).not.toHaveBeenCalled();
     });
 
-    it('all zero arcs disabled when disableZeroArcs is true', () => {
+    it('all zero arcs enabled when independentZeroArcs is true regardless of standard arc selection', () => {
       renderSelector({
         showZeroArcs: true,
         maxZeroArcs: 4,
-        disableZeroArcs: true,
-        selectedArcs: ['forward', 'aft', 'port', 'starboard'],
+        independentZeroArcs: true,
+        selectedArcs: ['forward'],
       });
-      expect(screen.getByRole('checkbox', { name: /Zero-range forward/ })).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByRole('checkbox', { name: /Zero-range starboard/ })).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('checkbox', { name: /Zero-range forward/ })).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByRole('checkbox', { name: /Zero-range starboard/ })).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByRole('checkbox', { name: /Zero-range aft/ })).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByRole('checkbox', { name: /Zero-range port/ })).toHaveAttribute('aria-disabled', 'false');
     });
   });
 

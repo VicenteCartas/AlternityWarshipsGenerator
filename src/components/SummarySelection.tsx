@@ -190,9 +190,9 @@ export function SummarySelection({
       totalHP: snapshot.totalHP,
       usedHP: snapshot.usedHP,
       remainingHP: snapshot.remainingHP,
-      powerGenerated: snapshot.powerGenerated,
-      powerConsumed: totalPowerConsumed,
-      powerBalance: snapshot.powerGenerated - totalPowerConsumed,
+      powerGenerated: snapshot.powerGenerated || 0,
+      powerConsumed: totalPowerConsumed || 0,
+      powerBalance: (snapshot.powerGenerated || 0) - (totalPowerConsumed || 0),
       totalCost: snapshot.totalCost,
       totalAcceleration: snapshot.totalAcceleration,
       armor: snapshot.armor,
@@ -210,6 +210,7 @@ export function SummarySelection({
       supportStats: snapshot.supportStats,
       sensorStats: snapshot.sensorStats,
       hangarMiscStats: snapshot.hangarMiscStats,
+      effectiveCrew: snapshot.effectiveCrew,
     };
   }, [
     hull,
@@ -428,9 +429,9 @@ export function SummarySelection({
       // Calculate sensor stats for active sensors check
 
       // WARNING: Crew without 100% accommodations
-      if (hull.crew > 0 && supportStats.crewCapacity < hull.crew) {
-        const percentage = Math.round((supportStats.crewCapacity / hull.crew) * 100);
-        warnings.push(`Crew accommodations at ${percentage}% (${supportStats.crewCapacity}/${hull.crew} crew)`);
+      if (stats.effectiveCrew > 0 && supportStats.crewCapacity < stats.effectiveCrew) {
+        const percentage = Math.round((supportStats.crewCapacity / stats.effectiveCrew) * 100);
+        warnings.push(`Crew accommodations at ${percentage}% (${supportStats.crewCapacity}/${stats.effectiveCrew} crew)`);
       }
 
       // WARNING: Hull without 100% life support coverage
@@ -440,7 +441,7 @@ export function SummarySelection({
       }
 
       // WARNING: Crew and troops without 100% escape systems
-      const evacNeeded = hull.crew + supportStats.troopCapacity;
+      const evacNeeded = stats.effectiveCrew + supportStats.troopCapacity;
       if (evacNeeded > 0 && hangarMiscStats.totalEvacCapacity < evacNeeded) {
         const percentage = Math.round((hangarMiscStats.totalEvacCapacity / evacNeeded) * 100);
         warnings.push(`Evacuation capacity at ${percentage}% (${hangarMiscStats.totalEvacCapacity}/${evacNeeded} people)`);

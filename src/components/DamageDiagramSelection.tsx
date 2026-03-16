@@ -236,12 +236,7 @@ function buildUnassignedSystemsList(
       idPrefix: 'launch', category: 'weapon', originalType: 'launchSystem',
       getName: ls => {
         const launchSystemDef = allLaunchSystems.find(lsd => lsd.id === ls.launchSystemType);
-        const ordnanceNames = (ls.loadout || []).map(lo => {
-          const design = ordnanceDesigns.find(d => d.id === lo.designId);
-          return design ? design.name : '';
-        }).filter(Boolean);
-        const ordnanceSuffix = ordnanceNames.length > 0 ? ` [${ordnanceNames.join(', ')}]` : '';
-        return `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}${ordnanceSuffix}`;
+        return `${launchSystemDef?.name ?? ls.launchSystemType} x${ls.quantity}`;
       },
       getHullPoints: ls => ls.hullPoints,
       getFirepowerOrder: () => 99 }, assignedSystemIds),

@@ -229,6 +229,14 @@ describe('formatCommandControlCost', () => {
       linkedSystemType: 'sensor',
     })).toBe('$5 K/sensor HP');
   });
+
+  it('formats flat cost for weapon-linked systems with unit costPer (attack computer)', () => {
+    expect(formatCommandControlCost({
+      cost: 200_000,
+      costPer: 'unit',
+      linkedSystemType: 'weapon',
+    })).toBe('$200 K');
+  });
 });
 
 // ============== formatSensorRange ==============

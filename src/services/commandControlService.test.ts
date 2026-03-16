@@ -379,9 +379,14 @@ describe('commandControlService', () => {
       expect(calculateCommandControlCost(type, 400, 1)).toBe(200000);
     });
 
-    it('returns 0 for linked system types', () => {
-      const type = makeCCType({ linkedSystemType: 'weapon', costPer: 'unit' });
+    it('returns 0 for linked systems with per-HP cost (fire/sensor control)', () => {
+      const type = makeCCType({ linkedSystemType: 'weapon', costPer: 'linkedHp' });
       expect(calculateCommandControlCost(type, 400, 1)).toBe(0);
+    });
+
+    it('calculates flat cost for linked systems with per-unit cost (attack computer)', () => {
+      const type = makeCCType({ linkedSystemType: 'weapon', costPer: 'unit', cost: 200000 });
+      expect(calculateCommandControlCost(type, 400, 1)).toBe(200000);
     });
 
     it('calculates cost for standard per-quantity systems', () => {

@@ -4,6 +4,7 @@ import type {
   CommandControlStats,
   WeaponBatteryKey,
 } from '../types/commandControl';
+import type { Hull } from '../types/hull';
 import type { InstalledWeapon } from '../types/weapon';
 import type { InstalledSensor } from '../types/sensor';
 import type { InstalledLaunchSystem } from '../types/ordnance';
@@ -265,8 +266,8 @@ export function calculateCommandControlCost(
     const hpPerSystem = calculateCoverageBasedHullPoints(shipHullPoints, type);
     return type.cost * hpPerSystem * quantity;
   }
-  // Linked systems (fire/sensor control): Return 0 here - actual cost calculated separately
-  if (type.linkedSystemType) {
+  // Linked systems with per-HP cost (fire/sensor control): Return 0 here - actual cost calculated separately
+  if (type.linkedSystemType && type.costPer === 'linkedHp') {
     return 0;
   }
   // Standard per-quantity systems
@@ -375,6 +376,22 @@ export function calculateCommandControlStats(
 }
 
 // ============== Helpers ==============
+
+/**
+ * Derive the effective crew count from installed command systems.
+ * For small craft with cockpits, each cockpit unit is one crew station/seat,
+ * so the crew count equals the total cockpit quantity.
+ * For larger ships without cockpits, the hull's base crew value is used.
+ */
+export function getEffectiveCrew(
+  hull: Hull,
+  installedSystems: InstalledCommandControlSystem[]
+): number {
+  const cockpitSeats = installedSystems
+    .filter(cc => cc.type.category === 'command' && cc.type.maxShipHullPoints != null)
+    .reduce((sum, cc) => sum + cc.quantity, 0);
+  return cockpitSeats > 0 ? cockpitSeats : hull.crew;
+}
 
 /**
  * Calculate the total life support coverage HP provided by all installed command & control systems.

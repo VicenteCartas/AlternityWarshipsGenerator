@@ -51,6 +51,7 @@ interface HangarMiscSelectionProps {
   designProgressLevel: ProgressLevel;
   designTechTracks: TechTrack[];
   totalPassengersAndSuspended: number;
+  effectiveCrew: number;
   ordnanceDesigns: OrdnanceDesign[];
   onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
 }
@@ -61,6 +62,7 @@ export function HangarMiscSelection({
   designProgressLevel,
   designTechTracks,
   totalPassengersAndSuspended,
+  effectiveCrew,
   ordnanceDesigns,
   onSystemsChange,
 }: HangarMiscSelectionProps) {
@@ -282,7 +284,7 @@ export function HangarMiscSelection({
   const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
   const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
   const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
-  const totalPeople = hull.crew + totalPassengersAndSuspended;
+  const totalPeople = effectiveCrew + totalPassengersAndSuspended;
   const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.patronCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity || selectedSystem.evacCapacity)
     ? ` | ${formatCapacity(selectedSystem, previewCapacity)}${selectedSystem.evacCapacity && totalPeople > 0 ? ` (${Math.round((previewCapacity / totalPeople) * 100)}%)` : ''}`
     : '';

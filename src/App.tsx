@@ -176,6 +176,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     summaryValidationState,
     uniqueTechTracks,
     totalPassengersAndSuspended,
+    effectiveCrew,
   } = useDesignCalculations({
     selectedHull,
     armorLayers,
@@ -1070,6 +1071,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
               onSensorsChange={setInstalledSensors}
               onCommandControlChange={setInstalledCommandControl}
               totalPassengersAndSuspended={totalPassengersAndSuspended}
+              effectiveCrew={effectiveCrew}
               onHangarMiscChange={setInstalledHangarMisc}
               onZonesChange={setDamageDiagramZones}
               onShipDescriptionChange={setShipDescription}

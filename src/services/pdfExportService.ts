@@ -214,6 +214,7 @@ export interface ShipStats {
   sensors: { hp: number; power: number; cost: number };
   hangarMisc: { hp: number; power: number; cost: number };
   embarkedCraft: { cost: number };
+  effectiveCrew: number;
   supportStats: SupportSystemsStats;
 }
 
@@ -255,9 +256,9 @@ export function computeShipStats(data: ShipData): ShipStats {
     totalHP: snapshot.totalHP,
     usedHP: snapshot.usedHP,
     remainingHP: snapshot.remainingHP,
-    powerGenerated: snapshot.powerGenerated,
-    powerConsumed: totalPowerConsumed,
-    powerBalance: snapshot.powerGenerated - totalPowerConsumed,
+    powerGenerated: snapshot.powerGenerated || 0,
+    powerConsumed: totalPowerConsumed || 0,
+    powerBalance: (snapshot.powerGenerated || 0) - (totalPowerConsumed || 0),
     totalCost: snapshot.totalCost,
     totalAcceleration: snapshot.totalAcceleration,
     armor: snapshot.armor,
@@ -272,6 +273,7 @@ export function computeShipStats(data: ShipData): ShipStats {
     sensors: snapshot.sensors,
     hangarMisc: snapshot.hangarMisc,
     embarkedCraft: snapshot.embarkedCraft,
+    effectiveCrew: snapshot.effectiveCrew,
     supportStats: snapshot.supportStats,
   };
 }
@@ -742,7 +744,7 @@ function renderSystemsDetailSection(
   ctx.y += 5;
 
   // Row 2: Crew, Personnel
-  addLabel(ctx, 'Crew', hull.crew.toString(), ctx.margin);
+  addLabel(ctx, 'Crew', stats.effectiveCrew.toString(), ctx.margin);
   const personnelExtras: string[] = [];
   if (supportStats.troopCapacity > 0) personnelExtras.push(`Troops: ${supportStats.troopCapacity}`);
   if (supportStats.passengerCapacity > 0) personnelExtras.push(`Passengers: ${supportStats.passengerCapacity}`);
@@ -1419,7 +1421,7 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       cc.type.category === 'computer' && cc.linkedSensorId,
     );
 
-    const sCols = [ctx.margin, ctx.margin + 36, ctx.margin + 62, ctx.margin + 88, ctx.margin + 102, ctx.margin + 122, ctx.margin + 148];
+    const sCols = [ctx.margin, ctx.margin + 44, ctx.margin + 63, ctx.margin + 93, ctx.margin + 107, ctx.margin + 127, ctx.margin + 153];
     ctx.pdf.setFontSize(6.5);
     ctx.pdf.setFont('helvetica', 'bold');
     ctx.pdf.text('Name', sCols[0], ctx.y);
@@ -1443,8 +1445,8 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       const scText = linkedSC ? (linkedSC.type.stepBonus ? linkedSC.type.stepBonus.toString() : 'Yes') : '-';
       const accText = st.accuracyModifier >= 0 ? `+${st.accuracyModifier}` : st.accuracyModifier.toString();
 
-      ctx.pdf.text(st.name.substring(0, 20), sCols[0], ctx.y);
-      ctx.pdf.text(rangeText.substring(0, 14), sCols[1], ctx.y);
+      ctx.pdf.text(st.name.substring(0, 32), sCols[0], ctx.y);
+      ctx.pdf.text(rangeText.substring(0, 11), sCols[1], ctx.y);
       ctx.pdf.text(formatArcsShort(sensor.arcs), sCols[2], ctx.y);
       ctx.pdf.text(scText, sCols[3], ctx.y);
       ctx.pdf.text(accText, sCols[4], ctx.y);
@@ -1469,7 +1471,7 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
 
     ctx.pdf.setFontSize(6.5);
     ctx.pdf.setFont('helvetica', 'bold');
-    const wCols = [ctx.margin, ctx.margin + 36, ctx.margin + 62, ctx.margin + 88, ctx.margin + 102, ctx.margin + 118, ctx.margin + 134, ctx.margin + 170];
+    const wCols = [ctx.margin, ctx.margin + 44, ctx.margin + 63, ctx.margin + 93, ctx.margin + 107, ctx.margin + 123, ctx.margin + 139, ctx.margin + 175];
     ctx.pdf.text('Name', wCols[0], ctx.y);
     ctx.pdf.text('Range S/M/L', wCols[1], ctx.y);
     ctx.pdf.text('Arcs', wCols[2], ctx.y);
@@ -1497,7 +1499,7 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       const weaponName = `${capitalize(weapon.gunConfiguration)} ${wt.name}`;
       const accText = wt.accuracyModifier >= 0 ? `+${wt.accuracyModifier}` : wt.accuracyModifier.toString();
 
-      ctx.pdf.text(weaponName.substring(0, 20), wCols[0], ctx.y);
+      ctx.pdf.text(weaponName.substring(0, 32), wCols[0], ctx.y);
       ctx.pdf.text(rangeText, wCols[1], ctx.y);
       ctx.pdf.text(formatArcsShort(weapon.arcs), wCols[2], ctx.y);
       ctx.pdf.text(fcText, wCols[3], ctx.y);
@@ -1573,7 +1575,7 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
     const getWarheadInfo = (id: string) => allWarheads.find(w => w.id === id);
     const getPropulsionInfo = (id: string) => allPropulsion.find(p => p.id === id);
 
-    const oCols = [ctx.margin, ctx.margin + 36, ctx.margin + 50, ctx.margin + 64, ctx.margin + 78, ctx.margin + 92, ctx.margin + 104, ctx.margin + 120, ctx.margin + 148];
+    const oCols = [ctx.margin, ctx.margin + 51, ctx.margin + 65, ctx.margin + 79, ctx.margin + 93, ctx.margin + 107, ctx.margin + 119, ctx.margin + 135, ctx.margin + 163];
     ctx.pdf.setFontSize(6.5);
     ctx.pdf.setFont('helvetica', 'bold');
     ctx.pdf.text('Name', oCols[0], ctx.y);
@@ -1609,9 +1611,9 @@ function renderCombatSection(ctx: PdfContext, data: ShipData): void {
       const damageText = warhead?.damage ?? '?';
       const areaText = warhead?.area ? `${warhead.area.rangeOrdinary}/${warhead.area.rangeGood}/${warhead.area.rangeAmazing}` : '-';
 
-      ctx.pdf.text(design.name.substring(0, 20), oCols[0], ctx.y);
+      ctx.pdf.text(design.name.substring(0, 35), oCols[0], ctx.y);
       ctx.pdf.text(typeText, oCols[1], ctx.y);
-      ctx.pdf.text(sizeText.substring(0, 10), oCols[2], ctx.y);
+      ctx.pdf.text(sizeText.substring(0, 12), oCols[2], ctx.y);
       ctx.pdf.text(endText, oCols[3], ctx.y);
       ctx.pdf.text(accelText.substring(0, 10), oCols[4], ctx.y);
       ctx.pdf.text(accText, oCols[5], ctx.y);

@@ -164,8 +164,8 @@ export function formatCommandControlCost(system: {
     return `${baseCost}/HP`;
   }
   
-  // Linked systems - cost per HP of the linked weapon/sensor
-  if (system.linkedSystemType) {
+  // Linked systems with per-HP cost - cost per HP of the linked weapon/sensor
+  if (system.linkedSystemType && system.costPer === 'linkedHp') {
     return `${baseCost}/${system.linkedSystemType} HP`;
   }
   

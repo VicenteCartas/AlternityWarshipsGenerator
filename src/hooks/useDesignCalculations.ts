@@ -109,6 +109,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
         summaryValidationState: 'error' as const,
         uniqueTechTracks: [] as TechTrack[],
         totalPassengersAndSuspended: 0,
+        effectiveCrew: 0,
       };
     }
 
@@ -174,11 +175,11 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       const powerConsumedWithoutFTL = totalPowerConsumed - ftlPower;
       if (powerConsumedWithoutFTL > snapshot.powerGenerated) {
         summaryValidationState = 'warning';
-      } else if (snapshot.supportStats.crewCapacity < hull.crew) {
+      } else if (snapshot.supportStats.crewCapacity < snapshot.effectiveCrew) {
         summaryValidationState = 'warning';
       } else if (!surfaceProvidesLifeSupport && snapshot.supportStats.totalCoverage < hull.hullPoints) {
         summaryValidationState = 'warning';
-      } else if (snapshot.hangarMiscStats.totalEvacCapacity < hull.crew + snapshot.supportStats.troopCapacity) {
+      } else if (snapshot.hangarMiscStats.totalEvacCapacity < snapshot.effectiveCrew + snapshot.supportStats.troopCapacity) {
         summaryValidationState = 'warning';
       } else if (installedLaunchSystems.filter(ls => !ls.loadout || ls.loadout.length === 0).length > 0) {
         summaryValidationState = 'warning';
@@ -252,6 +253,7 @@ export function useDesignCalculations(input: DesignCalculationsInput) {
       summaryValidationState,
       uniqueTechTracks,
       totalPassengersAndSuspended,
+      effectiveCrew: snapshot.effectiveCrew,
     };
   }, [
     selectedHull, armorLayers, installedPowerPlants, installedFuelTanks,

@@ -16,6 +16,8 @@ import {
   calculateHullPercentage,
   getAccelerationForPercentage,
   calculateEnginePowerRequired,
+  calculateEnginePowerGenerated,
+  isEnginePowerGenerationAllowed,
   calculateEngineCost,
   calculateEngineFuelTankCost,
   calculateEngineFuelTankEndurance,
@@ -544,6 +546,80 @@ describe('engineService', () => {
       expect(brackets).toHaveLength(7);
       expect(brackets[0]).toBe('5%');
       expect(brackets[6]).toBe('50%');
+    });
+  });
+
+  // ---------- Engine Power Generation ----------
+
+  describe('calculateEnginePowerGenerated', () => {
+    it('returns 0 when engine power generation is disabled', () => {
+      const engine = makeEngineType({ powerGeneratedPerHullPoint: 0.5 });
+      // getEngineAllowPowerGeneration is mocked to return false by default
+      expect(calculateEnginePowerGenerated(engine, 10)).toBe(0);
+    });
+
+    it('returns correct power when enabled with valid powerGeneratedPerHullPoint', async () => {
+      const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+      getEngineAllowPowerGeneration.mockReturnValue(true);
+
+      const engine = makeEngineType({ powerGeneratedPerHullPoint: 0.5 });
+      expect(calculateEnginePowerGenerated(engine, 10)).toBe(5); // ceil(0.5 * 10)
+
+      getEngineAllowPowerGeneration.mockReturnValue(false);
+    });
+
+    it('returns 0 when powerGeneratedPerHullPoint is undefined', async () => {
+      const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+      getEngineAllowPowerGeneration.mockReturnValue(true);
+
+      const engine = makeEngineType();
+      delete (engine as Record<string, unknown>).powerGeneratedPerHullPoint;
+      expect(calculateEnginePowerGenerated(engine, 10)).toBe(0);
+
+      getEngineAllowPowerGeneration.mockReturnValue(false);
+    });
+
+    it('returns 0 when powerGeneratedPerHullPoint is 0', async () => {
+      const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+      getEngineAllowPowerGeneration.mockReturnValue(true);
+
+      const engine = makeEngineType({ powerGeneratedPerHullPoint: 0 });
+      expect(calculateEnginePowerGenerated(engine, 10)).toBe(0);
+
+      getEngineAllowPowerGeneration.mockReturnValue(false);
+    });
+
+    it('never returns NaN for non-numeric powerGeneratedPerHullPoint', async () => {
+      const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+      getEngineAllowPowerGeneration.mockReturnValue(true);
+
+      // These truthy non-numeric values would bypass a simple !value guard
+      const badValues = ['abc', {}, true, '0.5', [1]];
+      for (const badValue of badValues) {
+        const engine = makeEngineType();
+        (engine as Record<string, unknown>).powerGeneratedPerHullPoint = badValue;
+        const result = calculateEnginePowerGenerated(engine, 10);
+        expect(result).not.toBeNaN();
+        expect(typeof result).toBe('number');
+      }
+
+      getEngineAllowPowerGeneration.mockReturnValue(false);
+    });
+
+    it('rounds up fractional power generation', async () => {
+      const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+      getEngineAllowPowerGeneration.mockReturnValue(true);
+
+      const engine = makeEngineType({ powerGeneratedPerHullPoint: 0.3 });
+      expect(calculateEnginePowerGenerated(engine, 3)).toBe(1); // ceil(0.9)
+
+      getEngineAllowPowerGeneration.mockReturnValue(false);
+    });
+  });
+
+  describe('isEnginePowerGenerationAllowed', () => {
+    it('returns the value from dataLoader', () => {
+      expect(isEnginePowerGenerationAllowed()).toBe(false); // default mock
     });
   });
 });

@@ -575,6 +575,51 @@ describe('computeShipStats', () => {
     expect(typeof stats.supportStats.totalHullPoints).toBe('number');
     expect(typeof stats.supportStats.totalPowerRequired).toBe('number');
   });
+
+  it('does not produce NaN when engines generate power', async () => {
+    const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+    getEngineAllowPowerGeneration.mockReturnValue(true);
+
+    const data = makeMinimalShipData({
+      installedEngines: [{
+        id: 'eng-1',
+        type: {
+          id: 'fusion-drive',
+          name: 'Fusion Drive',
+          progressLevel: 7,
+          techTracks: [],
+          powerPerHullPoint: 1.0,
+          powerGeneratedPerHullPoint: 0.5,
+          minSize: 1,
+          baseCost: 200000,
+          costPerHullPoint: 50000,
+          accelerationRatings: { at5Percent: 0.1, at10Percent: 0.25, at15Percent: 0.5, at20Percent: 0.75, at30Percent: 1.0, at40Percent: 1.5, at50Percent: 2.0 },
+          usesPL6Scale: false,
+          requiresFuel: false,
+          fuelEfficiency: 0,
+          fuelCostPerHullPoint: 0,
+          atmosphereSafe: false,
+          description: 'Test engine',
+        },
+        hullPoints: 4,
+      }],
+    });
+
+    const stats = computeShipStats(data);
+    expect(stats.powerGenerated).not.toBeNaN();
+    expect(stats.powerConsumed).not.toBeNaN();
+    expect(stats.powerBalance).not.toBeNaN();
+    expect(stats.engines.power).not.toBeNaN();
+    expect(stats.engines.powerGen).not.toBeNaN();
+    expect(stats.engines.cost).not.toBeNaN();
+    expect(stats.totalCost).not.toBeNaN();
+
+    // Verify correct values
+    expect(stats.engines.powerGen).toBe(2); // ceil(0.5 * 4)
+    expect(stats.powerGenerated).toBe(2);   // from engines only
+
+    getEngineAllowPowerGeneration.mockReturnValue(false);
+  });
 });
 
 // ==========================================================================
@@ -662,6 +707,44 @@ describe('exportShipToPDF — option toggling', () => {
     const texts = getTextCalls();
     // When detailed systems is enabled, individual armor layer names should appear
     expect(texts.some(t => t.includes('Ceramic'))).toBe(true);
+  });
+
+  it('does not produce NaN text when engines generate power', async () => {
+    const { getEngineAllowPowerGeneration } = await import('./dataLoader') as unknown as { getEngineAllowPowerGeneration: ReturnType<typeof vi.fn> };
+    getEngineAllowPowerGeneration.mockReturnValue(true);
+
+    const data = makeMinimalShipData({
+      installedEngines: [{
+        id: 'eng-1',
+        type: {
+          id: 'fusion-drive',
+          name: 'Fusion Drive',
+          progressLevel: 7,
+          techTracks: [],
+          powerPerHullPoint: 1.0,
+          powerGeneratedPerHullPoint: 0.5,
+          minSize: 1,
+          baseCost: 200000,
+          costPerHullPoint: 50000,
+          accelerationRatings: { at5Percent: 0.1, at10Percent: 0.25, at15Percent: 0.5, at20Percent: 0.75, at30Percent: 1.0, at40Percent: 1.5, at50Percent: 2.0 },
+          usesPL6Scale: false,
+          requiresFuel: false,
+          fuelEfficiency: 0,
+          fuelCostPerHullPoint: 0,
+          atmosphereSafe: false,
+          description: 'Test engine',
+        },
+        hullPoints: 4,
+      }],
+    });
+
+    await exportShipToPDF(data, { includeCombat: false, includeDamageDiagram: false, includeDetailedSystems: true });
+
+    const texts = getTextCalls();
+    const nanTexts = texts.filter(t => t.includes('NaN'));
+    expect(nanTexts).toEqual([]);
+
+    getEngineAllowPowerGeneration.mockReturnValue(false);
   });
 });
 

@@ -897,7 +897,7 @@ describe('saveService', () => {
 
   describe('deserializeWarship - command & control post-processing', () => {
     it('recalculates fire control cost after weapons are loaded', () => {
-      const ccType = { id: 'fire-control', name: 'Fire Control', linkedSystemType: 'weapon', quality: undefined };
+      const ccType = { id: 'fire-control', name: 'Fire Control', linkedSystemType: 'weapon', costPer: 'linkedHp', quality: undefined };
       const beamType = { id: 'laser', name: 'Laser' };
       const installedWeapon = {
         id: 'w-1',
@@ -971,6 +971,28 @@ describe('saveService', () => {
       expect(result.success).toBe(true);
       expect(calculateSensorControlCost).toHaveBeenCalled();
       expect(result.state!.commandControl[0].cost).toBe(1.8);
+    });
+
+    it('uses flat cost for weapon-linked systems with unit costPer (attack computer)', () => {
+      const ccType = { id: 'attack-computer', name: 'Attack Computer', linkedSystemType: 'weapon', costPer: 'unit', cost: 200000, quality: undefined };
+
+      (getAllCommandControlSystemTypes as ReturnType<typeof vi.fn>).mockReturnValue([ccType]);
+
+      const saveFile = makeMinimalSaveFile({
+        commandControl: [{
+          id: 'cc-1',
+          typeId: 'attack-computer',
+          quantity: 1,
+          linkedWeaponBatteryKey: 'missile-rack:launcher',
+        }],
+      });
+
+      const result = deserializeWarship(saveFile);
+      expect(result.success).toBe(true);
+      // Should NOT call calculateFireControlCost for unit-cost systems
+      expect(calculateFireControlCost).not.toHaveBeenCalled();
+      // Should use flat type.cost instead
+      expect(result.state!.commandControl[0].cost).toBe(200000);
     });
   });
 

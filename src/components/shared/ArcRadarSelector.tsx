@@ -6,7 +6,7 @@ interface ArcRadarSelectorProps {
   selectedArcs: FiringArc[];
   onArcToggle: (arc: FiringArc, isZeroArc: boolean) => void;
   showZeroArcs: boolean;
-  disableZeroArcs?: boolean;
+  independentZeroArcs?: boolean;
   maxStandardArcs: number;
   maxZeroArcs: number;
 }
@@ -31,7 +31,7 @@ export function ArcRadarSelector({
   selectedArcs,
   onArcToggle,
   showZeroArcs,
-  disableZeroArcs = false,
+  independentZeroArcs = false,
   maxStandardArcs,
   maxZeroArcs,
 }: ArcRadarSelectorProps) {
@@ -149,7 +149,7 @@ export function ArcRadarSelector({
           const path = createSectorPath(center, center, zeroInnerRadius, zeroOuterRadius, startAngle, endAngle);
           // A zero arc is disabled if all zero arcs are disabled OR if the corresponding standard arc is not selected
           const correspondingStandard = arc.replace('zero-', '') as StandardArc;
-          const disabled = disableZeroArcs || !isSelected(correspondingStandard);
+          const disabled = !independentZeroArcs && !isSelected(correspondingStandard);
 
           // Determine fill color: selected takes priority, then disabled, then unselected
           const fillColor = selected 

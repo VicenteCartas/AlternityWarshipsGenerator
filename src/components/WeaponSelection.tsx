@@ -310,7 +310,8 @@ export function WeaponSelection({
       if (currentArcs.length > 1 || isZero) {
         currentArcs.splice(arcIndex, 1);
         // When removing a standard arc, also remove its corresponding zero arc
-        if (!isZero) {
+        // (except for small-craft, where zero arcs are independent of standard arcs)
+        if (!isZero && shipClass !== 'small-craft') {
           const correspondingZero = `zero-${arc}` as FiringArc;
           const zeroIndex = currentArcs.indexOf(correspondingZero);
           if (zeroIndex >= 0) {
@@ -346,9 +347,12 @@ export function WeaponSelection({
           const keptStandard = standardArcs.slice(0, freeArcCount.standardArcs - 1);
           const newStandardSet = new Set([...keptStandard, arc]);
           // Only keep zero arcs whose corresponding standard arc remains
-          const arcsToKeep = currentArcs.filter(a =>
-            a.startsWith('zero-') && newStandardSet.has(a.replace('zero-', '') as FiringArc),
-          );
+          // (except for small-craft, where zero arcs are independent)
+          const arcsToKeep = currentArcs.filter(a => {
+            if (!a.startsWith('zero-')) return false;
+            if (shipClass === 'small-craft') return true;
+            return newStandardSet.has(a.replace('zero-', '') as FiringArc);
+          });
           arcsToKeep.push(...newStandardSet);
           setSelectedArcs(arcsToKeep);
           return;
@@ -615,7 +619,7 @@ export function WeaponSelection({
               selectedArcs={selectedArcs}
               onArcToggle={handleArcToggle}
               showZeroArcs={weaponCanUseZero && (mountModifiers[mountType]?.allowsZeroArc ?? false)}
-              disableZeroArcs={shipClass === 'small-craft'}
+              independentZeroArcs={shipClass === 'small-craft'}
               maxStandardArcs={freeArcCount.standardArcs}
               maxZeroArcs={freeArcCount.zeroArcs}
             />

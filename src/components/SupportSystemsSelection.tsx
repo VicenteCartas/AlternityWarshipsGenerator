@@ -385,6 +385,7 @@ interface SupportSystemsSelectionProps {
   surfaceProvidesLifeSupport?: boolean;
   surfaceProvidesGravity?: boolean;
   cockpitLifeSupportCoverageHp?: number;
+  effectiveCrew: number;
   onLifeSupportChange: (lifeSupport: InstalledLifeSupport[]) => void;
   onAccommodationsChange: (accommodations: InstalledAccommodation[]) => void;
   onStoreSystemsChange: (storeSystems: InstalledStoreSystem[]) => void;
@@ -402,6 +403,7 @@ export function SupportSystemsSelection({
   surfaceProvidesLifeSupport = false,
   surfaceProvidesGravity = false,
   cockpitLifeSupportCoverageHp = 0,
+  effectiveCrew,
   onLifeSupportChange,
   onAccommodationsChange,
   onStoreSystemsChange,
@@ -687,8 +689,8 @@ export function SupportSystemsSelection({
             />
           )}
           <Chip
-            label={`Crew: ${stats.crewCapacity}/${hull.crew} (${((stats.crewCapacity / hull.crew) * 100).toFixed(0)}%)`}
-            color={stats.crewCapacity >= hull.crew ? 'success' : 'warning'}
+            label={`Crew: ${stats.crewCapacity}/${effectiveCrew} (${((stats.crewCapacity / effectiveCrew) * 100).toFixed(0)}%)`}
+            color={stats.crewCapacity >= effectiveCrew ? 'success' : 'warning'}
             variant="outlined"
           />
           {stats.troopCapacity > 0 && (
@@ -820,7 +822,7 @@ export function SupportSystemsSelection({
             return (
               <>
                 <Chip
-                  label={`${capacity} ${installed.type.category}${installed.type.category === 'crew' ? ` (${((capacity / hull.crew) * 100).toFixed(0)}%)` : ''}`}
+                  label={`${capacity} ${installed.type.category}${installed.type.category === 'crew' ? ` (${((capacity / effectiveCrew) * 100).toFixed(0)}%)` : ''}`}
                   size="small"
                   color={installed.type.category === 'crew' ? 'error' : installed.type.category === 'troop' ? 'error' : installed.type.category === 'passenger' ? 'primary' : 'secondary'}
                   variant="outlined"
@@ -838,7 +840,7 @@ export function SupportSystemsSelection({
           }}
           renderPreviewExtra={(type, qty, extra) => {
             const capacity = type.capacity * qty + (type.expandable ? extra * (type.expansionValuePerHp || 0) : 0);
-            return `Capacity: ${capacity}${type.category === 'crew' ? ` (${((capacity / hull.crew) * 100).toFixed(0)}%)` : ''} | `;
+            return `Capacity: ${capacity}${type.category === 'crew' ? ` (${((capacity / effectiveCrew) * 100).toFixed(0)}%)` : ''} | `;
           }}
           renderExtraHeaders={() => (
             <>

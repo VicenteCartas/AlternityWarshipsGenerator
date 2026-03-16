@@ -836,10 +836,12 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
     return { success: false, errors, warnings };
   }
   
-  // Recalculate Fire Control and Sensor Control costs based on loaded weapons/sensors
+  // Recalculate Fire Control, Sensor Control, and Attack Computer costs based on loaded weapons/sensors
   for (const cc of commandControl) {
     if (cc.type.linkedSystemType === 'weapon' && cc.linkedWeaponBatteryKey) {
-      cc.cost = calculateFireControlCost(cc.type, cc.linkedWeaponBatteryKey, weapons);
+      cc.cost = cc.type.costPer === 'linkedHp'
+        ? calculateFireControlCost(cc.type, cc.linkedWeaponBatteryKey, weapons, launchSystemsList)
+        : cc.type.cost;
     } else if (cc.type.linkedSystemType === 'sensor' && cc.linkedSensorId) {
       cc.cost = calculateSensorControlCost(cc.type, cc.linkedSensorId, sensors);
     }

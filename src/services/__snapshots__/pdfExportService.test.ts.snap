@@ -272,27 +272,27 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
   },
   {
     "text": "Range S/M/L",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "Arcs",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "Control",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "Accuracy",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "Tracking",
-    "x": 134,
+    "x": 139,
   },
   {
     "text": "Qty",
-    "x": 160,
+    "x": 165,
   },
   {
     "text": "Active Radar",
@@ -300,27 +300,27 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
   },
   {
     "text": "5/15/40",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "F",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "-",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "+0",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "2",
-    "x": 134,
+    "x": 139,
   },
   {
     "text": "1",
-    "x": 160,
+    "x": 165,
   },
   {
     "text": "WEAPONS",
@@ -332,31 +332,31 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
   },
   {
     "text": "Range S/M/L",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "Arcs",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "FC",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "Accuracy",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "Type/FP",
-    "x": 130,
+    "x": 135,
   },
   {
     "text": "Damage",
-    "x": 146,
+    "x": 151,
   },
   {
     "text": "Qty",
-    "x": 182,
+    "x": 187,
   },
   {
     "text": "Single Laser Cannon",
@@ -364,31 +364,31 @@ exports[`exportShipToPDF — snapshot > produces a stable sequence of PDF text c
   },
   {
     "text": "3/10/30",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "F",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "-",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "+0",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "En/L",
-    "x": 130,
+    "x": 135,
   },
   {
     "text": "d8w",
-    "x": 146,
+    "x": 151,
   },
   {
     "text": "1",
-    "x": 182,
+    "x": 187,
   },
   {
     "text": "DEFENSES",
@@ -1021,27 +1021,27 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
   },
   {
     "text": "Range S/M/L",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "Arcs",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "Control",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "Accuracy",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "Tracking",
-    "x": 134,
+    "x": 139,
   },
   {
     "text": "Qty",
-    "x": 160,
+    "x": 165,
   },
   {
     "text": "Active Radar",
@@ -1049,27 +1049,27 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
   },
   {
     "text": "5/15/40",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "F",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "-",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "+0",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "2",
-    "x": 134,
+    "x": 139,
   },
   {
     "text": "1",
-    "x": 160,
+    "x": 165,
   },
   {
     "text": "WEAPONS",
@@ -1081,31 +1081,31 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
   },
   {
     "text": "Range S/M/L",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "Arcs",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "FC",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "Accuracy",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "Type/FP",
-    "x": 130,
+    "x": 135,
   },
   {
     "text": "Damage",
-    "x": 146,
+    "x": 151,
   },
   {
     "text": "Qty",
-    "x": 182,
+    "x": 187,
   },
   {
     "text": "Single Laser Cannon",
@@ -1113,31 +1113,31 @@ exports[`exportShipToPDF — snapshot > produces a stable snapshot with detailed
   },
   {
     "text": "3/10/30",
-    "x": 48,
+    "x": 56,
   },
   {
     "text": "F",
-    "x": 74,
+    "x": 75,
   },
   {
     "text": "-",
-    "x": 100,
+    "x": 105,
   },
   {
     "text": "+0",
-    "x": 114,
+    "x": 119,
   },
   {
     "text": "En/L",
-    "x": 130,
+    "x": 135,
   },
   {
     "text": "d8w",
-    "x": 146,
+    "x": 151,
   },
   {
     "text": "1",
-    "x": 182,
+    "x": 187,
   },
   {
     "text": "DEFENSES",

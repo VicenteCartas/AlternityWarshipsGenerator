@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.1] - Current
+
+### Bug Fixes
+
+- **Attack Computer cost shown as zero:** The Attack Computer (a per-unit cost system linked to a weapon) was incorrectly routed through the per-HP fire control cost formula, and `calculateCommandControlCost` returned 0 for all linked systems regardless of their pricing model. Additionally, fire control cost recalculation during save/load did not pass launch systems data, causing fire controls and attack computers linked to ordnance launchers to get zero cost after reloading. Fixed cost calculation, save/load recalculation, and cost formatting to correctly distinguish per-unit vs per-linked-HP linked systems.
+- **Small-craft zero arc selection broken:** On small-craft, deselecting a standard arc would also remove its corresponding zero arc, and since zero arcs were incorrectly disabled in the UI, they could never be re-added. This made it impossible to update weapons that require all four zero arcs. Zero arcs on small-craft are now independent of standard arc selection.
+- **Duplicate ordnance info in PDF damage zones:** Launchers displayed loaded ordnance twice — full names in brackets and abbreviations in parentheses. Removed the redundant full-name brackets so only the abbreviated form is shown, consistent with hangars.
+- **NaN displayed in PDF when engines generate power:** When the engine power generation house rule was enabled, non-numeric `powerGeneratedPerHullPoint` values from mod data could bypass the truthiness guard and produce NaN in arithmetic, cascading to the Power section in the ship overview and the systems summary totals. Fixed with a strict `typeof` number check in `calculateEnginePowerGenerated`, plus defensive `|| 0` guards on power values in the PDF export and Summary tab.
+- **Crew count not derived from installed cockpits:** The crew count displayed in the PDF, Summary warnings, Support Systems, and Hangars & Misc was always the hull's static `crew` field, ignoring actual cockpit configuration. For small craft where cockpits define crew stations (one seat per cockpit unit), installing more or fewer cockpits than the hull's default had no effect on the reported crew. Crew is now derived from installed cockpit-type command systems when present, falling back to the hull's base crew for larger ships without cockpits.
+- **Combat sheet PDF name columns too narrow:** Sensor, weapon, and ordnance names in the combat sheet were hard-truncated to 20 characters, cutting off essential identifying information (e.g. "Passive Array, Margi", "PLA Bantam missile ("). Widened the Name column by 15 points and increased the character limit from 20 to 35. Also increased the ordnance Size column limit from 10 to 12 characters so values like "Light (0.5)" are no longer clipped. Narrowed the Range column for Sensors and Weapons by 11 points and gave that space to the Arcs column so fire arc strings like "F ZF ZS ZA ZP" fit without overflow.
+
 ## [1.0.0] - 2026-03-14
 
 ### Important
