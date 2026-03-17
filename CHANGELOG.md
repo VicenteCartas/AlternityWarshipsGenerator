@@ -9,6 +9,7 @@
 ### Bug Fixes
 
 - **NaN values when engines have missing or non-numeric power fields:** Mods with engines that only generate power (omitting `powerPerHullPoint`) or have non-numeric `powerGeneratedPerHullPoint` caused NaN to appear in the Power Scenario dropdown, Engines step preview, Systems Summary, PDF export power section, and budget charts. Added `typeof` number guards in `calculateEnginePowerRequired` and `calculateEnginePowerGenerated`, defensive `|| 0` fallbacks in display code, and safe defaults in `calculateEngineCost`.
+- **Mod import silently fails:** Importing an `.altmod.json` file always failed silently because the import validation checked for a non-existent `mode` field on the manifest (the correct field is `fileModes`). Additionally, even if import succeeded, the data cache was never refreshed because `onModsChanged()` was not called after import. Fixed both the validation and the missing cache refresh.
 
 ## [1.0.1] - 2026-03-15
 

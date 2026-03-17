@@ -173,9 +173,10 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
     const folderName = await importMod();
     if (folderName) {
       await refreshMods();
+      await onModsChanged();
     }
     setSaving(false);
-  }, [refreshMods]);
+  }, [refreshMods, onModsChanged]);
 
   const handleOpenModsFolder = useCallback(async () => {
     const modsPath = await getModsDirectoryPath();

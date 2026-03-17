@@ -963,8 +963,8 @@ ipcMain.handle('import-mod', async () => {
     if (!altmod.formatVersion || !altmod.manifest || !altmod.files) {
       return { success: false, error: 'Invalid .altmod.json format' };
     }
-    if (!altmod.manifest.name || !altmod.manifest.mode) {
-      return { success: false, error: 'Invalid mod manifest: missing name or mode' };
+    if (!altmod.manifest.name) {
+      return { success: false, error: 'Invalid mod manifest: missing name' };
     }
 
     // Derive folder name from mod name
