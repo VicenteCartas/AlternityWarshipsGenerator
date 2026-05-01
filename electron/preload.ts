@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onReturnToStart: (callback: () => void) => {
     ipcRenderer.on('menu-return-to-start', callback);
   },
+  onReturnToHub: (callback: () => void) => {
+    ipcRenderer.on('menu-return-to-hub', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },

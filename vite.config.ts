@@ -1,10 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   base: './', // Required for Electron to load assets correctly
+  resolve: {
+    alias: {
+      '@app': path.resolve(__dirname, 'src/app'),
+      '@shared': path.resolve(__dirname, 'src/shared'),
+      '@warships': path.resolve(__dirname, 'src/modules/warships'),
+    },
+  },
   build: {
     outDir: 'dist',
   },

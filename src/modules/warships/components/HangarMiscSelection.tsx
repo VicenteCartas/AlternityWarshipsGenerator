@@ -1,0 +1,762 @@
+import { useState, useMemo, useRef, Fragment } from 'react';
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  IconButton,
+  TextField,
+  Chip,
+  Stack,
+  Tabs,
+  Tab,
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { headerCellSx, configFormSx, scrollableTableContainerSx, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, inlineEditSx } from '@shared/constants/tableStyles';
+import type { Hull } from '../types/hull';
+import type { ProgressLevel, TechTrack } from '../types/common';
+import type { HangarMiscSystemType, InstalledHangarMiscSystem, HangarMiscCategory } from '../types/hangarMisc';
+import {
+  getAllHangarMiscSystemTypes,
+  calculateHangarMiscStats,
+  createInstalledHangarMiscSystem,
+  updateInstalledHangarMiscSystem,
+  calculateHangarMiscHullPoints,
+  calculateHangarMiscPower,
+  calculateHangarMiscCost,
+  calculateHangarMiscCapacity,
+} from '../services/hangarMiscService';
+import { filterByDesignConstraints } from '@shared/services/utilities';
+import { formatCost } from '@shared/services/formatters';
+import { TechTrackCell, TruncatedDescription } from '@shared/components';
+import { HangarCraftEditForm } from './HangarCraftEditForm';
+import { MagazineOrdnanceEditForm, formatMagazineLoadout } from './MagazineOrdnanceEditForm';
+import { getSystemBerthingType, getSystemUsedCapacity, getSystemCraftCapacity, calculateEmbarkedCraftStats, isSystemMagazine } from '../services/embarkedCraftService';
+import { getUsedCapacity } from '../services/ordnanceService';
+import type { OrdnanceDesign } from '../types/ordnance';
+
+interface HangarMiscSelectionProps {
+  hull: Hull;
+  installedSystems: InstalledHangarMiscSystem[];
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
+  totalPassengersAndSuspended: number;
+  effectiveCrew: number;
+  ordnanceDesigns: OrdnanceDesign[];
+  onSystemsChange: (systems: InstalledHangarMiscSystem[]) => void;
+}
+
+export function HangarMiscSelection({
+  hull,
+  installedSystems,
+  designProgressLevel,
+  designTechTracks,
+  totalPassengersAndSuspended,
+  effectiveCrew,
+  ordnanceDesigns,
+  onSystemsChange,
+}: HangarMiscSelectionProps) {
+  const [activeTab, setActiveTab] = useState<HangarMiscCategory>('hangar');
+  const [selectedSystem, setSelectedSystem] = useState<HangarMiscSystemType | null>(null);
+  const [systemQuantity, setSystemQuantity] = useState<string>('1');
+  const [systemExtraHp, setSystemExtraHp] = useState<number>(0);
+  const [editingSystemId, setEditingSystemId] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // Get filtered system types
+  const availableSystems = useMemo(() => {
+    return filterByDesignConstraints(getAllHangarMiscSystemTypes(), designProgressLevel, designTechTracks, false);
+  }, [designProgressLevel, designTechTracks]);
+
+  // Get systems by category (excluding already installed single-install systems)
+  const getSystemsByCategory = (category: HangarMiscCategory) => {
+    const installedSingleInstallIds = installedSystems
+      .filter((s) => s.type.hullPercentage && s.type.maxQuantity === 1)
+      .map((s) => s.type.id);
+    
+    return availableSystems
+      .filter((s) => s.category === category && !installedSingleInstallIds.includes(s.id))
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.hullPoints !== b.hullPoints) return a.hullPoints - b.hullPoints;
+        return a.name.localeCompare(b.name);
+      });
+  };
+
+  // Count installed systems by category
+  const installedCounts = useMemo(() => ({
+    hangar: installedSystems.filter((s) => s.type.category === 'hangar').length,
+    cargo: installedSystems.filter((s) => s.type.category === 'cargo').length,
+    emergency: installedSystems.filter((s) => s.type.category === 'emergency').length,
+    facility: installedSystems.filter((s) => s.type.category === 'facility').length,
+    utility: installedSystems.filter((s) => s.type.category === 'utility').length,
+  }), [installedSystems]);
+
+  // Get installed systems by category
+  const getInstalledByCategory = (category: HangarMiscCategory) => {
+    return installedSystems.filter((s) => s.type.category === category);
+  };
+
+  // Calculate stats
+  const stats = useMemo(
+    () => calculateHangarMiscStats(installedSystems),
+    [installedSystems]
+  );
+
+  const embarkedCraftStats = useMemo(
+    () => calculateEmbarkedCraftStats(installedSystems),
+    [installedSystems]
+  );
+
+  // Handlers
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: HangarMiscCategory) => {
+    setActiveTab(newValue);
+    // Clear selection when changing tabs
+    setSelectedSystem(null);
+    setSystemQuantity('1');
+    setEditingSystemId(null);
+  };
+
+  const handleSelectSystem = (type: HangarMiscSystemType) => {
+    // For single-quantity percentage-based systems (like stabilizer), toggle directly
+    if (type.hullPercentage && type.maxQuantity === 1) {
+      const existingSystem = installedSystems.find((s) => s.type.id === type.id);
+      if (existingSystem) {
+        // Already installed - remove it
+        onSystemsChange(installedSystems.filter((s) => s.id !== existingSystem.id));
+      } else {
+        // Not installed - add it
+        onSystemsChange([
+          ...installedSystems,
+          createInstalledHangarMiscSystem(type, hull.hullPoints, 1),
+        ]);
+      }
+      return;
+    }
+
+    setSelectedSystem(type);
+    setSystemQuantity(String(type.minQuantity || 1));
+    setSystemExtraHp(0);
+    setEditingSystemId(null);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+  };
+
+  const handleAddSystem = () => {
+    if (!selectedSystem) return;
+    const quantity = parseInt(systemQuantity, 10) || 1;
+    const extraHp = selectedSystem.expandable ? systemExtraHp : 0;
+
+    if (editingSystemId) {
+      onSystemsChange(
+        installedSystems.map((s) =>
+          s.id === editingSystemId
+            ? updateInstalledHangarMiscSystem(s, hull.hullPoints, quantity, extraHp)
+            : s
+        )
+      );
+    } else {
+      onSystemsChange([
+        ...installedSystems,
+        createInstalledHangarMiscSystem(selectedSystem, hull.hullPoints, quantity, extraHp),
+      ]);
+    }
+
+    setSelectedSystem(null);
+    setSystemQuantity('1');
+    setSystemExtraHp(0);
+    setEditingSystemId(null);
+  };
+
+  const handleEditSystem = (installed: InstalledHangarMiscSystem) => {
+    setSelectedSystem(installed.type);
+    setSystemQuantity(installed.quantity.toString());
+    setSystemExtraHp(installed.extraHp || 0);
+    setEditingSystemId(installed.id);
+  };
+
+  const handleRemoveSystem = (id: string) => {
+    onSystemsChange(installedSystems.filter((s) => s.id !== id));
+  };
+
+  const handleDuplicateSystem = (system: InstalledHangarMiscSystem) => {
+    const duplicate = createInstalledHangarMiscSystem(system.type, hull.hullPoints, system.quantity, system.extraHp || 0);
+    const index = installedSystems.findIndex((s) => s.id === system.id);
+    const updated = [...installedSystems];
+    updated.splice(index + 1, 0, duplicate);
+    onSystemsChange(updated);
+  };
+
+  // Format capacity display
+  const formatCapacity = (system: HangarMiscSystemType, capacity: number): string => {
+    if (capacity === 0) return '';
+    
+    // For evacuation systems, just show "X people"
+    if (system.evacCapacity) {
+      return `${capacity} people`;
+    }
+    
+    // For cargo systems, show "Cargo: X m³"
+    if (system.cargoCapacity) {
+      return `Cargo: ${capacity} m³`;
+    }
+    
+    // For brig, show "X prisoners"
+    if (system.prisonersCapacity) {
+      return `${capacity} prisoners`;
+    }
+    
+    // For lab section, show "X scientists"
+    if (system.scientistCapacity) {
+      return `${capacity} scientists`;
+    }
+    
+    // For sick bay, show "X beds"
+    if (system.bedCapacity) {
+      return `${capacity} beds`;
+    }
+    
+    // For hangar, show "X HP craft"
+    if (system.hangarCapacity) {
+      return `${capacity} HP craft`;
+    }
+    
+    // For docking clamp, show "X HP docked"
+    if (system.dockCapacity) {
+      return `${capacity} HP docked`;
+    }
+    
+    // For magazine, show "X ordnance"
+    if (system.ordnanceCapacity) {
+      return `${capacity} ordnance`;
+    }
+    
+    // For fuel collector, show "X HP fuel/day"
+    if (system.fuelCollectionCapacity) {
+      return `${capacity} HP fuel/day`;
+    }
+    
+    // For accumulator, show "X PP stored"
+    if (system.powerPointsCapacity) {
+      return `${capacity} PP stored`;
+    }
+    
+    // For boarding pod, show "X troops"
+    if (system.troopCapacity) {
+      return `${capacity} troops`;
+    }
+    
+    // For facility patron capacity, show "X patrons"
+    if (system.patronCapacity) {
+      return `${capacity} patrons`;
+    }
+    
+    // For coverage systems (security suite), show "Covers X HP"
+    if (system.coveragePerHullPoint) {
+      return `Covers ${capacity} HP`;
+    }
+    
+    // Extract unit from capacityPerHull (e.g., "10 HP of embarked craft" -> "HP of embarked craft")
+    if (system.capacityPerHull) {
+      const match = system.capacityPerHull.match(/\d+\s+(.+)/);
+      if (match) {
+        return `${capacity} ${match[1]}`;
+      }
+    }
+    return `${capacity}`;
+  };
+
+  // Calculate preview values
+  const previewQuantity = parseInt(systemQuantity, 10) || 1;
+  const previewExtraHp = selectedSystem?.expandable ? systemExtraHp : 0;
+  const previewHullPts = selectedSystem ? calculateHangarMiscHullPoints(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewPower = selectedSystem ? calculateHangarMiscPower(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewCost = selectedSystem ? calculateHangarMiscCost(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const previewCapacity = selectedSystem ? calculateHangarMiscCapacity(selectedSystem, hull.hullPoints, previewQuantity, previewExtraHp) : 0;
+  const totalPeople = effectiveCrew + totalPassengersAndSuspended;
+  const previewCapacityStr = selectedSystem && previewCapacity > 0 && (selectedSystem.capacityPerHull || selectedSystem.coveragePerHullPoint || selectedSystem.fuelCollectionCapacity || selectedSystem.powerPointsCapacity || selectedSystem.troopCapacity || selectedSystem.patronCapacity || selectedSystem.cargoCapacity || selectedSystem.ordnanceCapacity || selectedSystem.evacCapacity)
+    ? ` | ${formatCapacity(selectedSystem, previewCapacity)}${selectedSystem.evacCapacity && totalPeople > 0 ? ` (${Math.round((previewCapacity / totalPeople) * 100)}%)` : ''}`
+    : '';
+  const previewServiceStr = selectedSystem?.cargoServiceCapacity
+    ? ` | Services ${selectedSystem.cargoServiceCapacity * previewQuantity} HP cargo`
+    : '';
+
+  const getCategoryLabel = (category: HangarMiscCategory): string => {
+    switch (category) {
+      case 'hangar': return 'Hangars';
+      case 'cargo': return 'Cargo';
+      case 'emergency': return 'Emergency';
+      case 'facility': return 'Facilities';
+      case 'utility': return 'Utility';
+      default: return category;
+    }
+  };
+
+  // Render installed systems for a category
+  const renderInstalledSystems = (category: HangarMiscCategory) => {
+    const installed = getInstalledByCategory(category);
+    if (installed.length === 0) return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+        No {getCategoryLabel(category).toLowerCase()} installed. Select from the table below to add one.
+      </Typography>
+    );
+
+    return (
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Installed {getCategoryLabel(category)}
+        </Typography>
+        <Stack spacing={1}>
+          {installed.map((system) => {
+            const isEditing = editingSystemId === system.id;
+            const berthingType = getSystemBerthingType(system);
+            const isMagazine = isSystemMagazine(system);
+            const craftLoadout = system.loadout || [];
+            const craftSummary = berthingType && craftLoadout.length > 0
+              ? craftLoadout.map(c => `${c.quantity}× ${c.name}`).join(', ')
+              : berthingType ? 'Empty' : null;
+            const magazineSummary = isMagazine ? formatMagazineLoadout(system, ordnanceDesigns) : null;
+            
+            return (
+              <Fragment key={system.id}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1,
+                    bgcolor: isEditing ? 'action.selected' : 'action.hover',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {system.type.name}
+                    {system.quantity > 1 && system.type.costPer !== 'systemHp' && ` (×${system.quantity})`}
+                    {craftSummary && (
+                      <>
+                        {' — '}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {craftSummary}
+                        </Typography>
+                      </>
+                    )}
+                    {magazineSummary && (
+                      <>
+                        {' — '}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {magazineSummary}
+                        </Typography>
+                      </>
+                    )}
+                  </Typography>
+                  <Chip label={`${system.hullPoints} HP`} size="small" variant="outlined" />
+                  <Chip label={`${system.powerRequired} Power`} size="small" variant="outlined" />
+                  {system.capacity && (system.type.capacityPerHull || system.type.coveragePerHullPoint || system.type.fuelCollectionCapacity || system.type.powerPointsCapacity || system.type.troopCapacity || system.type.patronCapacity || system.type.ordnanceCapacity || system.type.evacCapacity) && (
+                    <Chip 
+                      label={`${formatCapacity(system.type, system.capacity)}${system.type.evacCapacity && totalPeople > 0 ? ` (${Math.round((system.capacity / totalPeople) * 100)}%)` : ''}`} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.capacity && system.type.cargoCapacity && (
+                    <Chip 
+                      label={`Cargo: ${system.capacity} m³`} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.serviceCapacity && (
+                    <Chip 
+                      label={`Services ${system.serviceCapacity} HP cargo`} 
+                      size="small" 
+                      color="success" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {system.type.effect && !system.type.cargoServiceCapacity && (
+                    <Chip label={system.type.effect} size="small" color="success" variant="outlined" />
+                  )}
+                  <Chip label={formatCost(system.cost)} size="small" variant="outlined" />
+                  {/* Show craft capacity chip for hangar/docking systems (like launcher capacity) */}
+                  {berthingType && (
+                    <Chip 
+                      label={`${getSystemUsedCapacity(system)}/${getSystemCraftCapacity(system)} Cap`}
+                      size="small"
+                      color={getSystemUsedCapacity(system) >= getSystemCraftCapacity(system) ? 'success' : 'warning'}
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Show ordnance capacity chip for magazines (like launcher capacity) */}
+                  {isMagazine && system.capacity && (
+                    <Chip 
+                      label={`${getUsedCapacity(system.ordnanceLoadout || [], ordnanceDesigns)}/${system.capacity} Cap`}
+                      size="small"
+                      color={getUsedCapacity(system.ordnanceLoadout || [], ordnanceDesigns) >= system.capacity ? 'success' : 'warning'}
+                      variant="outlined"
+                    />
+                  )}
+                  {/* Hide edit/duplicate buttons for toggle systems (single-quantity percentage-based) */}
+                  {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
+                    <IconButton size="small" aria-label="Edit system" onClick={() => handleEditSystem(system)} color="primary">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {!(system.type.hullPercentage && system.type.maxQuantity === 1) && (
+                    <IconButton size="small" aria-label="Duplicate system" onClick={() => handleDuplicateSystem(system)}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <IconButton size="small" aria-label="Remove system" onClick={() => handleRemoveSystem(system.id)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {/* Inline edit form */}
+                {isEditing && renderInlineEditForm()}
+                {/* Per-system craft loadout — only when editing a hangar/docking system */}
+                {berthingType && isEditing && (
+                  <HangarCraftEditForm
+                    system={system}
+                    carrierHullHp={hull.hullPoints}
+                    onSystemChange={(updated) => {
+                      onSystemsChange(installedSystems.map(s => s.id === updated.id ? updated : s));
+                    }}
+                  />
+                )}
+                {/* Per-system ordnance loadout — only when editing a magazine */}
+                {isMagazine && isEditing && (
+                  <MagazineOrdnanceEditForm
+                    system={system}
+                    ordnanceDesigns={ordnanceDesigns}
+                    onSystemChange={(updated) => {
+                      onSystemsChange(installedSystems.map(s => s.id === updated.id ? updated : s));
+                    }}
+                  />
+                )}
+              </Fragment>
+            );
+          })}
+        </Stack>
+      </Paper>
+    );
+  };
+
+  // Render inline edit form (shown under the item being edited)
+  const renderInlineEditForm = () => {
+    if (!selectedSystem || !editingSystemId) return null;
+
+    return (
+      <Box ref={formRef} sx={inlineEditSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Size (HP)' : 'Quantity')}
+            type="number"
+            size="small"
+            value={systemQuantity}
+            onChange={(e) => setSystemQuantity(e.target.value)}
+            inputProps={{ min: selectedSystem.minQuantity || 1 }}
+            sx={{ width: 150 }}
+          />
+          {selectedSystem.expandable && (
+            <TextField
+              label="Extra HP"
+              type="number"
+              size="small"
+              value={systemExtraHp}
+              onChange={(e) => setSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+              sx={{ width: 100 }}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedSystem(null);
+                  setSystemQuantity('1');
+                  setSystemExtraHp(0);
+                  setEditingSystemId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                startIcon={<SaveIcon />}
+              >
+                Save
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+        </form>
+      </Box>
+    );
+  };
+
+  // Render the add form (shown above the grid when adding new)
+  const renderAddForm = () => {
+    if (!selectedSystem || editingSystemId) return null;
+    // Only show if selected system matches current tab
+    if (selectedSystem.category !== activeTab) return null;
+
+    return (
+      <Paper ref={formRef} variant="outlined" sx={configFormSx}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddSystem(); }}>
+        <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+          Add {selectedSystem.name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label={selectedSystem.hullPercentage ? 'Units' : (selectedSystem.costPer === 'systemHp' ? 'Size (HP)' : 'Quantity')}
+            type="number"
+            size="small"
+            value={systemQuantity}
+            onChange={(e) => setSystemQuantity(e.target.value)}
+            inputProps={{ min: selectedSystem.minQuantity || 1 }}
+            sx={{ width: 150 }}
+          />
+          {selectedSystem.expandable && (
+            <TextField
+              label="Extra HP"
+              type="number"
+              size="small"
+              value={systemExtraHp}
+              onChange={(e) => setSystemExtraHp(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0, style: { textAlign: 'center', width: 40 } }}
+              sx={{ width: 100 }}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              HP: {previewHullPts} | Power: {previewPower}{previewCapacityStr}{previewServiceStr} | Cost: {formatCost(previewCost)}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setSelectedSystem(null);
+                  setSystemQuantity('1');
+                  setSystemExtraHp(0);
+                  setEditingSystemId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+              >
+                Add
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+        </form>
+      </Paper>
+    );
+  };
+
+  // Render table for a category
+  const renderSystemTable = (category: HangarMiscCategory) => {
+    const systems = getSystemsByCategory(category);
+    if (systems.length === 0) {
+      return (
+        <Typography color="text.secondary" sx={{ py: 2 }}>
+          No {getCategoryLabel(category).toLowerCase()} available at current design constraints.
+        </Typography>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper} variant="outlined" sx={{ ...scrollableTableContainerSx, '& .MuiTable-root': { minWidth: 1100 } }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, minWidth: 180 }}>Name</TableCell>
+              <TableCell sx={headerCellSx}>PL</TableCell>
+              <TableCell sx={headerCellSx}>Tech</TableCell>
+              <TableCell sx={headerCellSx}>HP</TableCell>
+              <TableCell sx={headerCellSx}>Power</TableCell>
+              <TableCell sx={headerCellSx}>Cost</TableCell>
+              <TableCell sx={headerCellSx}>Capacity</TableCell>
+              <TableCell sx={headerCellSx}>Effect</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {systems.map((system) => {
+              const isSelected = selectedSystem?.id === system.id && !editingSystemId;
+              return (
+                <TableRow
+                  key={system.id}
+                  hover
+                  selected={isSelected}
+                  onClick={() => handleSelectSystem(system)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: 'action.selected',
+                    },
+                  }}
+                >
+                  <TableCell sx={{ ...stickyFirstColumnCellSx, minWidth: 180 }}>{system.name}</TableCell>
+                  <TableCell>{system.progressLevel}</TableCell>
+                  <TechTrackCell techTracks={system.techTracks} />
+                  <TableCell>
+                    {system.hullPercentage 
+                      ? `${system.hullPercentage}%` 
+                      : system.hullPoints}
+                  </TableCell>
+                  <TableCell>{system.powerRequired}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.baseCost ? `${formatCost(system.baseCost)} + ` : ''}
+                    {formatCost(system.cost)}
+                    {system.costPer === 'systemHp' && '/HP'}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.cargoCapacity 
+                      ? `${system.cargoCapacity} m³`
+                      : system.cargoServiceCapacity
+                      ? `Services ${system.cargoServiceCapacity} HP`
+                      : system.fuelCollectionCapacity
+                      ? `${system.fuelCollectionCapacity} HP fuel/day`
+                      : system.powerPointsCapacity
+                      ? `${system.powerPointsCapacity} PP stored`
+                      : system.troopCapacity
+                      ? `${system.troopCapacity} troops`
+                      : system.patronCapacity
+                      ? `${system.patronCapacity} patrons`
+                      : system.ordnanceCapacity
+                      ? `${system.ordnanceCapacity} ordnance pts`
+                      : system.capacityPerHull || '-'}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    {system.effect || '-'}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    <TruncatedDescription text={system.description} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  return (
+    <Box>
+      {/* Summary Chips */}
+      <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip label={`HP: ${stats.totalHullPoints}`} color="default" variant="outlined" />
+          <Chip label={`Power: ${stats.totalPowerRequired}`} color="default" variant="outlined" />
+          <Chip label={`Cost: ${formatCost(stats.totalCost)}`} color="default" variant="outlined" />
+          {stats.totalHangarCapacity > 0 && (
+            <Chip label={`Hangar: ${stats.totalHangarCapacity} HP`} color="primary" variant="outlined" />
+          )}
+          {stats.totalDockingCapacity > 0 && (
+            <Chip label={`Docking: ${stats.totalDockingCapacity} HP`} color="primary" variant="outlined" />
+          )}
+          {stats.totalCargoCapacity > 0 && (
+            <Chip label={`Cargo: ${stats.totalCargoCapacity} m³`} color="primary" variant="outlined" />
+          )}
+          {stats.totalEvacCapacity > 0 && (
+            <Chip 
+              label={`Evac: ${stats.totalEvacCapacity}/${totalPeople} people${totalPeople > 0 ? ` (${Math.round((stats.totalEvacCapacity / totalPeople) * 100)}%)` : ''}`} 
+              color={stats.totalEvacCapacity >= totalPeople ? 'success' : 'warning'} 
+              variant="outlined" 
+            />
+          )}
+          {stats.totalMagazineCapacity > 0 && (
+            <Chip label={`Magazine: ${stats.totalMagazineCapacity} pts`} color="primary" variant="outlined" />
+          )}
+          {stats.totalPatronCapacity > 0 && (
+            <Chip label={`Patrons: ${stats.totalPatronCapacity}`} color="primary" variant="outlined" />
+          )}
+          {embarkedCraftStats.totalEmbarkedCost > 0 && (
+            <Chip label={`Embarked: ${formatCost(embarkedCraftStats.totalEmbarkedCost)}`} color="default" variant="outlined" />
+          )}
+        </Box>
+      </Paper>
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tab label={`Hangars (${installedCounts.hangar})`} value="hangar" />
+          <Tab label={`Cargo (${installedCounts.cargo})`} value="cargo" />
+          <Tab label={`Emergency (${installedCounts.emergency})`} value="emergency" />
+          <Tab label={`Facilities (${installedCounts.facility})`} value="facility" />
+          <Tab label={`Utility (${installedCounts.utility})`} value="utility" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {activeTab === 'hangar' && (
+        <>
+          {renderInstalledSystems('hangar')}
+          {renderAddForm()}
+          {renderSystemTable('hangar')}
+        </>
+      )}
+      {activeTab === 'cargo' && (
+        <>
+          {renderInstalledSystems('cargo')}
+          {renderAddForm()}
+          {renderSystemTable('cargo')}
+        </>
+      )}
+      {activeTab === 'emergency' && (
+        <>
+          {renderInstalledSystems('emergency')}
+          {renderAddForm()}
+          {renderSystemTable('emergency')}
+        </>
+      )}
+      {activeTab === 'facility' && (
+        <>
+          {renderInstalledSystems('facility')}
+          {renderAddForm()}
+          {renderSystemTable('facility')}
+        </>
+      )}
+      {activeTab === 'utility' && (
+        <>
+          {renderInstalledSystems('utility')}
+          {renderAddForm()}
+          {renderSystemTable('utility')}
+        </>
+      )}
+    </Box>
+  );
+}

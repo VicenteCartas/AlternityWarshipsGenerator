@@ -1,0 +1,1111 @@
+import { useState, useMemo, Fragment } from 'react';
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Tooltip,
+  Button,
+  IconButton,
+  TextField,
+  Chip,
+  Alert,
+  Stack,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SaveIcon from '@mui/icons-material/Save';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import SpeedIcon from '@mui/icons-material/Speed';
+import WarningIcon from '@mui/icons-material/Warning';
+import { headerCellSx, columnWidths, stickyFirstColumnHeaderSx, stickyFirstColumnCellSx, scrollableTableContainerSx, configFormSx, inlineEditSx } from '@shared/constants/tableStyles';
+import { TruncatedDescription, ConfirmDialog } from '@shared/components';
+import type { Hull } from '../types/hull';
+import type { EngineType, InstalledEngine, InstalledEngineFuelTank } from '../types/engine';
+import type { ProgressLevel, TechTrack } from '../types/common';
+import {
+  getEngineTypesForShipClass,
+  calculateEnginePowerRequired,
+  calculateEnginePowerGenerated,
+  calculateEngineCost,
+  calculateEngineFuelTankCost,
+  calculateEngineFuelTankEndurance,
+  calculateTotalEngineStats,
+  calculateHullPercentage,
+  getAccelerationForPercentage,
+  validateEngineInstallation,
+  validateEngineFuelTankInstallation,
+  validateEngineDesign,
+  generateEngineId,
+  generateEngineFuelTankId,
+  getUniqueFuelRequiringEngineTypes,
+  getTotalEngineFuelTankHPForEngineType,
+  getTotalEngineHPForEngineType,
+  isEnginePowerGenerationAllowed,
+} from '../services/engineService';
+import { filterByDesignConstraints } from '@shared/services/utilities';
+import { formatCost, getTechTrackName, formatAcceleration } from '@shared/services/formatters';
+
+interface EngineSelectionProps {
+  hull: Hull;
+  installedEngines: InstalledEngine[];
+  installedFuelTanks: InstalledEngineFuelTank[];
+  usedHullPoints: number;
+  designProgressLevel: ProgressLevel;
+  designTechTracks: TechTrack[];
+  onEnginesChange: (engines: InstalledEngine[]) => void;
+  onFuelTanksChange: (fuelTanks: InstalledEngineFuelTank[]) => void;
+}
+
+export function EngineSelection({
+  hull,
+  installedEngines,
+  installedFuelTanks,
+  usedHullPoints,
+  designProgressLevel,
+  designTechTracks,
+  onEnginesChange,
+  onFuelTanksChange,
+}: EngineSelectionProps) {
+  // Engine state
+  const [selectedType, setSelectedType] = useState<EngineType | null>(null);
+  const [hullPointsInput, setHullPointsInput] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Fuel tank state
+  const [addingFuelTankForType, setAddingFuelTankForType] = useState<EngineType | null>(null);
+  const [fuelTankHullPointsInput, setFuelTankHullPointsInput] = useState<string>('1');
+  const [editingFuelTankId, setEditingFuelTankId] = useState<string | null>(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
+  // Get engines filtered by ship class, then apply design constraints
+  const availableEngines = useMemo(() => {
+    return filterByDesignConstraints(getEngineTypesForShipClass(), designProgressLevel, designTechTracks)
+      .sort((a, b) => {
+        if (a.progressLevel !== b.progressLevel) return a.progressLevel - b.progressLevel;
+        if (a.baseCost !== b.baseCost) return a.baseCost - b.baseCost;
+        return a.costPerHullPoint - b.costPerHullPoint;
+      });
+  }, [designProgressLevel, designTechTracks]);
+
+  // Get unique engine types that require fuel (from installed engines)
+  const fuelRequiringTypes = useMemo(
+    () => getUniqueFuelRequiringEngineTypes(installedEngines),
+    [installedEngines]
+  );
+
+  // Check if engine power generation house rule is enabled
+  const powerGenerationAllowed = useMemo(() => isEnginePowerGenerationAllowed(), []);
+
+  const totalStats = useMemo(
+    () => calculateTotalEngineStats(installedEngines, installedFuelTanks, hull),
+    [installedEngines, installedFuelTanks, hull]
+  );
+
+  // Design-level validation (e.g., fuel-requiring engines need fuel tanks)
+  const designValidation = useMemo(
+    () => validateEngineDesign(installedEngines, installedFuelTanks),
+    [installedEngines, installedFuelTanks]
+  );
+
+  // ============== Engine Handlers ==============
+
+  const handleTypeSelect = (engine: EngineType) => {
+    setSelectedType(engine);
+    setHullPointsInput(engine.minSize.toString());
+    setEditingId(null);
+  };
+
+  const handleAddEngine = () => {
+    if (!selectedType) return;
+
+    const hullPoints = parseInt(hullPointsInput, 10) || 0;
+
+    const validation = validateEngineInstallation(
+      selectedType,
+      hullPoints
+    );
+
+    if (!validation.valid) {
+      return;
+    }
+
+    if (editingId) {
+      const updatedInstallation: InstalledEngine = {
+        id: editingId,
+        type: selectedType,
+        hullPoints,
+      };
+      onEnginesChange(
+        installedEngines.map((e) =>
+          e.id === editingId ? updatedInstallation : e
+        )
+      );
+    } else {
+      const newInstallation: InstalledEngine = {
+        id: generateEngineId(),
+        type: selectedType,
+        hullPoints,
+      };
+      onEnginesChange([...installedEngines, newInstallation]);
+    }
+    
+    setSelectedType(null);
+    setHullPointsInput('');
+    setEditingId(null);
+  };
+
+  const handleRemoveEngine = (id: string) => {
+    const engineToRemove = installedEngines.find(e => e.id === id);
+    onEnginesChange(installedEngines.filter((e) => e.id !== id));
+    
+    // Also remove any fuel tanks associated with this engine type if no other engines of that type exist
+    if (engineToRemove) {
+      const otherEnginesOfSameType = installedEngines.filter(
+        e => e.id !== id && e.type.id === engineToRemove.type.id
+      );
+      if (otherEnginesOfSameType.length === 0) {
+        onFuelTanksChange(
+          installedFuelTanks.filter(ft => ft.forEngineType.id !== engineToRemove.type.id)
+        );
+      }
+    }
+  };
+
+  const handleEditEngine = (installation: InstalledEngine) => {
+    setSelectedType(installation.type);
+    setHullPointsInput(installation.hullPoints.toString());
+    setEditingId(installation.id);
+  };
+
+  const handleDuplicateEngine = (installation: InstalledEngine) => {
+    const duplicate: InstalledEngine = {
+      id: generateEngineId(),
+      type: installation.type,
+      hullPoints: installation.hullPoints,
+    };
+    const index = installedEngines.findIndex(e => e.id === installation.id);
+    const updated = [...installedEngines];
+    updated.splice(index + 1, 0, duplicate);
+    onEnginesChange(updated);
+  };
+
+  const handleClearAll = () => {
+    onEnginesChange([]);
+    onFuelTanksChange([]);
+    setSelectedType(null);
+    setHullPointsInput('');
+    setEditingId(null);
+    setAddingFuelTankForType(null);
+    setEditingFuelTankId(null);
+  };
+
+  // ============== Fuel Tank Handlers ==============
+
+  const handleStartAddFuelTank = (engineType: EngineType) => {
+    setAddingFuelTankForType(engineType);
+    setFuelTankHullPointsInput('1');
+    setEditingFuelTankId(null);
+  };
+
+  const handleAddFuelTank = () => {
+    if (!addingFuelTankForType) return;
+
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+
+    // When editing, exclude the current fuel tank from HP calculation
+    const tanksForValidation = editingFuelTankId
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
+      : installedFuelTanks;
+    
+    const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
+    const engineHP = installedEngines.reduce((sum, e) => sum + e.hullPoints, 0);
+
+    const validation = validateEngineFuelTankInstallation(
+      hullPoints,
+      hull,
+      usedHullPoints + engineHP + fuelTankHP
+    );
+
+    if (!validation.valid) {
+      return;
+    }
+
+    if (editingFuelTankId) {
+      const updatedFuelTank: InstalledEngineFuelTank = {
+        id: editingFuelTankId,
+        forEngineType: addingFuelTankForType,
+        hullPoints,
+      };
+      onFuelTanksChange(
+        installedFuelTanks.map(ft =>
+          ft.id === editingFuelTankId ? updatedFuelTank : ft
+        )
+      );
+    } else {
+      const newFuelTank: InstalledEngineFuelTank = {
+        id: generateEngineFuelTankId(),
+        forEngineType: addingFuelTankForType,
+        hullPoints,
+      };
+      onFuelTanksChange([...installedFuelTanks, newFuelTank]);
+    }
+
+    setAddingFuelTankForType(null);
+    setFuelTankHullPointsInput('1');
+    setEditingFuelTankId(null);
+  };
+
+  const handleEditFuelTank = (fuelTank: InstalledEngineFuelTank) => {
+    setAddingFuelTankForType(fuelTank.forEngineType);
+    setFuelTankHullPointsInput(fuelTank.hullPoints.toString());
+    setEditingFuelTankId(fuelTank.id);
+  };
+
+  const handleRemoveFuelTank = (id: string) => {
+    onFuelTanksChange(
+      installedFuelTanks.filter(ft => ft.id !== id)
+    );
+  };
+
+  const handleDuplicateFuelTank = (fuelTank: InstalledEngineFuelTank) => {
+    const duplicate: InstalledEngineFuelTank = {
+      id: generateEngineFuelTankId(),
+      forEngineType: fuelTank.forEngineType,
+      hullPoints: fuelTank.hullPoints,
+    };
+    const index = installedFuelTanks.findIndex(ft => ft.id === fuelTank.id);
+    const updated = [...installedFuelTanks];
+    updated.splice(index + 1, 0, duplicate);
+    onFuelTanksChange(updated);
+  };
+
+  // ============== Validation ==============
+
+  const validationErrors = useMemo(() => {
+    if (!selectedType) return [];
+    const hullPoints = parseInt(hullPointsInput, 10) || 0;
+    
+    const validation = validateEngineInstallation(
+      selectedType,
+      hullPoints
+    );
+    return validation.errors;
+  }, [selectedType, hullPointsInput]);
+
+  const fuelTankValidationErrors = useMemo(() => {
+    if (!addingFuelTankForType) return [];
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+    
+    const tanksForValidation = editingFuelTankId
+      ? installedFuelTanks.filter(ft => ft.id !== editingFuelTankId)
+      : installedFuelTanks;
+    
+    const fuelTankHP = tanksForValidation.reduce((sum, ft) => sum + ft.hullPoints, 0);
+    const engineHP = installedEngines.reduce((sum, e) => sum + e.hullPoints, 0);
+    
+    const validation = validateEngineFuelTankInstallation(
+      hullPoints,
+      hull,
+      usedHullPoints + engineHP + fuelTankHP
+    );
+    return validation.errors;
+  }, [addingFuelTankForType, fuelTankHullPointsInput, hull, usedHullPoints, installedEngines, installedFuelTanks, editingFuelTankId]);
+
+  // Calculate preview stats for selected engine
+  const previewStats = useMemo(() => {
+    if (!selectedType) return null;
+    const hullPoints = parseInt(hullPointsInput, 10) || 0;
+    const hullPercentage = calculateHullPercentage(hull, hullPoints);
+    const acceleration = getAccelerationForPercentage(selectedType.accelerationRatings, hullPercentage);
+    
+    return {
+      powerRequired: calculateEnginePowerRequired(selectedType, hullPoints),
+      powerGenerated: calculateEnginePowerGenerated(selectedType, hullPoints),
+      engineCost: calculateEngineCost(selectedType, hullPoints),
+      totalHullPoints: hullPoints,
+      hullPercentage,
+      acceleration,
+    };
+  }, [selectedType, hullPointsInput, hull]);
+
+  // Calculate preview stats for fuel tank
+  const fuelTankPreviewStats = useMemo(() => {
+    if (!addingFuelTankForType) return null;
+    const hullPoints = parseInt(fuelTankHullPointsInput, 10) || 0;
+    const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, addingFuelTankForType.id);
+    const existingFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, addingFuelTankForType.id);
+    // Exclude current tank HP if editing
+    const effectiveExistingFuelHP = editingFuelTankId
+      ? existingFuelHP - (installedFuelTanks.find(ft => ft.id === editingFuelTankId)?.hullPoints || 0)
+      : existingFuelHP;
+    const totalFuelHP = effectiveExistingFuelHP + hullPoints;
+    
+    return {
+      cost: calculateEngineFuelTankCost(addingFuelTankForType, hullPoints),
+      endurance: calculateEngineFuelTankEndurance(addingFuelTankForType, totalFuelHP, totalEngineHP),
+    };
+  }, [addingFuelTankForType, fuelTankHullPointsInput, installedEngines, installedFuelTanks, editingFuelTankId]);
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1 }}>
+        {installedEngines.length > 0 && (
+          <Button
+            variant="outlined"
+            size="small"
+            color="secondary"
+            onClick={() => setConfirmClearOpen(true)}
+          >
+            Clear All
+          </Button>
+        )}
+      </Box>
+
+      {/* Power status */}
+      <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip
+            label={`HP: ${totalStats.totalHullPoints}`}
+            color="default"
+            variant="outlined"
+          />
+          <Chip
+            label={`Power: ${totalStats.totalPowerRequired}`}
+            color="default"
+            variant="outlined"
+          />
+          {powerGenerationAllowed && totalStats.totalPowerGenerated > 0 && (
+            <Chip
+              label={`Power Generated: ${totalStats.totalPowerGenerated}`}
+              color="primary"
+              variant="outlined"
+            />
+          )}
+          <Chip
+            label={`Cost: ${formatCost(totalStats.totalCost)}`}
+            color="default"
+            variant="outlined"
+          />
+          {/* Separate acceleration chips for PL6 and non-PL6 engines */}
+          {/* Engines of the same type have their HP combined before calculating acceleration */}
+          {(() => {
+            // Group engines by type and sum their HP, then calculate acceleration per type
+            const enginesByType = new Map<string, { type: typeof installedEngines[0]['type'], totalHP: number }>();
+            for (const e of installedEngines) {
+              const existing = enginesByType.get(e.type.id);
+              if (existing) {
+                existing.totalHP += e.hullPoints;
+              } else {
+                enginesByType.set(e.type.id, { type: e.type, totalHP: e.hullPoints });
+              }
+            }
+            
+            let pl6Accel = 0;
+            let nonPL6Accel = 0;
+            for (const { type, totalHP } of enginesByType.values()) {
+              const percentage = calculateHullPercentage(hull, totalHP);
+              const accel = getAccelerationForPercentage(type.accelerationRatings, percentage);
+              if (type.usesPL6Scale) {
+                pl6Accel += accel;
+              } else {
+                nonPL6Accel += accel;
+              }
+            }
+            
+            return (
+              <>
+                {pl6Accel > 0 && (
+                  <Chip
+                    icon={<SpeedIcon />}
+                    label={`Accel: ${formatAcceleration(pl6Accel, true)}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {nonPL6Accel > 0 && (
+                  <Chip
+                    icon={<SpeedIcon />}
+                    label={`Accel: ${formatAcceleration(nonPL6Accel, false)}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+              </>
+            );
+          })()}
+          {/* Fuel chips for each engine type that requires fuel */}
+          {fuelRequiringTypes.map((engineType) => {
+            const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, engineType.id);
+            const totalFuelHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, engineType.id);
+            const endurance = totalFuelHP > 0 ? calculateEngineFuelTankEndurance(engineType, totalFuelHP, totalEngineHP) : 0;
+            const noFuelColor = engineType.fuelOptional ? 'default' : 'error';
+            return (
+              <Chip
+                key={engineType.id}
+                icon={<BatteryChargingFullIcon />}
+                label={`${engineType.name}: ${totalFuelHP > 0 ? `${endurance} thrust-days total` : 'No fuel'}`}
+                color={totalFuelHP > 0 ? 'success' : noFuelColor}
+                variant="outlined"
+              />
+            );
+          })}
+          <Tooltip title="Each 5% of base hull points is the standard engine sizing bracket for acceleration ratings">
+            <Chip
+              label={`5% Hull = ${Math.floor(hull.hullPoints * 0.05)} HP`}
+              color="default"
+              variant="outlined"
+            />
+          </Tooltip>
+        </Box>
+      </Paper>
+
+      {/* Design validation warnings (e.g., missing fuel) */}
+      {!designValidation.valid && (
+        <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
+          {designValidation.errors.map((error, index) => (
+            <div key={index}>{error}</div>
+          ))}
+        </Alert>
+      )}
+
+      {/* Summary of installed engines */}
+      {installedEngines.length > 0 ? (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Installed Engines
+          </Typography>
+          <Stack spacing={1}>
+            {installedEngines.map((installation) => {
+              const powerRequired = calculateEnginePowerRequired(installation.type, installation.hullPoints);
+              const powerGenerated = calculateEnginePowerGenerated(installation.type, installation.hullPoints);
+              const cost = calculateEngineCost(installation.type, installation.hullPoints);
+              const hullPercentage = calculateHullPercentage(hull, installation.hullPoints);
+              const acceleration = getAccelerationForPercentage(installation.type.accelerationRatings, hullPercentage);
+              const needsFuel = installation.type.requiresFuel;
+              const fuelTankHP = getTotalEngineFuelTankHPForEngineType(installedFuelTanks, installation.type.id);
+              const totalEngineHP = getTotalEngineHPForEngineType(installedEngines, installation.type.id);
+              const endurance = fuelTankHP > 0 ? calculateEngineFuelTankEndurance(installation.type, fuelTankHP, totalEngineHP) : 0;
+              const isEditing = editingId === installation.id;
+              
+              return (
+                <Fragment key={installation.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {installation.type.name}
+                    </Typography>
+                    <Chip
+                      label={`${installation.hullPoints} HP (${hullPercentage.toFixed(1)}%)`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`${powerRequired} Power`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    {powerGenerationAllowed && powerGenerated > 0 && (
+                      <Chip
+                        label={`${powerGenerated} Power Gen`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
+                    <Chip
+                      icon={<SpeedIcon />}
+                      label={formatAcceleration(acceleration, installation.type.usesPL6Scale)}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatCost(cost)}
+                      size="small"
+                      variant="outlined"
+                    />
+                    {needsFuel && (
+                      <Tooltip title={fuelTankHP > 0 ? `${fuelTankHP} HP of fuel (${endurance} thrust-days total)` : (installation.type.fuelOptional ? 'No fuel (can use power)' : 'No fuel tank installed')}>
+                        <Chip
+                          icon={<BatteryChargingFullIcon />}
+                          label={fuelTankHP > 0 ? `${endurance} thrust-days total` : (installation.type.fuelOptional ? 'No fuel' : 'Need fuel')}
+                          size="small"
+                          color={fuelTankHP > 0 ? 'success' : (installation.type.fuelOptional ? 'default' : 'error')}
+                          variant="outlined"
+                          onClick={() => handleStartAddFuelTank(installation.type)}
+                        />
+                      </Tooltip>
+                    )}
+                    <IconButton
+                      aria-label="Edit engine"
+                      size="small"
+                      color="primary"
+                      onClick={() => handleEditEngine(installation)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      aria-label="Duplicate engine"
+                      size="small"
+                      onClick={() => handleDuplicateEngine(installation)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      aria-label="Remove engine"
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveEngine(installation.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {/* Inline edit form when editing this engine */}
+                  {isEditing && selectedType && (
+                    <Box sx={inlineEditSx}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddEngine(); }}>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <TextField
+                          label="Size (HP)"
+                          type="number"
+                          size="small"
+                          value={hullPointsInput}
+                          onChange={(e) => setHullPointsInput(e.target.value)}
+                          inputProps={{ min: selectedType.minSize }}
+                          helperText={`Min: ${selectedType.minSize}`}
+                          sx={{ width: 140 }}
+                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {previewStats && (
+                            <Typography variant="caption" color="text.secondary">
+                              {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint ?? 0} | Power: {previewStats.powerRequired}
+                              {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
+                              {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
+                              {' | Cost: '}{formatCost(previewStats.engineCost)}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              type="button"
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setSelectedType(null);
+                                setEditingId(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              disabled={validationErrors.length > 0}
+                            >
+                              Update
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Box>
+                      {validationErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mt: 1 }}>
+                          {validationErrors.map((error, index) => (
+                            <div key={index}>{error}</div>
+                          ))}
+                        </Alert>
+                      )}
+                      </form>
+                    </Box>
+                  )}
+                </Fragment>
+              );
+            })}
+          </Stack>
+        </Paper>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 1, mb: 2 }}>
+          No engines installed. Select one from the table below to get started.
+        </Typography>
+      )}
+
+      {/* Installed Fuel Tanks Section */}
+      {installedFuelTanks.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <Typography variant="subtitle2">
+              Installed Fuel Tanks
+            </Typography>
+            <Tooltip title="Fuel tanks are linked to a specific engine type. Click the fuel chip on an engine above, or use the 'Add fuel tank' button below, to add fuel.">
+              <HelpOutlineIcon fontSize="small" color="action" sx={{ cursor: 'help' }} />
+            </Tooltip>
+          </Box>
+          <Stack spacing={1}>
+            {installedFuelTanks.map((fuelTank) => {
+              const cost = calculateEngineFuelTankCost(fuelTank.forEngineType, fuelTank.hullPoints);
+              const engineHP = installedEngines
+                .filter(e => e.type.id === fuelTank.forEngineType.id)
+                .reduce((sum, e) => sum + e.hullPoints, 0);
+              const endurance = calculateEngineFuelTankEndurance(fuelTank.forEngineType, fuelTank.hullPoints, engineHP);
+              const isEditing = editingFuelTankId === fuelTank.id;
+              
+              return (
+                <Fragment key={fuelTank.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      Fuel Tank ({fuelTank.forEngineType.name})
+                    </Typography>
+                    <Chip
+                      label={`${fuelTank.hullPoints} HP`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      icon={<BatteryChargingFullIcon />}
+                      label={`+${endurance} thrust-days`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatCost(cost)}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <IconButton
+                      aria-label="Edit fuel tank"
+                      size="small"
+                      color="primary"
+                      onClick={() => handleEditFuelTank(fuelTank)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      aria-label="Duplicate fuel tank"
+                      size="small"
+                      onClick={() => handleDuplicateFuelTank(fuelTank)}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      aria-label="Remove fuel tank"
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveFuelTank(fuelTank.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {/* Inline edit form when editing this fuel tank */}
+                  {isEditing && addingFuelTankForType && (
+                    <Box sx={inlineEditSx}>
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <TextField
+                          label="Size (HP)"
+                          type="number"
+                          size="small"
+                          value={fuelTankHullPointsInput}
+                          onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
+                          inputProps={{ min: 1 }}
+                          sx={{ width: 140 }}
+                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {fuelTankPreviewStats && (
+                            <Typography variant="caption" color="text.secondary">
+                              Efficiency: {addingFuelTankForType.fuelEfficiency} thrust-days/HP | Endurance: {fuelTankPreviewStats.endurance} thrust-days | Cost: {formatCost(fuelTankPreviewStats.cost)}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              type="button"
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setAddingFuelTankForType(null);
+                                setEditingFuelTankId(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              disabled={fuelTankValidationErrors.length > 0}
+                            >
+                              Update
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Box>
+                      {fuelTankValidationErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mt: 1 }}>
+                          {fuelTankValidationErrors.map((error, index) => (
+                            <div key={index}>{error}</div>
+                          ))}
+                        </Alert>
+                      )}
+                      </form>
+                    </Box>
+                  )}
+                </Fragment>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Add Fuel Tank Form (only when adding, not editing) */}
+      {addingFuelTankForType && !editingFuelTankId && (
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddFuelTank(); }}>
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+            Add Fuel Tank for {addingFuelTankForType.name}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <TextField
+              label="Size (HP)"
+              type="number"
+              size="small"
+              value={fuelTankHullPointsInput}
+              onChange={(e) => setFuelTankHullPointsInput(e.target.value)}
+              inputProps={{ min: 1 }}
+              sx={{ width: 140 }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {fuelTankPreviewStats && (
+                <Typography variant="caption" color="text.secondary">
+                  Efficiency: {addingFuelTankForType.fuelEfficiency} thrust-days/HP | Endurance: {fuelTankPreviewStats.endurance} thrust-days | Cost: {formatCost(fuelTankPreviewStats.cost)}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setAddingFuelTankForType(null);
+                    setEditingFuelTankId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  disabled={fuelTankValidationErrors.length > 0}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          {fuelTankValidationErrors.length > 0 && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {fuelTankValidationErrors.map((error, index) => (
+                <div key={index}>{error}</div>
+              ))}
+            </Alert>
+          )}
+          </form>
+        </Paper>
+      )}
+
+      {/* Quick Add Fuel Tank (when fuel-requiring engines exist but no form is open) */}
+      {fuelRequiringTypes.length > 0 && !addingFuelTankForType && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <BatteryChargingFullIcon color="warning" />
+            <Typography variant="body2" sx={{ flex: 1 }}>
+              Add fuel tank for:
+            </Typography>
+            {fuelRequiringTypes.map(engineType => (
+              <Button
+                key={engineType.id}
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => handleStartAddFuelTank(engineType)}
+              >
+                {engineType.name}
+              </Button>
+            ))}
+          </Box>
+        </Paper>
+      )}
+
+      {/* Add Engine Section (only when adding, not editing) */}
+      {selectedType && !editingId && (
+        <Paper variant="outlined" sx={configFormSx}>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddEngine(); }}>
+          <Typography variant="subtitle2" sx={{ mb: '10px' }}>
+            Configure {selectedType.name}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <TextField
+              label="Size (HP)"
+              type="number"
+              size="small"
+              value={hullPointsInput}
+              onChange={(e) => setHullPointsInput(e.target.value)}
+              inputProps={{ min: selectedType.minSize }}
+              helperText={`Min: ${selectedType.minSize}`}
+              sx={{ width: 140 }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {previewStats && (
+                <Typography variant="caption" color="text.secondary">
+                  {previewStats.hullPercentage.toFixed(1)}% hull → {formatAcceleration(previewStats.acceleration, selectedType.usesPL6Scale)} | Power/HP: {selectedType.powerPerHullPoint ?? 0} | Power: {previewStats.powerRequired}
+                  {powerGenerationAllowed && previewStats.powerGenerated > 0 && ` | Power Gen: ${previewStats.powerGenerated}`}
+                  {selectedType.requiresFuel && (selectedType.fuelOptional ? ' | Fuel optional' : ' | Needs fuel tank')}
+                  {' | Cost: '}{formatCost(previewStats.engineCost)}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setSelectedType(null);
+                    setEditingId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  disabled={validationErrors.length > 0}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          {validationErrors.length > 0 && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {validationErrors.map((error, index) => (
+                <div key={index}>{error}</div>
+              ))}
+            </Alert>
+          )}
+          </form>
+        </Paper>
+      )}
+
+      {/* Engine Type Selection Table */}
+      <TableContainer 
+        component={Paper} 
+        variant="outlined"
+        sx={{ 
+          ...scrollableTableContainerSx,
+          '& .MuiTable-root': {
+            minWidth: 1100,
+          }
+        }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...headerCellSx, ...stickyFirstColumnHeaderSx, width: columnWidths.name }}>Name</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.pl }}>PL</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: columnWidths.tech }}>Tech</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>Power/HP</TableCell>
+              {powerGenerationAllowed && (
+                <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.powerPerHp }}>
+                  <Tooltip title="Power generated per hull point (house rule: engine power generation)">
+                    <span>Power Gen/HP</span>
+                  </Tooltip>
+                </TableCell>
+              )}
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.baseCost }}>Base Cost</TableCell>
+              <TableCell align="right" sx={{ ...headerCellSx, width: columnWidths.costPerHp }}>Cost/HP</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.minSize }}>Min Size</TableCell>
+              <TableCell align="center" sx={{ ...headerCellSx, width: columnWidths.fuel }}>
+                <Tooltip title="Whether this engine requires fuel tanks. Fuel tanks provide operational endurance in thrust-days.">
+                  <span>Fuel</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="center" sx={headerCellSx}>Atmo</TableCell>
+              <TableCell align="center" sx={headerCellSx}>5%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>10%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>15%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>20%</TableCell>
+              <TableCell align="center" sx={headerCellSx}>30%</TableCell>
+              <TableCell sx={headerCellSx}>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {availableEngines.map((engine) => {
+              const isSelected = selectedType?.id === engine.id;
+              const ratings = engine.accelerationRatings;
+
+              return (
+                <TableRow
+                  key={engine.id}
+                  hover
+                  selected={isSelected}
+                  sx={{
+                    cursor: 'pointer',
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: 'action.selected',
+                    },
+                  }}
+                  onClick={() => handleTypeSelect(engine)}
+                >
+                  <TableCell sx={stickyFirstColumnCellSx}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={isSelected ? 'bold' : 'normal'}
+                      sx={{ whiteSpace: 'nowrap' }}
+                    >
+                      {engine.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2">{engine.progressLevel}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip title={engine.techTracks.map(t => getTechTrackName(t)).join(', ') || 'None'}>
+                      <Typography variant="caption">
+                        {engine.techTracks.length > 0 ? engine.techTracks.join(', ') : 'None'}
+                      </Typography>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {engine.powerPerHullPoint ?? '-'}
+                    </Typography>
+                  </TableCell>
+                  {powerGenerationAllowed && (
+                    <TableCell align="right">
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {engine.powerGeneratedPerHullPoint || '-'}
+                      </Typography>
+                    </TableCell>
+                  )}
+                  <TableCell align="right">
+                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{formatCost(engine.baseCost)}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>{formatCost(engine.costPerHullPoint)}</Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2">{engine.minSize}</Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    {engine.requiresFuel ? (
+                      <Tooltip title={`Efficiency: ${engine.fuelEfficiency} thrust-days/HP, Cost: ${formatCost(engine.fuelCostPerHullPoint)}/HP${engine.fuelOptional ? ' (fuel optional, can use power)' : ''}`}>
+                        <BatteryChargingFullIcon fontSize="small" color={engine.fuelOptional ? 'disabled' : 'warning'} />
+                      </Tooltip>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">No</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    {engine.atmosphereSafe ? (
+                      <Typography variant="caption" color="success.main">Yes</Typography>
+                    ) : (
+                      <Typography variant="caption" color="error.main">No</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ratings.at5Percent || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ratings.at10Percent || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ratings.at15Percent || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ratings.at20Percent || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {ratings.at30Percent || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <TruncatedDescription text={engine.description} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Notes section */}
+      <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Engine Notes
+        </Typography>
+        <Typography variant="caption" color="text.secondary" component="div">
+          • Acceleration is based on the percentage of hull points allocated to engines (using base hull, not bonus)
+          <br />
+          • Multiple engines can be installed - their accelerations add together
+          <br />
+          • PL6 scale engines use a slower acceleration scale suitable for early tech levels
+          <br />
+          • Engines require power from your power plants to operate
+          <br />
+          • Fuel-burning engines need dedicated fuel tanks (separate from power plant fuel)
+        </Typography>
+      </Paper>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="Clear All Engines"
+        message="This will remove all installed engines and engine fuel tanks. This action cannot be undone."
+        confirmLabel="Clear All"
+        onConfirm={() => { handleClearAll(); setConfirmClearOpen(false); }}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
+    </Box>
+  );
+}

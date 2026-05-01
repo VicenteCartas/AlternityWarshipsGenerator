@@ -1,8 +1,17 @@
-# Alternity Warship Generator
+# Alternity Workshop
 
-A desktop application for generating Warships, Space Stations, and Bases for the **Alternity** sci-fi tabletop role-playing game. The app implements the construction rules from the "Warships" sourcebook by Richard Baker.
+A suite of desktop tools for the **Alternity** sci-fi tabletop role-playing game. The current release ships with the **Warships Generator** module — a complete implementation of the construction rules from the *Warships* sourcebook by Richard Baker. Future releases will add additional modules (Battle Resolution, Character Builder, …) that share the same hub, theming, and mod system.
 
 ![Screenshot](docs/screenshot.png)
+
+## Modules
+
+| Module | Status | Description |
+|---|---|---|
+| **Warships Generator** | Available | Design warships, space stations, ground bases, and outposts using the *Warships* sourcebook construction rules. |
+| **Battle Resolution** | Coming in v2.0 | Run space combat encounters using the abstract combat system from *The Externals*. |
+
+On launch, the app shows a **Hub** page where you choose which module to use. Use the **Back to Hub** button or **File → Return to Hub** to navigate between modules.
 
 ## Features
 
@@ -45,11 +54,11 @@ A desktop application for generating Warships, Space Stations, and Bases for the
 
 ## Download
 
-Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases).
+Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWorkshop/releases).
 
-- **Windows:** `Alternity.Warship.Generator.Setup.X.X.X.exe`
-- **macOS:** `Alternity.Warship.Generator-X.X.X.dmg`
-- **Linux:** `Alternity.Warship.Generator-X.X.X.AppImage`
+- **Windows:** `Alternity.Workshop.Setup.X.X.X.exe`
+- **macOS:** `Alternity.Workshop-X.X.X.dmg`
+- **Linux:** `Alternity.Workshop-X.X.X.AppImage`
 
 ## Development
 
@@ -121,36 +130,55 @@ The installers will be created in the `release/` folder.
 
 ## Project Structure
 
+The codebase is organised as a thin app shell, shared infrastructure, and independent feature modules:
+
 ```
-├── electron/           # Electron main process code
-│   ├── main.ts         # Main process entry point
-│   ├── preload.ts      # Preload script for IPC
-│   └── tsconfig.json   # TypeScript config for Electron
-├── scripts/            # Build scripts
+├── electron/                     # Electron main process code
+│   ├── main.ts                   # Main process entry point
+│   ├── preload.ts                # Preload script for IPC
+│   └── tsconfig.json             # TypeScript config for Electron
+├── scripts/                      # Build scripts
 ├── src/
-│   ├── components/     # React components for each build step
-│   │   ├── shared/     # Reusable UI components
-│   │   ├── summary/    # Summary sub-components
-│   │   └── library/    # Ship Library components
-│   ├── constants/      # Shared constants and styling
-│   ├── data/           # JSON game data files (hulls, weapons, etc.)
-│   ├── hooks/          # Custom hooks (state, save/load, undo, auto-save)
-│   ├── services/       # Business logic and calculations
-│   ├── test/           # Test utilities and mocks
-│   ├── types/          # TypeScript type definitions
-│   ├── App.tsx         # Main React component with stepper/wizard
-│   └── main.tsx        # React entry point
-└── public/             # Static assets (logo, etc.)
+│   ├── app/                      # Suite shell
+│   │   ├── App.tsx               # Top-level router (Hub / Warships / Mods)
+│   │   ├── SuiteHub.tsx          # Module picker page
+│   │   ├── main.tsx              # React entry point
+│   │   ├── theme.ts              # Light/dark/system theme
+│   │   ├── AboutDialog.tsx       # Shared dialogs
+│   │   ├── KeyboardShortcutsDialog.tsx
+│   │   ├── ModManager.tsx        # Mod management UI (suite-level)
+│   │   └── ModEditor.tsx
+│   ├── shared/                   # Cross-module infrastructure
+│   │   ├── components/           # Reusable UI components
+│   │   ├── hooks/                # Generic hooks (useUndoHistory, useNotification, …)
+│   │   ├── services/             # dataLoader, formatters, mod system, utilities
+│   │   ├── constants/            # version, table styles, domain colors
+│   │   ├── test/                 # Test setup and Electron mock
+│   │   └── types/                # Shared TypeScript types
+│   └── modules/
+│       └── warships/             # Warships Generator module
+│           ├── WarshipsModule.tsx
+│           ├── components/       # Step components, dialogs, library, summary
+│           ├── hooks/            # Warship-specific hooks (state, save/load, auto-save)
+│           ├── services/         # Per-subsystem business logic
+│           ├── constants/        # Steps, resource bar configs
+│           ├── data/             # JSON game data (hulls, weapons, …)
+│           └── types/            # Warship-specific types and save file format
+└── public/                       # Static assets (logo, etc.)
 ```
+
+Path aliases (`@app/*`, `@shared/*`, `@warships/*`) are configured in `tsconfig.app.json`, `vite.config.ts`, and `vitest.config.ts`.
 
 ## Customizing Game Data
 
-The game data (hulls, armor, power plants, weapons, etc.) is stored in JSON files that can be edited:
+The Warships module game data (hulls, armor, power plants, weapons, etc.) is stored in JSON files that can be edited:
 
-- **In development:** Files are in `src/data/`
+- **In development:** Files are in `src/modules/warships/data/`
 - **In production:** Files are copied to `resources/data/` alongside the app
 
 Users can modify these files to add custom hulls, adjust costs, create new weapons, etc. Changes require an app restart to take effect.
+
+For non-destructive customization, use the **Mod system** instead — mods layer changes on top of the base data and can be enabled, disabled, and shared as `.altmod.json` files.
 
 ## Creating a Release
 
@@ -174,7 +202,7 @@ Releases are automated via GitHub Actions. To create a new release:
    - Create a GitHub Release
    - Attach all installers for download
 
-The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases) within a few minutes.
+The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWorkshop/releases) within a few minutes.
 
 ## Tech Stack
 

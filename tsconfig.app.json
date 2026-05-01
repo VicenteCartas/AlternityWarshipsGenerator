@@ -9,6 +9,14 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
 
+    /* Path aliases for cross-module imports */
+    "baseUrl": ".",
+    "paths": {
+      "@app/*": ["src/app/*"],
+      "@shared/*": ["src/shared/*"],
+      "@warships/*": ["src/modules/warships/*"]
+    },
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

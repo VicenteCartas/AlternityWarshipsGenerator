@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0] - 2026-03-17
+
+### Major Changes
+
+- **Renamed to "Alternity Workshop":** The application has been rebranded from "Alternity Warship Generator" to "Alternity Workshop" to reflect its evolution into a suite of tools for the Alternity sci-fi tabletop RPG. Existing `.warship.json` save files remain fully compatible.
+- **New Suite Hub:** On launch, the app now shows a hub page where you can choose which tool to use. Currently the only enabled module is **Warships Generator**; **Battle Resolution** appears as a "coming in v2.0" placeholder. Use the new "Back to Hub" button or the **File → Return to Hub** menu entry to navigate between modules. Mod management remains inside the Warships module (each future module will own its own mod system).
+
+### Architecture
+
+- **Folder restructure:** Reorganized the codebase into a thin app shell (`src/app/`), shared infrastructure (`src/shared/`), and independent feature modules (`src/modules/warships/`). The new layout makes room for the upcoming Battle Resolution and future Character Builder modules. All file moves were tracked via `git mv` to preserve history.
+- **Path aliases:** Added `@app/*`, `@shared/*`, and `@warships/*` aliases for cleaner imports across the new structure.
+- **Electron menu:** Generalized the application mode tracking to support the new hub view; added a "Return to Hub" entry to the File menu.
+
+### Notes
+
+- No changes to game data, save file format, or mod system. Existing mods continue to work without modification. The mod manifest will gain a module-aware field in v2.0.
+
 ## [1.0.2] - 2026-03-16
 
 ### Improvements

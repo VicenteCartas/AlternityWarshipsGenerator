@@ -9,14 +9,15 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// App version - keep in sync with src/constants/version.ts
-const APP_VERSION = '1.0.2';
-const APP_NAME = 'Alternity Warship Generator';
+// App version - keep in sync with src/shared/constants/version.ts
+const APP_VERSION = '1.1.0';
+const APP_NAME = 'Alternity Workshop';
 
 let mainWindow: BrowserWindow | null = null;
 
-// Track current app mode to enable/disable menu items contextually
-let currentAppMode: 'loading' | 'welcome' | 'builder' | 'mods' | 'library' = 'loading';
+// Track current app mode to enable/disable menu items contextually.
+// 'hub' is the suite-level hub. The other values are warships-module views.
+let currentAppMode: 'loading' | 'hub' | 'welcome' | 'builder' | 'mods' | 'library' = 'loading';
 
 // Recent files management
 const MAX_RECENT_FILES = 10;
@@ -116,8 +117,9 @@ function createMenu() {
         },
       ];
 
-  const isInMods = currentAppMode === 'mods';
   const isInBuilder = currentAppMode === 'builder';
+  const isInHub = currentAppMode === 'hub';
+  const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
 
   const template: MenuItemConstructorOptions[] = [
     // App menu (macOS only)
@@ -143,7 +145,7 @@ function createMenu() {
           id: 'new-design',
           label: 'New Design',
           accelerator: 'CmdOrCtrl+N',
-          enabled: !isInMods,
+          enabled: isInWarships,
           click: () => {
             mainWindow?.webContents.send('menu-new-warship');
           },
@@ -152,7 +154,7 @@ function createMenu() {
           id: 'load-design',
           label: 'Load Design...',
           accelerator: 'CmdOrCtrl+O',
-          enabled: !isInMods,
+          enabled: isInWarships,
           click: () => {
             mainWindow?.webContents.send('menu-load-warship');
           },
@@ -160,7 +162,7 @@ function createMenu() {
         {
           id: 'recent-designs',
           label: 'Recent Designs',
-          enabled: !isInMods,
+          enabled: isInWarships,
           submenu: recentFilesSubmenu,
         },
         { type: 'separator' },
@@ -193,7 +195,17 @@ function createMenu() {
         },
         { type: 'separator' },
         {
+          id: 'return-to-hub',
+          label: 'Return to Hub',
+          enabled: !isInHub,
+          click: () => {
+            mainWindow?.webContents.send('menu-return-to-hub');
+          },
+        },
+        {
+          id: 'return-to-start',
           label: 'Return to Start Screen',
+          enabled: isInWarships,
           click: () => {
             mainWindow?.webContents.send('menu-return-to-start');
           },
@@ -210,7 +222,7 @@ function createMenu() {
           label: 'View Data Files',
           click: () => {
             const dataPath = isDev
-              ? path.join(__dirname, '../src/data')
+              ? path.join(__dirname, '../src/modules/warships/data')
               : path.join(process.resourcesPath, 'data');
             shell.openPath(dataPath);
           },
@@ -277,19 +289,19 @@ function createMenu() {
         {
           label: 'View on GitHub',
           click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator');
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop');
           },
         },
         {
           label: 'Modding Guide',
           click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator/wiki/Modding-Guide');
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop/wiki/Modding-Guide');
           },
         },
         {
           label: 'Report Issue',
           click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues');
+            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop/issues');
           },
         },
       ],
@@ -305,16 +317,19 @@ function updateMenuForMode() {
   const menu = Menu.getApplicationMenu();
   if (!menu) return;
 
-  const isInMods = currentAppMode === 'mods';
   const isInBuilder = currentAppMode === 'builder';
+  const isInHub = currentAppMode === 'hub';
+  const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
 
   const modeItems: Record<string, boolean> = {
-    'new-design': !isInMods,
-    'load-design': !isInMods,
-    'recent-designs': !isInMods,
+    'new-design': isInWarships,
+    'load-design': isInWarships,
+    'recent-designs': isInWarships,
     'save-design': isInBuilder,
     'save-design-as': isInBuilder,
     'duplicate-design': isInBuilder,
+    'return-to-hub': !isInHub,
+    'return-to-start': isInWarships,
   };
 
   for (const [id, enabled] of Object.entries(modeItems)) {
@@ -461,10 +476,10 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
 // This allows users to edit data files externally
 ipcMain.handle('read-data-file', async (_event, fileName: string) => {
   try {
-    // In development, read from src/data; in production, read from resources/data
+    // In development, read from src/modules/warships/data; in production, read from resources/data
     let dataPath: string;
     if (isDev) {
-      dataPath = path.join(__dirname, '../src/data', fileName);
+      dataPath = path.join(__dirname, '../src/modules/warships/data', fileName);
     } else {
       // In production, data files are in resources/data alongside the app
       dataPath = path.join(process.resourcesPath, 'data', fileName);
@@ -480,7 +495,7 @@ ipcMain.handle('read-data-file', async (_event, fileName: string) => {
 // Get the data directory path for user reference
 ipcMain.handle('get-data-path', async () => {
   if (isDev) {
-    return path.join(__dirname, '../src/data');
+    return path.join(__dirname, '../src/modules/warships/data');
   } else {
     return path.join(process.resourcesPath, 'data');
   }
@@ -548,7 +563,7 @@ ipcMain.handle('update-app-settings', async (_event, settingsJson: string) => {
 
 // App mode management - updates menu state
 ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
-  currentAppMode = mode as 'loading' | 'welcome' | 'builder' | 'mods' | 'library';
+  currentAppMode = mode as 'loading' | 'hub' | 'welcome' | 'builder' | 'mods' | 'library';
   updateMenuForMode(); // Toggle enabled state without rebuilding the entire menu
   return { success: true };
 });

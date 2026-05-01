@@ -1,0 +1,1204 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Repos/Alternity Suite/Warships Generator[39m
+
+ [32mΓ£ô[39m src/shared/services/modEditorSchemas.test.ts [2m([22m[2m234 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/libraryService.test.ts [2m([22m[2m37 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+stderr | src/modules/warships/services/damageDiagramService.test.ts > damageDiagramService > getZoneLimitForHull > returns default 100 for unknown hull
+No zone limit data for hull type: unknown-hull
+
+ [32mΓ£ô[39m src/modules/warships/services/sensorService.test.ts [2m([22m[2m34 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/commandControlService.test.ts [2m([22m[2m70 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/ftlDriveService.test.ts [2m([22m[2m56 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/damageDiagramService.test.ts [2m([22m[2m76 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/defenseService.test.ts [2m([22m[2m65 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/engineService.test.ts [2m([22m[2m61 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/ordnanceService.test.ts [2m([22m[2m64 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/weaponService.test.ts [2m([22m[2m134 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/saveService.test.ts [2m([22m[2m75 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/pdfExportService.test.ts [2m([22m[2m47 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/hooks/useUndoHistory.test.ts [2m([22m[2m29 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/services/utilities.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/armorService.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/hangarMiscService.test.ts [2m([22m[2m50 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/supportSystemService.test.ts [2m([22m[2m42 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/stepCompletionService.test.ts [2m([22m[2m36 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/integration.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/powerPlantService.test.ts [2m([22m[2m36 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/services/hullService.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/services/modValidationService.test.ts [2m([22m[2m29 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+stderr | src/shared/services/formatters.test.ts > getTechTrackName > returns correct names for all tech track codes
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+[DataLoader] Data not loaded, using fallback
+
+stderr | src/shared/services/formatters.test.ts > getTechTrackName > returns the raw code for unknown track codes
+[DataLoader] Data not loaded, using fallback
+
+stderr | src/shared/services/formatters.test.ts > getAllTechTrackCodes > returns at least the 11 base track codes before data loads
+[DataLoader] Data not loaded, using fallback
+
+ [32mΓ£ô[39m src/shared/services/formatters.test.ts [2m([22m[2m47 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/components/summary/SummaryComponents.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 268[2mms[22m[39m
+stderr | src/shared/components/SharedComponents.test.tsx > ConfirmDialog > renders title and message
+An update to ForwardRef(TouchRipple) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32mΓ£ô[39m src/shared/components/SharedComponents.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 634[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/components/ArcRadarSelector.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1147[2mms[22m[39m
+ [32mΓ£ô[39m src/modules/warships/components/PdfExportDialog.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1266[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m renders title [33m 323[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/components/EditableDataGrid.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 2713[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m renders Add Row button when not readOnly [33m 518[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m adds a new row when Add is clicked [33m 411[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m deletes a row when delete is clicked [33m 359[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m duplicates a row [33m 373[2mms[22m[39m
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Loading & Welcome[2m > [22m[2mshows loading state then transitions to the welcome page
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Loading & Welcome > shows loading state then transitions to the welcome page
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Loading & Welcome[2m > [22m[2mshows loading state then transitions to the welcome page
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Loading & Welcome > shows loading state then transitions to the welcome page
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Loading & Welcome[2m > [22m[2mshows version information on the welcome page
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Loading & Welcome > shows version information on the welcome page
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Loading & Welcome[2m > [22m[2mshows version information on the welcome page
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Loading & Welcome > shows version information on the welcome page
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mopens design type dialog when clicking New Design
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > opens design type dialog when clicking New Design
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mopens design type dialog when clicking New Design
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > opens design type dialog when clicking New Design
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mcreates a new warship and enters builder mode
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > creates a new warship and enters builder mode
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mcreates a new warship and enters builder mode
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > creates a new warship and enters builder mode
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mcreates a new warship and enters builder mode
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2mcreates a new warship and enters builder mode
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2msyncs builder mode with Electron
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > syncs builder mode with Electron
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2msyncs builder mode with Electron
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö New Warship Flow > syncs builder mode with Electron
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2msyncs builder mode with Electron
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö New Warship Flow[2m > [22m[2msyncs builder mode with Electron
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > starts on the Hull step (step 1)
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mstarts on the Hull step (step 1)
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[22m[39m[DataLoader] Loading game data...
+
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mstarts on the Hull step (step 1)
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > starts on the Hull step (step 1)
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mstarts on the Hull step (step 1)
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mstarts on the Hull step (step 1)
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates forward with the Next button
+[22m[39m[DataLoader] Loading game data...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates forward with the Next button
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates forward with the Next button
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates forward with the Next button
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates forward with the Next button
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates forward with the Next button
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates backward with the Back button
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates backward with the Back button
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates backward with the Back button
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates backward with the Back button
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates backward with the Back button
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates backward with the Back button
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates to a step by clicking on the stepper
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates to a step by clicking on the stepper
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates to a step by clicking on the stepper
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > navigates to a step by clicking on the stepper
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates to a step by clicking on the stepper
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mnavigates to a step by clicking on the stepper
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Back button on the first step
+[22m[39m[DataLoader] Loading game data...
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > does not show Back button on the first step
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Back button on the first step
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > does not show Back button on the first step
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Back button on the first step
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Back button on the first step
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Next button on the last step
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > does not show Next button on the last step
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Next button on the last step
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Step Navigation > does not show Next button on the last step
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Next button on the last step
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Step Navigation[2m > [22m[2mdoes not show Next button on the last step
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mselects a hull from the hull table
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > selects a hull from the hull table
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mselects a hull from the hull table
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > selects a hull from the hull table
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mselects a hull from the hull table
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mselects a hull from the hull table
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mshows confirmation dialog when changing hull with installed components
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > shows confirmation dialog when changing hull with installed components
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mshows confirmation dialog when changing hull with installed components
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > shows confirmation dialog when changing hull with installed components
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mshows confirmation dialog when changing hull with installed components
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mshows confirmation dialog when changing hull with installed components
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mcancels hull change when clicking Cancel in confirmation dialog
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > cancels hull change when clicking Cancel in confirmation dialog
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mcancels hull change when clicking Cancel in confirmation dialog
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > cancels hull change when clicking Cancel in confirmation dialog
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mcancels hull change when clicking Cancel in confirmation dialog
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mcancels hull change when clicking Cancel in confirmation dialog
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mconfirms hull change and clears all components
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > confirms hull change and clears all components
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mconfirms hull change and clears all components
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Hull Selection and Change Confirmation > confirms hull change and clears all components
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mconfirms hull change and clears all components
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Hull Selection and Change Confirmation[2m > [22m[2mconfirms hull change and clears all components
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mundo button is initially disabled in a new design
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > undo button is initially disabled in a new design
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mundo button is initially disabled in a new design
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > undo button is initially disabled in a new design
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mundo button is initially disabled in a new design
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mundo button is initially disabled in a new design
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mredo button is initially disabled in a new design
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > redo button is initially disabled in a new design
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mredo button is initially disabled in a new design
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > redo button is initially disabled in a new design
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mredo button is initially disabled in a new design
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2mredo button is initially disabled in a new design
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2menables undo after making a change
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > enables undo after making a change
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2menables undo after making a change
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Undo / Redo > enables undo after making a change
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2menables undo after making a change
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Undo / Redo[2m > [22m[2menables undo after making a change
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mcalls showSaveDialog when saving a new design with a hull
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > calls showSaveDialog when saving a new design with a hull
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mcalls showSaveDialog when saving a new design with a hull
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > calls showSaveDialog when saving a new design with a hull
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mcalls showSaveDialog when saving a new design with a hull
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mcalls showSaveDialog when saving a new design with a hull
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+(node:18012) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mshows warning if trying to save without a hull
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > shows warning if trying to save without a hull
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mshows warning if trying to save without a hull
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > shows warning if trying to save without a hull
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mshows warning if trying to save without a hull
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2mshows warning if trying to save without a hull
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > saves and loads a warship round-trip
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Save Flow > saves and loads a warship round-trip
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Save Flow[2m > [22m[2msaves and loads a warship round-trip
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Return to Welcome[2m > [22m[2mreturns to welcome page via Electron menu
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Return to Welcome > returns to welcome page via Electron menu
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Return to Welcome[2m > [22m[2mreturns to welcome page via Electron menu
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Return to Welcome > returns to welcome page via Electron menu
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Return to Welcome[2m > [22m[2mreturns to welcome page via Electron menu
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Return to Welcome[2m > [22m[2mreturns to welcome page via Electron menu
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Station Design[2m > [22m[2mcreates a ground base station design
+[22m[39m[DataLoader] Loading game data...
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Station Design > creates a ground base station design
+[DataLoader] Failed to load techTracks.json: test-mode, using bundled data
+[DataLoader] Failed to load hulls.json: test-mode, using bundled data
+[DataLoader] Failed to load armor.json: test-mode, using bundled data
+[DataLoader] Failed to load powerPlants.json: test-mode, using bundled data
+[DataLoader] Failed to load fuelTank.json: test-mode, using bundled data
+[DataLoader] Failed to load engines.json: test-mode, using bundled data
+[DataLoader] Failed to load ftlDrives.json: test-mode, using bundled data
+[DataLoader] Failed to load supportSystems.json: test-mode, using bundled data
+[DataLoader] Failed to load defenses.json: test-mode, using bundled data
+[DataLoader] Failed to load commandControl.json: test-mode, using bundled data
+[DataLoader] Failed to load sensors.json: test-mode, using bundled data
+[DataLoader] Failed to load hangarMisc.json: test-mode, using bundled data
+[DataLoader] Failed to load ordnance.json: test-mode, using bundled data
+[DataLoader] Failed to load damageDiagram.json: test-mode, using bundled data
+[DataLoader] Failed to load weapons.json: test-mode, using bundled data
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Station Design[2m > [22m[2mcreates a ground base station design
+[22m[39m[DataLoader] Game data loaded successfully
+
+stderr | src/modules/warships/WarshipsModule.test.tsx > App ΓÇö Station Design > creates a ground base station design
+[DataLoader] Some files failed to load from external sources: [
+  { fileName: 'techTracks.json', reason: 'test-mode' },
+  { fileName: 'hulls.json', reason: 'test-mode' },
+  { fileName: 'armor.json', reason: 'test-mode' },
+  { fileName: 'powerPlants.json', reason: 'test-mode' },
+  { fileName: 'fuelTank.json', reason: 'test-mode' },
+  { fileName: 'engines.json', reason: 'test-mode' },
+  { fileName: 'ftlDrives.json', reason: 'test-mode' },
+  { fileName: 'supportSystems.json', reason: 'test-mode' },
+  { fileName: 'defenses.json', reason: 'test-mode' },
+  { fileName: 'commandControl.json', reason: 'test-mode' },
+  { fileName: 'sensors.json', reason: 'test-mode' },
+  { fileName: 'hangarMisc.json', reason: 'test-mode' },
+  { fileName: 'ordnance.json', reason: 'test-mode' },
+  { fileName: 'damageDiagram.json', reason: 'test-mode' },
+  { fileName: 'weapons.json', reason: 'test-mode' }
+]
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Station Design[2m > [22m[2mcreates a ground base station design
+[22m[39m[DataLoader] Reloading cache with 0 specific mod(s)...
+
+[90mstdout[2m | src/modules/warships/WarshipsModule.test.tsx[2m > [22m[2mApp ΓÇö Station Design[2m > [22m[2mcreates a ground base station design
+[22m[39m[DataLoader] Cache reloaded with specific mods
+
+ [32mΓ£ô[39m src/modules/warships/WarshipsModule.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 63385[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m shows loading state then transitions to the welcome page [33m 382[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m opens design type dialog when clicking New Design [33m 826[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m creates a new warship and enters builder mode [33m 1601[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m syncs builder mode with Electron [33m 1393[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m starts on the Hull step (step 1) [33m 1391[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m navigates forward with the Next button [33m 3008[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m navigates backward with the Back button [33m 3740[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m navigates to a step by clicking on the stepper [33m 1661[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m does not show Back button on the first step [33m 2187[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m does not show Next button on the last step [33m 2298[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m selects a hull from the hull table [33m 2168[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m shows confirmation dialog when changing hull with installed components [33m 5211[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m cancels hull change when clicking Cancel in confirmation dialog [33m 7940[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m confirms hull change and clears all components [33m 6935[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m undo button is initially disabled in a new design [33m 1706[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m redo button is initially disabled in a new design [33m 1444[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m enables undo after making a change [33m 4705[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m calls showSaveDialog when saving a new design with a hull [33m 2644[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m shows warning if trying to save without a hull [33m 2016[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m saves and loads a warship round-trip [33m 6431[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m returns to welcome page via Electron menu [33m 1775[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m creates a ground base station design [33m 1775[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m29 passed[39m[22m[90m (29)[39m
+[2m      Tests [22m [1m[32m1396 passed[39m[22m[90m (1396)[39m
+[2m   Start at [22m 23:22:46
+[2m   Duration [22m 125.75s[2m (transform 11.96s, setup 106.03s, import 58.32s, tests 70.03s, environment 849.85s)[22m
+
