@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **Battle Resolution module (v1):** New tool implementing the abstract space combat system from *The Externals* (pp. 64-65). Build two opposing fleets from the full External ship catalogue (Hornisse → Ascension, 27 classes) or custom unit stacks, then resolve combat round-by-round. Each round computes Force Strength, attacker/defender roles, the tactical-advantage step modifier, and applies losses based on the tactics check outcome. Withdraw thresholds (defaults: 40% human / 60% External) raise a warning when crossed. The tactics check can be entered manually or rolled with a built-in Alternity step-system roller (d20 + situation die vs. score). Battle Log records every round; Reset restores starting strengths. Accessible from the Suite Hub.
+- `@battles/*` path alias for the new module.
+
 ## [1.1.0] - 2026-03-17
 
 ### Major Changes

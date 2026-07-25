@@ -1,0 +1,31 @@
+{
+  "ships": [
+    { "id": "hornisse", "name": "Hornisse", "category": "fighter", "role": "Light Fighter", "combatStrength": 10 },
+    { "id": "wespe", "name": "Wespe", "category": "fighter", "role": "Fighter", "combatStrength": 15 },
+    { "id": "beine", "name": "Beine", "category": "fighter", "role": "Heavy Fighter", "combatStrength": 20 },
+    { "id": "raptor", "name": "Raptor", "category": "fighter", "role": "Light Fighter (sifarv)", "combatStrength": 15 },
+    { "id": "pato", "name": "Pato", "category": "cutter", "role": "Troop Shuttle", "combatStrength": 10 },
+    { "id": "augila", "name": "Augila", "category": "cutter", "role": "Scout", "combatStrength": 20 },
+    { "id": "halcon", "name": "Halcon", "category": "cutter", "role": "Cutter", "combatStrength": 30 },
+    { "id": "riddare", "name": "Riddare", "category": "destroyer", "role": "Light Destroyer", "combatStrength": 50 },
+    { "id": "soldat", "name": "Soldat", "category": "destroyer", "role": "Fleet Destroyer", "combatStrength": 75 },
+    { "id": "ray", "name": "Ray", "category": "escort", "role": "Assault Escort", "combatStrength": 100 },
+    { "id": "skate", "name": "Skate", "category": "escort", "role": "Escort", "combatStrength": 125 },
+    { "id": "shark", "name": "Shark", "category": "escort", "role": "Fleet Escort", "combatStrength": 150 },
+    { "id": "intruder", "name": "Intruder", "category": "cruiser", "role": "Light Cruiser", "combatStrength": 250 },
+    { "id": "violator", "name": "Violator", "category": "cruiser", "role": "Cruiser", "combatStrength": 375 },
+    { "id": "invader", "name": "Invader", "category": "cruiser", "role": "Heavy Cruiser", "combatStrength": 500 },
+    { "id": "saeta", "name": "Saeta", "category": "carrier", "role": "Light Carrier (excludes 40 fighters)", "combatStrength": 200 },
+    { "id": "lanza", "name": "Lanza", "category": "carrier", "role": "Carrier (excludes 80 fighters)", "combatStrength": 250 },
+    { "id": "bala", "name": "Bala", "category": "carrier", "role": "Heavy Carrier (excludes 100 fighters)", "combatStrength": 300 },
+    { "id": "dictator", "name": "Dictator", "category": "battleship", "role": "Pocket Battleship", "combatStrength": 1000 },
+    { "id": "tyrant", "name": "Tyrant", "category": "battleship", "role": "Battleship", "combatStrength": 1500 },
+    { "id": "behemoth", "name": "Behemoth", "category": "dreadnought", "role": "Dreadnought (excludes 30 fighters)", "combatStrength": 2500 },
+    { "id": "styx", "name": "Styx", "category": "fortress", "role": "Fortress Ship (excludes carried craft)", "combatStrength": 10000 },
+    { "id": "phlegethon", "name": "Phlegethon", "category": "fortress", "role": "Improved Fortress Ship", "combatStrength": 12500 },
+    { "id": "guardian", "name": "Guardian", "category": "monitor", "role": "Light Monitor (excludes 15 fighters)", "combatStrength": 500 },
+    { "id": "protector", "name": "Protector", "category": "monitor", "role": "Monitor (excludes 30 fighters)", "combatStrength": 750 },
+    { "id": "defender", "name": "Defender", "category": "monitor", "role": "Heavy Monitor (excludes 50 fighters)", "combatStrength": 1000 },
+    { "id": "ascension", "name": "Ascension", "category": "cathedral", "role": "Cathedral Ship (excludes carried craft)", "combatStrength": 20000 }
+  ]
+}

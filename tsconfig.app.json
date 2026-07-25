@@ -14,7 +14,8 @@
     "paths": {
       "@app/*": ["src/app/*"],
       "@shared/*": ["src/shared/*"],
-      "@warships/*": ["src/modules/warships/*"]
+      "@warships/*": ["src/modules/warships/*"],
+      "@battles/*": ["src/modules/battles/*"]
     },
 
     /* Bundler mode */

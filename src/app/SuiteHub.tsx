@@ -26,6 +26,7 @@ interface SuiteHubProps {
   themeMode: ThemeMode;
   onThemeModeChange: (mode: ThemeMode) => void;
   onOpenWarships: () => void;
+  onOpenBattles: () => void;
   onShowAbout: () => void;
 }
 
@@ -33,6 +34,7 @@ export function SuiteHub({
   themeMode,
   onThemeModeChange,
   onOpenWarships,
+  onOpenBattles,
   onShowAbout,
 }: SuiteHubProps) {
   const cycleTheme = () => {
@@ -104,21 +106,22 @@ export function SuiteHub({
             </CardActionArea>
           </Card>
 
-          {/* Battle Resolution (coming soon) */}
-          <Card elevation={1} sx={{ opacity: 0.6 }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
-                <GpsFixedIcon color="disabled" fontSize="large" />
-                <Typography variant="h5" component="h2" color="text.disabled">
-                  Battle Resolution
+          {/* Battle Resolution */}
+          <Card elevation={3}>
+            <CardActionArea onClick={onOpenBattles} sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                  <GpsFixedIcon color="primary" fontSize="large" />
+                  <Typography variant="h5" component="h2">
+                    Battle Resolution
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  Run abstract space combat encounters using the rules from The Externals.
+                  v1: ship-vs-ship space engagements with the External catalogue and custom units.
                 </Typography>
-              </Stack>
-              <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-                Run abstract space combat encounters using the rules from The Externals.
-                Combine your designed warships with the Externals fleet.
-              </Typography>
-              <Chip label="Coming in v2.0" size="small" />
-            </CardContent>
+              </CardContent>
+            </CardActionArea>
           </Card>
         </Box>
 
