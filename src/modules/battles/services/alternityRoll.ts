@@ -9,30 +9,23 @@
  *  - total ≤ score / 4 → amazing success
  *
  * Step modifier converts to a situation die. Positive steps are penalties (added);
- * negative steps are bonuses (subtracted). The Externals abstract combat system uses
- * only positive step modifiers (+1..+5).
+ * negative steps are bonuses (subtracted).
  */
 
 import type { CheckResult } from '../types/battle';
 
-/** Map a step modifier to its situation die size. 0 → no die. */
+/**
+ * Map a step modifier to its situation die size. 0 → no die.
+ *
+ * A step moves the situation die one type at a time, as defined in the Warships
+ * glossary: d0 ↔ ±d4 ↔ ±d6 ↔ ±d8 ↔ ±d12 ↔ ±d20. The table is symmetric, so only
+ * the magnitude of the step matters here; the caller applies the sign.
+ */
+const STEP_DIE_SIZES = [0, 4, 6, 8, 12, 20] as const;
+
 export function stepDieSize(step: number): number {
-  // Symmetric table from the Alternity core rules.
-  const table: Record<number, number> = {
-    [-4]: 20,
-    [-3]: 12,
-    [-2]: 8,
-    [-1]: 6,
-    [0]: 0,
-    [1]: 4,
-    [2]: 6,
-    [3]: 8,
-    [4]: 12,
-    [5]: 20,
-  };
-  if (step <= -4) return 20;
-  if (step >= 5) return 20;
-  return table[step] ?? 0;
+  const magnitude = Math.min(Math.abs(Math.trunc(step)), STEP_DIE_SIZES.length - 1);
+  return STEP_DIE_SIZES[magnitude];
 }
 
 /** Roll an integer in [1, sides]. Uses Math.random by default; override for tests. */

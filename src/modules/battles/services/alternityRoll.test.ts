@@ -9,8 +9,19 @@ describe('stepDieSize', () => {
     expect(stepDieSize(3)).toBe(8);
     expect(stepDieSize(4)).toBe(12);
     expect(stepDieSize(5)).toBe(20);
-    expect(stepDieSize(-1)).toBe(6);
-    expect(stepDieSize(-3)).toBe(12);
+  });
+
+  it('is symmetric for bonus steps', () => {
+    expect(stepDieSize(-1)).toBe(4);
+    expect(stepDieSize(-2)).toBe(6);
+    expect(stepDieSize(-3)).toBe(8);
+    expect(stepDieSize(-4)).toBe(12);
+    expect(stepDieSize(-5)).toBe(20);
+  });
+
+  it('clamps steps beyond the table to d20', () => {
+    expect(stepDieSize(9)).toBe(20);
+    expect(stepDieSize(-9)).toBe(20);
   });
 });
 
@@ -40,5 +51,18 @@ describe('rollTacticsCheck', () => {
     expect(r.situationRoll).toBe(3);
     expect(r.total).toBe(13);
     expect(r.result).toBe('failure');
+  });
+
+  it('subtracts the situation die for an advantage step', () => {
+    // d20=10, d20=8 → total 2 vs score 12 → amazing (step -5 → -d20)
+    const seq = [9 / 20, 7 / 20];
+    let i = 0;
+    const rng = () => seq[i++];
+    const r = rollTacticsCheck(12, -5, rng);
+    expect(r.d20).toBe(10);
+    expect(r.situationDie).toBe(20);
+    expect(r.situationRoll).toBe(8);
+    expect(r.total).toBe(2);
+    expect(r.result).toBe('amazing');
   });
 });

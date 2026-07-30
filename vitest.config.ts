@@ -12,6 +12,8 @@ export default defineConfig({
       '@app': path.resolve(__dirname, 'src/app'),
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@warships': path.resolve(__dirname, 'src/modules/warships'),
+      '@battles': path.resolve(__dirname, 'src/modules/battles'),
+      '@travel': path.resolve(__dirname, 'src/modules/travel'),
     },
   },
   test: {
@@ -29,9 +31,14 @@ export default defineConfig({
         'src/modules/warships/services/**',
         'src/modules/warships/hooks/**',
         'src/modules/warships/components/**',
+        'src/modules/battles/services/**',
+        'src/modules/battles/components/**',
+        'src/modules/travel/services/**',
+        'src/modules/travel/components/**',
       ],
       exclude: [
         'src/modules/warships/data/**',
+        'src/modules/battles/data/**',
         'src/shared/test/**',
       ],
       thresholds: {

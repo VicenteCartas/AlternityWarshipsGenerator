@@ -68,6 +68,25 @@ export interface ScanWarshipFilesResult {
   files: ScannedWarshipFile[];
 }
 
+export interface ScannedBattleFile {
+  filePath: string;
+  scenarioName: string;
+  sideAName: string;
+  sideBName: string;
+  theatreCount: number;
+  roundCount: number;
+  totalCombatStrength: number;
+  modifiedAt: string | null;
+  createdAt: string | null;
+  fileSizeBytes: number;
+}
+
+export interface ScanBattleFilesResult {
+  success: boolean;
+  error?: string;
+  files: ScannedBattleFile[];
+}
+
 export interface SelectDirectoryResult {
   canceled: boolean;
   filePath?: string;
@@ -95,6 +114,12 @@ export interface ElectronAPI {
   onDuplicateDesign: (callback: () => void) => void;
   onReturnToStart: (callback: () => void) => void;
   onReturnToHub: (callback: () => void) => void;
+  onNewBattle: (callback: () => void) => void;
+  onOpenBattle: (callback: () => void) => void;
+  onSaveBattle: (callback: () => void) => void;
+  onSaveBattleAs: (callback: () => void) => void;
+  onBattleLibrary: (callback: () => void) => void;
+  onExportBattleReport: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   
   // File operations
@@ -104,8 +129,8 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<FileOperationResult>;
   
   // Data file operations (for externally editable game data)
-  readDataFile: (fileName: string) => Promise<DataFileResult>;
-  getDataPath: () => Promise<string>;
+  readDataFile: (fileName: string, module?: string) => Promise<DataFileResult>;
+  getDataPath: (module?: string) => Promise<string>;
   
   // PDF export operations
   getDocumentsPath: () => Promise<string>;
@@ -137,6 +162,16 @@ export interface ElectronAPI {
   // Ordnance export/import file dialogs
   showOrdnanceSaveDialog: (defaultFileName: string) => Promise<SaveDialogResult>;
   showOrdnanceOpenDialog: () => Promise<OpenDialogResult>;
+
+  // Battle save/load file dialogs
+  showBattleSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
+  showBattleOpenDialog: () => Promise<OpenDialogResult>;
+
+  // Battle library & auto-save
+  scanBattleFiles: (directoryPath: string) => Promise<ScanBattleFilesResult>;
+  writeBattleAutoSave: (content: string) => Promise<FileOperationResult>;
+  readBattleAutoSave: () => Promise<FileOperationResult>;
+  deleteBattleAutoSave: () => Promise<FileOperationResult>;
 
   // Mod system operations
   listMods: () => Promise<ListModsResult>;

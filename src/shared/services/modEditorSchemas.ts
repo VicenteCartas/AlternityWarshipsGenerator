@@ -5,7 +5,7 @@
  * Each section maps to an array within a JSON data file.
  */
 
-import type { ModDataFileName } from '../types/mod';
+import type { ModDataFileName, ModuleId } from '../types/mod';
 
 /**
  * Column type determines the editor widget shown in cells.
@@ -37,6 +37,8 @@ export interface EditorSection {
   description?: string;
   fileName: ModDataFileName;
   rootKey: string;
+  /** Which suite module this section belongs to. Defaults to 'warships'. */
+  module?: ModuleId;
   dataType?: 'array' | 'object' | 'record'; // Defaults to 'array'
   columns: ColumnDef[];
   defaultItem: Record<string, unknown>;
@@ -111,6 +113,40 @@ const COL_AREA_NOTES: ColumnDef = { key: 'area.notes', label: 'Notes', type: 'se
   { value: 'MD', label: 'MD' },
   { value: 'SA', label: 'SA' },
 ] };
+
+// ============== Battles module column definitions ==============
+
+const COL_BATTLE_ROLE: ColumnDef = { key: 'role', label: 'Role', type: 'text', width: 260, description: 'Short description shown beside the unit in the catalogue' };
+const COL_BATTLE_CS: ColumnDef = { key: 'combatStrength', label: 'Combat Str.', type: 'number', required: true, min: 0, width: 130, description: 'Combat strength of a single unit in its native arena' };
+const COL_BATTLE_SPACE_FACTOR: ColumnDef = { key: 'spaceFactor', label: 'Space Factor', type: 'number', min: 0, max: 1, width: 130, description: 'Effectiveness against orbiting craft, as a fraction of combat strength. Blank means the unit cannot engage spacecraft at all.' };
+const COL_BATTLE_GROUND_FACTOR: ColumnDef = { key: 'groundFactor', label: 'Ground Factor', type: 'number', min: 0, max: 1, width: 130, description: 'Effectiveness against planetary targets, as a fraction of combat strength. Blank uses the standard bombardment factor of 0.5.' };
+const COL_BATTLE_SPACE_CATEGORY: ColumnDef = {
+  key: 'category', label: 'Category', type: 'select', required: true, width: 150,
+  description: 'Grouping used in the unit catalogue',
+  options: [
+    { value: 'fighter', label: 'Fighter' },
+    { value: 'cutter', label: 'Cutter / Scout' },
+    { value: 'destroyer', label: 'Destroyer' },
+    { value: 'escort', label: 'Escort' },
+    { value: 'cruiser', label: 'Cruiser' },
+    { value: 'carrier', label: 'Carrier' },
+    { value: 'battleship', label: 'Battleship' },
+    { value: 'dreadnought', label: 'Dreadnought' },
+    { value: 'fortress', label: 'Fortress Ship' },
+    { value: 'monitor', label: 'Monitor' },
+    { value: 'cathedral', label: 'Cathedral Ship' },
+  ],
+};
+const COL_BATTLE_GROUND_CATEGORY: ColumnDef = {
+  key: 'category', label: 'Category', type: 'select', required: true, width: 150,
+  description: 'Grouping used in the unit catalogue',
+  options: [
+    { value: 'infantry', label: 'Infantry' },
+    { value: 'armor', label: 'Armor' },
+    { value: 'artillery', label: 'Artillery' },
+    { value: 'fortification', label: 'Fortification' },
+  ],
+};
 
 // ============== Section Definitions ==============
 
@@ -763,6 +799,120 @@ export const EDITOR_SECTIONS: EditorSection[] = [
     ],
     defaultItem: { id: '', name: '', progressLevel: 6, techTracks: [], cost: 5000, accuracyModifier: 0, applicableTo: ['missile'], description: '' },
   },
+
+  // ============== Battles module ==============
+
+  // ---- Spacecraft ----
+  {
+    id: 'battleShips',
+    label: 'Spacecraft',
+    description: 'Spacecraft available in the abstract combat system. Combat strength is the unit\'s strength in a space engagement. "Ground Factor" is its effectiveness when bombarding planetary targets (0.5 by default); leave it blank to use the default.',
+    fileName: 'spaceUnits.json',
+    rootKey: 'ships',
+    module: 'battles',
+    columns: [
+      COL_ID, COL_NAME,
+      COL_BATTLE_SPACE_CATEGORY,
+      COL_BATTLE_ROLE,
+      COL_BATTLE_CS,
+      COL_BATTLE_GROUND_FACTOR,
+      { key: 'fighterComplement', label: 'Fighters', type: 'number', min: 0, width: 100, description: 'Fighters carried but not counted in combat strength' },
+      { key: 'carriedCombatStrength', label: 'Carried CS', type: 'number', min: 0, width: 110, description: 'Combat strength of other craft carried internally, not counted in this unit\'s combat strength' },
+    ],
+    defaultItem: { id: '', name: '', category: 'cruiser', role: '', combatStrength: 100 },
+  },
+
+  // ---- Ground: Infantry ----
+  {
+    id: 'battleTroops',
+    label: 'Infantry',
+    description: 'Foot soldiers and troop formations. Infantry cannot fire on orbiting craft, so leave "Space Factor" blank.',
+    fileName: 'groundUnits.json',
+    rootKey: 'troops',
+    module: 'battles',
+    columns: [COL_ID, COL_NAME, COL_BATTLE_GROUND_CATEGORY, COL_BATTLE_ROLE, COL_BATTLE_CS, COL_BATTLE_SPACE_FACTOR],
+    defaultItem: { id: '', name: '', category: 'infantry', role: '', combatStrength: 1 },
+  },
+
+  // ---- Ground: Armor ----
+  {
+    id: 'battleArmorUnits',
+    label: 'Armor',
+    description: 'Armored fighting vehicles. Only units heavy enough to engage orbiting craft should have a "Space Factor" (the Broadsword uses 0.5).',
+    fileName: 'groundUnits.json',
+    rootKey: 'armorUnits',
+    module: 'battles',
+    columns: [COL_ID, COL_NAME, COL_BATTLE_GROUND_CATEGORY, COL_BATTLE_ROLE, COL_BATTLE_CS, COL_BATTLE_SPACE_FACTOR],
+    defaultItem: { id: '', name: '', category: 'armor', role: '', combatStrength: 30 },
+  },
+
+  // ---- Ground: Artillery ----
+  {
+    id: 'battleArtillery',
+    label: 'Artillery',
+    description: 'Artillery batteries. Artillery engages spacecraft at half strength; batteries built as planetary defense batteries invert that trade.',
+    fileName: 'groundUnits.json',
+    rootKey: 'artillery',
+    module: 'battles',
+    columns: [
+      COL_ID, COL_NAME, COL_BATTLE_GROUND_CATEGORY, COL_BATTLE_ROLE, COL_BATTLE_CS, COL_BATTLE_SPACE_FACTOR,
+      { key: 'canBePlanetaryDefenseBattery', label: 'PDB Option', type: 'boolean', width: 110, description: 'Whether this battery may be built as a planetary defense battery' },
+    ],
+    defaultItem: { id: '', name: '', category: 'artillery', role: '', combatStrength: 150, spaceFactor: 0.5, canBePlanetaryDefenseBattery: true },
+  },
+
+  // ---- Ground: Fortifications ----
+  {
+    id: 'battleFortifications',
+    label: 'Fixed Fortifications',
+    description: 'Bunkers, strongholds, citadels and fortresses. Bunkers cannot fire on orbiting craft; heavier fortifications engage them at full strength (Space Factor 1).',
+    fileName: 'groundUnits.json',
+    rootKey: 'fortifications',
+    module: 'battles',
+    columns: [COL_ID, COL_NAME, COL_BATTLE_GROUND_CATEGORY, COL_BATTLE_ROLE, COL_BATTLE_CS, COL_BATTLE_SPACE_FACTOR],
+    defaultItem: { id: '', name: '', category: 'fortification', role: '', combatStrength: 100 },
+  },
+
+  // ---- Resolution: Tactical advantage ----
+  {
+    id: 'battleTacticalAdvantage',
+    label: 'Tactical Advantage',
+    description: 'Advantage-step magnitude granted to the attacker, by the ratio of defender force strength to attacker force strength. Enter positive magnitudes as printed in The Externals; the resolver applies them as negative bonus steps under Alternity rules. Rows are checked in order; the first row whose "Below Ratio" the value falls under wins. Leave "Below Ratio" blank on the final catch-all row.',
+    fileName: 'battleRules.json',
+    rootKey: 'tacticalAdvantage',
+    module: 'battles',
+    columns: [
+      { key: 'maxRatio', label: 'Below Ratio', type: 'number', min: 0, width: 130, description: 'Applies when defender/attacker force strength is below this value. Blank means "any remaining ratio".' },
+      { key: 'stepModifier', label: 'Advantage Steps', type: 'number', min: 0, width: 140, description: 'Positive sourcebook magnitude; applied as a negative bonus to the attacker\'s Tactics check' },
+    ],
+    defaultItem: { maxRatio: 0.8, stepModifier: 2 },
+  },
+
+  // ---- Resolution: Combat results ----
+  {
+    id: 'battleCombatResults',
+    label: 'Combat Results',
+    description: 'Percentage of combat strength each side loses, by the outcome of the attacker\'s tactics check.',
+    fileName: 'battleRules.json',
+    rootKey: 'combatResults',
+    module: 'battles',
+    columns: [
+      {
+        key: 'result', label: 'Check Result', type: 'select', required: true, width: 160,
+        description: 'Outcome of the attacking commander\'s tactics check',
+        options: [
+          { value: 'criticalFailure', label: 'Critical Failure' },
+          { value: 'failure', label: 'Failure' },
+          { value: 'ordinary', label: 'Ordinary Success' },
+          { value: 'good', label: 'Good Success' },
+          { value: 'amazing', label: 'Amazing Success' },
+        ],
+      },
+      { key: 'attackerLossPct', label: 'Attacker Loss', type: 'number', min: 0, max: 1, width: 140, description: 'Fraction of combat strength the attacker loses (0.15 = 15%)' },
+      { key: 'defenderLossPct', label: 'Defender Loss', type: 'number', min: 0, max: 1, width: 140, description: 'Fraction of combat strength the defender loses (0.15 = 15%)' },
+    ],
+    defaultItem: { result: 'ordinary', attackerLossPct: 0.15, defenderLossPct: 0.15 },
+  },
 ];
 
 // ============== Section Groups (sidebar navigation) ==============
@@ -771,6 +921,8 @@ export interface EditorSectionGroup {
   id: string;
   label: string;
   sectionIds: string[];
+  /** Which suite module this group belongs to. Defaults to 'warships'. */
+  module?: ModuleId;
 }
 
 export const EDITOR_SECTION_GROUPS: EditorSectionGroup[] = [
@@ -782,7 +934,20 @@ export const EDITOR_SECTION_GROUPS: EditorSectionGroup[] = [
   { id: 'combat', label: 'Combat Systems', sectionIds: ['defenseSystems', 'commandSystems', 'sensors', 'hangarMiscSystems'] },
   { id: 'weapons', label: 'Weapons', sectionIds: ['mountModifiers', 'gunConfigurations', 'concealmentModifier', 'beamWeapons', 'projectileWeapons', 'torpedoWeapons', 'specialWeapons'] },
   { id: 'ordnance', label: 'Ordnance', sectionIds: ['launchSystems', 'propulsionSystems', 'warheads', 'guidanceSystems'] },
+  { id: 'battleSpacecraft', label: 'Spacecraft', sectionIds: ['battleShips'], module: 'battles' },
+  { id: 'battleGroundForces', label: 'Ground Forces', sectionIds: ['battleTroops', 'battleArmorUnits', 'battleArtillery', 'battleFortifications'], module: 'battles' },
+  { id: 'battleRules', label: 'Resolution Tables', sectionIds: ['battleTacticalAdvantage', 'battleCombatResults'], module: 'battles' },
 ];
+
+/** Editor section groups belonging to a module. */
+export function getSectionGroupsForModule(module: ModuleId): EditorSectionGroup[] {
+  return EDITOR_SECTION_GROUPS.filter(g => (g.module ?? 'warships') === module);
+}
+
+/** Editor sections belonging to a module. */
+export function getSectionsForModule(module: ModuleId): EditorSection[] {
+  return EDITOR_SECTIONS.filter(s => (s.module ?? 'warships') === module);
+}
 
 /**
  * Get the editor section definition by section ID.
@@ -817,6 +982,8 @@ export interface HouseRule {
   jsonKey: string;
   /** Default value (when not set) */
   defaultValue: boolean;
+  /** Which suite module this rule belongs to. Defaults to 'warships'. */
+  module?: ModuleId;
 }
 
 /**
@@ -840,3 +1007,8 @@ export const HOUSE_RULES: HouseRule[] = [
     defaultValue: false,
   },
 ];
+
+/** House rules belonging to a module. */
+export function getHouseRulesForModule(module: ModuleId): HouseRule[] {
+  return HOUSE_RULES.filter(r => (r.module ?? 'warships') === module);
+}

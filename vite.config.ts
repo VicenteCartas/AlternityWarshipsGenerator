@@ -15,6 +15,7 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@warships': path.resolve(__dirname, 'src/modules/warships'),
       '@battles': path.resolve(__dirname, 'src/modules/battles'),
+      '@travel': path.resolve(__dirname, 'src/modules/travel'),
     },
   },
   build: {

@@ -19,6 +19,7 @@ import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import InfoIcon from '@mui/icons-material/Info';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
+import RouteIcon from '@mui/icons-material/Route';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
 import type { ThemeMode } from './theme';
 
@@ -27,6 +28,7 @@ interface SuiteHubProps {
   onThemeModeChange: (mode: ThemeMode) => void;
   onOpenWarships: () => void;
   onOpenBattles: () => void;
+  onOpenTravel: () => void;
   onShowAbout: () => void;
 }
 
@@ -35,6 +37,7 @@ export function SuiteHub({
   onThemeModeChange,
   onOpenWarships,
   onOpenBattles,
+  onOpenTravel,
   onShowAbout,
 }: SuiteHubProps) {
   const cycleTheme = () => {
@@ -85,6 +88,7 @@ export function SuiteHub({
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)',
             },
           }}
         >
@@ -106,6 +110,24 @@ export function SuiteHub({
             </CardActionArea>
           </Card>
 
+          {/* Travel Calculator */}
+          <Card elevation={3}>
+            <CardActionArea onClick={onOpenTravel} sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                  <RouteIcon color="primary" fontSize="large" />
+                  <Typography variant="h5" component="h2">
+                    Travel Calculator
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  Calculate sublight travel time from acceleration and distance. Compare Warships
+                  ratings with physical units, import ship designs, and check engine fuel endurance.
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+
           {/* Battle Resolution */}
           <Card elevation={3}>
             <CardActionArea onClick={onOpenBattles} sx={{ height: '100%' }}>
@@ -117,8 +139,9 @@ export function SuiteHub({
                   </Typography>
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  Run abstract space combat encounters using the rules from The Externals.
-                  v1: ship-vs-ship space engagements with the External catalogue and custom units.
+                  Resolve large engagements with the abstract combat system from The Externals.
+                  Space battles, ground battles, orbital bombardment and mixed engagements, with
+                  the full External unit catalogue and mod support.
                 </Typography>
               </CardContent>
             </CardActionArea>

@@ -15,17 +15,17 @@
     { "id": "intruder", "name": "Intruder", "category": "cruiser", "role": "Light Cruiser", "combatStrength": 250 },
     { "id": "violator", "name": "Violator", "category": "cruiser", "role": "Cruiser", "combatStrength": 375 },
     { "id": "invader", "name": "Invader", "category": "cruiser", "role": "Heavy Cruiser", "combatStrength": 500 },
-    { "id": "saeta", "name": "Saeta", "category": "carrier", "role": "Light Carrier (excludes 40 fighters)", "combatStrength": 200 },
-    { "id": "lanza", "name": "Lanza", "category": "carrier", "role": "Carrier (excludes 80 fighters)", "combatStrength": 250 },
-    { "id": "bala", "name": "Bala", "category": "carrier", "role": "Heavy Carrier (excludes 100 fighters)", "combatStrength": 300 },
+    { "id": "saeta", "name": "Saeta", "category": "carrier", "role": "Light Carrier", "combatStrength": 200, "fighterComplement": 40 },
+    { "id": "lanza", "name": "Lanza", "category": "carrier", "role": "Carrier", "combatStrength": 250, "fighterComplement": 80 },
+    { "id": "bala", "name": "Bala", "category": "carrier", "role": "Heavy Carrier", "combatStrength": 300, "fighterComplement": 100 },
     { "id": "dictator", "name": "Dictator", "category": "battleship", "role": "Pocket Battleship", "combatStrength": 1000 },
     { "id": "tyrant", "name": "Tyrant", "category": "battleship", "role": "Battleship", "combatStrength": 1500 },
-    { "id": "behemoth", "name": "Behemoth", "category": "dreadnought", "role": "Dreadnought (excludes 30 fighters)", "combatStrength": 2500 },
-    { "id": "styx", "name": "Styx", "category": "fortress", "role": "Fortress Ship (excludes carried craft)", "combatStrength": 10000 },
-    { "id": "phlegethon", "name": "Phlegethon", "category": "fortress", "role": "Improved Fortress Ship", "combatStrength": 12500 },
-    { "id": "guardian", "name": "Guardian", "category": "monitor", "role": "Light Monitor (excludes 15 fighters)", "combatStrength": 500 },
-    { "id": "protector", "name": "Protector", "category": "monitor", "role": "Monitor (excludes 30 fighters)", "combatStrength": 750 },
-    { "id": "defender", "name": "Defender", "category": "monitor", "role": "Heavy Monitor (excludes 50 fighters)", "combatStrength": 1000 },
-    { "id": "ascension", "name": "Ascension", "category": "cathedral", "role": "Cathedral Ship (excludes carried craft)", "combatStrength": 20000 }
+    { "id": "behemoth", "name": "Behemoth", "category": "dreadnought", "role": "Dreadnought", "combatStrength": 2500, "fighterComplement": 30 },
+    { "id": "styx", "name": "Styx", "category": "fortress", "role": "Fortress Ship", "combatStrength": 10000, "fighterComplement": 100, "carriedCombatStrength": 2000 },
+    { "id": "phlegethon", "name": "Phlegethon", "category": "fortress", "role": "Improved Fortress Ship", "combatStrength": 12500, "fighterComplement": 100, "carriedCombatStrength": 2000 },
+    { "id": "guardian", "name": "Guardian", "category": "monitor", "role": "Light Monitor", "combatStrength": 500, "fighterComplement": 15 },
+    { "id": "protector", "name": "Protector", "category": "monitor", "role": "Monitor", "combatStrength": 750, "fighterComplement": 30 },
+    { "id": "defender", "name": "Defender", "category": "monitor", "role": "Heavy Monitor", "combatStrength": 1000, "fighterComplement": 50 },
+    { "id": "ascension", "name": "Ascension", "category": "cathedral", "role": "Cathedral Ship", "combatStrength": 20000, "fighterComplement": 150, "carriedCombatStrength": 3500 }
   ]
 }

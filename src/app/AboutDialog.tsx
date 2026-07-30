@@ -95,7 +95,7 @@ export function AboutDialog({ open, onClose }: AboutDialogProps) {
           
           {/* Copyright / Attribution */}
           <Typography variant="caption" color="text.secondary" textAlign="center">
-            Based on the Alternity Warships sourcebook by Richard Baker.
+            Based on the Alternity rules and the Warships sourcebook.
             <br />
             Alternity is a trademark of Wizards of the Coast.
             <br />

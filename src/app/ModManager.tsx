@@ -35,7 +35,8 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import type { Mod, ModManifest } from '@shared/types/mod';
+import type { Mod, ModManifest, ModuleId } from '@shared/types/mod';
+import { DEFAULT_MOD_MODULE } from '@shared/types/mod';
 import {
   getInstalledMods,
   updateModSettings,
@@ -57,14 +58,16 @@ import { useAsyncData } from '@shared/hooks/useAsyncData';
 interface ModManagerProps {
   onBack: () => void;
   onModsChanged: () => Promise<void>;
+  /** Which suite module's mods to manage. Defaults to warships. */
+  module?: ModuleId;
 }
 
-export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
+export function ModManager({ onBack, onModsChanged, module = DEFAULT_MOD_MODULE }: ModManagerProps) {
   const fetchMods = useCallback(async () => {
     const installed = await getInstalledMods();
     installed.sort((a, b) => a.priority - b.priority);
-    return installed;
-  }, []);
+    return installed.filter(m => (m.manifest.module ?? DEFAULT_MOD_MODULE) === module);
+  }, [module]);
   const { data: modsData, loading, refresh: refreshMods, setData: setMods } = useAsyncData(fetchMods, []);
   const mods = modsData ?? [];
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -80,12 +83,19 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
   const [newModDescription, setNewModDescription] = useState('');
 
   const persistSettings = useCallback(async (updatedMods: Mod[]) => {
+    // Only this module's mods are listed, so merge their settings back into the
+    // full set rather than dropping entries belonging to other modules.
+    const allMods = await getInstalledMods();
+    const overrides = new Map(updatedMods.map(m => [m.folderName, m]));
     const settings: ModSettings = {
-      mods: updatedMods.map(m => ({
-        folderName: m.folderName,
-        enabled: m.enabled,
-        priority: m.priority,
-      })),
+      mods: allMods.map(m => {
+        const override = overrides.get(m.folderName) ?? m;
+        return {
+          folderName: m.folderName,
+          enabled: override.enabled,
+          priority: override.priority,
+        };
+      }),
     };
     await updateModSettings(settings);
     await onModsChanged();
@@ -126,6 +136,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
       author: newModAuthor.trim(),
       version: newModVersion.trim(),
       description: newModDescription.trim(),
+      module,
     };
     const folderName = await createMod(manifest);
     if (folderName) {
@@ -144,7 +155,7 @@ export function ModManager({ onBack, onModsChanged }: ModManagerProps) {
       }
     }
     setSaving(false);
-  }, [newModName, newModAuthor, newModVersion, newModDescription, refreshMods]);
+  }, [newModName, newModAuthor, newModVersion, newModDescription, refreshMods, module]);
 
   const handleDeleteMod = useCallback(async (mod: Mod) => {
     setSaving(true);

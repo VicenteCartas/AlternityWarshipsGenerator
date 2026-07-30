@@ -1,11 +1,37 @@
 # Changelog
 
-## [Unreleased]
+## [2.0.0-beta.1] - 2026-07-29
 
 ### Added
 
-- **Battle Resolution module (v1):** New tool implementing the abstract space combat system from *The Externals* (pp. 64-65). Build two opposing fleets from the full External ship catalogue (Hornisse → Ascension, 27 classes) or custom unit stacks, then resolve combat round-by-round. Each round computes Force Strength, attacker/defender roles, the tactical-advantage step modifier, and applies losses based on the tactics check outcome. Withdraw thresholds (defaults: 40% human / 60% External) raise a warning when crossed. The tactics check can be entered manually or rolled with a built-in Alternity step-system roller (d20 + situation die vs. score). Battle Log records every round; Reset restores starting strengths. Accessible from the Suite Hub.
+- **Travel Calculator module:** New sublight trip planner for spacecraft using either Warships acceleration ratings, physical acceleration in g or m/s^2, or an imported `.warship.json` design.
+  - Supports Fusion Age (50 km hex, 5 minute round) and standard PL7+ (1,000 km hex, 30 second round) scales, with distance inputs in kilometers, megameters, AU, light-time units, light-years, parsecs, or map hexes.
+  - Calculates rest-to-rest trips (accelerate halfway, brake halfway) and flybys, with an optional cruise-speed limit for accelerate/coast/brake profiles.
+  - Reports external elapsed time, shipboard proper time, classical estimate, peak speed, percent of light speed, gamma, Warships rounds, and Warships speed rating. Durations use days, hours, minutes, and seconds, with phase totals reconciled at the displayed precision. Relativistic acceleration and time dilation follow the treatment in *Warships*, Chapter 4.
+  - Imported designs contribute their actual installed engine mix. PL6 and PL7+ acceleration ratings are converted separately before being combined, and same-type engine installations are grouped before reading the engine's non-linear acceleration table.
+  - Fuel-requiring imported engines are checked against installed engine-fuel tanks using shipboard thrust time and the design's thrust-day efficiency. Fuel-optional and fuel-free engines are distinguished.
+  - Crew exposure shows the published protected/unprotected acceleration effects and explains PL7+ acceleration compensation. Photon sails and mixed-scale drive packages raise contextual cautions.
+  - Uses the dimensionally consistent PL6 conversion: Acceleration 1 over a 50 km hex and 300-second round is `0.5556 m/s^2`, or about `0.0567 g`. The supplied reference and *Warships* claim about 17 g by treating the round's `166.67 m/s` velocity change as acceleration; the calculator displays this source discrepancy as a warning.
+- `@travel/*` path alias for the new module.
+- **Battle Resolution module:** New tool implementing the abstract combat system from *The Externals* (pp. 63-73). Build two opposing forces, split them across simultaneous theatres, and resolve each theatre round by round.
+  - **Space, ground, and bombardment theatres.** A battle can hold any number of theatres. Space battles use Tactics–space tactics; ground battles use Tactics–ground tactics. Each unit stack is committed to one theatre, and every theatre is resolved separately, covering the book's mixed-engagement rules.
+  - **Full unit catalogue.** All 27 External spacecraft classes, the ten troop formations (Infantryman through Ru-arami), five armor units, seven artillery batteries, and six fixed fortifications. Carrier and fortress-ship fighter complements are recorded as notes, since the book excludes them from combat strength.
+  - **System defenses.** Convert a system's STAR\*DRIVE defense rating (0-5) into combat strength by squaring it and multiplying by 1,000.
+  - **Cross-domain effectiveness.** Spacecraft bombard planetary targets at half strength; ships built as planet bombers invert that trade. Artillery engages spacecraft at half strength unless built as a planetary defense battery. Infantry, light armor and bunkers cannot fire on orbiting craft at all, while strongholds, citadels and fortresses do so at full strength.
+  - **Resolution.** Each round computes Force Strength per side, assigns attacker and defender, derives the tactical-advantage step modifier, and applies losses from the tactics check outcome. The printed Offensive Advantage values (+1 through +5) are treated as advantage magnitudes and applied as −1 through −5 bonus steps, since positive Alternity steps are penalties. The check can be entered manually or rolled with a built-in Alternity step-system roller. Withdraw thresholds (40% human / 60% External by default) raise a warning when crossed. A per-theatre battle log records every round.
+  - **Custom units.** Hand-enter any unit with its own combat strength, arena, and cross-domain effectiveness.
+  - **Import from the Warships Generator.** Pick any `.warship.json` design and the app derives a combat strength for it. *The Externals* gives no conversion, so this is a house rule: total hull points scaled by the share of the hull devoted to weapons and defenses and by how heavily it is armored. The breakdown is shown and the result can be overridden. Calibrated against the book — a Warships heavy cruiser lands near the Invader's 500, and a battleship near the Tyrant's 1,500.
+  - **Saving and loading.** Engagements save to `.battle.json` through the native file dialogs, with format versioning, migration of older files, and defensive defaults so a hand-edited file cannot break the app. Undo and redo cover every change including resolved rounds. Work in progress is auto-saved, and an unsaved engagement is offered for recovery on the next launch.
+  - **Battle Library.** Browse a folder of saved engagements as cards showing the sides, combat strength, theatres and rounds fought, with search and sorting.
+  - **Battle report export.** Produce a PDF after-action report covering the scenario, each side's order of battle per theatre, the round-by-round log, and the standing of each theatre.
+- **Mods for the Battle Resolution module:** The battles data files (`spaceUnits.json`, `groundUnits.json`, `battleRules.json`) load through the same externally-editable, moddable pipeline as the warships data. Mods now declare which module they target, and the Mod Manager and Mod Editor show only that module's content. Battles mods can add or replace spacecraft, troops, armor, artillery, fortifications, the tactical advantage table, and the combat results table.
 - `@battles/*` path alias for the new module.
+
+### Changed
+
+- **Mod manifests gained a `module` field** (`"warships"` or `"battles"`). Mods without it are treated as warships mods, so existing mods keep working unchanged.
+- Game data files are now resolved per module. Warships data stays at the root of the data folder; battles data lives in a `battles` subfolder alongside it.
+- **The File menu is now built per module.** Inside Battle Resolution it offers New Battle, Open Battle, Battle Library, Save Battle, Save Battle As and Export Battle Report, on the same shortcuts the Warships module uses for designs.
 
 ## [1.1.0] - 2026-03-17
 

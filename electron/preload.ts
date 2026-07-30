@@ -36,6 +36,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onReturnToHub: (callback: () => void) => {
     ipcRenderer.on('menu-return-to-hub', callback);
   },
+  onNewBattle: (callback: () => void) => {
+    ipcRenderer.on('menu-new-battle', callback);
+  },
+  onOpenBattle: (callback: () => void) => {
+    ipcRenderer.on('menu-open-battle', callback);
+  },
+  onSaveBattle: (callback: () => void) => {
+    ipcRenderer.on('menu-save-battle', callback);
+  },
+  onSaveBattleAs: (callback: () => void) => {
+    ipcRenderer.on('menu-save-battle-as', callback);
+  },
+  onBattleLibrary: (callback: () => void) => {
+    ipcRenderer.on('menu-battle-library', callback);
+  },
+  onExportBattleReport: (callback: () => void) => {
+    ipcRenderer.on('menu-export-battle-report', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },
@@ -56,11 +74,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOrdnanceOpenDialog: () =>
     ipcRenderer.invoke('show-ordnance-open-dialog'),
 
+  // Battle save/load file dialogs
+  showBattleSaveDialog: (defaultFileName: string, defaultDirectory?: string) =>
+    ipcRenderer.invoke('show-battle-save-dialog', defaultFileName, defaultDirectory),
+  showBattleOpenDialog: () =>
+    ipcRenderer.invoke('show-battle-open-dialog'),
+
+  // Battle library & auto-save
+  scanBattleFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('scan-battle-files', directoryPath),
+  writeBattleAutoSave: (content: string) =>
+    ipcRenderer.invoke('write-battle-autosave', content),
+  readBattleAutoSave: () =>
+    ipcRenderer.invoke('read-battle-autosave'),
+  deleteBattleAutoSave: () =>
+    ipcRenderer.invoke('delete-battle-autosave'),
+
   // Data file operations (for externally editable game data)
-  readDataFile: (fileName: string) => 
-    ipcRenderer.invoke('read-data-file', fileName),
-  getDataPath: () => 
-    ipcRenderer.invoke('get-data-path'),
+  readDataFile: (fileName: string, module?: string) =>
+    ipcRenderer.invoke('read-data-file', fileName, module),
+  getDataPath: (module?: string) =>
+    ipcRenderer.invoke('get-data-path', module),
   
   // PDF export operations
   getDocumentsPath: () =>

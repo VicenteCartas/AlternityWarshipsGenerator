@@ -1,0 +1,37 @@
+{
+  "tacticalAdvantage": [
+    { "maxRatio": 0.2, "stepModifier": 5 },
+    { "maxRatio": 0.4, "stepModifier": 4 },
+    { "maxRatio": 0.6, "stepModifier": 3 },
+    { "maxRatio": 0.8, "stepModifier": 2 },
+    { "maxRatio": null, "stepModifier": 1 }
+  ],
+  "combatResults": [
+    { "result": "criticalFailure", "attackerLossPct": 0.25, "defenderLossPct": 0.05 },
+    { "result": "failure", "attackerLossPct": 0.2, "defenderLossPct": 0.1 },
+    { "result": "ordinary", "attackerLossPct": 0.15, "defenderLossPct": 0.15 },
+    { "result": "good", "attackerLossPct": 0.1, "defenderLossPct": 0.2 },
+    { "result": "amazing", "attackerLossPct": 0.05, "defenderLossPct": 0.25 }
+  ],
+  "withdrawThresholds": {
+    "human": 0.4,
+    "external": 0.6
+  },
+  "systemDefenses": {
+    "maxRating": 5,
+    "combatStrengthPerRatingSquared": 1000
+  },
+  "crossDomain": {
+    "shipBombardmentFactor": 0.5,
+    "designatedBomberSpaceFactor": 0.5,
+    "designatedBomberGroundFactor": 1,
+    "planetaryDefenseBatterySpaceFactor": 1,
+    "planetaryDefenseBatteryGroundFactor": 0.5
+  },
+  "warshipImport": {
+    "referenceCombatShare": 0.25,
+    "minFirepowerFactor": 0.05,
+    "maxFirepowerFactor": 2,
+    "maxArmorFactor": 1.5
+  }
+}

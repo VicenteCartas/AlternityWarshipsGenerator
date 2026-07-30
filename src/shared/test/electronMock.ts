@@ -17,7 +17,13 @@ type MenuEventName =
   | 'onShowShortcuts'
   | 'onDuplicateDesign'
   | 'onReturnToStart'
-  | 'onReturnToHub';
+  | 'onReturnToHub'
+  | 'onNewBattle'
+  | 'onOpenBattle'
+  | 'onSaveBattle'
+  | 'onSaveBattleAs'
+  | 'onBattleLibrary'
+  | 'onExportBattleReport';
 
 /**
  * Creates a complete mock ElectronAPI. Menu event listeners store their
@@ -38,6 +44,12 @@ export function createMockElectronAPI() {
     onDuplicateDesign: vi.fn((cb) => { menuCallbacks.onDuplicateDesign = cb; }),
     onReturnToStart: vi.fn((cb) => { menuCallbacks.onReturnToStart = cb; }),
     onReturnToHub: vi.fn((cb) => { menuCallbacks.onReturnToHub = cb; }),
+    onNewBattle: vi.fn((cb) => { menuCallbacks.onNewBattle = cb; }),
+    onOpenBattle: vi.fn((cb) => { menuCallbacks.onOpenBattle = cb; }),
+    onSaveBattle: vi.fn((cb) => { menuCallbacks.onSaveBattle = cb; }),
+    onSaveBattleAs: vi.fn((cb) => { menuCallbacks.onSaveBattleAs = cb; }),
+    onBattleLibrary: vi.fn((cb) => { menuCallbacks.onBattleLibrary = cb; }),
+    onExportBattleReport: vi.fn((cb) => { menuCallbacks.onExportBattleReport = cb; }),
     removeAllListeners: vi.fn(),
 
     // File operations
@@ -80,6 +92,14 @@ export function createMockElectronAPI() {
     // Ordnance export/import
     showOrdnanceSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
     showOrdnanceOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+
+    // Battle save/load, library & auto-save
+    showBattleSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
+    showBattleOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+    scanBattleFiles: vi.fn().mockResolvedValue({ success: true, files: [] }),
+    writeBattleAutoSave: vi.fn().mockResolvedValue({ success: true }),
+    readBattleAutoSave: vi.fn().mockResolvedValue({ success: false }),
+    deleteBattleAutoSave: vi.fn().mockResolvedValue({ success: true }),
 
     // Mod system
     listMods: vi.fn().mockResolvedValue({ success: true, mods: [] }),

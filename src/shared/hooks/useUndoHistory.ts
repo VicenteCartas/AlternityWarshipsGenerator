@@ -20,6 +20,8 @@ export interface UndoRedoControls<T> {
   clear: () => void;
   /** Ref that is true during undo/redo restoration — callers should check this to skip re-capturing */
   isRestoringRef: React.MutableRefObject<boolean>;
+  /** Clear the restoring flag once the restored state has been applied. */
+  finishRestore: () => void;
 }
 
 /**
@@ -120,6 +122,10 @@ export function useUndoHistory<T>(maxHistory: number = 50): UndoRedoControls<T> 
     updateReactiveState();
   }, [updateReactiveState]);
 
+  const finishRestore = useCallback(() => {
+    isRestoringRef.current = false;
+  }, []);
+
   return {
     pushState,
     pushImmediate,
@@ -129,5 +135,6 @@ export function useUndoHistory<T>(maxHistory: number = 50): UndoRedoControls<T> 
     canRedo,
     clear,
     isRestoringRef: isRestoringRef,
+    finishRestore,
   };
 }

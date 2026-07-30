@@ -1,7 +1,7 @@
 {
   "name": "alternity-workshop",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0-beta.1",
   "description": "A suite of desktop tools for the Alternity sci-fi tabletop RPG",
   "author": "Vicente Cartas",
   "license": "ISC",
@@ -48,6 +48,13 @@
       {
         "from": "src/modules/warships/data",
         "to": "data",
+        "filter": [
+          "**/*.json"
+        ]
+      },
+      {
+        "from": "src/modules/battles/data",
+        "to": "data/battles",
         "filter": [
           "**/*.json"
         ]

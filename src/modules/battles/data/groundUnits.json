@@ -1,0 +1,38 @@
+{
+  "troops": [
+    { "id": "infantryman", "name": "Infantryman", "category": "infantry", "role": "1 klick or kroath", "combatStrength": 1 },
+    { "id": "hruth", "name": "Hruth", "category": "infantry", "role": "Fire team — 6 troops", "combatStrength": 6 },
+    { "id": "ta-hro", "name": "Ta-hro", "category": "infantry", "role": "Squad — 13 troops", "combatStrength": 13 },
+    { "id": "chor", "name": "Chor", "category": "infantry", "role": "Section — 30 troops", "combatStrength": 30 },
+    { "id": "groush", "name": "Groush", "category": "infantry", "role": "Platoon — 75 troops", "combatStrength": 75 },
+    { "id": "ahmk", "name": "Ahmk", "category": "infantry", "role": "Company — 150 troops", "combatStrength": 150 },
+    { "id": "matek", "name": "Matek", "category": "infantry", "role": "Battalion — 300 troops", "combatStrength": 300 },
+    { "id": "ru-matek", "name": "Ru-matek", "category": "infantry", "role": "Reinforced battalion — 300 troops + armor", "combatStrength": 450 },
+    { "id": "ori-arami", "name": "Ori-arami", "category": "infantry", "role": "Brigade — 600 troops", "combatStrength": 600 },
+    { "id": "ru-arami", "name": "Ru-arami", "category": "infantry", "role": "Reinforced brigade — 600 troops + armor", "combatStrength": 750 }
+  ],
+  "armorUnits": [
+    { "id": "stiletto", "name": "Stiletto", "category": "armor", "role": "Light personnel carrier", "combatStrength": 10 },
+    { "id": "gladius", "name": "Gladius", "category": "armor", "role": "Light tank", "combatStrength": 30 },
+    { "id": "sabre", "name": "Sabre", "category": "armor", "role": "Tank", "combatStrength": 40 },
+    { "id": "cutlass", "name": "Cutlass", "category": "armor", "role": "Heavy tank", "combatStrength": 60 },
+    { "id": "broadsword", "name": "Broadsword", "category": "armor", "role": "Light mobile fortress", "combatStrength": 100, "spaceFactor": 0.5 }
+  ],
+  "artillery": [
+    { "id": "sliver-cannon", "name": "Sliver Cannon Battery", "category": "artillery", "role": "Direct fire projectile", "combatStrength": 125, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "blacklaser-cannon", "name": "Blacklaser Cannon Battery", "category": "artillery", "role": "Direct fire energy", "combatStrength": 150, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "cluster-rocket", "name": "Cluster Rocket Battery", "category": "artillery", "role": "Indirect fire projectile", "combatStrength": 175, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "dark-plasma-cannon", "name": "Dark Plasma Cannon Battery", "category": "artillery", "role": "Direct fire energy", "combatStrength": 200, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "dark-matter-missile", "name": "Dark Matter Missile Battery", "category": "artillery", "role": "Indirect fire projectile", "combatStrength": 225, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "dark-fusion-cannon", "name": "Dark Fusion Cannon Battery", "category": "artillery", "role": "Direct fire energy", "combatStrength": 250, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true },
+    { "id": "converter-cannon", "name": "Converter Cannon Battery", "category": "artillery", "role": "Direct fire energy", "combatStrength": 300, "spaceFactor": 0.5, "canBePlanetaryDefenseBattery": true }
+  ],
+  "fortifications": [
+    { "id": "frontier-bunker", "name": "Frontier Bunker", "category": "fortification", "role": "Forward observation", "combatStrength": 100 },
+    { "id": "fortified-bunker", "name": "Fortified Bunker", "category": "fortification", "role": "Front line comm-station", "combatStrength": 200 },
+    { "id": "command-bunker", "name": "Command Bunker", "category": "fortification", "role": "Battlefield control", "combatStrength": 300 },
+    { "id": "stronghold", "name": "Stronghold", "category": "fortification", "role": "City command", "combatStrength": 500, "spaceFactor": 1 },
+    { "id": "citadel", "name": "Citadel", "category": "fortification", "role": "National command", "combatStrength": 750, "spaceFactor": 1 },
+    { "id": "fortress", "name": "Fortress", "category": "fortification", "role": "Continental command", "combatStrength": 1000, "spaceFactor": 1 }
+  ]
+}

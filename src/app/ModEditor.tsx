@@ -35,12 +35,17 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import type { Mod, ModDataFileName } from '@shared/types/mod';
+import type { Mod, ModDataFileName, ModuleId } from '@shared/types/mod';
+import { DEFAULT_MOD_MODULE } from '@shared/types/mod';
 import { getModFileData, saveModFileData, getInstalledMods } from '@shared/services/modService';
-import { EDITOR_SECTIONS, EDITOR_SECTION_GROUPS, HOUSE_RULES, type EditorSection, type HouseRule } from '@shared/services/modEditorSchemas';
+import { getSectionsForModule, getSectionGroupsForModule, getHouseRulesForModule, type EditorSection, type HouseRule } from '@shared/services/modEditorSchemas';
 import { validateRows, validateTechTrackReferences, type ValidationError } from '@shared/services/modValidationService';
 import { EditableDataGrid } from '@shared/components/EditableDataGrid';
 import { reloadWithSpecificMods, getHullsData, getStationHullsData, getArmorTypesData, getArmorWeightsData, getPowerPlantsData, getFuelTankData, getEnginesData, getFTLDrivesData, getLifeSupportData, getAccommodationsData, getStoreSystemsData, getGravitySystemsData, getDefenseSystemsData, getCommandControlSystemsData, getSensorsData, getHangarMiscSystemsData, getBeamWeaponsData, getProjectileWeaponsData, getTorpedoWeaponsData, getSpecialWeaponsData, getLaunchSystemsData, getPropulsionSystemsData, getWarheadsData, getGuidanceSystemsData, getMountModifiersData, getGunConfigurationsData, getConcealmentModifierData, getTechTracksData } from '@shared/services/dataLoader';
+import {
+  reloadBattlesDataWithMods, getShipsData, getTroopsData, getArmorUnitsData,
+  getArtilleryData, getFortificationsData, getBattleRules,
+} from '@battles/services/battlesDataLoader';
 import { MOD_ROW_BORDER_COLOR } from '@shared/constants/domainColors';
 
 interface ModEditorProps {
@@ -96,6 +101,14 @@ function getBaseDataForSection(sectionId: string, pureBase = false): Record<stri
     propulsionSystems: () => toRows(getPropulsionSystemsData(pureBase)),
     warheads: () => toRows(getWarheadsData(pureBase)),
     guidanceSystems: () => toRows(getGuidanceSystemsData(pureBase)),
+    // Battles module
+    battleShips: () => toRows(getShipsData()),
+    battleTroops: () => toRows(getTroopsData()),
+    battleArmorUnits: () => toRows(getArmorUnitsData()),
+    battleArtillery: () => toRows(getArtilleryData()),
+    battleFortifications: () => toRows(getFortificationsData()),
+    battleTacticalAdvantage: () => toRows(getBattleRules().tacticalAdvantage),
+    battleCombatResults: () => toRows(getBattleRules().combatResults),
   };
   try {
     return getters[sectionId]?.() || [];
@@ -135,12 +148,18 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   // Preview merged data toggle
   const [previewMerged, setPreviewMerged] = useState(false);
 
+  // Which suite module this mod targets. Only that module's sections are editable.
+  const modModule: ModuleId = mod.manifest.module ?? DEFAULT_MOD_MODULE;
+  const moduleSections = useMemo(() => getSectionsForModule(modModule), [modModule]);
+  const moduleGroups = useMemo(() => getSectionGroupsForModule(modModule), [modModule]);
+  const moduleHouseRules = useMemo(() => getHouseRulesForModule(modModule), [modModule]);
+
   // Build a section lookup map
   const sectionMap = useMemo(() => {
     const map = new Map<string, EditorSection>();
-    for (const s of EDITOR_SECTIONS) map.set(s.id, s);
+    for (const s of moduleSections) map.set(s.id, s);
     return map;
-  }, []);
+  }, [moduleSections]);
 
   /** Get the count of data rows for a section */
   const getSectionRowCount = useCallback((sectionId: string) => {
@@ -171,10 +190,12 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       // so that getBaseDataForSection(id, false) returns merged data from other mods
       const allMods = await getInstalledMods();
       const otherEnabledMods = allMods
-        .filter(m => m.enabled && m.folderName !== mod.folderName && m.files.length > 0)
+        .filter(m => m.enabled && m.folderName !== mod.folderName && m.files.length > 0
+          && (m.manifest.module ?? DEFAULT_MOD_MODULE) === modModule)
         .sort((a, b) => a.priority - b.priority);
       if (otherEnabledMods.length > 0) {
-        await reloadWithSpecificMods(otherEnabledMods);
+        if (modModule === 'battles') await reloadBattlesDataWithMods(otherEnabledMods);
+        else await reloadWithSpecificMods(otherEnabledMods);
       }
       setHasOtherMods(otherEnabledMods.length > 0);
 
@@ -182,7 +203,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
       // Group sections by file to avoid loading the same file multiple times
       const fileToSections = new Map<ModDataFileName, EditorSection[]>();
-      for (const section of EDITOR_SECTIONS) {
+      for (const section of moduleSections) {
         const list = fileToSections.get(section.fileName) || [];
         list.push(section);
         fileToSections.set(section.fileName, list);
@@ -190,7 +211,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
       // Also track which files we need for house rules
       const fileToHouseRules = new Map<ModDataFileName, HouseRule[]>();
-      for (const rule of HOUSE_RULES) {
+      for (const rule of moduleHouseRules) {
         const list = fileToHouseRules.get(rule.fileName) || [];
         list.push(rule);
         fileToHouseRules.set(rule.fileName, list);
@@ -253,7 +274,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
       // Load house rule values from mod files
       const loadedHouseRules: Record<string, boolean | null> = {};
-      for (const rule of HOUSE_RULES) {
+      for (const rule of moduleHouseRules) {
         const fileData = loadedFiles.get(rule.fileName);
         if (fileData && rule.jsonKey in fileData) {
           loadedHouseRules[rule.id] = !!fileData[rule.jsonKey];
@@ -275,7 +296,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
       // Auto-expand groups that have data
       const groupsWithData = new Set<string>();
-      for (const group of EDITOR_SECTION_GROUPS) {
+      for (const group of moduleGroups) {
         if (group.sectionIds.some(id => (data[id] || []).length > 0)) {
           groupsWithData.add(group.id);
         }
@@ -286,8 +307,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     }
     loadModData();
     // Restore cache to no mods when leaving editor
-    return () => { reloadWithSpecificMods([]); };
-  }, [mod]);
+    return () => {
+      if (modModule === 'battles') reloadBattlesDataWithMods([]);
+      else reloadWithSpecificMods([]);
+    };
+  }, [mod, modModule, moduleSections, moduleGroups, moduleHouseRules]);
 
   const handleSectionDataChange = useCallback((sectionId: string, rows: Record<string, unknown>[]) => {
     setSectionData(prev => ({ ...prev, [sectionId]: rows }));
@@ -347,7 +371,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     const modTechTrackRows = sectionData['techTracks'] || [];
 
     // Validate all dirty sections
-    for (const section of EDITOR_SECTIONS) {
+    for (const section of moduleSections) {
       const rows = sectionData[section.id] || [];
       if (rows.length > 0) {
         const errors = validateRows(rows, section.columns);
@@ -357,7 +381,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
           setSnackbar({ open: true, message: `Validation errors in "${section.label}": ${allErrors[0].message}`, severity: 'error' });
           // Navigate to the section with errors and expand its group
           setActiveSectionId(section.id);
-          for (const group of EDITOR_SECTION_GROUPS) {
+          for (const group of moduleGroups) {
             if (group.sectionIds.includes(section.id)) {
               setExpandedGroups(prev => new Set(prev).add(group.id));
               break;
@@ -372,7 +396,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
 
     // Group sections by file and save
     const fileToSections = new Map<ModDataFileName, EditorSection[]>();
-    for (const section of EDITOR_SECTIONS) {
+    for (const section of moduleSections) {
       const list = fileToSections.get(section.fileName) || [];
       list.push(section);
       fileToSections.set(section.fileName, list);
@@ -383,11 +407,11 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     // Derive which files need saving from dirty sections
     const filesToSave = new Set<ModDataFileName>();
     for (const sectionId of dirtySections) {
-      const section = EDITOR_SECTIONS.find(s => s.id === sectionId);
+      const section = moduleSections.find(s => s.id === sectionId);
       if (section) filesToSave.add(section.fileName);
     }
     if (houseRulesDirty) {
-      for (const rule of HOUSE_RULES) {
+      for (const rule of moduleHouseRules) {
         filesToSave.add(rule.fileName);
       }
     }
@@ -396,7 +420,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       const sections = fileToSections.get(fileName) || [];
       // Check if any section in this file has data or house rules are set
       const hasData = sections.some(s => (sectionData[s.id] || []).length > 0);
-      const fileHouseRules = HOUSE_RULES.filter(r => r.fileName === fileName);
+      const fileHouseRules = moduleHouseRules.filter(r => r.fileName === fileName);
       const hasSetRules = fileHouseRules.some(r => houseRules[r.id] !== null);
       if (!hasData && !hasSetRules) continue;
 
@@ -458,13 +482,13 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       setSnackbar({ open: true, message: 'Mod saved successfully', severity: 'success' });
       await onModsChanged();
     }
-  }, [sectionData, houseRules, dirtySections, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, sectionModes, manifestDirty, onModsChanged]);
+  }, [sectionData, houseRules, dirtySections, houseRulesDirty, mod.folderName, mod.manifest, modName, modAuthor, version, description, sectionModes, manifestDirty, onModsChanged, moduleSections, moduleGroups, moduleHouseRules]);
 
   /** Validate all sections and show results dialog */
   const handleValidateAll = useCallback(() => {
     const results: { sectionLabel: string; sectionId: string; errors: ValidationError[] }[] = [];
     const modTechTrackRows = sectionData['techTracks'] || [];
-    for (const section of EDITOR_SECTIONS) {
+    for (const section of moduleSections) {
       const rows = sectionData[section.id] || [];
       if (rows.length === 0) continue;
       const errors = validateRows(rows, section.columns);
@@ -475,7 +499,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
       }
     }
     setValidationResults(results);
-  }, [sectionData]);
+  }, [sectionData, moduleSections]);
 
   const isHouseRulesTab = activeSectionId === 'house-rules';
   const activeSection = isHouseRulesTab ? null : sectionMap.get(activeSectionId) ?? null;
@@ -484,8 +508,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
   // Filter sections by sidebar search
   const filterLower = sidebarFilter.toLowerCase();
   const filteredGroups = useMemo(() => {
-    if (!filterLower) return EDITOR_SECTION_GROUPS;
-    return EDITOR_SECTION_GROUPS.map(group => ({
+    if (!filterLower) return moduleGroups;
+    return moduleGroups.map(group => ({
       ...group,
       sectionIds: group.sectionIds.filter(id => {
         const section = sectionMap.get(id);
@@ -494,7 +518,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
     })).filter(group =>
       group.label.toLowerCase().includes(filterLower) || group.sectionIds.length > 0
     );
-  }, [filterLower, sectionMap]);
+  }, [filterLower, sectionMap, moduleGroups]);
 
   // When filter is active, auto-expand all matching groups
   const effectiveExpandedGroups = useMemo(() => {
@@ -625,8 +649,8 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                   primary="House Rules"
                   primaryTypographyProps={{ fontSize: '0.85rem' }}
                 />
-                {HOUSE_RULES.some(r => houseRules[r.id] !== null) && (
-                  <Chip label={HOUSE_RULES.filter(r => houseRules[r.id] !== null).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
+                {moduleHouseRules.some(r => houseRules[r.id] !== null) && (
+                  <Chip label={moduleHouseRules.filter(r => houseRules[r.id] !== null).length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                 )}
               </ListItemButton>
             )}
@@ -637,7 +661,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               const groupCount = getGroupRowCount(group.sectionIds);
               // When filtering and group label matches, show ALL its original sections
               const visibleSectionIds = filterLower && group.label.toLowerCase().includes(filterLower)
-                ? EDITOR_SECTION_GROUPS.find(g => g.id === group.id)?.sectionIds || group.sectionIds
+                ? moduleGroups.find(g => g.id === group.id)?.sectionIds || group.sectionIds
                 : group.sectionIds;
 
               return (
@@ -701,7 +725,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Toggle unofficial or variant rules. These override base game settings when this mod is enabled.
               </Typography>
-              {HOUSE_RULES.map((rule) => (
+              {moduleHouseRules.map((rule) => (
                 <Paper key={rule.id} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
                     <Typography fontWeight="medium">{rule.label}</Typography>
@@ -830,7 +854,7 @@ export function ModEditor({ mod, onBack, onModsChanged }: ModEditorProps) {
                     color="primary"
                     onClick={() => {
                       setActiveSectionId(sectionId);
-                      for (const group of EDITOR_SECTION_GROUPS) {
+                      for (const group of moduleGroups) {
                         if (group.sectionIds.includes(sectionId)) {
                           setExpandedGroups(prev => new Set(prev).add(group.id));
                           break;

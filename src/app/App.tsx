@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Stack } from '@mui/material';
 import WarshipsModule from '@warships/WarshipsModule';
 import BattlesModule from '@battles/BattlesModule';
+import TravelModule from '@travel/TravelModule';
 import { SuiteHub } from './SuiteHub';
 import { AboutDialog } from './AboutDialog';
 import { loadAllGameData } from '@shared/services/dataLoader';
@@ -9,7 +10,7 @@ import { APP_NAME } from '@shared/constants/version';
 import '@shared/types/electron.d.ts';
 import type { ThemeMode } from './theme';
 
-type SuiteMode = 'loading' | 'hub' | 'warships' | 'battles';
+type SuiteMode = 'loading' | 'hub' | 'warships' | 'battles' | 'travel';
 
 interface AppProps {
   themeMode: ThemeMode;
@@ -72,6 +73,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     setSuiteMode('battles');
   }, []);
 
+  const handleOpenTravel = useCallback(() => {
+    setSuiteMode('travel');
+  }, []);
+
   if (suiteMode === 'loading') {
     return (
       <Box
@@ -112,6 +117,16 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     );
   }
 
+  if (suiteMode === 'travel') {
+    return (
+      <TravelModule
+        themeMode={themeMode}
+        onThemeModeChange={onThemeModeChange}
+        onReturnToHub={handleReturnToHub}
+      />
+    );
+  }
+
   // suiteMode === 'hub'
   return (
     <>
@@ -120,6 +135,7 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
         onThemeModeChange={onThemeModeChange}
         onOpenWarships={handleOpenWarships}
         onOpenBattles={handleOpenBattles}
+        onOpenTravel={handleOpenTravel}
         onShowAbout={() => setAboutOpen(true)}
       />
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />

@@ -10,14 +10,44 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 
 // App version - keep in sync with src/shared/constants/version.ts
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '2.0.0-beta.1';
 const APP_NAME = 'Alternity Workshop';
 
 let mainWindow: BrowserWindow | null = null;
 
 // Track current app mode to enable/disable menu items contextually.
-// 'hub' is the suite-level hub. The other values are warships-module views.
-let currentAppMode: 'loading' | 'hub' | 'welcome' | 'builder' | 'mods' | 'library' = 'loading';
+// 'hub' is the suite-level hub. 'welcome' | 'builder' | 'mods' | 'library' are
+// warships-module views; 'battles-welcome' | 'battles' are battles-module views.
+type AppMode =
+  | 'loading'
+  | 'hub'
+  | 'welcome'
+  | 'builder'
+  | 'mods'
+  | 'library'
+  | 'battles-welcome'
+  | 'battles'
+  | 'travel';
+
+let currentAppMode: AppMode = 'loading';
+
+/** Which module a mode belongs to. The File menu is built per module. */
+function moduleGroupOf(mode: AppMode): 'warships' | 'battles' | 'travel' | 'other' {
+  switch (mode) {
+    case 'welcome':
+    case 'builder':
+    case 'mods':
+    case 'library':
+      return 'warships';
+    case 'battles':
+    case 'battles-welcome':
+      return 'battles';
+    case 'travel':
+      return 'travel';
+    default:
+      return 'other';
+  }
+}
 
 // Recent files management
 const MAX_RECENT_FILES = 10;
@@ -120,6 +150,119 @@ function createMenu() {
   const isInBuilder = currentAppMode === 'builder';
   const isInHub = currentAppMode === 'hub';
   const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
+  const isInBattlesModule = moduleGroupOf(currentAppMode) === 'battles';
+  const isInTravelModule = moduleGroupOf(currentAppMode) === 'travel';
+  const isInBattleBuilder = currentAppMode === 'battles';
+
+  // The File menu is module-specific, so it is rebuilt whenever the active
+  // module changes rather than only toggling enabled state.
+  const warshipsFileItems: MenuItemConstructorOptions[] = [
+    {
+      id: 'new-design',
+      label: 'New Design',
+      accelerator: 'CmdOrCtrl+N',
+      enabled: isInWarships,
+      click: () => {
+        mainWindow?.webContents.send('menu-new-warship');
+      },
+    },
+    {
+      id: 'load-design',
+      label: 'Load Design...',
+      accelerator: 'CmdOrCtrl+O',
+      enabled: isInWarships,
+      click: () => {
+        mainWindow?.webContents.send('menu-load-warship');
+      },
+    },
+    {
+      id: 'recent-designs',
+      label: 'Recent Designs',
+      enabled: isInWarships,
+      submenu: recentFilesSubmenu,
+    },
+    { type: 'separator' },
+    {
+      id: 'save-design',
+      label: 'Save Design',
+      accelerator: 'CmdOrCtrl+S',
+      enabled: isInBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-save-warship');
+      },
+    },
+    {
+      id: 'save-design-as',
+      label: 'Save Design As...',
+      accelerator: 'CmdOrCtrl+Shift+S',
+      enabled: isInBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-save-warship-as');
+      },
+    },
+    {
+      id: 'duplicate-design',
+      label: 'Duplicate Design',
+      accelerator: 'CmdOrCtrl+Shift+D',
+      enabled: isInBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-duplicate-design');
+      },
+    },
+  ];
+
+  const battlesFileItems: MenuItemConstructorOptions[] = [
+    {
+      id: 'new-battle',
+      label: 'New Battle',
+      accelerator: 'CmdOrCtrl+N',
+      click: () => {
+        mainWindow?.webContents.send('menu-new-battle');
+      },
+    },
+    {
+      id: 'open-battle',
+      label: 'Open Battle...',
+      accelerator: 'CmdOrCtrl+O',
+      click: () => {
+        mainWindow?.webContents.send('menu-open-battle');
+      },
+    },
+    {
+      id: 'battle-library',
+      label: 'Battle Library',
+      click: () => {
+        mainWindow?.webContents.send('menu-battle-library');
+      },
+    },
+    { type: 'separator' },
+    {
+      id: 'save-battle',
+      label: 'Save Battle',
+      accelerator: 'CmdOrCtrl+S',
+      enabled: isInBattleBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-save-battle');
+      },
+    },
+    {
+      id: 'save-battle-as',
+      label: 'Save Battle As...',
+      accelerator: 'CmdOrCtrl+Shift+S',
+      enabled: isInBattleBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-save-battle-as');
+      },
+    },
+    {
+      id: 'export-battle-report',
+      label: 'Export Battle Report...',
+      enabled: isInBattleBuilder,
+      click: () => {
+        mainWindow?.webContents.send('menu-export-battle-report');
+      },
+    },
+  ];
 
   const template: MenuItemConstructorOptions[] = [
     // App menu (macOS only)
@@ -141,59 +284,8 @@ function createMenu() {
     {
       label: 'File',
       submenu: [
-        {
-          id: 'new-design',
-          label: 'New Design',
-          accelerator: 'CmdOrCtrl+N',
-          enabled: isInWarships,
-          click: () => {
-            mainWindow?.webContents.send('menu-new-warship');
-          },
-        },
-        {
-          id: 'load-design',
-          label: 'Load Design...',
-          accelerator: 'CmdOrCtrl+O',
-          enabled: isInWarships,
-          click: () => {
-            mainWindow?.webContents.send('menu-load-warship');
-          },
-        },
-        {
-          id: 'recent-designs',
-          label: 'Recent Designs',
-          enabled: isInWarships,
-          submenu: recentFilesSubmenu,
-        },
-        { type: 'separator' },
-        {
-          id: 'save-design',
-          label: 'Save Design',
-          accelerator: 'CmdOrCtrl+S',
-          enabled: isInBuilder,
-          click: () => {
-            mainWindow?.webContents.send('menu-save-warship');
-          },
-        },
-        {
-          id: 'save-design-as',
-          label: 'Save Design As...',
-          accelerator: 'CmdOrCtrl+Shift+S',
-          enabled: isInBuilder,
-          click: () => {
-            mainWindow?.webContents.send('menu-save-warship-as');
-          },
-        },
-        {
-          id: 'duplicate-design',
-          label: 'Duplicate Design',
-          accelerator: 'CmdOrCtrl+Shift+D',
-          enabled: isInBuilder,
-          click: () => {
-            mainWindow?.webContents.send('menu-duplicate-design');
-          },
-        },
-        { type: 'separator' },
+        ...(isInBattlesModule ? battlesFileItems : isInTravelModule ? [] : warshipsFileItems),
+        ...(!isInTravelModule ? [{ type: 'separator' as const }] : []),
         {
           id: 'return-to-hub',
           label: 'Return to Hub',
@@ -205,7 +297,7 @@ function createMenu() {
         {
           id: 'return-to-start',
           label: 'Return to Start Screen',
-          enabled: isInWarships,
+          enabled: isInWarships || isInBattlesModule,
           click: () => {
             mainWindow?.webContents.send('menu-return-to-start');
           },
@@ -320,6 +412,8 @@ function updateMenuForMode() {
   const isInBuilder = currentAppMode === 'builder';
   const isInHub = currentAppMode === 'hub';
   const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
+  const isInBattlesModule = moduleGroupOf(currentAppMode) === 'battles';
+  const isInBattleBuilder = currentAppMode === 'battles';
 
   const modeItems: Record<string, boolean> = {
     'new-design': isInWarships,
@@ -328,8 +422,11 @@ function updateMenuForMode() {
     'save-design': isInBuilder,
     'save-design-as': isInBuilder,
     'duplicate-design': isInBuilder,
+    'save-battle': isInBattleBuilder,
+    'save-battle-as': isInBattleBuilder,
+    'export-battle-report': isInBattleBuilder,
     'return-to-hub': !isInHub,
-    'return-to-start': isInWarships,
+    'return-to-start': isInWarships || isInBattlesModule,
   };
 
   for (const [id, enabled] of Object.entries(modeItems)) {
@@ -421,10 +518,47 @@ ipcMain.handle('show-open-dialog', async () => {
   return result;
 });
 
+// IPC Handlers for Battle Save/Load
+ipcMain.handle('show-battle-save-dialog', async (_event, defaultFileName: string, defaultDirectory?: string) => {
+  if (!mainWindow) return { canceled: true };
+
+  const defaultPath = defaultDirectory
+    ? path.join(defaultDirectory, defaultFileName)
+    : defaultFileName;
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save Battle',
+    defaultPath,
+    filters: [
+      { name: 'Battle Files', extensions: ['battle.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+
+  return result;
+});
+
+ipcMain.handle('show-battle-open-dialog', async () => {
+  if (!mainWindow) return { canceled: true, filePaths: [] };
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Open Battle',
+    filters: [
+      { name: 'Battle Files', extensions: ['battle.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
+
+  return result;
+});
+
 // IPC Handlers for Ordnance Export/Import Dialogs
 ipcMain.handle('show-ordnance-save-dialog', async (_event, defaultFileName: string) => {
   if (!mainWindow) return { canceled: true };
-  
+
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Export Ordnance Designs',
     defaultPath: defaultFileName,
@@ -434,7 +568,7 @@ ipcMain.handle('show-ordnance-save-dialog', async (_event, defaultFileName: stri
       { name: 'All Files', extensions: ['*'] },
     ],
   });
-  
+
   return result;
 });
 
@@ -473,18 +607,22 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
 });
 
 // Data file loading - reads JSON files from the data directory
-// This allows users to edit data files externally
-ipcMain.handle('read-data-file', async (_event, fileName: string) => {
+// This allows users to edit data files externally.
+// Warships data lives at the root of the data folder (unchanged for existing
+// installs); every other module gets its own subfolder.
+function getModuleDataDir(module: string): string {
+  const isWarships = module === 'warships';
+  if (isDev) {
+    return path.join(__dirname, '../src/modules', isWarships ? 'warships' : module, 'data');
+  }
+  return isWarships
+    ? path.join(process.resourcesPath, 'data')
+    : path.join(process.resourcesPath, 'data', module);
+}
+
+ipcMain.handle('read-data-file', async (_event, fileName: string, module: string = 'warships') => {
   try {
-    // In development, read from src/modules/warships/data; in production, read from resources/data
-    let dataPath: string;
-    if (isDev) {
-      dataPath = path.join(__dirname, '../src/modules/warships/data', fileName);
-    } else {
-      // In production, data files are in resources/data alongside the app
-      dataPath = path.join(process.resourcesPath, 'data', fileName);
-    }
-    
+    const dataPath = path.join(getModuleDataDir(module), fileName);
     const content = fs.readFileSync(dataPath, 'utf-8');
     return { success: true, content, path: dataPath };
   } catch (error) {
@@ -493,12 +631,8 @@ ipcMain.handle('read-data-file', async (_event, fileName: string) => {
 });
 
 // Get the data directory path for user reference
-ipcMain.handle('get-data-path', async () => {
-  if (isDev) {
-    return path.join(__dirname, '../src/modules/warships/data');
-  } else {
-    return path.join(process.resourcesPath, 'data');
-  }
+ipcMain.handle('get-data-path', async (_event, module: string = 'warships') => {
+  return getModuleDataDir(module);
 });
 
 // Get the Documents folder path
@@ -563,8 +697,14 @@ ipcMain.handle('update-app-settings', async (_event, settingsJson: string) => {
 
 // App mode management - updates menu state
 ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
-  currentAppMode = mode as 'loading' | 'hub' | 'welcome' | 'builder' | 'mods' | 'library';
-  updateMenuForMode(); // Toggle enabled state without rebuilding the entire menu
+  const previousGroup = moduleGroupOf(currentAppMode);
+  currentAppMode = mode as AppMode;
+  if (moduleGroupOf(currentAppMode) !== previousGroup) {
+    // The File menu differs per module, so rebuild it when the module changes.
+    createMenu();
+  } else {
+    updateMenuForMode(); // Toggle enabled state without rebuilding the entire menu
+  }
   return { success: true };
 });
 
@@ -685,7 +825,6 @@ ipcMain.handle('select-directory', async (_event, defaultPath?: string) => {
 function getAutoSavePath(): string {
   return path.join(app.getPath('userData'), 'autosave.warship.json');
 }
-
 ipcMain.handle('get-autosave-path', async () => {
   return getAutoSavePath();
 });
@@ -724,14 +863,149 @@ ipcMain.handle('delete-autosave', async () => {
   }
 });
 
+// ============== Battle Library & Auto-save ==============
+
+/**
+ * Recursively scan a directory for .battle.json files and return lightweight metadata
+ * for the battle library cards (no full deserialization).
+ */
+async function scanBattleFiles(dirPath: string, maxDepth: number = 3, currentDepth: number = 0): Promise<Array<{
+  filePath: string;
+  scenarioName: string;
+  sideAName: string;
+  sideBName: string;
+  theatreCount: number;
+  roundCount: number;
+  totalCombatStrength: number;
+  modifiedAt: string | null;
+  createdAt: string | null;
+  fileSizeBytes: number;
+}>> {
+  const results: Array<{
+    filePath: string;
+    scenarioName: string;
+    sideAName: string;
+    sideBName: string;
+    theatreCount: number;
+    roundCount: number;
+    totalCombatStrength: number;
+    modifiedAt: string | null;
+    createdAt: string | null;
+    fileSizeBytes: number;
+  }> = [];
+
+  if (currentDepth > maxDepth) return results;
+
+  let entries: fs.Dirent[];
+  try {
+    entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
+  } catch {
+    return results;
+  }
+
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...await scanBattleFiles(fullPath, maxDepth, currentDepth + 1));
+    } else if (entry.isFile() && entry.name.endsWith('.battle.json')) {
+      try {
+        const stat = await fsPromises.stat(fullPath);
+        const content = await fsPromises.readFile(fullPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        const battle = parsed.battle || {};
+        const theatres: Array<{ rounds?: unknown[] }> = Array.isArray(battle.theatres) ? battle.theatres : [];
+        const stacks = [
+          ...(Array.isArray(battle.sideA?.stacks) ? battle.sideA.stacks : []),
+          ...(Array.isArray(battle.sideB?.stacks) ? battle.sideB.stacks : []),
+        ];
+        results.push({
+          filePath: fullPath,
+          scenarioName: battle.scenarioName || entry.name.replace(/\.battle\.json$/i, ''),
+          sideAName: battle.sideA?.name || 'Side A',
+          sideBName: battle.sideB?.name || 'Side B',
+          theatreCount: theatres.length,
+          roundCount: theatres.reduce((sum, t) => sum + (Array.isArray(t.rounds) ? t.rounds.length : 0), 0),
+          totalCombatStrength: stacks.reduce(
+            (sum: number, s: { combatStrengthPerUnit?: number; initialQuantity?: number }) =>
+              sum + (Number(s?.combatStrengthPerUnit) || 0) * (Number(s?.initialQuantity) || 0),
+            0,
+          ),
+          modifiedAt: parsed.modifiedAt || null,
+          createdAt: parsed.createdAt || null,
+          fileSizeBytes: stat.size,
+        });
+      } catch {
+        // Skip files that can't be read or parsed
+      }
+    }
+  }
+
+  return results;
+}
+
+ipcMain.handle('scan-battle-files', async (_event, directoryPath: string) => {
+  try {
+    try {
+      await fsPromises.access(directoryPath);
+    } catch {
+      return { success: true, files: [] };
+    }
+    const files = await scanBattleFiles(directoryPath);
+    return { success: true, files };
+  } catch (error) {
+    return { success: false, error: (error as Error).message, files: [] };
+  }
+});
+
+function getBattleAutoSavePath(): string {
+  return path.join(app.getPath('userData'), 'autosave.battle.json');
+}
+
+ipcMain.handle('write-battle-autosave', async (_event, content: string) => {
+  try {
+    fs.writeFileSync(getBattleAutoSavePath(), content, 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('read-battle-autosave', async () => {
+  try {
+    const autoSavePath = getBattleAutoSavePath();
+    if (!fs.existsSync(autoSavePath)) {
+      return { success: false, error: 'No auto-save file found' };
+    }
+    const content = fs.readFileSync(autoSavePath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('delete-battle-autosave', async () => {
+  try {
+    const autoSavePath = getBattleAutoSavePath();
+    if (fs.existsSync(autoSavePath)) {
+      fs.unlinkSync(autoSavePath);
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 // ============== Mod System IPC Handlers ==============
 
 const MOD_DATA_FILES = [
+  // Warships module
   'techTracks.json',
   'hulls.json', 'armor.json', 'powerPlants.json', 'fuelTank.json',
   'engines.json', 'ftlDrives.json', 'supportSystems.json', 'weapons.json',
   'ordnance.json', 'defenses.json', 'sensors.json', 'commandControl.json',
   'hangarMisc.json', 'damageDiagram.json',
+  // Battles module
+  'spaceUnits.json', 'groundUnits.json', 'battleRules.json',
 ];
 
 function getModsDir(): string {

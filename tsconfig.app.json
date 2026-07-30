@@ -15,7 +15,8 @@
       "@app/*": ["src/app/*"],
       "@shared/*": ["src/shared/*"],
       "@warships/*": ["src/modules/warships/*"],
-      "@battles/*": ["src/modules/battles/*"]
+      "@battles/*": ["src/modules/battles/*"],
+      "@travel/*": ["src/modules/travel/*"]
     },
 
     /* Bundler mode */
