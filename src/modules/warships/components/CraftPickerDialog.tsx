@@ -41,7 +41,7 @@ import {
   getSavedLibraryPath,
   saveLibraryPath,
 } from '../services/libraryService';
-import { HANGAR_MAX_CRAFT_HP } from '../services/embarkedCraftService';
+import { getEmbarkedCraftHullPoints, HANGAR_MAX_CRAFT_HP } from '../services/embarkedCraftService';
 
 export interface CraftPickerResult {
   filePath: string;
@@ -63,7 +63,7 @@ interface CraftPickerDialogProps {
 
 /**
  * Loads the full design from a .warship.json file and extracts
- * the hull HP and total cost for the embarked craft snapshot.
+ * the base hull HP and total cost for the embarked craft snapshot.
  */
 async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; designCost: number; hullName: string } | null> {
   if (!window.electronAPI) return null;
@@ -119,7 +119,7 @@ async function loadDesignDetails(filePath: string): Promise<{ hullHp: number; de
       + defenseStats.totalCost + ccStats.totalCost
       + sensorStats.totalCost + hmStats.totalCost;
 
-    return { hullHp: hull.hullPoints + (hull.bonusHullPoints || 0), designCost, hullName: hull.name };
+    return { hullHp: getEmbarkedCraftHullPoints(hull), designCost, hullName: hull.name };
   } catch {
     return null;
   }
@@ -248,7 +248,7 @@ export function CraftPickerDialog({
     } finally {
       setLoadingDesign(false);
     }
-  }, [berthing, carrierHullHp, onSelect, onClose]);
+  }, [berthing, carrierHullHp, systemCapacity, onSelect, onClose]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>

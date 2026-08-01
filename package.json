@@ -7,12 +7,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/VicenteCartas/AlternityWorkshop"
+    "url": "https://github.com/VicenteCartas/AlternityWarshipsGenerator"
   },
   "bugs": {
-    "url": "https://github.com/VicenteCartas/AlternityWorkshop/issues"
+    "url": "https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues"
   },
-  "homepage": "https://github.com/VicenteCartas/AlternityWorkshop#readme",
+  "homepage": "https://github.com/VicenteCartas/AlternityWarshipsGenerator#readme",
   "main": "dist-electron/main.mjs",
   "type": "module",
   "scripts": {

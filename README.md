@@ -54,7 +54,7 @@ On launch, the app shows a **Hub** page where you choose which module to use. Us
 
 ## Download
 
-Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWorkshop/releases).
+Download the latest installer from the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases).
 
 - **Windows:** `Alternity.Workshop.Setup.X.X.X.exe`
 - **macOS:** `Alternity.Workshop-X.X.X.dmg`
@@ -202,7 +202,7 @@ Releases are automated via GitHub Actions. To create a new release:
    - Create a GitHub Release
    - Attach all installers for download
 
-The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWorkshop/releases) within a few minutes.
+The release will appear on the [Releases page](https://github.com/VicenteCartas/AlternityWarshipsGenerator/releases) within a few minutes.
 
 ## Tech Stack
 

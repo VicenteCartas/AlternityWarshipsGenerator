@@ -3,6 +3,7 @@ import type { DesignType, ProgressLevel } from '../types/common';
 import type { ShipClass } from '../types/hull';
 import type { LibraryEntry, LibraryFilters, LibrarySortConfig } from '../types/library';
 import { getHullById } from './hullService';
+import { getEmbarkedCraftHullPoints } from './embarkedCraftService';
 
 /**
  * Library service — handles scanning directories for saved designs,
@@ -53,7 +54,7 @@ export function toLibraryEntry(file: ScannedWarshipFile): LibraryEntry {
     if (hull) {
       hullName = hull.name;
       shipClass = hull.shipClass;
-      hullHp = hull.hullPoints + hull.bonusHullPoints;
+      hullHp = getEmbarkedCraftHullPoints(hull);
     }
   }
 

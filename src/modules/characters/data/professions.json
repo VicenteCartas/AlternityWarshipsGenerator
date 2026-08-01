@@ -1,0 +1,39 @@
+{
+  "professions": [
+    {
+      "id": "combat-spec", "name": "Combat Spec", "sourcePackId": "phb", "optional": false,
+      "requirements": { "str": 11, "con": 9 }, "actionCheckBonus": 3,
+      "resistanceModifierChoiceBonus": 0, "lastResortMaximumBonus": 0, "lastResortActionCost": 1,
+      "additionalSkillDiscountProfessionCount": 0,
+      "benefitEffectIds": ["combat-spec-situation-bonus"]
+    },
+    {
+      "id": "diplomat", "name": "Diplomat", "sourcePackId": "phb", "optional": false,
+      "requirements": { "wil": 9, "per": 11 }, "actionCheckBonus": 1,
+      "resistanceModifierChoiceBonus": 0, "lastResortMaximumBonus": 0, "lastResortActionCost": 1,
+      "additionalSkillDiscountProfessionCount": 1,
+      "benefitEffectIds": ["diplomat-contacts-or-resources", "diplomat-second-profession"]
+    },
+    {
+      "id": "free-agent", "name": "Free Agent", "sourcePackId": "phb", "optional": false,
+      "requirements": { "dex": 11, "wil": 9 }, "actionCheckBonus": 2,
+      "resistanceModifierChoiceBonus": 1, "lastResortMaximumBonus": 1, "lastResortActionCost": 2,
+      "additionalSkillDiscountProfessionCount": 0,
+      "benefitEffectIds": ["free-agent-resistance-bonus", "free-agent-last-resort-bonus"]
+    },
+    {
+      "id": "tech-op", "name": "Tech Op", "sourcePackId": "phb", "optional": false,
+      "requirements": { "dex": 9, "int": 11 }, "actionCheckBonus": 1,
+      "resistanceModifierChoiceBonus": 0, "lastResortMaximumBonus": 0, "lastResortActionCost": 1,
+      "additionalSkillDiscountProfessionCount": 0,
+      "benefitEffectIds": ["tech-op-accelerated-learning"]
+    },
+    {
+      "id": "mindwalker", "name": "Mindwalker", "sourcePackId": "phb", "optional": true,
+      "requirements": { "con": 9, "int": 9, "wil": 11 }, "actionCheckBonus": 1,
+      "resistanceModifierChoiceBonus": 0, "lastResortMaximumBonus": 0, "lastResortActionCost": 1,
+      "additionalSkillDiscountProfessionCount": 0,
+      "benefitEffectIds": ["mindwalker-psionic-energy", "mindwalker-situation-bonus"]
+    }
+  ]
+}

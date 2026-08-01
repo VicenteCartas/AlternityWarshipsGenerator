@@ -1,0 +1,303 @@
+{
+  "skills": [
+    { "id": "armor-operation", "name": "Armor Operation", "sourcePackId": "phb", "ability": "str", "kind": "broad", "listedCost": 7, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Improved operation", "ranks": [1, 4, 7, 10], "description": "Reduce the armor's Action Check and Dexterity resistance penalties by 1, 2, 3, or 4 additional steps." },
+      { "name": "Shaking off stuns", "ranks": [2, 4, 6, 8, 10, 12], "description": "Reduce stun damage suffered while wearing the appropriate armor by 1 point per milestone, to a maximum reduction of 6 points." }
+    ] },
+    { "id": "combat-armor", "name": "Combat armor", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "armor-operation", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "powered-armor", "name": "Powered armor", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "armor-operation", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": false },
+    { "id": "athletics", "name": "Athletics", "sourcePackId": "phb", "ability": "str", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "climb", "name": "Climb", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "athletics", "listedCost": 2, "professionIds": [], "canUseUntrained": true },
+    { "id": "jump", "name": "Jump", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "athletics", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Running jump distance", "ranks": [3, 6, 9, 12], "description": "Increase running-jump distance by 1 meter at each milestone." },
+      { "name": "Standing jump distance", "ranks": [4, 7, 10], "description": "Increase standing-jump distance by 1 meter at each milestone." },
+      { "name": "Vertical leap distance", "ranks": [5, 8, 11], "description": "Increase vertical-leap distance by 0.5 meters at each milestone." }
+    ] },
+    { "id": "throw", "name": "Throw", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "athletics", "listedCost": 2, "professionIds": [], "canUseUntrained": true },
+    { "id": "athletics-specific", "name": "Specific athletics", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "athletics", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "heavy-weapons", "name": "Heavy Weapons", "sourcePackId": "phb", "ability": "str", "kind": "broad", "listedCost": 6, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "direct-fire", "name": "Direct fire", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "heavy-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "indirect-fire", "name": "Indirect fire", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "heavy-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "melee-weapons", "name": "Melee Weapons", "sourcePackId": "phb", "ability": "str", "kind": "broad", "listedCost": 6, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Strength resistance modifier by 1 at each milestone while using a weapon associated with this specialty." },
+      { "name": "Reaction parry", "ranks": [4], "description": "Parry a Melee Weapons or Unarmed Attack before the hero's normal action phase by spending the next available action." },
+      { "name": "Double-strike", "ranks": [6], "description": "Make two melee attacks in one phase using one control die and two increasingly penalized situation dice." },
+      { "name": "Multistrike", "ranks": [9], "description": "Make three melee attacks in one phase against one target or up to three nearby targets." }
+    ] },
+    { "id": "blade", "name": "Blade", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "melee-weapons", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "bludgeon", "name": "Bludgeon", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "melee-weapons", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "powered-weapon", "name": "Powered weapon", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "melee-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "unarmed-attack", "name": "Unarmed Attack", "sourcePackId": "phb", "ability": "str", "kind": "broad", "listedCost": 5, "professionIds": [], "canUseUntrained": true },
+    { "id": "brawl", "name": "Brawl", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "unarmed-attack", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Knockout", "ranks": [4, 8, 12], "description": "Apply a +1, +2, or +3 penalty to an opponent's endurance check after an Amazing brawl hit." },
+      { "name": "Increased damage", "ranks": [8], "description": "Increase brawl damage to d6s/d6+2s/d4w, plus Strength bonuses." }
+    ] },
+    { "id": "power-martial-arts", "name": "Power martial arts", "sourcePackId": "phb", "ability": "str", "kind": "specialty", "parentSkillId": "unarmed-attack", "listedCost": 5, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Knockout", "ranks": [3, 6, 9, 12], "description": "Apply a +1, +2, +3, or +4 penalty to an opponent's endurance check after an Amazing power martial arts hit." },
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Strength resistance modifier by 1 at each milestone." },
+      { "name": "No hands", "ranks": [5], "description": "Make an Unarmed Attack even when the hero's hands are bound or otherwise unusable." },
+      { "name": "Increased damage", "ranks": [7], "description": "Increase power martial arts damage to d6+2s/d4w/d4+2w, plus Strength bonuses." }
+    ] },
+
+    { "id": "movement", "name": "Movement", "sourcePackId": "phb", "ability": "con", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "race", "name": "Race", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "movement", "listedCost": 2, "professionIds": [], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Run movement", "ranks": [1, 5, 9], "description": "Increase run movement by 2 meters at each milestone." },
+      { "name": "Sprint movement", "ranks": [4, 7, 12], "description": "Increase sprint movement by 2 meters at each milestone." }
+    ] },
+    { "id": "swim", "name": "Swim", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "movement", "listedCost": 1, "professionIds": [], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Improved breathing", "ranks": [1, 4, 8, 12], "description": "Gain a -1, -2, -3, or -4 bonus to endurance checks made while holding the hero's breath." },
+      { "name": "Movement rate increase", "ranks": [4, 8, 12], "description": "Increase swim and easy-swim movement by 1 meter at each milestone." }
+    ] },
+    { "id": "trailblazing", "name": "Trailblazing", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "movement", "listedCost": 3, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "stamina", "name": "Stamina", "sourcePackId": "phb", "ability": "con", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "endurance", "name": "Endurance", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "stamina", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "resist-pain", "name": "Resist pain", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "stamina", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": false },
+    { "id": "survival", "name": "Survival", "sourcePackId": "phb", "ability": "con", "kind": "broad", "listedCost": 5, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true },
+    { "id": "survival-training", "name": "Survival training", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "survival", "listedCost": 3, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true, "requiresSpecialization": true },
+
+    { "id": "acrobatics", "name": "Acrobatics", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 7, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "daredevil", "name": "Daredevil", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 4, "professionIds": [], "canUseUntrained": true },
+    { "id": "defensive-martial-arts", "name": "Defensive martial arts", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 5, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Block", "ranks": [2], "description": "Spend an action to block an unarmed attack with an equal or better skill-check result." },
+      { "name": "Reaction block", "ranks": [4], "description": "Block before the hero's normal action phase by spending the next available action." },
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Strength resistance modifier by 1 at each milestone." }
+    ] },
+    { "id": "dodge", "name": "Dodge", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 4, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Action benefit", "ranks": [3], "description": "Dodge and perform another action in the same phase; the other action takes a +2 penalty." },
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Dexterity resistance modifier by 1 at each milestone." },
+      { "name": "Reaction dodge", "ranks": [7], "description": "Dodge before the hero's normal action phase, but forfeit all other actions that round." }
+    ] },
+    { "id": "fall", "name": "Fall", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 3, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "flight", "name": "Flight", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 2, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Glide movement", "ranks": [3, 7, 11], "description": "Increase glide movement by 2 at each milestone." },
+      { "name": "Fly movement", "ranks": [4, 8, 12], "description": "Increase fly movement by 3 at each milestone." }
+    ] },
+    { "id": "zero-g-training", "name": "Zero-g training", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 2, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Improved training", "ranks": [1, 4, 7, 10], "description": "Zero-g improves from +2 at rank 1 to +1, no penalty, and finally a -1 bonus; light gravity has no penalty at rank 1 and a -1 bonus from rank 4. Sesheyans treat these values as one step better, with light gravity capped at -2." }
+    ] },
+    { "id": "acrobatics-specific", "name": "Specific acrobatics", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "acrobatics", "listedCost": 1, "professionIds": [], "canUseUntrained": false, "requiresSpecialization": true },
+    { "id": "manipulation", "name": "Manipulation", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 6, "professionIds": [], "canUseUntrained": true },
+    { "id": "lockpick", "name": "Lockpick", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "manipulation", "listedCost": 4, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "pickpocket", "name": "Pickpocket", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "manipulation", "listedCost": 4, "professionIds": ["free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "It takes one to know one", "ranks": [3, 6, 9, 12], "description": "Impose a +1, +2, +3, or +4 penalty on attempts to pickpocket the hero." }
+    ] },
+    { "id": "prestidigitation", "name": "Prestidigitation", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "manipulation", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "modern-ranged-weapons", "name": "Modern Ranged Weapons", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 6, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "pistol", "name": "Pistol", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "modern-ranged-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Quick draw", "ranks": [3], "description": "Draw and fire a pistol in the same phase without the usual +1 penalty." },
+      { "name": "Distance precision", "ranks": [5], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Double-shot", "ranks": [6], "description": "Fire twice in one action at one or two targets using increasingly penalized situation dice." }
+    ] },
+    { "id": "rifle", "name": "Rifle", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "modern-ranged-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Improved aim", "ranks": [3], "description": "Gain a -1 bonus on rifle attacks." },
+      { "name": "Distance precision", "ranks": [3], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Precision shooting", "ranks": [6], "description": "Reduce the three autofire situation-die penalties to 0, +1, and +2 steps." }
+    ] },
+    { "id": "smg", "name": "SMG", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "modern-ranged-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Rock-n-roll", "ranks": [3], "description": "Reduce the penalty for changing clips and firing in the same action to +1 step." },
+      { "name": "Precision shooting", "ranks": [6], "description": "Reduce the three autofire situation-die penalties to 0, +1, and +2 steps." },
+      { "name": "Extra burst", "ranks": [9], "description": "Add a fourth burst to autofire attacks with a +3-step situation-die penalty." }
+    ] },
+    { "id": "primitive-ranged-weapons", "name": "Primitive Ranged Weapons", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 7, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "bow", "name": "Bow", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "primitive-ranged-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Distance precision", "ranks": [3], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Double-shot", "ranks": [6], "description": "Fire twice in one action at one or two targets using increasingly penalized situation dice." }
+    ] },
+    { "id": "crossbow", "name": "Crossbow", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "primitive-ranged-weapons", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Distance precision", "ranks": [3], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Rate of fire increase", "ranks": [6], "description": "Load and fire a crossbow in the same action." }
+    ] },
+    { "id": "flintlock", "name": "Flintlock", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "primitive-ranged-weapons", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Distance precision", "ranks": [3], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Rate of fire increase", "ranks": [6], "description": "Load and fire a flintlock pistol in one action, or load a flintlock rifle in one action." },
+      { "name": "Rifle rate of fire increase", "ranks": [12], "description": "Load and fire a flintlock rifle in the same action." }
+    ] },
+    { "id": "sling", "name": "Sling", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "primitive-ranged-weapons", "listedCost": 4, "professionIds": ["combat-spec"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Distance precision", "ranks": [3], "description": "Remove the medium-range penalty and reduce the long-range penalty by 1 step." },
+      { "name": "Double-shot", "ranks": [6], "description": "Fire twice at one target in a single action using increasingly penalized situation dice." }
+    ] },
+    { "id": "stealth", "name": "Stealth", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 7, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "hide", "name": "Hide", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "stealth", "listedCost": 4, "professionIds": ["free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [4], "description": "Improve the observer's penalty by 1 step for every successful hide result, including Marginal." }
+    ] },
+    { "id": "shadow", "name": "Shadow", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "stealth", "listedCost": 4, "professionIds": ["free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [5], "description": "Improve the observer's penalty by 1 step for every successful shadow result, including Marginal." }
+    ] },
+    { "id": "sneak", "name": "Sneak", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "stealth", "listedCost": 5, "professionIds": ["free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [6], "description": "Improve the observer's penalty by 1 step for every successful sneak result, including Marginal." }
+    ] },
+    { "id": "vehicle-operation", "name": "Vehicle Operation", "sourcePackId": "phb", "ability": "dex", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Improved proficiency", "ranks": [4, 8, 12], "description": "Gain a -1, -2, or -3 bonus when operating the type of vehicle selected for this specialty." }
+    ] },
+    { "id": "air-vehicle", "name": "Air vehicle", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "vehicle-operation", "listedCost": 5, "professionIds": ["tech-op"], "canUseUntrained": false, "requiresSpecialization": true },
+    { "id": "land-vehicle", "name": "Land vehicle", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "vehicle-operation", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "space-vehicle", "name": "Space vehicle", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "vehicle-operation", "listedCost": 5, "professionIds": ["tech-op"], "canUseUntrained": false, "requiresSpecialization": true },
+    { "id": "water-vehicle", "name": "Water vehicle", "sourcePackId": "phb", "ability": "dex", "kind": "specialty", "parentSkillId": "vehicle-operation", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "requiresSpecialization": true },
+
+    { "id": "business", "name": "Business", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 4, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "corporate", "name": "Corporate", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "business", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "illicit-business", "name": "Illicit business", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "business", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [1, 4, 7, 10], "description": "Reduce penalties for illegal transactions by 1, 2, 3, or 4 steps; this cannot provide a bonus." }
+    ] },
+    { "id": "small-business", "name": "Small business", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "business", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [1, 4, 8, 12], "description": "Gain a -1, -2, -3, or -4 bonus on deals, haggling, and bargaining in small-business finance." }
+    ] },
+    { "id": "computer-science", "name": "Computer Science", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 7, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "hacking", "name": "Hacking", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "computer-science", "listedCost": 5, "professionIds": ["tech-op"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [4, 8, 12], "description": "Gain a -1, -2, or -3 bonus on hacking checks." }
+    ] },
+    { "id": "hardware", "name": "Hardware", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "computer-science", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [4, 8, 12], "description": "Gain a -1, -2, or -3 bonus on computer repair and other hardware checks." }
+    ] },
+    { "id": "programming", "name": "Programming", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "computer-science", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Modify programs", "ranks": [1, 3, 6], "description": "Modify programs up to Ordinary quality and complexity at rank 1, Good at rank 3, and any quality and complexity at rank 6." },
+      { "name": "Create programs", "ranks": [3, 6, 9, 12], "description": "Create new programs of Marginal, Ordinary, Good, or Amazing quality and complexity." }
+    ] },
+    { "id": "demolitions", "name": "Demolitions", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 6, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true },
+    { "id": "disarm", "name": "Disarm", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "demolitions", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "scratch-built", "name": "Scratch-built", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "demolitions", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": false },
+    { "id": "set-explosives", "name": "Set explosives", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "demolitions", "listedCost": 3, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true },
+    { "id": "knowledge", "name": "Knowledge", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "computer-operation", "name": "Computer operation", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "knowledge", "listedCost": 1, "professionIds": [], "canUseUntrained": false },
+    { "id": "deduce", "name": "Deduce", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "knowledge", "listedCost": 2, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Intelligence resistance modifier by 1 at each milestone." }
+    ] },
+    { "id": "first-aid", "name": "First aid", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "knowledge", "listedCost": 2, "professionIds": [], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Improved first aid", "ranks": [4, 8, 12], "description": "Reduce situation-die penalties on first aid checks by 1, 2, or 3 steps; this cannot provide a bonus." }
+    ] },
+    { "id": "language", "name": "Language", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "knowledge", "listedCost": 1, "professionIds": [], "canUseUntrained": false, "requiresSpecialization": true, "rankBenefits": [
+      { "name": "Improved communication", "ranks": [1, 2, 3, 6, 9, 12], "description": "The modifier on language-dependent checks improves from +3 at rank 1 to +1 at rank 2, none at rank 3, then -1, -2, and -3." }
+    ] },
+    { "id": "knowledge-specific", "name": "Specific knowledge", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "knowledge", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "law", "name": "Law", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 5, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "court-procedures", "name": "Court procedures", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "law", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "law-enforcement", "name": "Law enforcement", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "law", "listedCost": 3, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true },
+    { "id": "law-specific", "name": "Specific law", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "law", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "requiresSpecialization": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus when using Law within the selected culture or legal discipline." }
+    ] },
+    { "id": "life-science", "name": "Life Science", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 7, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on checks assisted by the selected Life Science specialty." }
+    ] },
+    { "id": "biology", "name": "Biology", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "life-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "botany", "name": "Botany", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "life-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "genetics", "name": "Genetics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "life-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "xenology", "name": "Xenology", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "life-science", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": false },
+    { "id": "zoology", "name": "Zoology", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "life-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "medical-science", "name": "Medical Science", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 7, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "forensics", "name": "Forensics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on checks assisted by forensics." }
+    ] },
+    { "id": "medical-knowledge", "name": "Medical knowledge", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Treatment bonus", "ranks": [2, 5, 8, 12], "description": "Gain a -1, -2, -3, or -4 bonus on Medical Science-treatment checks." }
+    ] },
+    { "id": "psychology", "name": "Psychology", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on checks assisted by psychology." }
+    ] },
+    { "id": "surgery", "name": "Surgery", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 5, "professionIds": ["tech-op"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Cybernetic surgery", "ranks": [3, 6], "description": "Repair or heal an organism with existing cybernetic implants at rank 3; install cybernetic implants at rank 6." }
+    ] },
+    { "id": "treatment", "name": "Treatment", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": false, "rankBenefits": [
+      { "name": "Improved treatment", "ranks": [3, 6, 9, 12], "description": "Reduce situation-die penalties on treatment checks by 1, 2, 3, or 4 steps; this cannot provide a bonus." }
+    ] },
+    { "id": "xenomedicine", "name": "Xenomedicine", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "medical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": false, "requiresSpecialization": true, "rankBenefits": [
+      { "name": "Improved treatment", "ranks": [1, 3, 6, 9, 12], "description": "The penalty for treating the selected alien species improves from +3 to +2, +1, none, and finally a -1 bonus." }
+    ] },
+    { "id": "navigation", "name": "Navigation", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 6, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "astrogation-drivespace", "name": "Astrogation, drivespace", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "navigation", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": false },
+    { "id": "astrogation-system", "name": "Astrogation, system", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "navigation", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "navigation-surface", "name": "Navigation, surface", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "navigation", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "physical-science", "name": "Physical Science", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 7, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on checks assisted by the selected Physical Science specialty." }
+    ] },
+    { "id": "astronomy", "name": "Astronomy", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "physical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "chemistry", "name": "Chemistry", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "physical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "physics", "name": "Physics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "physical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "planetology", "name": "Planetology", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "physical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "security", "name": "Security", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 5, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true },
+    { "id": "protection-protocols", "name": "Protection protocols", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "security", "listedCost": 3, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true },
+    { "id": "security-devices", "name": "Security devices", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "security", "listedCost": 3, "professionIds": ["free-agent", "tech-op"], "canUseUntrained": true },
+    { "id": "system-operation", "name": "System Operation", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 4, "professionIds": [], "canUseUntrained": true },
+    { "id": "communications", "name": "Communications", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "system-operation", "listedCost": 3, "professionIds": ["diplomat", "tech-op"], "canUseUntrained": true },
+    { "id": "defenses", "name": "Defenses", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "system-operation", "listedCost": 3, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true },
+    { "id": "engineering", "name": "Engineering", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "system-operation", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "sensors", "name": "Sensors", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "system-operation", "listedCost": 3, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "weapons", "name": "Weapons", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "system-operation", "listedCost": 3, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true },
+    { "id": "tactics", "name": "Tactics", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 6, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [4, 8, 12], "description": "Gain a -1, -2, or -3 bonus when dealing with the opposing forces covered by this specialty." }
+    ] },
+    { "id": "infantry-tactics", "name": "Infantry tactics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "tactics", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "space-tactics", "name": "Space tactics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "tactics", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "vehicle-tactics", "name": "Vehicle tactics", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "tactics", "listedCost": 3, "professionIds": ["combat-spec", "tech-op"], "canUseUntrained": true },
+    { "id": "technical-science", "name": "Technical Science", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 7, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "invention", "name": "Invention", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "technical-science", "listedCost": 4, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "juryrig", "name": "Juryrig", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "technical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Improved juryrig", "ranks": [6], "description": "Treat Ordinary results as Good and Good as Amazing; an Amazing result fully repairs the system or item." }
+    ] },
+    { "id": "repair", "name": "Repair", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "technical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true },
+    { "id": "technical-knowledge", "name": "Technical knowledge", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "technical-science", "listedCost": 3, "professionIds": ["tech-op"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on Technical Science and its other specialty-skill checks." }
+    ] },
+
+    { "id": "administration", "name": "Administration", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 4, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "bureaucracy", "name": "Bureaucracy", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "administration", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "management", "name": "Management", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "administration", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "animal-handling", "name": "Animal Handling", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "animal-riding", "name": "Animal riding", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "animal-handling", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Trick riding", "ranks": [3], "description": "Direct a mount to jump, move backward, or provide cover using the trick-riding rules." }
+    ] },
+    { "id": "animal-training", "name": "Animal training", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "animal-handling", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "awareness", "name": "Awareness", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "intuition", "name": "Intuition", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "awareness", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "perception", "name": "Perception", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "awareness", "listedCost": 2, "professionIds": [], "canUseUntrained": true },
+    { "id": "creativity", "name": "Creativity", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 4, "professionIds": [], "canUseUntrained": true },
+    { "id": "creativity-specific", "name": "Specific creativity", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "creativity", "listedCost": 1, "professionIds": [], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "investigate", "name": "Investigate", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 7, "professionIds": ["free-agent", "tech-op"], "canUseUntrained": true },
+    { "id": "interrogate", "name": "Interrogate", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "investigate", "listedCost": 4, "professionIds": ["combat-spec", "free-agent"], "canUseUntrained": true },
+    { "id": "search", "name": "Search", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "investigate", "listedCost": 4, "professionIds": ["free-agent", "tech-op"], "canUseUntrained": true },
+    { "id": "track", "name": "Track", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "investigate", "listedCost": 4, "professionIds": ["free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Terrain familiarity", "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "description": "Select one terrain at each rank: track there with a -1 bonus; checks in unselected terrain take a +1 penalty." }
+    ] },
+    { "id": "resolve", "name": "Resolve", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 5, "professionIds": [], "canUseUntrained": true },
+    { "id": "mental-resolve", "name": "Mental resolve", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "resolve", "listedCost": 3, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Resistance modifier", "ranks": [4, 8, 12], "description": "Improve the hero's Will resistance modifier by 1 at each milestone." }
+    ] },
+    { "id": "physical-resolve", "name": "Physical resolve", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "resolve", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "street-smart", "name": "Street Smart", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 5, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "criminal-elements", "name": "Criminal elements", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "street-smart", "listedCost": 3, "professionIds": ["free-agent"], "canUseUntrained": true },
+    { "id": "street-knowledge", "name": "Street knowledge", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "street-smart", "listedCost": 3, "professionIds": ["free-agent"], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "teach", "name": "Teach", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 5, "professionIds": ["diplomat", "tech-op"], "canUseUntrained": true },
+    { "id": "teach-specific", "name": "Specific teaching", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "teach", "listedCost": 3, "professionIds": ["diplomat", "tech-op"], "canUseUntrained": true, "requiresSpecialization": true },
+
+    { "id": "culture", "name": "Culture", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 5, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "diplomacy", "name": "Diplomacy", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "culture", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": true },
+    { "id": "etiquette", "name": "Etiquette", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "culture", "listedCost": 2, "professionIds": ["diplomat"], "canUseUntrained": false, "requiresSpecialization": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [3, 6, 9, 12], "description": "Gain a -1, -2, -3, or -4 bonus on Culture-diplomacy checks involving the selected culture." }
+    ] },
+    { "id": "first-encounter", "name": "First encounter", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "culture", "listedCost": 3, "professionIds": ["diplomat"], "canUseUntrained": false },
+    { "id": "deception", "name": "Deception", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 5, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "bluff", "name": "Bluff", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "deception", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "bribe", "name": "Bribe", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "deception", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "gamble", "name": "Gamble", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "deception", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true, "requiresSpecialization": true },
+    { "id": "entertainment", "name": "Entertainment", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 4, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Enhance another skill", "ranks": [1, 4, 8, 12], "description": "Gain a -1, -2, -3, or -4 bonus when the Entertainment specialty is combined with an appropriate skill." }
+    ] },
+    { "id": "act", "name": "Act", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "entertainment", "listedCost": 2, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Disguise", "ranks": [4], "description": "Use stage and film makeup techniques to alter the hero's appearance or impersonate someone else." }
+    ] },
+    { "id": "dance", "name": "Dance", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "entertainment", "listedCost": 2, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "musical-instrument", "name": "Musical instrument", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "entertainment", "listedCost": 2, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": false, "requiresSpecialization": true },
+    { "id": "sing", "name": "Sing", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "entertainment", "listedCost": 2, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "interaction", "name": "Interaction", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 3, "professionIds": [], "canUseUntrained": true },
+    { "id": "bargain", "name": "Bargain", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 3, "professionIds": ["diplomat", "tech-op"], "canUseUntrained": true },
+    { "id": "charm", "name": "Charm", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "interview", "name": "Interview", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "intimidate", "name": "Intimidate", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 3, "professionIds": ["combat-spec"], "canUseUntrained": true },
+    { "id": "seduce", "name": "Seduce", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 3, "professionIds": ["diplomat", "free-agent"], "canUseUntrained": true },
+    { "id": "taunt", "name": "Taunt", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "interaction", "listedCost": 2, "professionIds": [], "canUseUntrained": true },
+    { "id": "leadership", "name": "Leadership", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 4, "professionIds": [], "canUseUntrained": true, "rankBenefits": [
+      { "name": "Increased effect", "ranks": [4, 8, 12], "description": "Gain a -1, -2, or -3 bonus on Leadership checks; ranks in both specialties do not stack." }
+    ] },
+    { "id": "command", "name": "Command", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "leadership", "listedCost": 4, "professionIds": ["combat-spec", "diplomat"], "canUseUntrained": true },
+    { "id": "inspire", "name": "Inspire", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "leadership", "listedCost": 4, "professionIds": ["combat-spec", "diplomat"], "canUseUntrained": false }
+  ]
+}

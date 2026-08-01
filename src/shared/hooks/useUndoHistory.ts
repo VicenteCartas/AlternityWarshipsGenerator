@@ -86,6 +86,10 @@ export function useUndoHistory<T>(maxHistory: number = 50): UndoRedoControls<T> 
     if (isRestoringRef.current) return;
 
     pendingRef.current = state;
+    // undo() flushes this pending snapshot before restoring, so advertise the
+    // action immediately instead of leaving the toolbar disabled for 500 ms.
+    setCanUndo(indexRef.current >= 0);
+    setCanRedo(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (pendingRef.current !== null) {

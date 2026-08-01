@@ -16,7 +16,8 @@
       "@shared/*": ["src/shared/*"],
       "@warships/*": ["src/modules/warships/*"],
       "@battles/*": ["src/modules/battles/*"],
-      "@travel/*": ["src/modules/travel/*"]
+      "@travel/*": ["src/modules/travel/*"],
+      "@characters/*": ["src/modules/characters/*"]
     },
 
     /* Bundler mode */

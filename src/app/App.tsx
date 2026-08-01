@@ -3,14 +3,16 @@ import { Box, Typography, CircularProgress, Stack } from '@mui/material';
 import WarshipsModule from '@warships/WarshipsModule';
 import BattlesModule from '@battles/BattlesModule';
 import TravelModule from '@travel/TravelModule';
+import CharactersModule from '@characters/CharactersModule';
 import { SuiteHub } from './SuiteHub';
 import { AboutDialog } from './AboutDialog';
+import { KeyboardShortcutsDialog, type ShortcutContext } from './KeyboardShortcutsDialog';
 import { loadAllGameData } from '@shared/services/dataLoader';
 import { APP_NAME } from '@shared/constants/version';
 import '@shared/types/electron.d.ts';
 import type { ThemeMode } from './theme';
 
-type SuiteMode = 'loading' | 'hub' | 'warships' | 'battles' | 'travel';
+type SuiteMode = 'loading' | 'hub' | 'warships' | 'battles' | 'travel' | 'characters';
 
 interface AppProps {
   themeMode: ThemeMode;
@@ -20,6 +22,7 @@ interface AppProps {
 function App({ themeMode, onThemeModeChange }: AppProps) {
   const [suiteMode, setSuiteMode] = useState<SuiteMode>('loading');
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Load all game data on mount, then transition to the hub.
   useEffect(() => {
@@ -50,16 +53,29 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     }
   }, [suiteMode]);
 
-  // Listen for "Return to Hub" menu IPC event.
+  // Document-owning modules handle this event themselves so they can protect
+  // unsaved work. Stateless tools can return directly through the shell.
   useEffect(() => {
     const api = window.electronAPI;
-    if (!api?.onReturnToHub) return;
+    if (!api?.onReturnToHub || suiteMode === 'warships' || suiteMode === 'battles' || suiteMode === 'characters') return;
     const handler = () => setSuiteMode('hub');
     api.onReturnToHub(handler);
     return () => {
       api.removeAllListeners('menu-return-to-hub');
     };
-  }, []);
+  }, [suiteMode]);
+
+  useEffect(() => {
+    const api = window.electronAPI;
+    // Warships still owns these dialogs while its module is mounted.
+    if (!api || suiteMode === 'warships') return;
+    api.onShowAbout(() => setAboutOpen(true));
+    api.onShowShortcuts(() => setShortcutsOpen(true));
+    return () => {
+      api.removeAllListeners('menu-show-about');
+      api.removeAllListeners('menu-show-shortcuts');
+    };
+  }, [suiteMode]);
 
   const handleReturnToHub = useCallback(() => {
     setSuiteMode('hub');
@@ -76,6 +92,26 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   const handleOpenTravel = useCallback(() => {
     setSuiteMode('travel');
   }, []);
+
+  const handleOpenCharacters = useCallback(() => {
+    setSuiteMode('characters');
+  }, []);
+
+  const shortcutContext: ShortcutContext = suiteMode === 'characters' ? 'characters'
+    : suiteMode === 'battles' ? 'battles'
+      : suiteMode === 'travel' ? 'travel'
+        : 'hub';
+
+  const globalDialogs = suiteMode === 'warships' ? null : (
+    <>
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <KeyboardShortcutsDialog
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+        context={shortcutContext}
+      />
+    </>
+  );
 
   if (suiteMode === 'loading') {
     return (
@@ -109,21 +145,40 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
 
   if (suiteMode === 'battles') {
     return (
-      <BattlesModule
-        themeMode={themeMode}
-        onThemeModeChange={onThemeModeChange}
-        onReturnToHub={handleReturnToHub}
-      />
+      <>
+        <BattlesModule
+          themeMode={themeMode}
+          onThemeModeChange={onThemeModeChange}
+          onReturnToHub={handleReturnToHub}
+        />
+        {globalDialogs}
+      </>
     );
   }
 
   if (suiteMode === 'travel') {
     return (
-      <TravelModule
-        themeMode={themeMode}
-        onThemeModeChange={onThemeModeChange}
-        onReturnToHub={handleReturnToHub}
-      />
+      <>
+        <TravelModule
+          themeMode={themeMode}
+          onThemeModeChange={onThemeModeChange}
+          onReturnToHub={handleReturnToHub}
+        />
+        {globalDialogs}
+      </>
+    );
+  }
+
+  if (suiteMode === 'characters') {
+    return (
+      <>
+        <CharactersModule
+          themeMode={themeMode}
+          onThemeModeChange={onThemeModeChange}
+          onReturnToHub={handleReturnToHub}
+        />
+        {globalDialogs}
+      </>
     );
   }
 
@@ -136,9 +191,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
         onOpenWarships={handleOpenWarships}
         onOpenBattles={handleOpenBattles}
         onOpenTravel={handleOpenTravel}
+        onOpenCharacters={handleOpenCharacters}
         onShowAbout={() => setAboutOpen(true)}
       />
-      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      {globalDialogs}
     </>
   );
 }

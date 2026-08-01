@@ -19,7 +19,7 @@ export interface LoadedCraft {
   filePath: string;
   /** Design name (snapshotted at assignment time for display) */
   name: string;
-  /** Hull HP of the craft (snapshotted for capacity validation) */
+  /** Base hull HP of the craft (bonus hull is excluded from capacity validation) */
   hullHp: number;
   /** Hull name (snapshotted for display) */
   hullName: string;

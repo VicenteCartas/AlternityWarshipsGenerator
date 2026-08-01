@@ -68,12 +68,11 @@ describe('useUndoHistory', () => {
   });
 
   describe('pushState (debounced)', () => {
-    it('does not commit before debounce interval', () => {
+    it('advertises undo while a debounced snapshot is pending', () => {
       const { result } = renderHook(() => useUndoHistory<string>());
       act(() => { result.current.pushImmediate('initial'); });
       act(() => { result.current.pushState('change1'); });
-      // Not yet committed
-      expect(result.current.canUndo).toBe(false);
+      expect(result.current.canUndo).toBe(true);
     });
 
     it('commits after debounce interval (500ms)', () => {

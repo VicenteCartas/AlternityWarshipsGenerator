@@ -1,0 +1,44 @@
+{
+  "sourcePacks": [
+    {
+      "id": "phb",
+      "name": "Player's Handbook",
+      "version": "1.0",
+      "required": true,
+      "status": "implemented",
+      "dependsOn": [],
+      "replaces": [],
+      "sections": ["core", "mutations", "psionics", "cybertech"]
+    },
+    {
+      "id": "mindwalking",
+      "name": "Mindwalking: A Guide to Psionics",
+      "version": "1.0",
+      "required": false,
+      "status": "planned",
+      "dependsOn": ["phb"],
+      "replaces": ["phb:psionics"],
+      "sections": ["psionics"]
+    },
+    {
+      "id": "beyond-science",
+      "name": "Beyond Science: A Guide to FX",
+      "version": "1.0",
+      "required": false,
+      "status": "planned",
+      "dependsOn": ["phb"],
+      "replaces": [],
+      "sections": ["fx"]
+    },
+    {
+      "id": "dataware",
+      "name": "Dataware",
+      "version": "1.0",
+      "required": false,
+      "status": "planned",
+      "dependsOn": ["phb"],
+      "replaces": [],
+      "sections": ["cybertech", "grid", "robots"]
+    }
+  ]
+}

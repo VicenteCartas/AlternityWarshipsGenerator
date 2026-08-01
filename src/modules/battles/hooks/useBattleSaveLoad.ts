@@ -47,6 +47,7 @@ export function useBattleSaveLoad(): UseBattleSaveLoad {
       return { ok: false, message: result.error || 'Failed to write the file.', severity: 'error' };
     }
     setCurrentFilePath(filePath);
+    await api.addRecentFile(filePath);
     return { ok: true, message: 'Battle saved.', severity: 'success' };
   }, []);
 
@@ -86,6 +87,7 @@ export function useBattleSaveLoad(): UseBattleSaveLoad {
       };
     }
     setCurrentFilePath(filePath);
+    await api.addRecentFile(filePath);
     return {
       ok: true,
       battle: loaded.battle,

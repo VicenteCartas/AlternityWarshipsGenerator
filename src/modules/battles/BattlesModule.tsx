@@ -88,7 +88,11 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
 
   useEffect(() => {
     if (mode === 'loading') return;
-    window.electronAPI?.setBuilderMode?.(mode === 'builder' ? 'battles' : 'battles-welcome');
+    const menuMode = mode === 'builder' ? 'battles'
+      : mode === 'library' ? 'battles-library'
+        : mode === 'mods' ? 'battles-mods'
+          : 'battles-welcome';
+    window.electronAPI?.setBuilderMode?.(menuMode);
   }, [mode]);
 
   useBattleAutoSave({
@@ -211,7 +215,9 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
     api.onSaveBattle(() => { if (modeRef.current === 'builder') handleSave(); });
     api.onSaveBattleAs(() => { if (modeRef.current === 'builder') handleSaveAs(); });
     api.onExportBattleReport(() => { if (modeRef.current === 'builder') handleExportReport(); });
+    api.onOpenRecent((filePath) => { if (modeRef.current === 'welcome') void doOpenPath(filePath); });
     api.onReturnToStart(() => requestAction('welcome'));
+    api.onReturnToHub(() => requestAction('hub'));
 
     return () => {
       api.removeAllListeners('menu-new-battle');
@@ -220,9 +226,11 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
       api.removeAllListeners('menu-save-battle');
       api.removeAllListeners('menu-save-battle-as');
       api.removeAllListeners('menu-export-battle-report');
+      api.removeAllListeners('menu-open-recent');
       api.removeAllListeners('menu-return-to-start');
+      api.removeAllListeners('menu-return-to-hub');
     };
-  }, [requestAction, handleSave, handleSaveAs, handleExportReport]);
+  }, [requestAction, handleSave, handleSaveAs, handleExportReport, doOpenPath]);
 
   const handleModsChanged = useCallback(async () => {
     const mods = await getEnabledMods();

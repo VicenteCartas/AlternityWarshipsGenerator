@@ -9,10 +9,7 @@ export const APP_VERSION = '2.0.0-beta.1';
 export const APP_NAME = 'Alternity Workshop';
 
 /** GitHub repository URL */
-export const GITHUB_URL = 'https://github.com/VicenteCartas/AlternityWorkshop';
+export const GITHUB_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGenerator';
 
 /** GitHub issues URL */
-export const GITHUB_ISSUES_URL = 'https://github.com/VicenteCartas/AlternityWorkshop/issues';
-
-/** GitHub wiki - Modding Guide */
-export const GITHUB_WIKI_MODS_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGenerator/wiki/Modding-Guide';
+export const GITHUB_ISSUES_URL = 'https://github.com/VicenteCartas/AlternityWarshipsGenerator/issues/new';

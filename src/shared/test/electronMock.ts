@@ -23,7 +23,13 @@ type MenuEventName =
   | 'onSaveBattle'
   | 'onSaveBattleAs'
   | 'onBattleLibrary'
-  | 'onExportBattleReport';
+  | 'onExportBattleReport'
+  | 'onNewCharacter'
+  | 'onOpenCharacter'
+  | 'onSaveCharacter'
+  | 'onSaveCharacterAs'
+  | 'onExportCharacterPdf'
+  | 'onImportTravelShip';
 
 /**
  * Creates a complete mock ElectronAPI. Menu event listeners store their
@@ -50,6 +56,12 @@ export function createMockElectronAPI() {
     onSaveBattleAs: vi.fn((cb) => { menuCallbacks.onSaveBattleAs = cb; }),
     onBattleLibrary: vi.fn((cb) => { menuCallbacks.onBattleLibrary = cb; }),
     onExportBattleReport: vi.fn((cb) => { menuCallbacks.onExportBattleReport = cb; }),
+    onNewCharacter: vi.fn((cb) => { menuCallbacks.onNewCharacter = cb; }),
+    onOpenCharacter: vi.fn((cb) => { menuCallbacks.onOpenCharacter = cb; }),
+    onSaveCharacter: vi.fn((cb) => { menuCallbacks.onSaveCharacter = cb; }),
+    onSaveCharacterAs: vi.fn((cb) => { menuCallbacks.onSaveCharacterAs = cb; }),
+    onExportCharacterPdf: vi.fn((cb) => { menuCallbacks.onExportCharacterPdf = cb; }),
+    onImportTravelShip: vi.fn((cb) => { menuCallbacks.onImportTravelShip = cb; }),
     removeAllListeners: vi.fn(),
 
     // File operations
@@ -96,6 +108,8 @@ export function createMockElectronAPI() {
     // Battle save/load, library & auto-save
     showBattleSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
     showBattleOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+    showCharacterSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
+    showCharacterOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
     scanBattleFiles: vi.fn().mockResolvedValue({ success: true, files: [] }),
     writeBattleAutoSave: vi.fn().mockResolvedValue({ success: true }),
     readBattleAutoSave: vi.fn().mockResolvedValue({ success: false }),

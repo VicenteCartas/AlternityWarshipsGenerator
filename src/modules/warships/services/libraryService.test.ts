@@ -19,6 +19,7 @@ vi.mock('./hullService', () => ({
       'fighter': { name: 'Star Fighter', shipClass: 'small-craft', hullPoints: 20, bonusHullPoints: 0 },
       'frigate': { name: 'Frigate', shipClass: 'light', hullPoints: 100, bonusHullPoints: 0 },
       'dreadnought': { name: 'Dreadnought', shipClass: 'super-heavy', hullPoints: 800, bonusHullPoints: 0 },
+      'bonus-escort': { name: 'Escort Hull', shipClass: 'light', hullPoints: 80, bonusHullPoints: 24 },
     };
     return hulls[id] || undefined;
   },
@@ -87,6 +88,11 @@ describe('toLibraryEntry', () => {
     expect(entry.designProgressLevel).toBe(7);
     expect(entry.faction).toBe('Terran Empire');
     expect(entry.filePath).toBe('/designs/test.warship.json');
+  });
+
+  it('reports base hull points for embarked-craft capacity', () => {
+    const entry = toLibraryEntry(makeScannedFile({ hullId: 'bonus-escort' }));
+    expect(entry.hullHp).toBe(80);
   });
 
   it('handles unknown hull ID gracefully', () => {

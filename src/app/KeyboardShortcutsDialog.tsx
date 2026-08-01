@@ -15,14 +15,17 @@ import CloseIcon from '@mui/icons-material/Close';
 interface KeyboardShortcutsDialogProps {
   open: boolean;
   onClose: () => void;
+  context?: ShortcutContext;
 }
+
+export type ShortcutContext = 'warships' | 'characters' | 'battles' | 'travel' | 'hub';
 
 interface ShortcutGroup {
   title: string;
   shortcuts: { keys: string; description: string }[];
 }
 
-const SHORTCUT_GROUPS: ShortcutGroup[] = [
+const WARSHIPS_SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'File',
     shortcuts: [
@@ -51,7 +54,51 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
 ];
 
-export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDialogProps) {
+const EDIT_SHORTCUTS: ShortcutGroup = {
+  title: 'Edit',
+  shortcuts: [
+    { keys: 'Ctrl+Z', description: 'Undo' },
+    { keys: 'Ctrl+Y', description: 'Redo' },
+    { keys: 'Ctrl+Shift+Z', description: 'Redo (alternate)' },
+  ],
+};
+
+const SHORTCUT_GROUPS: Record<Exclude<ShortcutContext, 'warships'>, ShortcutGroup[]> = {
+  characters: [
+    {
+      title: 'File',
+      shortcuts: [
+        { keys: 'Ctrl+N', description: 'New Character' },
+        { keys: 'Ctrl+O', description: 'Open Character' },
+        { keys: 'Ctrl+S', description: 'Save Character' },
+        { keys: 'Ctrl+Shift+S', description: 'Save Character As' },
+      ],
+    },
+    EDIT_SHORTCUTS,
+  ],
+  battles: [
+    {
+      title: 'File',
+      shortcuts: [
+        { keys: 'Ctrl+N', description: 'New Battle' },
+        { keys: 'Ctrl+O', description: 'Open Battle' },
+        { keys: 'Ctrl+S', description: 'Save Battle' },
+        { keys: 'Ctrl+Shift+S', description: 'Save Battle As' },
+      ],
+    },
+    EDIT_SHORTCUTS,
+  ],
+  travel: [
+    {
+      title: 'File',
+      shortcuts: [{ keys: 'Ctrl+O', description: 'Import Warship Design' }],
+    },
+  ],
+  hub: [],
+};
+
+export function KeyboardShortcutsDialog({ open, onClose, context = 'warships' }: KeyboardShortcutsDialogProps) {
+  const groups = context === 'warships' ? WARSHIPS_SHORTCUT_GROUPS : SHORTCUT_GROUPS[context];
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogContent sx={{ position: 'relative', pt: 3 }}>
@@ -72,7 +119,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
           Keyboard Shortcuts
         </Typography>
 
-        {SHORTCUT_GROUPS.map((group, gi) => (
+        {groups.map((group, gi) => (
           <Box key={group.title}>
             {gi > 0 && <Divider sx={{ my: 1.5 }} />}
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>

@@ -27,13 +27,21 @@ type AppMode =
   | 'library'
   | 'battles-welcome'
   | 'battles'
-  | 'travel';
+  | 'battles-library'
+  | 'battles-mods'
+  | 'travel'
+  | 'characters-welcome'
+  | 'characters-builder';
+
+type ModuleGroup = 'hub' | 'warships' | 'characters' | 'battles' | 'travel' | 'other';
 
 let currentAppMode: AppMode = 'loading';
 
 /** Which module a mode belongs to. The File menu is built per module. */
-function moduleGroupOf(mode: AppMode): 'warships' | 'battles' | 'travel' | 'other' {
+function moduleGroupOf(mode: AppMode): ModuleGroup {
   switch (mode) {
+    case 'hub':
+      return 'hub';
     case 'welcome':
     case 'builder':
     case 'mods':
@@ -41,9 +49,14 @@ function moduleGroupOf(mode: AppMode): 'warships' | 'battles' | 'travel' | 'othe
       return 'warships';
     case 'battles':
     case 'battles-welcome':
+    case 'battles-library':
+    case 'battles-mods':
       return 'battles';
     case 'travel':
       return 'travel';
+    case 'characters-welcome':
+    case 'characters-builder':
+      return 'characters';
     default:
       return 'other';
   }
@@ -93,6 +106,18 @@ function clearRecentFiles(): void {
   createMenu();
 }
 
+function isRecentFileForGroup(filePath: string, group: ModuleGroup): boolean {
+  if (group === 'warships') return filePath.toLocaleLowerCase().endsWith('.warship.json');
+  if (group === 'characters') return filePath.toLocaleLowerCase().endsWith('.character.json');
+  if (group === 'battles') return filePath.toLocaleLowerCase().endsWith('.battle.json');
+  return false;
+}
+
+function clearRecentFilesForGroup(group: ModuleGroup): void {
+  saveRecentFiles(loadRecentFiles().filter((filePath) => !isRecentFileForGroup(filePath, group)));
+  createMenu();
+}
+
 // App settings management
 const appSettingsPath = path.join(app.getPath('userData'), 'settings.json');
 
@@ -121,64 +146,44 @@ function writeAppSettings(settings: AppSettings): void {
 
 function createMenu() {
   const isMac = process.platform === 'darwin';
-  const recentFiles = loadRecentFiles();
-
-  // Build recent files submenu
+  const group = moduleGroupOf(currentAppMode);
+  const recentFiles = loadRecentFiles().filter((filePath) => isRecentFileForGroup(filePath, group));
   const recentFilesSubmenu: MenuItemConstructorOptions[] = recentFiles.length > 0
     ? [
         ...recentFiles.map((filePath, index) => ({
           label: `${index + 1}. ${path.basename(filePath)}`,
-          click: () => {
-            mainWindow?.webContents.send('menu-open-recent', filePath);
-          },
+          click: () => mainWindow?.webContents.send('menu-open-recent', filePath),
         })),
         { type: 'separator' as const },
         {
-          label: 'Clear Recent Files',
-          click: () => {
-            clearRecentFiles();
-          },
+          label: group === 'characters' ? 'Clear Recent Characters'
+            : group === 'battles' ? 'Clear Recent Battles'
+              : 'Clear Recent Designs',
+          click: () => clearRecentFilesForGroup(group),
         },
       ]
-    : [
-        {
-          label: 'No Recent Files',
-          enabled: false,
-        },
-      ];
+    : [{ label: 'No Recent Files', enabled: false }];
 
   const isInBuilder = currentAppMode === 'builder';
-  const isInHub = currentAppMode === 'hub';
-  const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
-  const isInBattlesModule = moduleGroupOf(currentAppMode) === 'battles';
-  const isInTravelModule = moduleGroupOf(currentAppMode) === 'travel';
   const isInBattleBuilder = currentAppMode === 'battles';
+  const isInCharacterBuilder = currentAppMode === 'characters-builder';
 
-  // The File menu is module-specific, so it is rebuilt whenever the active
-  // module changes rather than only toggling enabled state.
   const warshipsFileItems: MenuItemConstructorOptions[] = [
     {
       id: 'new-design',
       label: 'New Design',
       accelerator: 'CmdOrCtrl+N',
-      enabled: isInWarships,
-      click: () => {
-        mainWindow?.webContents.send('menu-new-warship');
-      },
+      click: () => mainWindow?.webContents.send('menu-new-warship'),
     },
     {
       id: 'load-design',
       label: 'Load Design...',
       accelerator: 'CmdOrCtrl+O',
-      enabled: isInWarships,
-      click: () => {
-        mainWindow?.webContents.send('menu-load-warship');
-      },
+      click: () => mainWindow?.webContents.send('menu-load-warship'),
     },
     {
       id: 'recent-designs',
       label: 'Recent Designs',
-      enabled: isInWarships,
       submenu: recentFilesSubmenu,
     },
     { type: 'separator' },
@@ -187,27 +192,63 @@ function createMenu() {
       label: 'Save Design',
       accelerator: 'CmdOrCtrl+S',
       enabled: isInBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-save-warship');
-      },
+      click: () => mainWindow?.webContents.send('menu-save-warship'),
     },
     {
       id: 'save-design-as',
       label: 'Save Design As...',
       accelerator: 'CmdOrCtrl+Shift+S',
       enabled: isInBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-save-warship-as');
-      },
+      click: () => mainWindow?.webContents.send('menu-save-warship-as'),
     },
     {
       id: 'duplicate-design',
       label: 'Duplicate Design',
       accelerator: 'CmdOrCtrl+Shift+D',
       enabled: isInBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-duplicate-design');
-      },
+      click: () => mainWindow?.webContents.send('menu-duplicate-design'),
+    },
+  ];
+
+  const charactersFileItems: MenuItemConstructorOptions[] = [
+    {
+      id: 'new-character',
+      label: 'New Character',
+      accelerator: 'CmdOrCtrl+N',
+      click: () => mainWindow?.webContents.send('menu-new-character'),
+    },
+    {
+      id: 'open-character',
+      label: 'Open Character...',
+      accelerator: 'CmdOrCtrl+O',
+      click: () => mainWindow?.webContents.send('menu-open-character'),
+    },
+    {
+      id: 'recent-characters',
+      label: 'Recent Characters',
+      enabled: currentAppMode === 'characters-welcome',
+      submenu: recentFilesSubmenu,
+    },
+    { type: 'separator' },
+    {
+      id: 'save-character',
+      label: 'Save Character',
+      accelerator: 'CmdOrCtrl+S',
+      enabled: isInCharacterBuilder,
+      click: () => mainWindow?.webContents.send('menu-save-character'),
+    },
+    {
+      id: 'save-character-as',
+      label: 'Save Character As...',
+      accelerator: 'CmdOrCtrl+Shift+S',
+      enabled: isInCharacterBuilder,
+      click: () => mainWindow?.webContents.send('menu-save-character-as'),
+    },
+    {
+      id: 'export-character-pdf',
+      label: 'Export Character PDF...',
+      enabled: isInCharacterBuilder,
+      click: () => mainWindow?.webContents.send('menu-export-character-pdf'),
     },
   ];
 
@@ -216,24 +257,24 @@ function createMenu() {
       id: 'new-battle',
       label: 'New Battle',
       accelerator: 'CmdOrCtrl+N',
-      click: () => {
-        mainWindow?.webContents.send('menu-new-battle');
-      },
+      click: () => mainWindow?.webContents.send('menu-new-battle'),
     },
     {
       id: 'open-battle',
       label: 'Open Battle...',
       accelerator: 'CmdOrCtrl+O',
-      click: () => {
-        mainWindow?.webContents.send('menu-open-battle');
-      },
+      click: () => mainWindow?.webContents.send('menu-open-battle'),
+    },
+    {
+      id: 'recent-battles',
+      label: 'Recent Battles',
+      enabled: currentAppMode === 'battles-welcome',
+      submenu: recentFilesSubmenu,
     },
     {
       id: 'battle-library',
       label: 'Battle Library',
-      click: () => {
-        mainWindow?.webContents.send('menu-battle-library');
-      },
+      click: () => mainWindow?.webContents.send('menu-battle-library'),
     },
     { type: 'separator' },
     {
@@ -241,28 +282,85 @@ function createMenu() {
       label: 'Save Battle',
       accelerator: 'CmdOrCtrl+S',
       enabled: isInBattleBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-save-battle');
-      },
+      click: () => mainWindow?.webContents.send('menu-save-battle'),
     },
     {
       id: 'save-battle-as',
       label: 'Save Battle As...',
       accelerator: 'CmdOrCtrl+Shift+S',
       enabled: isInBattleBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-save-battle-as');
-      },
+      click: () => mainWindow?.webContents.send('menu-save-battle-as'),
     },
     {
       id: 'export-battle-report',
       label: 'Export Battle Report...',
       enabled: isInBattleBuilder,
-      click: () => {
-        mainWindow?.webContents.send('menu-export-battle-report');
-      },
+      click: () => mainWindow?.webContents.send('menu-export-battle-report'),
     },
   ];
+
+  const travelFileItems: MenuItemConstructorOptions[] = [
+    {
+      id: 'import-travel-ship',
+      label: 'Import Warship Design...',
+      accelerator: 'CmdOrCtrl+O',
+      click: () => mainWindow?.webContents.send('menu-import-travel-ship'),
+    },
+  ];
+
+  const contextualFileItems = group === 'warships' ? warshipsFileItems
+    : group === 'characters' ? charactersFileItems
+      : group === 'battles' ? battlesFileItems
+        : group === 'travel' ? travelFileItems
+          : [];
+
+  const startScreen = group === 'warships'
+    ? { label: 'Warships Start Screen', enabled: currentAppMode !== 'welcome' }
+    : group === 'characters'
+      ? { label: 'Character Creator Start Screen', enabled: currentAppMode !== 'characters-welcome' }
+      : group === 'battles'
+        ? { label: 'Battle Resolution Start Screen', enabled: currentAppMode !== 'battles-welcome' }
+        : null;
+
+  const navigationItems: MenuItemConstructorOptions[] = [
+    ...(startScreen ? [{
+      id: 'return-to-start',
+      label: startScreen.label,
+      enabled: startScreen.enabled,
+      click: () => mainWindow?.webContents.send('menu-return-to-start'),
+    }] : []),
+    ...(group !== 'hub' && group !== 'other' ? [{
+      id: 'return-to-hub',
+      label: 'Workshop Home',
+      click: () => mainWindow?.webContents.send('menu-return-to-hub'),
+    }] : []),
+  ];
+
+  const fileMenuItems: MenuItemConstructorOptions[] = [
+    ...contextualFileItems,
+    ...(contextualFileItems.length > 0 && navigationItems.length > 0 ? [{ type: 'separator' as const }] : []),
+    ...navigationItems,
+    ...(contextualFileItems.length > 0 || navigationItems.length > 0 ? [{ type: 'separator' as const }] : []),
+    isMac ? { role: 'close' as const } : { role: 'quit' as const },
+  ];
+
+  const contextualViewItems: MenuItemConstructorOptions[] = group === 'warships' || group === 'battles'
+    ? [
+        {
+          label: group === 'warships' ? 'Open Warships Data Folder' : 'Open Battle Data Folder',
+          click: () => { void shell.openPath(getModuleDataDir(group)); },
+        },
+        {
+          label: 'Open Mod Folder',
+          click: () => {
+            const modsDir = getModsDir();
+            if (!fs.existsSync(modsDir)) fs.mkdirSync(modsDir, { recursive: true });
+            void shell.openPath(modsDir);
+          },
+        },
+        { type: 'separator' },
+      ]
+    : [];
 
   const template: MenuItemConstructorOptions[] = [
     // App menu (macOS only)
@@ -283,53 +381,13 @@ function createMenu() {
     // File menu
     {
       label: 'File',
-      submenu: [
-        ...(isInBattlesModule ? battlesFileItems : isInTravelModule ? [] : warshipsFileItems),
-        ...(!isInTravelModule ? [{ type: 'separator' as const }] : []),
-        {
-          id: 'return-to-hub',
-          label: 'Return to Hub',
-          enabled: !isInHub,
-          click: () => {
-            mainWindow?.webContents.send('menu-return-to-hub');
-          },
-        },
-        {
-          id: 'return-to-start',
-          label: 'Return to Start Screen',
-          enabled: isInWarships || isInBattlesModule,
-          click: () => {
-            mainWindow?.webContents.send('menu-return-to-start');
-          },
-        },
-        { type: 'separator' },
-        isMac ? { role: 'close' as const } : { role: 'quit' as const },
-      ],
+      submenu: fileMenuItems,
     },
     // View menu
     {
       label: 'View',
       submenu: [
-        {
-          label: 'View Data Files',
-          click: () => {
-            const dataPath = isDev
-              ? path.join(__dirname, '../src/modules/warships/data')
-              : path.join(process.resourcesPath, 'data');
-            shell.openPath(dataPath);
-          },
-        },
-        {
-          label: 'View Mod Files',
-          click: () => {
-            const modsDir = getModsDir();
-            if (!fs.existsSync(modsDir)) {
-              fs.mkdirSync(modsDir, { recursive: true });
-            }
-            shell.openPath(modsDir);
-          },
-        },
-        { type: 'separator' as const },
+        ...contextualViewItems,
         ...(isDev ? [
           { role: 'reload' as const },
           { role: 'forceReload' as const },
@@ -366,6 +424,7 @@ function createMenu() {
         {
           label: 'Keyboard Shortcuts',
           accelerator: 'CmdOrCtrl+/',
+          enabled: group !== 'hub' && group !== 'other',
           click: () => {
             mainWindow?.webContents.send('menu-show-shortcuts');
           },
@@ -377,62 +436,16 @@ function createMenu() {
             mainWindow?.webContents.send('menu-show-about');
           },
         },
-        { type: 'separator' as const },
-        {
-          label: 'View on GitHub',
-          click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop');
-          },
-        },
-        {
+        ...(group === 'warships' || group === 'battles' ? [{
           label: 'Modding Guide',
-          click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop/wiki/Modding-Guide');
-          },
-        },
-        {
-          label: 'Report Issue',
-          click: () => {
-            shell.openExternal('https://github.com/VicenteCartas/AlternityWorkshop/issues');
-          },
-        },
+          click: () => { void shell.openExternal('https://github.com/VicenteCartas/AlternityWarshipsGenerator/wiki/Modding-Guide'); },
+        }] : []),
       ],
     },
   ];
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
-}
-
-/** Toggle enabled state of mode-sensitive menu items without rebuilding the menu. */
-function updateMenuForMode() {
-  const menu = Menu.getApplicationMenu();
-  if (!menu) return;
-
-  const isInBuilder = currentAppMode === 'builder';
-  const isInHub = currentAppMode === 'hub';
-  const isInWarships = currentAppMode === 'welcome' || currentAppMode === 'builder' || currentAppMode === 'library';
-  const isInBattlesModule = moduleGroupOf(currentAppMode) === 'battles';
-  const isInBattleBuilder = currentAppMode === 'battles';
-
-  const modeItems: Record<string, boolean> = {
-    'new-design': isInWarships,
-    'load-design': isInWarships,
-    'recent-designs': isInWarships,
-    'save-design': isInBuilder,
-    'save-design-as': isInBuilder,
-    'duplicate-design': isInBuilder,
-    'save-battle': isInBattleBuilder,
-    'save-battle-as': isInBattleBuilder,
-    'export-battle-report': isInBattleBuilder,
-    'return-to-hub': !isInHub,
-    'return-to-start': isInWarships || isInBattlesModule,
-  };
-
-  for (const [id, enabled] of Object.entries(modeItems)) {
-    const item = menu.getMenuItemById(id);
-    if (item) item.enabled = enabled;
-  }
 }
 
 function createWindow() {
@@ -553,6 +566,39 @@ ipcMain.handle('show-battle-open-dialog', async () => {
   });
 
   return result;
+});
+
+// IPC Handlers for Character Save/Load
+ipcMain.handle('show-character-save-dialog', async (_event, defaultFileName: string, defaultDirectory?: string) => {
+  if (!mainWindow) return { canceled: true };
+
+  const defaultPath = defaultDirectory
+    ? path.join(defaultDirectory, defaultFileName)
+    : defaultFileName;
+
+  return dialog.showSaveDialog(mainWindow, {
+    title: 'Save Character',
+    defaultPath,
+    filters: [
+      { name: 'Character Files', extensions: ['character.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+});
+
+ipcMain.handle('show-character-open-dialog', async () => {
+  if (!mainWindow) return { canceled: true, filePaths: [] };
+
+  return dialog.showOpenDialog(mainWindow, {
+    title: 'Open Character',
+    filters: [
+      { name: 'Character Files', extensions: ['character.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
 });
 
 // IPC Handlers for Ordnance Export/Import Dialogs
@@ -697,14 +743,8 @@ ipcMain.handle('update-app-settings', async (_event, settingsJson: string) => {
 
 // App mode management - updates menu state
 ipcMain.handle('set-builder-mode', async (_event, mode: string) => {
-  const previousGroup = moduleGroupOf(currentAppMode);
   currentAppMode = mode as AppMode;
-  if (moduleGroupOf(currentAppMode) !== previousGroup) {
-    // The File menu differs per module, so rebuild it when the module changes.
-    createMenu();
-  } else {
-    updateMenuForMode(); // Toggle enabled state without rebuilding the entire menu
-  }
+  createMenu();
   return { success: true };
 });
 

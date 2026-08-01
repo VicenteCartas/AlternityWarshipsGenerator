@@ -1,0 +1,10 @@
+{
+  "services": [
+    ["ambulance", "Ambulance", 4, 300, null], ["car-rental", "Car Rental", 5, 50, "day"], ["charter-boat", "Charter Boat", 4, 500, "day"], ["charter-plane", "Charter Plane", 5, 1000, "day"], ["charter-system-liner", "Charter System Liner", 6, 1000, "day"], ["charter-driveship", "Charter Driveship", 7, 2000, "day"],
+    ["comm-call-interstellar", "Comm Call, Interstellar", 7, 10000, "minute"], ["comm-call-planetary", "Comm Call, Planetary", 5, 1, "minute"], ["comm-call-system", "Comm Call, System", 6, 10, "minute"],
+    ["combat-spec-for-hire", "Combat Spec for Hire", 2, 100, "level/day"], ["diplomat-for-hire", "Diplomat for Hire", 3, 250, "level/day"], ["free-agent-for-hire", "Free Agent for Hire", 2, 200, "level/day"], ["hospital-stay", "Hospital Stay", 3, 500, "day"], ["lawyer", "Lawyer", 4, 300, "hour"], ["limousine", "Limousine", 5, 100, "day"],
+    ["lodging-cheap", "Lodging, Cheap", 3, 25, "day"], ["lodging-good", "Lodging, Good", 4, 50, "day"], ["lodging-opulent", "Lodging, Opulent", 4, 200, "day"], ["meal-cheap", "Meal, Cheap", 1, 10, null], ["meal-good", "Meal, Good", 1, 25, null], ["meal-opulent", "Meal, Opulent or Exotic", 3, 100, null],
+    ["medical-psychiatry", "Medical, Psychiatry", 5, 100, "session"], ["medical-surgery", "Medical, Surgery", 4, 5000, null], ["medical-treatment", "Medical, Treatment", 3, 250, null], ["message-service", "Message Service", 4, 50, "month"], ["mindwalker-for-hire", "Mindwalker for Hire", 6, 500, "level/day"], ["news-service", "News Service", 5, 25, "month"], ["security-service", "Security Service", 4, 100, "month"], ["taxi-ride", "Taxi Ride", 3, 10, "km"], ["tech-op-for-hire", "Tech Op for Hire", 5, 300, "level/day"],
+    ["travel-air", "Travel, Air", 5, 0.5, "km"], ["travel-bus", "Travel, Bus", 4, 0.1, "km"], ["travel-ocean", "Travel, Ocean", 3, 1, "km"], ["travel-interstellar", "Travel, Interstellar", 7, 200, "+100/light-year"], ["travel-system", "Travel, System", 6, 100, "+10/AU"], ["travel-train", "Travel, Train", 4, 0.25, "km"]
+  ]
+}

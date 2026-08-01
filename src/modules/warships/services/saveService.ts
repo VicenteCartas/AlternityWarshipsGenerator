@@ -18,6 +18,7 @@ import { getAllDefenseSystemTypes, generateDefenseId, calculateDefenseHullPoints
 import { getAllCommandControlSystemTypes, calculateCommandControlHullPoints, calculateCommandControlPower, calculateCommandControlCost, calculateFireControlCost, calculateSensorControlCost, generateCommandControlId } from './commandControlService';
 import { getAllSensorTypes, generateSensorId, calculateSensorHullPoints, calculateSensorPower, calculateSensorCost, calculateTrackingCapability, defaultArcsForSensor, type ComputerQuality } from './sensorService';
 import { getAllHangarMiscSystemTypes, generateHangarMiscId, calculateHangarMiscHullPoints, calculateHangarMiscPower, calculateHangarMiscCost, calculateHangarMiscCapacity } from './hangarMiscService';
+import { getEmbarkedCraftHullPoints } from './embarkedCraftService';
 import { getAllBeamWeaponTypes, getAllProjectileWeaponTypes, getAllTorpedoWeaponTypes, getAllSpecialWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getLaunchSystems, getPropulsionSystems, getWarheads, getGuidanceSystems, calculateLaunchSystemStats, calculateMissileDesign, calculateBombDesign, calculateMineDesign, findPropulsionByCategory } from './ordnanceService';
 import { getAllTechTrackCodes } from '@shared/services/formatters';
@@ -621,21 +622,29 @@ export function deserializeWarship(saveFile: WarshipSaveFile): LoadResult {
   
   // Load hangar & miscellaneous systems
   const allHangarMiscTypes = getAllHangarMiscSystemTypes();
+  const embarkedCraftHulls = getAllHulls();
   const hangarMisc = deserializeArray(
     saveFile.hangarMisc, allHangarMiscTypes, s => s.typeId,
     (s, t) => {
       const extraHp = s.extraHp || 0;
       const cap = calculateHangarMiscCapacity(t, shipHullPoints, s.quantity, extraHp);
-      const loadout: LoadedCraft[] = (s.loadout || []).map(lc => ({
-        id: lc.id,
-        filePath: lc.filePath,
-        name: lc.name,
-        hullHp: lc.hullHp,
-        hullName: lc.hullName,
-        quantity: lc.quantity,
-        designCost: lc.designCost,
-        fileValid: true,
-      }));
+      const loadout: LoadedCraft[] = (s.loadout || []).map(lc => {
+        const craftHull = embarkedCraftHulls.find(candidate => candidate.name === lc.hullName);
+        const hullHp = craftHull ? getEmbarkedCraftHullPoints(craftHull) : lc.hullHp;
+        if (craftHull && hullHp !== lc.hullHp) {
+          warnings.push(`Embarked craft "${lc.name}" capacity corrected from ${lc.hullHp} HP to its ${hullHp} HP base hull.`);
+        }
+        return {
+          id: lc.id,
+          filePath: lc.filePath,
+          name: lc.name,
+          hullHp,
+          hullName: lc.hullName,
+          quantity: lc.quantity,
+          designCost: lc.designCost,
+          fileValid: true,
+        };
+      });
       return {
         id: s.id || generateHangarMiscId(), type: t, quantity: s.quantity,
         hullPoints: calculateHangarMiscHullPoints(t, shipHullPoints, s.quantity, extraHp),

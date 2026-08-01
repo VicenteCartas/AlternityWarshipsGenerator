@@ -10,8 +10,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import BugReportIcon from '@mui/icons-material/BugReport';
-import AutoStoriesIcon from '@mui/icons-material/AutoStories';
-import { APP_VERSION, APP_NAME, GITHUB_URL, GITHUB_ISSUES_URL, GITHUB_WIKI_MODS_URL } from '@shared/constants/version';
+import { APP_VERSION, APP_NAME, GITHUB_URL, GITHUB_ISSUES_URL } from '@shared/constants/version';
 
 interface AboutDialogProps {
   open: boolean;
@@ -68,16 +67,6 @@ export function AboutDialog({ open, onClose }: AboutDialogProps) {
             >
               <GitHubIcon fontSize="small" />
               Project on GitHub
-            </Link>
-            <Link
-              href={GITHUB_WIKI_MODS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              underline="hover"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <AutoStoriesIcon fontSize="small" />
-              Modding Guide
             </Link>
             <Link
               href={GITHUB_ISSUES_URL}

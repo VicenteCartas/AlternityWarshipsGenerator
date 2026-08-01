@@ -11,9 +11,9 @@
       "cost": 25000,
       "costPer": "systemHp",
       "baseCost": 100000,
-      "capacityPerHull": "1 HP of embarked craft",
+      "capacityPerHull": "1 base HP of embarked craft",
       "hangarCapacity": 1,
-      "description": "The hangar is an internal docking, launch, storage, and service facility for embarked craft. It requires 1 hull point for each hull point of embarked craft. Ships of 100 HP or more cannot fit in any hangar. Hangars may launch or recover no more than one craft per phase per hangar."
+      "description": "The hangar is an internal docking, launch, storage, and service facility for embarked craft. It requires 1 hull point for each base hull point of embarked craft; economy-of-scale bonus hull points do not count. Ships of 100 base HP or more cannot fit in any hangar. Hangars may launch or recover no more than one craft per phase per hangar."
     },
     {
       "id": "docking-clamp",
@@ -24,9 +24,9 @@
       "hullPoints": 2,
       "powerRequired": 0,
       "cost": 50000,
-      "capacityPerHull": "10 HP of embarked craft",
+      "capacityPerHull": "10 base HP of embarked craft",
       "dockCapacity": 10,
-      "description": "The docking clamp is a hardpoint and airlock where another ship can secure itself to the hull. Maximum capacity is 10 HP per 2 HP installed. Embarked craft are outside the hull, not protected by armor or life support. Cannot enter atmosphere while craft are attached. Embarked ships may not exceed 10% of carrier's hull.",
+      "description": "The docking clamp is a hardpoint and airlock where another ship can secure itself to the hull. Maximum capacity is 10 base HP per 2 HP installed; economy-of-scale bonus hull points do not count. Embarked craft are outside the hull, not protected by armor or life support. Cannot enter atmosphere while craft are attached. Embarked ships may not exceed 10% of the carrier's base hull.",
       "costPer": "unit"
     },
     {

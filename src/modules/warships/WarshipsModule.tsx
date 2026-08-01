@@ -83,6 +83,8 @@ interface WarshipsModuleProps {
   onReturnToHub?: () => void;
 }
 
+type PendingShellAction = 'new' | 'load' | 'welcome' | 'hub' | null;
+
 function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: WarshipsModuleProps) {
   // Local routing/UI state
   const [mode, setMode] = useState<AppMode>('loading');
@@ -146,6 +148,7 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
   // Hull change confirmation
   const [confirmHullChangeOpen, setConfirmHullChangeOpen] = useState(false);
   const [pendingHull, setPendingHull] = useState<Hull | null>(null);
+  const [pendingShellAction, setPendingShellAction] = useState<PendingShellAction>(null);
 
   // Track the mode to return to when leaving the mod manager
   const [preModeForMods, setPreModeForMods] = useState<AppMode>('welcome');
@@ -323,9 +326,28 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
     setMode(preModeForMods);
   }, [preModeForMods, designActiveMods]);
 
+  const runShellAction = useCallback((action: Exclude<PendingShellAction, null>) => {
+    if (action === 'new') handleNewWarship();
+    else if (action === 'load') void handleLoadWarship();
+    else if (action === 'welcome') setMode('welcome');
+    else onReturnToHub?.();
+  }, [handleLoadWarship, handleNewWarship, onReturnToHub]);
+
+  const requestShellAction = useCallback((action: Exclude<PendingShellAction, null>) => {
+    if (mode === 'builder' && hasUnsavedChanges) {
+      setPendingShellAction(action);
+      return;
+    }
+    runShellAction(action);
+  }, [hasUnsavedChanges, mode, runShellAction]);
+
   const handleReturnToStart = useCallback(() => {
-    setMode('welcome');
-  }, []);
+    requestShellAction('welcome');
+  }, [requestShellAction]);
+
+  const handleReturnToHub = useCallback(() => {
+    requestShellAction('hub');
+  }, [requestShellAction]);
 
   // Ship Library navigation
   const handleOpenLibrary = useCallback(() => {
@@ -399,12 +421,13 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
 
   // Register Electron menu event handlers
   useElectronMenuHandlers({
-    handleNewWarship,
-    handleLoadWarship,
+    handleNewWarship: () => requestShellAction('new'),
+    handleLoadWarship: () => requestShellAction('load'),
     handleSaveWarship,
     handleSaveWarshipAs,
     loadFromFile,
     handleReturnToStart,
+    handleReturnToHub,
     handleDuplicateDesign,
     setAboutDialogOpen,
     setShortcutsDialogOpen,
@@ -573,7 +596,7 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
           onManageMods={handleManageMods}
           onOpenLibrary={handleOpenLibrary}
           onRecoverAutoSave={handleRecoverAutoSave}
-          onReturnToHub={onReturnToHub}
+          onReturnToHub={handleReturnToHub}
         />
         <DesignTypeDialog
           open={showDesignTypeDialog}
@@ -623,7 +646,7 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
             <>
               <Tooltip title="Return to Hub">
                 <IconButton
-                  onClick={onReturnToHub}
+                  onClick={handleReturnToHub}
                   size="small"
                   aria-label="Return to Hub"
                   sx={{ mr: 1 }}
@@ -1186,6 +1209,18 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
           setPendingHull(null);
           setConfirmHullChangeOpen(false);
         }}
+      />
+      <ConfirmDialog
+        open={pendingShellAction !== null}
+        title="Discard unsaved design changes?"
+        message="Your unsaved changes will be lost."
+        confirmLabel="Discard"
+        onConfirm={() => {
+          const action = pendingShellAction;
+          setPendingShellAction(null);
+          if (action) runShellAction(action);
+        }}
+        onCancel={() => setPendingShellAction(null)}
       />
     </Box>
   );

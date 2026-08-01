@@ -1,0 +1,54 @@
+{
+  "options": [
+    { "id": "alien-artifact-perk", "name": "Alien Artifact", "sourcePackId": "phb", "kind": "perk", "ability": null, "activation": "special", "values": [8], "effectIds": ["alien-artifact-benefit"], "requiresNotes": true },
+    { "id": "ambidextrous", "name": "Ambidextrous", "sourcePackId": "phb", "kind": "perk", "ability": "dex", "activation": "active", "values": [4], "effectIds": ["ambidextrous"] },
+    { "id": "animal-friend", "name": "Animal Friend", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "conscious", "values": [4], "effectIds": ["animal-friend"] },
+    { "id": "celebrity", "name": "Celebrity", "sourcePackId": "phb", "kind": "perk", "ability": "per", "activation": "conscious", "values": [3], "effectIds": ["celebrity"] },
+    { "id": "concentration", "name": "Concentration", "sourcePackId": "phb", "kind": "perk", "ability": "int", "activation": "conscious", "values": [3], "effectIds": ["concentration"] },
+    { "id": "danger-sense", "name": "Danger Sense", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "active", "values": [4], "effectIds": ["danger-sense"] },
+    { "id": "faith", "name": "Faith", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "conscious", "values": [5], "effectIds": ["faith"], "requiresNotes": true },
+    { "id": "filthy-rich", "name": "Filthy Rich", "sourcePackId": "phb", "kind": "perk", "ability": "per", "activation": "conscious", "values": [6], "effectIds": ["starting-funds-x3", "wealth-status"] },
+    { "id": "fists-of-iron", "name": "Fists of Iron", "sourcePackId": "phb", "kind": "perk", "ability": "str", "activation": "active", "values": [2, 5], "effectIds": ["unarmed-damage-increase"] },
+    { "id": "fortitude", "name": "Fortitude", "sourcePackId": "phb", "kind": "perk", "ability": "con", "activation": "active", "values": [4], "effectIds": ["stamina-endurance-bonus"] },
+    { "id": "good-luck", "name": "Good Luck", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "conscious", "values": [3], "effectIds": ["good-luck"] },
+    { "id": "great-looks", "name": "Great Looks", "sourcePackId": "phb", "kind": "perk", "ability": "per", "activation": "active", "values": [3], "effectIds": ["appearance-personality-bonus"] },
+    { "id": "heightened-ability", "name": "Heightened Ability", "sourcePackId": "phb", "kind": "perk", "ability": null, "activation": "active", "values": [10], "effectIds": ["ability-score-plus-one"], "requiresTargetAbility": true },
+    { "id": "observant", "name": "Observant", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "active", "values": [3], "effectIds": ["awareness-perception-bonus"] },
+    { "id": "photo-memory", "name": "Photo Memory", "sourcePackId": "phb", "kind": "perk", "ability": "int", "activation": "conscious", "values": [3], "effectIds": ["photo-memory"] },
+    { "id": "powerful-ally", "name": "Powerful Ally", "sourcePackId": "phb", "kind": "perk", "ability": "per", "activation": "conscious", "values": [4], "effectIds": ["powerful-ally"], "requiresNotes": true },
+    { "id": "psionic-awareness", "name": "Psionic Awareness", "sourcePackId": "phb", "kind": "perk", "ability": "int", "activation": "active", "values": [3], "effectIds": ["psionic-awareness"], "requiresPsionics": true },
+    { "id": "reflexes", "name": "Reflexes", "sourcePackId": "phb", "kind": "perk", "ability": "dex", "activation": "active", "values": [4], "effectIds": ["dex-resistance-plus-one"] },
+    { "id": "reputation", "name": "Reputation", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "active", "values": [3], "effectIds": ["reputation"], "requiresNotes": true },
+    { "id": "tough-as-nails", "name": "Tough as Nails", "sourcePackId": "phb", "kind": "perk", "ability": "str", "activation": "active", "values": [4], "effectIds": ["str-resistance-plus-one"] },
+    {
+      "id": "vigor", "name": "Vigor", "sourcePackId": "phb", "kind": "perk", "ability": "con", "activation": "active", "values": [], "effectIds": [],
+      "choices": [
+        { "id": "stun", "name": "+1 Stun", "value": 2, "effectId": "stun-plus-one" },
+        { "id": "wound", "name": "+1 Wound", "value": 3, "effectId": "wound-plus-one" },
+        { "id": "mortal-fatigue", "name": "+1 Mortal and Fatigue", "value": 4, "effectId": "mortal-fatigue-plus-one" }
+      ]
+    },
+    { "id": "willpower", "name": "Willpower", "sourcePackId": "phb", "kind": "perk", "ability": "wil", "activation": "active", "values": [4], "effectIds": ["wil-resistance-plus-one"] },
+
+    { "id": "alien-artifact-flaw", "name": "Alien Artifact", "sourcePackId": "phb", "kind": "flaw", "ability": null, "values": [5], "effectIds": ["alien-artifact-drawback"], "requiresNotes": true },
+    { "id": "bad-luck", "name": "Bad Luck", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [6], "effectIds": ["bad-luck"] },
+    { "id": "clueless", "name": "Clueless", "sourcePackId": "phb", "kind": "flaw", "ability": "int", "values": [2, 4, 6], "effectIds": ["chosen-skill-penalty"], "requiresNotes": true },
+    { "id": "clumsy", "name": "Clumsy", "sourcePackId": "phb", "kind": "flaw", "ability": "dex", "values": [5], "effectIds": ["dex-action-penalty"] },
+    { "id": "code-of-honor", "name": "Code of Honor", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [3], "effectIds": ["code-of-honor"], "requiresNotes": true },
+    { "id": "delicate", "name": "Delicate", "sourcePackId": "phb", "kind": "flaw", "ability": "str", "values": [3], "effectIds": ["delicate"] },
+    { "id": "dirt-poor", "name": "Dirt Poor", "sourcePackId": "phb", "kind": "flaw", "ability": "per", "values": [5], "effectIds": ["starting-funds-half", "social-status-penalty"] },
+    { "id": "forgetful", "name": "Forgetful", "sourcePackId": "phb", "kind": "flaw", "ability": "int", "values": [5], "effectIds": ["int-knowledge-penalty"] },
+    { "id": "fragile", "name": "Fragile", "sourcePackId": "phb", "kind": "flaw", "ability": "con", "values": [3], "effectIds": ["damage-endurance-penalty"] },
+    { "id": "infamy", "name": "Infamy", "sourcePackId": "phb", "kind": "flaw", "ability": "per", "values": [2, 4, 6], "effectIds": ["infamy"] },
+    { "id": "oblivious", "name": "Oblivious", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [4], "effectIds": ["awareness-perception-penalty"] },
+    { "id": "obsessed", "name": "Obsessed", "sourcePackId": "phb", "kind": "flaw", "ability": "int", "values": [2, 4, 6], "effectIds": ["obsession-penalty"], "requiresNotes": true },
+    { "id": "old-injury", "name": "Old Injury", "sourcePackId": "phb", "kind": "flaw", "ability": "str", "values": [2, 4, 6], "effectIds": ["old-injury"], "requiresNotes": true },
+    { "id": "phobia", "name": "Phobia", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [2, 4, 6], "effectIds": ["phobia-penalty"], "requiresNotes": true },
+    { "id": "poor-looks", "name": "Poor Looks", "sourcePackId": "phb", "kind": "flaw", "ability": "per", "values": [3], "effectIds": ["appearance-personality-penalty"] },
+    { "id": "powerful-enemy", "name": "Powerful Enemy", "sourcePackId": "phb", "kind": "flaw", "ability": "per", "values": [2, 4, 6], "effectIds": ["powerful-enemy"], "requiresNotes": true },
+    { "id": "primitive", "name": "Primitive", "sourcePackId": "phb", "kind": "flaw", "ability": "int", "values": [2, 4, 6], "effectIds": ["modern-technology-penalty"] },
+    { "id": "slow", "name": "Slow", "sourcePackId": "phb", "kind": "flaw", "ability": "dex", "values": [6], "effectIds": ["action-check-penalty"] },
+    { "id": "spineless", "name": "Spineless", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [2, 4, 6], "effectIds": ["wil-resistance-penalty"] },
+    { "id": "temper", "name": "Temper", "sourcePackId": "phb", "kind": "flaw", "ability": "wil", "values": [2, 4, 6], "effectIds": ["temper-penalty"], "requiresNotes": true }
+  ]
+}

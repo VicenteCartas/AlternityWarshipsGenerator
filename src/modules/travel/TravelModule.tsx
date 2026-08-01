@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 import {
   Alert,
   AppBar,
@@ -178,6 +178,17 @@ export function TravelModule({
     if (ship.pl7AccelerationRating > 0) setScaleId('pl7plus');
     else setScaleId('pl6');
   };
+
+  const handleImportMenu = useEffectEvent(() => {
+    void handleImport();
+  });
+
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onImportTravelShip) return;
+    api.onImportTravelShip(() => handleImportMenu());
+    return () => api.removeAllListeners('menu-import-travel-ship');
+  }, []);
 
   const themeIcon = themeMode === 'dark'
     ? <DarkModeIcon />

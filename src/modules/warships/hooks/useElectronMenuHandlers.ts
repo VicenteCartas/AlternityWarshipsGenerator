@@ -8,6 +8,7 @@ export interface ElectronMenuHandlerCallbacks {
   handleSaveWarshipAs: () => void;
   loadFromFile: (filePath: string) => Promise<boolean>;
   handleReturnToStart: () => void;
+  handleReturnToHub?: () => void;
   handleDuplicateDesign: () => void;
   setAboutDialogOpen: (open: boolean) => void;
   setShortcutsDialogOpen: (open: boolean) => void;
@@ -24,6 +25,7 @@ export function useElectronMenuHandlers({
   handleSaveWarshipAs,
   loadFromFile,
   handleReturnToStart,
+  handleReturnToHub,
   handleDuplicateDesign,
   setAboutDialogOpen,
   setShortcutsDialogOpen,
@@ -54,6 +56,9 @@ export function useElectronMenuHandlers({
       window.electronAPI.onReturnToStart(() => {
         handleReturnToStart();
       });
+      window.electronAPI.onReturnToHub(() => {
+        handleReturnToHub?.();
+      });
       window.electronAPI.onDuplicateDesign(() => {
         handleDuplicateDesign();
       });
@@ -68,7 +73,8 @@ export function useElectronMenuHandlers({
         window.electronAPI?.removeAllListeners('menu-show-shortcuts');
         window.electronAPI?.removeAllListeners('menu-duplicate-design');
         window.electronAPI?.removeAllListeners('menu-return-to-start');
+        window.electronAPI?.removeAllListeners('menu-return-to-hub');
       };
     }
-  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart, handleDuplicateDesign, setAboutDialogOpen, setShortcutsDialogOpen]);
+  }, [handleNewWarship, handleLoadWarship, handleSaveWarship, handleSaveWarshipAs, loadFromFile, handleReturnToStart, handleReturnToHub, handleDuplicateDesign, setAboutDialogOpen, setShortcutsDialogOpen]);
 }

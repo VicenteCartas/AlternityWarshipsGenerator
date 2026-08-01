@@ -1,0 +1,80 @@
+{
+  "trainingSkillPointCost": 10,
+  "gear": [
+    { "id": "battleklaw", "name": "BattleKlaw", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["battleklaw"], "qualities": [
+      { "quality": "ordinary", "mass": 1, "size": 2, "cost": 300, "effectIds": ["battleklaw-ordinary"] },
+      { "quality": "good", "mass": 1, "size": 2, "cost": 600, "effectIds": ["battleklaw-good"] },
+      { "quality": "amazing", "mass": 1, "size": 2, "cost": 900, "effectIds": ["battleklaw-amazing", "requires-exoskeleton", "requires-cyberlimb"] }
+    ]},
+    { "id": "bioart", "name": "BioArt", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": false, "freeSkillPointTraining": true, "effectIds": ["bioart"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 0, "cost": 50, "effectIds": [] }, { "quality": "good", "mass": null, "size": 0, "cost": 100, "effectIds": [] }, { "quality": "amazing", "mass": null, "size": 0, "cost": 200, "effectIds": [] }
+    ]},
+    { "id": "biowatch", "name": "BioWatch", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": false, "freeSkillPointTraining": true, "effectIds": ["biowatch"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 0, "cost": 50, "effectIds": [] }, { "quality": "good", "mass": null, "size": 0, "cost": 100, "effectIds": [] }, { "quality": "amazing", "mass": null, "size": 0, "cost": 300, "effectIds": [] }
+    ]},
+    { "id": "body-plating", "name": "Body Plating", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": false, "freeSkillPointTraining": false, "effectIds": ["body-plating"], "qualities": [
+      { "quality": "ordinary", "mass": 20, "size": 2, "cost": 1500, "effectIds": ["body-plating-ordinary"] },
+      { "quality": "good", "mass": 40, "size": 3, "cost": 3000, "effectIds": ["body-plating-good", "ability-dex-minus-1"] },
+      { "quality": "amazing", "mass": 60, "size": 4, "cost": 4500, "effectIds": ["body-plating-amazing", "ability-dex-minus-2"] }
+    ]},
+    { "id": "cyberlimb", "name": "Cyberlimb", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["cyberlimb"], "qualities": [
+      { "quality": "ordinary", "mass": 10, "size": 2, "cost": 1000, "effectIds": ["cyberlimb-str-plus-1"] },
+      { "quality": "good", "mass": 10, "size": 2, "cost": 2000, "effectIds": ["cyberlimb-str-plus-2", "requires-exoskeleton"] },
+      { "quality": "amazing", "mass": 10, "size": 2, "cost": 3000, "effectIds": ["cyberlimb-str-plus-3", "requires-exoskeleton"] }
+    ]},
+    { "id": "cyberoptics", "name": "Cyberoptics", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["cyberoptics"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 1, "cost": 500, "effectIds": ["digital-camera"] }, { "quality": "good", "mass": null, "size": 1, "cost": 1000, "effectIds": ["extended-vision"] }, { "quality": "amazing", "mass": null, "size": 1, "cost": 2000, "effectIds": ["extended-improved-vision"] }
+    ]},
+    { "id": "fast-chip", "name": "Fast Chip", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["fast-chip", "cykosis-risk"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 2, "cost": 1000, "effectIds": ["action-check-minus-1"] }, { "quality": "good", "mass": null, "size": 2, "cost": 1500, "effectIds": ["action-check-minus-2"] }, { "quality": "amazing", "mass": null, "size": 2, "cost": 2000, "effectIds": ["action-check-minus-3"] }
+    ]},
+    { "id": "muscleplus", "name": "MusclePlus", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["muscleplus"], "qualities": [
+      { "quality": "ordinary", "mass": 2, "size": 2, "cost": 1000, "effectIds": ["muscleplus-str-plus-1"] }, { "quality": "good", "mass": 2, "size": 2, "cost": 2000, "effectIds": ["muscleplus-str-plus-2", "requires-exoskeleton"] }, { "quality": "amazing", "mass": 2, "size": 2, "cost": 3000, "effectIds": ["muscleplus-str-plus-3", "requires-exoskeleton", "requires-cyberlimb"] }
+    ]},
+    { "id": "nanocomputer", "name": "Nanocomputer", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": false, "freeSkillPointTraining": false, "effectIds": ["nanocomputer"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 1, "cost": 2000, "effectIds": ["nanocomputer-ordinary"] }, { "quality": "good", "mass": null, "size": 1, "cost": 3000, "effectIds": ["nanocomputer-good"] }, { "quality": "amazing", "mass": null, "size": 1, "cost": 4000, "effectIds": ["nanocomputer-amazing"] }
+    ]},
+    { "id": "nijack", "name": "NIJack", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["nijack"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 1, "cost": 500, "effectIds": [] }
+    ]},
+    { "id": "optic-screen", "name": "Optic Screen", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["optic-screen"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 0, "cost": 250, "effectIds": [] }
+    ]},
+    { "id": "self-repair-unit", "name": "Self-Repair Unit", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["self-repair-unit"], "qualities": [
+      { "quality": "ordinary", "mass": 2, "size": 2, "cost": 1000, "effectIds": [] }, { "quality": "good", "mass": 2, "size": 2, "cost": 2000, "effectIds": [] }, { "quality": "amazing", "mass": 2, "size": 2, "cost": 3000, "effectIds": [] }
+    ]},
+    { "id": "subdermal-comm", "name": "Subdermal Comm", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": false, "freeSkillPointTraining": false, "effectIds": ["subdermal-comm"], "qualities": [
+      { "quality": "good", "mass": null, "size": 1, "cost": 500, "effectIds": [] }
+    ]},
+    { "id": "subdermal-weapon-mount", "name": "Subdermal Weapon Mount", "sourcePackId": "phb", "progressLevel": 6, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["subdermal-weapon-mount"], "qualities": [
+      { "quality": "ordinary", "mass": 2, "size": 2, "cost": 250, "effectIds": ["weapon-mass-max-1"] }, { "quality": "good", "mass": 2, "size": 3, "cost": 500, "effectIds": ["weapon-mass-max-3", "requires-cyberlimb"] }, { "quality": "amazing", "mass": 2, "size": 4, "cost": 750, "effectIds": ["weapon-mass-max-6", "requires-exoskeleton", "requires-cyberlimb"] }
+    ]},
+    { "id": "cf-skinweave", "name": "CF Skinweave", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": false, "freeSkillPointTraining": true, "effectIds": ["cf-skinweave"], "qualities": [
+      { "quality": "ordinary", "mass": null, "size": 1, "cost": 1000, "effectIds": ["stun-plus-2"] }, { "quality": "good", "mass": null, "size": 1, "cost": 2000, "effectIds": ["stun-plus-2", "wound-plus-1"] }, { "quality": "amazing", "mass": null, "size": 1, "cost": 3000, "effectIds": ["stun-plus-2", "wound-plus-1", "mortal-plus-1"] }
+    ]},
+    { "id": "data-slot-passive", "name": "Data Slot, Passive", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": false, "freeSkillPointTraining": true, "effectIds": ["passive-data-slot"], "qualities": [
+      { "quality": "ordinary", "mass": 1, "size": 1, "cost": 500, "effectIds": ["supports-3d"] }, { "quality": "good", "mass": 1, "size": 1, "cost": 700, "effectIds": ["supports-3d-x3d"] }, { "quality": "amazing", "mass": 1, "size": 1, "cost": 900, "effectIds": ["supports-3d-x3d"] }
+    ]},
+    { "id": "er-slot", "name": "ER Slot", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["er-slot"], "qualities": [
+      { "quality": "ordinary", "mass": 1, "size": 1, "cost": 500, "effectIds": [] }, { "quality": "good", "mass": 1, "size": 1, "cost": 1000, "effectIds": [] }, { "quality": "amazing", "mass": 1, "size": 1, "cost": 1500, "effectIds": [] }
+    ]},
+    { "id": "er-slot-passive", "name": "ER Slot, Passive", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": false, "freeSkillPointTraining": true, "effectIds": ["er-slot-passive"], "qualities": [
+      { "quality": "ordinary", "mass": 1, "size": 1, "cost": 500, "effectIds": [] }, { "quality": "good", "mass": 1, "size": 1, "cost": 1000, "effectIds": [] }, { "quality": "amazing", "mass": 1, "size": 1, "cost": 1500, "effectIds": [] }
+    ]},
+    { "id": "exoskeleton", "name": "Exoskeleton", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["exoskeleton"], "qualities": [
+      { "quality": "ordinary", "mass": 30, "size": 3, "cost": 2000, "effectIds": ["stun-plus-2"] }, { "quality": "good", "mass": 30, "size": 3, "cost": 3000, "effectIds": ["stun-plus-2", "wound-plus-2"] }, { "quality": "amazing", "mass": 30, "size": 3, "cost": 4000, "effectIds": ["stun-plus-2", "wound-plus-2", "mortal-plus-2"] }
+    ]},
+    { "id": "neural-3d-external", "name": "Neural 3D, External", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["neural-3d-external"], "qualities": [
+      { "quality": "ordinary", "mass": 1, "size": 1, "cost": 500, "effectIds": [] }, { "quality": "good", "mass": 1, "size": 1, "cost": 750, "effectIds": [] }, { "quality": "amazing", "mass": 1, "size": 1, "cost": 1000, "effectIds": [] }
+    ]},
+    { "id": "reflex", "name": "Reflex", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["reflex"], "qualities": [
+      { "quality": "good", "mass": null, "size": 2, "cost": 2000, "effectIds": ["enhance-program-minus-2"] }
+    ]},
+    { "id": "subdermal-nijack", "name": "Subdermal NIJack", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["subdermal-nijack"], "qualities": [
+      { "quality": "good", "mass": null, "size": 1, "cost": 700, "effectIds": [] }
+    ]},
+    { "id": "wireless-nijack", "name": "Wireless NIJack", "sourcePackId": "phb", "progressLevel": 7, "requiresNanocomputer": true, "freeSkillPointTraining": false, "effectIds": ["wireless-nijack"], "qualities": [
+      { "quality": "good", "mass": null, "size": 1, "cost": 1000, "effectIds": [] }
+    ]}
+  ]
+}

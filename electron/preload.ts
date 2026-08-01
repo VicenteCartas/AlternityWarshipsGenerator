@@ -54,6 +54,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onExportBattleReport: (callback: () => void) => {
     ipcRenderer.on('menu-export-battle-report', callback);
   },
+  onNewCharacter: (callback: () => void) => {
+    ipcRenderer.on('menu-new-character', callback);
+  },
+  onOpenCharacter: (callback: () => void) => {
+    ipcRenderer.on('menu-open-character', callback);
+  },
+  onSaveCharacter: (callback: () => void) => {
+    ipcRenderer.on('menu-save-character', callback);
+  },
+  onSaveCharacterAs: (callback: () => void) => {
+    ipcRenderer.on('menu-save-character-as', callback);
+  },
+  onExportCharacterPdf: (callback: () => void) => {
+    ipcRenderer.on('menu-export-character-pdf', callback);
+  },
+  onImportTravelShip: (callback: () => void) => {
+    ipcRenderer.on('menu-import-travel-ship', callback);
+  },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },
@@ -79,6 +97,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('show-battle-save-dialog', defaultFileName, defaultDirectory),
   showBattleOpenDialog: () =>
     ipcRenderer.invoke('show-battle-open-dialog'),
+
+  // Character save/load file dialogs
+  showCharacterSaveDialog: (defaultFileName: string, defaultDirectory?: string) =>
+    ipcRenderer.invoke('show-character-save-dialog', defaultFileName, defaultDirectory),
+  showCharacterOpenDialog: () =>
+    ipcRenderer.invoke('show-character-open-dialog'),
 
   // Battle library & auto-save
   scanBattleFiles: (directoryPath: string) =>

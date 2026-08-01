@@ -7,6 +7,7 @@
 
 import type { LoadedCraft, EmbarkedCraftStats, BerthingType } from '../types/embarkedCraft';
 import type { InstalledHangarMiscSystem } from '../types/hangarMisc';
+import type { Hull } from '../types/hull';
 
 /**
  * Generate a unique ID for a loaded craft assignment
@@ -17,6 +18,16 @@ export function generateLoadedCraftId(): string {
 
 /** Maximum HP for a craft to fit in a hangar (per rules) */
 export const HANGAR_MAX_CRAFT_HP = 100;
+
+/**
+ * Capacity rules use a craft's base hull points. Economy-of-scale bonus hull
+ * points are free installation space and do not increase its berthing size.
+ */
+export function getEmbarkedCraftHullPoints(
+  hull: Pick<Hull, 'hullPoints' | 'bonusHullPoints'>,
+): number {
+  return hull.hullPoints;
+}
 
 /**
  * Determine the berthing type of a hangar/misc system.

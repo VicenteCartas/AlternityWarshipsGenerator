@@ -120,6 +120,12 @@ export interface ElectronAPI {
   onSaveBattleAs: (callback: () => void) => void;
   onBattleLibrary: (callback: () => void) => void;
   onExportBattleReport: (callback: () => void) => void;
+  onNewCharacter: (callback: () => void) => void;
+  onOpenCharacter: (callback: () => void) => void;
+  onSaveCharacter: (callback: () => void) => void;
+  onSaveCharacterAs: (callback: () => void) => void;
+  onExportCharacterPdf: (callback: () => void) => void;
+  onImportTravelShip: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   
   // File operations
@@ -166,6 +172,10 @@ export interface ElectronAPI {
   // Battle save/load file dialogs
   showBattleSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
   showBattleOpenDialog: () => Promise<OpenDialogResult>;
+
+  // Character save/load file dialogs
+  showCharacterSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
+  showCharacterOpenDialog: () => Promise<OpenDialogResult>;
 
   // Battle library & auto-save
   scanBattleFiles: (directoryPath: string) => Promise<ScanBattleFilesResult>;

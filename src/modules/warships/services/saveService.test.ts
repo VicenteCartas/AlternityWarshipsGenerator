@@ -138,6 +138,7 @@ import { getAllAccommodationTypes, getAllGravitySystemTypes } from './supportSys
 import { getAllDefenseSystemTypes, calculateDefenseHullPoints, calculateDefensePower, calculateDefenseCost } from './defenseService';
 import { getAllCommandControlSystemTypes, calculateFireControlCost, calculateSensorControlCost } from './commandControlService';
 import { getAllSensorTypes, calculateTrackingCapability } from './sensorService';
+import { getAllHangarMiscSystemTypes, calculateHangarMiscCapacity } from './hangarMiscService';
 import { getAllBeamWeaponTypes, createInstalledWeapon } from './weaponService';
 import { getWarheads, getPropulsionSystems, getGuidanceSystems, getLaunchSystems, calculateLaunchSystemStats, findPropulsionByCategory } from './ordnanceService';
 
@@ -811,6 +812,45 @@ describe('saveService', () => {
       });
       deserializeWarship(saveFile);
       expect(calculateDefenseHullPoints).toHaveBeenCalledWith(defType, 100, 1);
+    });
+  });
+
+  describe('deserializeWarship - embarked craft', () => {
+    it('migrates legacy total-hull capacity snapshots to base hull points', () => {
+      const craftHull = makeHull({
+        id: 'escort-hull',
+        name: 'Escort Hull',
+        hullPoints: 80,
+        bonusHullPoints: 24,
+      });
+      const hangarType = { id: 'hangar', name: 'Hangar', hangarCapacity: 1 };
+      (getAllHulls as ReturnType<typeof vi.fn>).mockReturnValue([craftHull]);
+      (getAllHangarMiscSystemTypes as ReturnType<typeof vi.fn>).mockReturnValue([hangarType]);
+      (calculateHangarMiscCapacity as ReturnType<typeof vi.fn>).mockReturnValue(100);
+
+      const saveFile = makeMinimalSaveFile({
+        hangarMisc: [{
+          id: 'hangar-1',
+          typeId: 'hangar',
+          quantity: 100,
+          loadout: [{
+            id: 'craft-1',
+            filePath: 'escort.warship.json',
+            name: 'Escort',
+            hullHp: 104,
+            hullName: 'Escort Hull',
+            quantity: 1,
+            designCost: 1000000,
+          }],
+        }],
+      });
+
+      const result = deserializeWarship(saveFile);
+      expect(result.success).toBe(true);
+      expect(result.state!.hangarMisc[0].loadout![0].hullHp).toBe(80);
+      expect(result.warnings).toContain(
+        'Embarked craft "Escort" capacity corrected from 104 HP to its 80 HP base hull.',
+      );
     });
   });
 

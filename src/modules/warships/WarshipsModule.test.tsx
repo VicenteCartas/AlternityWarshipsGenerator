@@ -6,7 +6,7 @@
  * critical user flows identified in architecture review item 2.8.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
 import WarshipsModule from './WarshipsModule';
@@ -468,6 +468,23 @@ describe('App — Return to Welcome', () => {
       mockElectron.triggerMenuEvent('onReturnToStart');
     });
 
+    await waitForWelcome();
+  });
+
+  it('confirms before native navigation discards an unsaved design', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await waitForWelcome();
+    await createNewWarship(user);
+    fireEvent.change(screen.getByLabelText('Design Name'), { target: { value: 'Unsaved Scout' } });
+
+    await act(async () => {
+      mockElectron.triggerMenuEvent('onReturnToStart');
+    });
+    expect(screen.getByRole('heading', { name: 'Discard unsaved design changes?' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Design Name')).toHaveValue('Unsaved Scout');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     await waitForWelcome();
   });
 });

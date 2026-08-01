@@ -1,0 +1,60 @@
+{
+  "sourcePackId": "phb",
+  "rules": {
+    "talentBroadSkillLimit": 1,
+    "talentSpecialtySkillLimit": 2,
+    "talentHighRankSpecialtyLimit": 1,
+    "talentHighRankThreshold": 3,
+    "talentMaximumSpecialtyRank": 6,
+    "talentCostSurcharge": 1,
+    "broadSkillEnergyCost": 2,
+    "specialtySkillEnergyCost": 1,
+    "criticalFailureEnergyCost": 3,
+    "extendedDurationEnergyCost": 1,
+    "fullRecoveryRestHours": 8,
+    "hourlyRecovery": {
+      "criticalFailure": -1,
+      "failure": 0,
+      "ordinary": 1,
+      "good": 2,
+      "amazing": 3
+    }
+  },
+  "skills": [
+    { "id": "biokinesis", "name": "Biokinesis", "sourcePackId": "phb", "ability": "con", "kind": "broad", "listedCost": 6, "canUseUntrained": false },
+    { "id": "bioweapon", "name": "Bioweapon", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 3, "canUseUntrained": true },
+    { "id": "control-metabolism", "name": "Control metabolism", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 2, "canUseUntrained": true },
+    { "id": "heal", "name": "Heal", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 4, "canUseUntrained": false },
+    { "id": "morph", "name": "Morph", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 4, "canUseUntrained": false },
+    { "id": "rejuvenate", "name": "Rejuvenate", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 3, "canUseUntrained": true },
+    { "id": "transfer-damage", "name": "Transfer damage", "sourcePackId": "phb", "ability": "con", "kind": "specialty", "parentSkillId": "biokinesis", "listedCost": 2, "canUseUntrained": true },
+
+    { "id": "esp", "name": "Extrasensory Perception (ESP)", "sourcePackId": "phb", "ability": "int", "kind": "broad", "listedCost": 5, "canUseUntrained": false },
+    { "id": "battle-mind", "name": "Battle mind", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 4, "canUseUntrained": false },
+    { "id": "clairaudience", "name": "Clairaudience", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 2, "canUseUntrained": true },
+    { "id": "clairvoyance", "name": "Clairvoyance", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 2, "canUseUntrained": true },
+    { "id": "empathy", "name": "Empathy", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 1, "canUseUntrained": true },
+    { "id": "mind-reading", "name": "Mind reading", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 3, "canUseUntrained": true },
+    { "id": "postcognition", "name": "Postcognition", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 3, "canUseUntrained": true },
+    { "id": "precognition", "name": "Precognition", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 4, "canUseUntrained": true },
+    { "id": "psychometry", "name": "Psychometry", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 3, "canUseUntrained": true },
+    { "id": "sensitivity", "name": "Sensitivity", "sourcePackId": "phb", "ability": "int", "kind": "specialty", "parentSkillId": "esp", "listedCost": 2, "canUseUntrained": true },
+
+    { "id": "telekinesis", "name": "Telekinesis", "sourcePackId": "phb", "ability": "wil", "kind": "broad", "listedCost": 6, "canUseUntrained": false },
+    { "id": "electrokinetics", "name": "Electrokinetics", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 3, "canUseUntrained": false },
+    { "id": "kinetic-shield", "name": "Kinetic shield", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 2, "canUseUntrained": false },
+    { "id": "levitation", "name": "Levitation", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 2, "canUseUntrained": true },
+    { "id": "photokinetics", "name": "Photokinetics", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 1, "canUseUntrained": true },
+    { "id": "psychokinetics", "name": "Psychokinetics", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 3, "canUseUntrained": true },
+    { "id": "pyrokinetics", "name": "Pyrokinetics", "sourcePackId": "phb", "ability": "wil", "kind": "specialty", "parentSkillId": "telekinesis", "listedCost": 4, "canUseUntrained": false },
+
+    { "id": "telepathy", "name": "Telepathy", "sourcePackId": "phb", "ability": "per", "kind": "broad", "listedCost": 5, "canUseUntrained": false },
+    { "id": "contact", "name": "Contact", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 3, "canUseUntrained": true },
+    { "id": "datalink", "name": "Datalink", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 4, "canUseUntrained": false },
+    { "id": "illusion", "name": "Illusion", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 3, "canUseUntrained": true },
+    { "id": "mind-blast", "name": "Mind blast", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 4, "canUseUntrained": false },
+    { "id": "mind-shield", "name": "Mind shield", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 2, "canUseUntrained": true },
+    { "id": "suggest", "name": "Suggest", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 3, "canUseUntrained": true },
+    { "id": "tire", "name": "Tire", "sourcePackId": "phb", "ability": "per", "kind": "specialty", "parentSkillId": "telepathy", "listedCost": 3, "canUseUntrained": true }
+  ]
+}

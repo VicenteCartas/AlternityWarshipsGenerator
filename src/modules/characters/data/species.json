@@ -1,0 +1,117 @@
+{
+  "species": [
+    {
+      "id": "human",
+      "name": "Human",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 4, "max": 14 }, "dex": { "min": 4, "max": 14 },
+        "con": { "min": 4, "max": 14 }, "int": { "min": 4, "max": 14 },
+        "wil": { "min": 4, "max": 14 }, "per": { "min": 4, "max": 14 }
+      },
+      "freeBroadSkillIds": ["athletics", "vehicle-operation", "stamina", "knowledge", "awareness", "interaction"],
+      "startingSkillPointBonus": 5,
+      "broadSkillLimitBonus": 1,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["human-skill-bonus"]
+    },
+    {
+      "id": "mutant-human",
+      "name": "Mutant Human",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 4, "max": 14 }, "dex": { "min": 4, "max": 14 },
+        "con": { "min": 4, "max": 14 }, "int": { "min": 4, "max": 14 },
+        "wil": { "min": 4, "max": 14 }, "per": { "min": 4, "max": 14 }
+      },
+      "freeBroadSkillIds": ["athletics", "vehicle-operation", "stamina", "knowledge", "awareness", "interaction"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["mutant-human", "mutation-package"],
+      "requiresMutations": true
+    },
+    {
+      "id": "fraal",
+      "name": "Fraal",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 4, "max": 11 }, "dex": { "min": 4, "max": 11 },
+        "con": { "min": 4, "max": 10 }, "int": { "min": 9, "max": 15 },
+        "wil": { "min": 9, "max": 16 }, "per": { "min": 4, "max": 15 }
+      },
+      "freeBroadSkillIds": ["vehicle-operation", "knowledge", "awareness", "resolve", "interaction", "telepathy"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["fraal-natural-psionics"]
+    },
+    {
+      "id": "mechalus",
+      "name": "Mechalus",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 8, "max": 14 }, "dex": { "min": 4, "max": 14 },
+        "con": { "min": 6, "max": 14 }, "int": { "min": 7, "max": 15 },
+        "wil": { "min": 6, "max": 12 }, "per": { "min": 4, "max": 12 }
+      },
+      "freeBroadSkillIds": ["athletics", "vehicle-operation", "stamina", "knowledge", "computer-science", "awareness"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["mechalus-computer-operation", "mechalus-cybernetic-enhancements"]
+    },
+    {
+      "id": "sesheyan",
+      "name": "Sesheyan",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 6, "max": 12 }, "dex": { "min": 7, "max": 15 },
+        "con": { "min": 4, "max": 10 }, "int": { "min": 4, "max": 12 },
+        "wil": { "min": 9, "max": 15 }, "per": { "min": 4, "max": 12 }
+      },
+      "freeBroadSkillIds": ["melee-weapons", "acrobatics", "stamina", "knowledge", "awareness", "interaction"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["sesheyan-flight", "sesheyan-zero-g-training", "sesheyan-light-sensitivity", "sesheyan-night-vision"]
+    },
+    {
+      "id": "tsa",
+      "name": "T'sa",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 4, "max": 11 }, "dex": { "min": 9, "max": 16 },
+        "con": { "min": 4, "max": 10 }, "int": { "min": 8, "max": 14 },
+        "wil": { "min": 4, "max": 12 }, "per": { "min": 4, "max": 13 }
+      },
+      "freeBroadSkillIds": ["athletics", "manipulation", "stamina", "knowledge", "awareness", "interaction"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1,
+      "actionCheckDieStep": -1,
+      "specialAbilityIds": ["tsa-action-check-bonus", "tsa-jury-rig", "tsa-natural-armor"]
+    },
+    {
+      "id": "weren",
+      "name": "Weren",
+      "sourcePackId": "phb",
+      "abilityLimits": {
+        "str": { "min": 9, "max": 16 }, "dex": { "min": 4, "max": 12 },
+        "con": { "min": 8, "max": 16 }, "int": { "min": 4, "max": 13 },
+        "wil": { "min": 4, "max": 12 }, "per": { "min": 4, "max": 12 }
+      },
+      "freeBroadSkillIds": ["athletics", "unarmed-attack", "stamina", "knowledge", "awareness", "interaction"],
+      "startingSkillPointBonus": 0,
+      "broadSkillLimitBonus": 0,
+      "durabilityMultiplier": 1.5,
+      "actionCheckDieStep": 0,
+      "specialAbilityIds": ["weren-superior-durability", "weren-natural-weapon", "weren-camouflage", "weren-primitive-culture"]
+    }
+  ]
+}

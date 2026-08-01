@@ -192,7 +192,7 @@ export interface SavedLoadedCraft {
   filePath: string;
   /** Design name (snapshotted) */
   name: string;
-  /** Hull HP of the craft (snapshotted) */
+  /** Base hull HP of the craft (snapshotted; bonus hull is excluded) */
   hullHp: number;
   /** Hull name (snapshotted) */
   hullName: string;
