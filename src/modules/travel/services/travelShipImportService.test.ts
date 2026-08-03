@@ -3,6 +3,7 @@ import type { WarshipSaveFile } from '@warships/types/saveFile';
 import {
   assessEngineFuel,
   deriveTravelShipProfile,
+  getImportedShipAccelerationMps2,
 } from './travelShipImportService';
 import { accelerationRatingToMps2 } from './travelCalculationService';
 
@@ -63,7 +64,11 @@ describe('deriveTravelShipProfile', () => {
     expect(profile.accelerationMps2).toBeCloseTo(accelerationRatingToMps2(1, 'pl6'), 10);
     expect(profile.engines[0].fuelEnduranceDays).toBeCloseTo(200, 10);
     expect(profile.hasAccelerationCompensation).toBe(false);
-    expect(profile.warnings.some((warning) => warning.includes('dimensionally consistent'))).toBe(true);
+    expect(profile.warnings.some((warning) => warning.includes('selected calculation method'))).toBe(true);
+    expect(getImportedShipAccelerationMps2(profile, 'warships-published')).toBeCloseTo(
+      accelerationRatingToMps2(1, 'pl6', 'warships-published'),
+      10,
+    );
   });
 
   it('groups same-type engine HP before using a non-linear acceleration table', () => {
@@ -97,6 +102,11 @@ describe('deriveTravelShipProfile', () => {
       8,
     );
     expect(profile.warnings.some((warning) => warning.includes('mixes PL6 and PL7+'))).toBe(true);
+    expect(getImportedShipAccelerationMps2(profile, 'warships-published')).toBeCloseTo(
+      accelerationRatingToMps2(1, 'pl6', 'warships-published')
+        + accelerationRatingToMps2(2, 'pl7plus', 'warships-published'),
+      8,
+    );
   });
 
   it('recognizes acceleration compensation on an all-PL7+ drive package', () => {

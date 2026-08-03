@@ -60,4 +60,44 @@ describe('CybergearStep', () => {
     expect(screen.getByText(/intrinsic Good nanocomputer, two neural data slots/i)).toBeInTheDocument();
     expect(screen.getByText(/circuitry functioning as a reflex device/i)).toBeInTheDocument();
   });
+
+  it('defaults to the character PL and supports all or multiple exact levels', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={createTheme()}>
+        <CybergearStep
+          speciesId="human"
+          selections={[]}
+          progressLevel={6}
+          validation={validation}
+          onChange={vi.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    const progressLevels = screen.getByRole('combobox', { name: 'Progress Levels' });
+    expect(progressLevels).toHaveTextContent('PL 6');
+    expect(screen.getByRole('checkbox', { name: 'Install Body Plating' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Install CF Skinweave' })).not.toBeInTheDocument();
+
+    await user.click(progressLevels);
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
+    expect(progressLevels).toHaveTextContent('All PLs');
+    expect(screen.getByRole('checkbox', { name: 'Install Body Plating' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Install CF Skinweave' })).toBeInTheDocument();
+
+    await user.click(progressLevels);
+    await user.click(screen.getByRole('option', { name: 'PL 6' }));
+    await user.click(screen.getByRole('option', { name: 'PL 7' }));
+    await user.keyboard('{Escape}');
+    expect(progressLevels).toHaveTextContent('PL 6, PL 7');
+
+    await user.click(progressLevels);
+    await user.click(screen.getByRole('option', { name: 'PL 6' }));
+    await user.keyboard('{Escape}');
+    expect(progressLevels).toHaveTextContent('PL 7');
+    expect(screen.queryByRole('checkbox', { name: 'Install Body Plating' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Install CF Skinweave' })).toBeInTheDocument();
+  });
 });

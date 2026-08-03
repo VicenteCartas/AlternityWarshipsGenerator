@@ -47,12 +47,14 @@ import {
   accelerationRatingToMps2,
   mpsToSpeedRating,
   speedRatingToMps,
+  type AccelerationConversionMethod,
   type DistanceUnitId,
   type TravelProfile,
   type WarshipsScaleId,
 } from './services/travelCalculationService';
 import {
   assessEngineFuel,
+  getImportedShipAccelerationMps2,
   loadTravelShipProfile,
   type ImportedTravelShip,
 } from './services/travelShipImportService';
@@ -89,6 +91,7 @@ export function TravelModule({
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnitId>('AU');
   const [scaleId, setScaleId] = useState<WarshipsScaleId>('pl7plus');
   const [accelerationSource, setAccelerationSource] = useState<AccelerationSource>('rating');
+  const [accelerationConversionMethod, setAccelerationConversionMethod] = useState<AccelerationConversionMethod>('scale-derived');
   const [accelerationRating, setAccelerationRating] = useState(1);
   const [physicalAcceleration, setPhysicalAcceleration] = useState(1);
   const [physicalAccelerationUnit, setPhysicalAccelerationUnit] = useState<PhysicalAccelerationUnit>('g');
@@ -108,10 +111,12 @@ export function TravelModule({
   const scale = getWarshipsScale(scaleId);
   const distanceMeters = distanceToMeters(distance, distanceUnit, scaleId);
   const accelerationMps2 = accelerationSource === 'ship'
-    ? importedShip?.accelerationMps2 ?? 0
+    ? importedShip
+      ? getImportedShipAccelerationMps2(importedShip, accelerationConversionMethod)
+      : 0
     : accelerationSource === 'physical'
       ? physicalAcceleration * (physicalAccelerationUnit === 'g' ? STANDARD_GRAVITY_MPS2 : 1)
-      : accelerationRatingToMps2(accelerationRating, scaleId);
+      : accelerationRatingToMps2(accelerationRating, scaleId, accelerationConversionMethod);
 
   let speedCapMps: number | undefined;
   if (speedCapEnabled) {
@@ -316,6 +321,21 @@ export function TravelModule({
                 </ToggleButtonGroup>
 
                 <Stack spacing={2} sx={{ mt: 2 }}>
+                  {accelerationSource !== 'physical' && (
+                    <TextField
+                      select
+                      label="Acceleration calculation"
+                      value={accelerationConversionMethod}
+                      onChange={(event) => setAccelerationConversionMethod(
+                        event.target.value as AccelerationConversionMethod,
+                      )}
+                      fullWidth
+                    >
+                      <MenuItem value="scale-derived">Scale-derived</MenuItem>
+                      <MenuItem value="warships-published">Warships published</MenuItem>
+                    </TextField>
+                  )}
+
                   <TextField
                     select
                     label={accelerationSource === 'rating' ? 'Warships scale' : 'Reporting scale'}
@@ -637,11 +657,13 @@ export function TravelModule({
               </Paper>
             )}
 
-            {(scaleId === 'pl6' || importedShip?.warnings.length) && (
+            {(accelerationSource !== 'physical' || importedShip?.warnings.length) && (
               <Stack spacing={1}>
-                {scaleId === 'pl6' && (
-                  <Alert severity="warning">
-                    Warships and the supplied conversion note state that PL6 Acceleration 1 is about 17 g. Their own 50 km hex and 5 minute round instead yield 0.5556 m/s^2, or 0.0567 g. Travel results use the dimensionally consistent scale conversion.
+                {accelerationSource !== 'physical' && (
+                  <Alert severity={accelerationConversionMethod === 'warships-published' ? 'warning' : 'info'}>
+                    {accelerationConversionMethod === 'warships-published'
+                      ? 'Warships published conversion is active. It treats velocity gained per round as acceleration: Acceleration 1 is about 17 g at PL6 and 3,399 g at PL7+.'
+                      : 'Scale-derived conversion is active. It divides velocity gained by the round duration: Acceleration 1 is about 0.0567 g at PL6 and 113.3 g at PL7+.'}
                   </Alert>
                 )}
                 {importedShip?.warnings.map((warning) => (

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,16 +16,25 @@ vi.mock('../services/characterDataService', () => ({
       id: 'mod-toolkit', name: 'Frontier Toolkit', sourcePackId: 'phb', _source: 'Outer Rim Gear',
       category: 'miscellaneous', progressLevel: 6, mass: 2, costMode: 'fixed', cost: 100, effectIds: [],
     },
+    {
+      id: 'comm-gear', name: 'Comm Gear', sourcePackId: 'phb', category: 'communications',
+      progressLevel: 7, mass: null, costMode: 'fixed', cost: 175, effectIds: [],
+    },
   ],
-  getEquipmentById: (id: string) => id === 'bedroll'
-    ? {
+  getEquipmentById: (id: string) => {
+    if (id === 'bedroll') return {
         id: 'bedroll', name: 'Bedroll', sourcePackId: 'phb', category: 'miscellaneous',
         progressLevel: 4, mass: 3, costMode: 'fixed', cost: 25, effectIds: [],
-      }
-    : {
+      };
+    if (id === 'comm-gear') return {
+      id: 'comm-gear', name: 'Comm Gear', sourcePackId: 'phb', category: 'communications',
+      progressLevel: 7, mass: null, costMode: 'fixed', cost: 175, effectIds: [],
+    };
+    return {
         id: 'mod-toolkit', name: 'Frontier Toolkit', sourcePackId: 'phb', _source: 'Outer Rim Gear',
         category: 'miscellaneous', progressLevel: 6, mass: 2, costMode: 'fixed', cost: 100, effectIds: [],
-      },
+      };
+  },
   getAllWeapons: () => [
     {
       id: 'combat-knife', name: 'Combat knife', sourcePackId: 'phb', category: 'melee',
@@ -84,10 +93,16 @@ describe('LoadoutStep', () => {
       </ThemeProvider>,
     );
 
-    for (const category of ['All', 'Sensors', 'Misc', 'Survival', 'Services', 'Computers']) {
+    for (const category of [
+      'All', 'Clothing', 'Communications', 'Medical', 'Professional',
+      'Sensors', 'Misc', 'Survival', 'Services', 'Computers',
+    ]) {
       expect(screen.getByRole('tab', { name: new RegExp(`^${category}$`) })).toBeInTheDocument();
     }
 
+    await user.click(screen.getByRole('combobox', { name: 'Progress Levels' }));
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
     await user.click(screen.getByRole('tab', { name: /^Weapons & Armor$/ }));
     for (const category of ['Melee', 'Ranged', 'Heavy', 'Armor']) {
       expect(screen.getByRole('tab', { name: new RegExp(`^${category}$`) })).toBeInTheDocument();
@@ -118,6 +133,9 @@ describe('LoadoutStep', () => {
       </ThemeProvider>,
     );
 
+    await user.click(screen.getByRole('combobox', { name: 'Progress Levels' }));
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
     expect(screen.getByText(/roll all five starting-funds dice/i)).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Buy Bedroll' })).toBeDisabled();
     await user.click(screen.getByRole('tab', { name: /^Weapons & Armor$/ }));
@@ -138,7 +156,8 @@ describe('LoadoutStep', () => {
     expect(screen.getByRole('checkbox', { name: 'Buy Hide armor' })).toBeEnabled();
   });
 
-  it('allows a pre-existing selection to be removed before funds are ready', () => {
+  it('allows a pre-existing selection to be removed before funds are ready', async () => {
+    const user = userEvent.setup();
     render(
       <ThemeProvider theme={createTheme()}>
         <LoadoutStep
@@ -156,7 +175,104 @@ describe('LoadoutStep', () => {
         />
       </ThemeProvider>,
     );
+    await user.click(screen.getByRole('combobox', { name: 'Progress Levels' }));
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
     expect(screen.getByRole('checkbox', { name: 'Buy Bedroll' })).toBeEnabled();
+  });
+
+  it('defaults to the character PL and supports all or multiple exact levels', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={createTheme()}>
+        <LoadoutStep
+          equipmentSelections={[]}
+          weaponSelections={[]}
+          armorSelections={[]}
+          dieRolls={[]}
+          progressLevel={6}
+          validation={validation}
+          onEquipmentSelectionsChange={vi.fn()}
+          onWeaponSelectionsChange={vi.fn()}
+          onArmorSelectionsChange={vi.fn()}
+          onDieRollsChange={vi.fn()}
+          onWealthDegreeChange={vi.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    const progressLevels = screen.getByRole('combobox', { name: 'Progress Levels' });
+    const equipmentFilters = screen.getByRole('group', { name: 'Equipment catalogue filters' });
+    const equipmentSearch = within(equipmentFilters).getByLabelText('Search equipment');
+    const equipmentSource = within(equipmentFilters).getByRole('combobox', { name: 'Source' });
+    expect(within(equipmentFilters).queryByRole('tab')).not.toBeInTheDocument();
+    expect(equipmentSearch.compareDocumentPosition(progressLevels) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(progressLevels.compareDocumentPosition(equipmentSource) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(progressLevels).toHaveTextContent('PL 6');
+    expect(screen.getByRole('checkbox', { name: 'Buy Frontier Toolkit' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Buy Bedroll' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Buy Comm Gear' })).not.toBeInTheDocument();
+
+    await user.click(progressLevels);
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
+    expect(progressLevels).toHaveTextContent('All PLs');
+    expect(screen.getByRole('checkbox', { name: 'Buy Bedroll' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Buy Frontier Toolkit' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Buy Comm Gear' })).toBeInTheDocument();
+
+    await user.click(progressLevels);
+    await user.click(screen.getByRole('option', { name: 'PL 4' }));
+    await user.click(screen.getByRole('option', { name: 'PL 7' }));
+    await user.keyboard('{Escape}');
+    expect(progressLevels).toHaveTextContent('PL 4, PL 7');
+    expect(screen.getByRole('checkbox', { name: 'Buy Bedroll' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Buy Frontier Toolkit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Buy Comm Gear' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /^Weapons & Armor$/ }));
+    const combatFilters = screen.getByRole('group', { name: 'Combat gear catalogue filters' });
+    expect(within(combatFilters).queryByRole('tab')).not.toBeInTheDocument();
+    const combatSearch = within(combatFilters).getByLabelText('Search combat gear');
+    const combatProgressLevels = within(combatFilters).getByRole('combobox', { name: 'Progress Levels' });
+    const combatSource = within(combatFilters).getByRole('combobox', { name: 'Source' });
+    expect(combatSearch.compareDocumentPosition(combatProgressLevels) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(combatProgressLevels.compareDocumentPosition(combatSource) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(screen.getByRole('checkbox', { name: 'Buy Combat knife' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Buy Frontier saber' })).not.toBeInTheDocument();
+  });
+
+  it('finds and buys Comm Gear from Table P33', async () => {
+    const user = userEvent.setup();
+    const onEquipmentSelectionsChange = vi.fn();
+    const readyValidation = {
+      ...validation,
+      startingFunds: { valid: true, totalFunds: 4000, dieSize: 8, errors: [] },
+      remainingFunds: 4000,
+    } as unknown as CharacterValidationResult;
+    render(
+      <ThemeProvider theme={createTheme()}>
+        <LoadoutStep
+          equipmentSelections={[]}
+          weaponSelections={[]}
+          armorSelections={[]}
+          dieRolls={[8, 8, 8, 8, 8]}
+          progressLevel={7}
+          validation={readyValidation}
+          onEquipmentSelectionsChange={onEquipmentSelectionsChange}
+          onWeaponSelectionsChange={vi.fn()}
+          onArmorSelectionsChange={vi.fn()}
+          onDieRollsChange={vi.fn()}
+          onWealthDegreeChange={vi.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Communications' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Buy Comm Gear' }));
+    expect(onEquipmentSelectionsChange).toHaveBeenCalledWith([
+      { equipmentId: 'comm-gear', quantity: 1 },
+    ]);
   });
 
   it('filters base and mod equipment sources while keeping one page scrollbar', async () => {

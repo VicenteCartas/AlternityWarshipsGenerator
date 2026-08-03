@@ -4,6 +4,8 @@ import WarshipsModule from '@warships/WarshipsModule';
 import BattlesModule from '@battles/BattlesModule';
 import TravelModule from '@travel/TravelModule';
 import CharactersModule from '@characters/CharactersModule';
+import StarSystemGeneratorModule from '@campaign/StarSystemGeneratorModule';
+import CivilizationBuilderModule from '@campaign/CivilizationBuilderModule';
 import { SuiteHub } from './SuiteHub';
 import { AboutDialog } from './AboutDialog';
 import { KeyboardShortcutsDialog, type ShortcutContext } from './KeyboardShortcutsDialog';
@@ -12,7 +14,15 @@ import { APP_NAME } from '@shared/constants/version';
 import '@shared/types/electron.d.ts';
 import type { ThemeMode } from './theme';
 
-type SuiteMode = 'loading' | 'hub' | 'warships' | 'battles' | 'travel' | 'characters';
+type SuiteMode =
+  | 'loading'
+  | 'hub'
+  | 'warships'
+  | 'battles'
+  | 'travel'
+  | 'characters'
+  | 'star-systems'
+  | 'civilizations';
 
 interface AppProps {
   themeMode: ThemeMode;
@@ -57,7 +67,12 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   // unsaved work. Stateless tools can return directly through the shell.
   useEffect(() => {
     const api = window.electronAPI;
-    if (!api?.onReturnToHub || suiteMode === 'warships' || suiteMode === 'battles' || suiteMode === 'characters') return;
+    if (!api?.onReturnToHub
+      || suiteMode === 'warships'
+      || suiteMode === 'battles'
+      || suiteMode === 'characters'
+      || suiteMode === 'star-systems'
+      || suiteMode === 'civilizations') return;
     const handler = () => setSuiteMode('hub');
     api.onReturnToHub(handler);
     return () => {
@@ -95,6 +110,14 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
 
   const handleOpenCharacters = useCallback(() => {
     setSuiteMode('characters');
+  }, []);
+
+  const handleOpenStarSystems = useCallback(() => {
+    setSuiteMode('star-systems');
+  }, []);
+
+  const handleOpenCivilizations = useCallback(() => {
+    setSuiteMode('civilizations');
   }, []);
 
   const shortcutContext: ShortcutContext = suiteMode === 'characters' ? 'characters'
@@ -182,6 +205,32 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
     );
   }
 
+  if (suiteMode === 'star-systems') {
+    return (
+      <>
+        <StarSystemGeneratorModule
+          themeMode={themeMode}
+          onThemeModeChange={onThemeModeChange}
+          onReturnToHub={handleReturnToHub}
+        />
+        {globalDialogs}
+      </>
+    );
+  }
+
+  if (suiteMode === 'civilizations') {
+    return (
+      <>
+        <CivilizationBuilderModule
+          themeMode={themeMode}
+          onThemeModeChange={onThemeModeChange}
+          onReturnToHub={handleReturnToHub}
+        />
+        {globalDialogs}
+      </>
+    );
+  }
+
   // suiteMode === 'hub'
   return (
     <>
@@ -192,6 +241,8 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
         onOpenBattles={handleOpenBattles}
         onOpenTravel={handleOpenTravel}
         onOpenCharacters={handleOpenCharacters}
+        onOpenStarSystems={handleOpenStarSystems}
+        onOpenCivilizations={handleOpenCivilizations}
         onShowAbout={() => setAboutOpen(true)}
       />
       {globalDialogs}

@@ -1,4 +1,5 @@
-import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { getCharacterIdentityOptions } from '../services/characterDataService';
 import type { CharacterIdentity } from '../types/characterState';
 
 interface IdentityStepProps {
@@ -10,6 +11,31 @@ interface IdentityStepProps {
   onTargetLevelChange: (targetLevel: number) => void;
 }
 
+interface EditableOptionProps {
+  label: string;
+  options: string[];
+  value: string;
+  required?: boolean;
+  onChange: (value: string) => void;
+}
+
+function EditableOption({ label, options, value, required = false, onChange }: EditableOptionProps) {
+  return (
+    <Autocomplete
+      freeSolo
+      autoSelect
+      options={options}
+      value={value || null}
+      inputValue={value}
+      onChange={(_event, nextValue) => onChange(nextValue || '')}
+      onInputChange={(_event, nextValue, reason) => {
+        if (reason === 'input' || reason === 'clear') onChange(nextValue);
+      }}
+      renderInput={(params) => <TextField {...params} label={label} required={required} />}
+    />
+  );
+}
+
 export function IdentityStep({
   identity,
   progressLevel,
@@ -18,8 +44,15 @@ export function IdentityStep({
   onProgressLevelChange,
   onTargetLevelChange,
 }: IdentityStepProps) {
+  const identityOptions = getCharacterIdentityOptions();
   const setField = (field: keyof CharacterIdentity, value: string | string[]) => {
     onIdentityChange({ ...identity, [field]: value });
+  };
+
+  const setTrait = (index: number, value: string) => {
+    const next = [identity.characterTraits[0] || '', identity.characterTraits[1] || ''];
+    next[index] = value;
+    setField('characterTraits', next.filter((trait) => trait.trim().length > 0));
   };
 
   return (
@@ -50,15 +83,32 @@ export function IdentityStep({
         <TextField label="Eyes" value={identity.eyes} onChange={(event) => setField('eyes', event.target.value)} />
         <TextField label="Allegiance" value={identity.allegiance} onChange={(event) => setField('allegiance', event.target.value)} />
         <TextField label="Social Status" value={identity.socialStatus} onChange={(event) => setField('socialStatus', event.target.value)} />
-        <TextField label="Motivation" value={identity.motivation} onChange={(event) => setField('motivation', event.target.value)} required />
-        <TextField label="Moral Attitude" value={identity.moralAttitude} onChange={(event) => setField('moralAttitude', event.target.value)} required />
-        <TextField
-          label="Character Traits"
-          value={identity.characterTraits.join(', ')}
-          onChange={(event) => setField('characterTraits', event.target.value.split(',').map((value) => value.trim()).filter(Boolean))}
-          helperText="Separate traits with commas"
-          error={identity.characterTraits.length > 2}
+        <EditableOption
+          label="Motivation"
+          options={identityOptions.motivations}
+          value={identity.motivation}
+          onChange={(value) => setField('motivation', value)}
           required
+        />
+        <EditableOption
+          label="Moral Attitude"
+          options={identityOptions.moralAttitudes}
+          value={identity.moralAttitude}
+          onChange={(value) => setField('moralAttitude', value)}
+          required
+        />
+        <EditableOption
+          label="Character Trait 1"
+          options={identityOptions.characterTraits.filter((trait) => trait !== identity.characterTraits[1])}
+          value={identity.characterTraits[0] || ''}
+          onChange={(value) => setTrait(0, value)}
+          required
+        />
+        <EditableOption
+          label="Character Trait 2"
+          options={identityOptions.characterTraits.filter((trait) => trait !== identity.characterTraits[0])}
+          value={identity.characterTraits[1] || ''}
+          onChange={(value) => setTrait(1, value)}
         />
       </Box>
       <TextField label="Appearance" value={identity.appearance} onChange={(event) => setField('appearance', event.target.value)} multiline minRows={2} />

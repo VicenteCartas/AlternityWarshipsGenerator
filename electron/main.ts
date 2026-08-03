@@ -30,10 +30,12 @@ type AppMode =
   | 'battles-library'
   | 'battles-mods'
   | 'travel'
+  | 'star-system'
+  | 'civilization'
   | 'characters-welcome'
   | 'characters-builder';
 
-type ModuleGroup = 'hub' | 'warships' | 'characters' | 'battles' | 'travel' | 'other';
+type ModuleGroup = 'hub' | 'warships' | 'characters' | 'battles' | 'travel' | 'worldbuilding' | 'other';
 
 let currentAppMode: AppMode = 'loading';
 
@@ -54,6 +56,9 @@ function moduleGroupOf(mode: AppMode): ModuleGroup {
       return 'battles';
     case 'travel':
       return 'travel';
+    case 'star-system':
+    case 'civilization':
+      return 'worldbuilding';
     case 'characters-welcome':
     case 'characters-builder':
       return 'characters';
@@ -110,6 +115,10 @@ function isRecentFileForGroup(filePath: string, group: ModuleGroup): boolean {
   if (group === 'warships') return filePath.toLocaleLowerCase().endsWith('.warship.json');
   if (group === 'characters') return filePath.toLocaleLowerCase().endsWith('.character.json');
   if (group === 'battles') return filePath.toLocaleLowerCase().endsWith('.battle.json');
+  if (group === 'worldbuilding') {
+    const lower = filePath.toLocaleLowerCase();
+    return lower.endsWith('.system.json') || lower.endsWith('.civilization.json');
+  }
   return false;
 }
 
@@ -147,7 +156,11 @@ function writeAppSettings(settings: AppSettings): void {
 function createMenu() {
   const isMac = process.platform === 'darwin';
   const group = moduleGroupOf(currentAppMode);
-  const recentFiles = loadRecentFiles().filter((filePath) => isRecentFileForGroup(filePath, group));
+  const recentFiles = loadRecentFiles().filter((filePath) => {
+    if (currentAppMode === 'star-system') return filePath.toLocaleLowerCase().endsWith('.system.json');
+    if (currentAppMode === 'civilization') return filePath.toLocaleLowerCase().endsWith('.civilization.json');
+    return isRecentFileForGroup(filePath, group);
+  });
   const recentFilesSubmenu: MenuItemConstructorOptions[] = recentFiles.length > 0
     ? [
         ...recentFiles.map((filePath, index) => ({
@@ -158,6 +171,8 @@ function createMenu() {
         {
           label: group === 'characters' ? 'Clear Recent Characters'
             : group === 'battles' ? 'Clear Recent Battles'
+              : group === 'worldbuilding'
+                ? currentAppMode === 'star-system' ? 'Clear Recent Star Systems' : 'Clear Recent Civilizations'
               : 'Clear Recent Designs',
           click: () => clearRecentFilesForGroup(group),
         },
@@ -308,10 +323,50 @@ function createMenu() {
     },
   ];
 
+  const worldbuildingLabel = currentAppMode === 'star-system' ? 'Star System' : 'Civilization';
+  const worldbuildingFileItems: MenuItemConstructorOptions[] = [
+    {
+      id: 'new-campaign-document',
+      label: `New ${worldbuildingLabel}`,
+      accelerator: 'CmdOrCtrl+N',
+      click: () => mainWindow?.webContents.send('menu-new-campaign-document'),
+    },
+    {
+      id: 'open-campaign-document',
+      label: `Open ${worldbuildingLabel}...`,
+      accelerator: 'CmdOrCtrl+O',
+      click: () => mainWindow?.webContents.send('menu-open-campaign-document'),
+    },
+    {
+      id: 'recent-campaign-documents',
+      label: `Recent ${worldbuildingLabel}s`,
+      submenu: recentFilesSubmenu,
+    },
+    { type: 'separator' },
+    {
+      id: 'save-campaign-document',
+      label: `Save ${worldbuildingLabel}`,
+      accelerator: 'CmdOrCtrl+S',
+      click: () => mainWindow?.webContents.send('menu-save-campaign-document'),
+    },
+    {
+      id: 'save-campaign-document-as',
+      label: `Save ${worldbuildingLabel} As...`,
+      accelerator: 'CmdOrCtrl+Shift+S',
+      click: () => mainWindow?.webContents.send('menu-save-campaign-document-as'),
+    },
+    {
+      id: 'export-campaign-pdf',
+      label: `Export ${worldbuildingLabel} PDF...`,
+      click: () => mainWindow?.webContents.send('menu-export-campaign-pdf'),
+    },
+  ];
+
   const contextualFileItems = group === 'warships' ? warshipsFileItems
     : group === 'characters' ? charactersFileItems
       : group === 'battles' ? battlesFileItems
         : group === 'travel' ? travelFileItems
+          : group === 'worldbuilding' ? worldbuildingFileItems
           : [];
 
   const startScreen = group === 'warships'
@@ -594,6 +649,39 @@ ipcMain.handle('show-character-open-dialog', async () => {
     title: 'Open Character',
     filters: [
       { name: 'Character Files', extensions: ['character.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
+});
+
+ipcMain.handle('show-campaign-save-dialog', async (
+  _event,
+  kind: 'system' | 'civilization',
+  defaultFileName: string,
+  defaultDirectory?: string,
+) => {
+  if (!mainWindow) return { canceled: true };
+  const isSystem = kind === 'system';
+  return dialog.showSaveDialog(mainWindow, {
+    title: isSystem ? 'Save Star System' : 'Save Civilization',
+    defaultPath: defaultDirectory ? path.join(defaultDirectory, defaultFileName) : defaultFileName,
+    filters: [
+      { name: isSystem ? 'Star System Files' : 'Civilization Files', extensions: [isSystem ? 'system.json' : 'civilization.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+});
+
+ipcMain.handle('show-campaign-open-dialog', async (_event, kind: 'system' | 'civilization') => {
+  if (!mainWindow) return { canceled: true, filePaths: [] };
+  const isSystem = kind === 'system';
+  return dialog.showOpenDialog(mainWindow, {
+    title: isSystem ? 'Open Star System' : 'Open Civilization',
+    filters: [
+      { name: isSystem ? 'Star System Files' : 'Civilization Files', extensions: [isSystem ? 'system.json' : 'civilization.json'] },
       { name: 'JSON Files', extensions: ['json'] },
       { name: 'All Files', extensions: ['*'] },
     ],

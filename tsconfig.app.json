@@ -17,7 +17,8 @@
       "@warships/*": ["src/modules/warships/*"],
       "@battles/*": ["src/modules/battles/*"],
       "@travel/*": ["src/modules/travel/*"],
-      "@characters/*": ["src/modules/characters/*"]
+      "@characters/*": ["src/modules/characters/*"],
+      "@campaign/*": ["src/modules/campaign/*"]
     },
 
     /* Bundler mode */

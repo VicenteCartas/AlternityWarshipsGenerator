@@ -1,11 +1,33 @@
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
 import type { CharacterSkillRules, SkillPurchasePlan } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
 import { SkillsStep } from './SkillsStep';
+
+vi.mock('../services/characterDataService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/characterDataService')>();
+  return {
+    ...actual,
+    getAllSkills: () => [
+      ...actual.getAllSkills(),
+      {
+        id: 'void-lore',
+        name: 'Void lore',
+        sourcePackId: 'phb',
+        _source: 'Outer Rim Skills',
+        ability: 'int',
+        kind: 'specialty',
+        parentSkillId: 'knowledge',
+        listedCost: 2,
+        professionIds: [],
+        canUseUntrained: true,
+      },
+    ],
+  };
+});
 
 const validation = {
   skills: {
@@ -126,11 +148,36 @@ describe('SkillsStep', () => {
     expect(screen.queryByRole('button', { name: 'View Rifle rank benefits' })).not.toBeInTheDocument();
   });
 
+  it('places Search before Source and retains a base parent for a mod specialty', async () => {
+    const user = userEvent.setup();
+    renderStep();
+    const search = screen.getByLabelText('Search skills');
+    const source = screen.getByRole('combobox', { name: 'Source' });
+    expect(search.compareDocumentPosition(source) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+
+    await user.click(screen.getByRole('tab', { name: 'INT' }));
+    await user.click(source);
+    await user.click(screen.getByRole('option', { name: 'Outer Rim Skills (Mod)' }));
+    expect(screen.getByRole('row', { name: /Knowledge/ })).toHaveTextContent('1 specialty');
+    await user.click(screen.getByRole('button', { name: 'Expand Knowledge specialties' }));
+    expect(screen.getByRole('combobox', { name: 'Void lore rank' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Language rank' })).not.toBeInTheDocument();
+  });
+
   it('adds, edits, and removes separate language purchases', async () => {
     const user = userEvent.setup();
     renderStep();
+    expect(screen.queryByLabelText('Native Language')).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'INT' }));
     await user.click(screen.getByRole('button', { name: 'Expand Knowledge specialties' }));
+
+    expect(screen.getByRole('combobox', { name: 'Native Language rank' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: 'Native Language rank' })).toHaveTextContent('3');
+    const nativeLanguage = screen.getByRole('textbox', { name: 'Native Language specialization' });
+    expect(nativeLanguage).toHaveValue('Galactic Standard');
+    await user.clear(nativeLanguage);
+    await user.type(nativeLanguage, 'Thuldan');
+    expect(nativeLanguage).toHaveValue('Thuldan');
 
     await user.click(screen.getByRole('combobox', { name: 'Language rank' }));
     await user.click(screen.getByRole('option', { name: '2' }));
@@ -140,7 +187,7 @@ describe('SkillsStep', () => {
 
     expect(screen.getByRole('combobox', { name: 'Language rank 2' })).toHaveTextContent('1');
     await user.type(screen.getByRole('textbox', { name: 'Language specialization 2' }), 'Spanish');
-    expect(screen.getByText('Additional language')).toBeInTheDocument();
+    expect(screen.getAllByText('Additional language')).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: 'Remove Language specialization 2' }));
     expect(screen.queryByRole('textbox', { name: 'Language specialization 2' })).not.toBeInTheDocument();

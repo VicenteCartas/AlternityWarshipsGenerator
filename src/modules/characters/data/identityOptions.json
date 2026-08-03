@@ -1,0 +1,18 @@
+{
+  "motivations": [
+    "Adventure", "Ambition", "Curiosity", "Duty", "Faith", "Family",
+    "Freedom", "Greed", "Honor", "Justice", "Knowledge", "Love",
+    "Power", "Redemption", "Revenge", "Survival"
+  ],
+  "moralAttitudes": [
+    "Altruistic", "Compassionate", "Ethical", "Honorable", "Pragmatic",
+    "Principled", "Rebellious", "Ruthless", "Self-interested"
+  ],
+  "characterTraits": [
+    "Alert", "Ambitious", "Brave", "Calm", "Cautious", "Compassionate",
+    "Curious", "Decisive", "Disciplined", "Friendly", "Generous", "Guarded",
+    "Honest", "Impulsive", "Independent", "Insightful", "Loyal", "Methodical",
+    "Optimistic", "Patient", "Protective", "Resourceful", "Sociable",
+    "Suspicious", "Watchful"
+  ]
+}

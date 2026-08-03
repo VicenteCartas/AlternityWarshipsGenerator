@@ -4,13 +4,18 @@ import {
   Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tabs, TextField, Typography,
 } from '@mui/material';
-import { getAllCharacterOptions } from '../services/characterDataService';
+import { getAllCharacterOptions, getAllCharacterSourcePacks } from '../services/characterDataService';
+import {
+  getCharacterDefinitionSource,
+  getCharacterDefinitionSources,
+} from '../services/characterDefinitionSourceService';
 import type {
   AbilityId,
   CharacterOptionKind,
   CharacterOptionSelection,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
 
 interface CharacterOptionsStepProps {
   selections: CharacterOptionSelection[];
@@ -23,11 +28,15 @@ const ABILITIES: AbilityId[] = ['str', 'dex', 'con', 'int', 'wil', 'per'];
 export function CharacterOptionsStep({ selections, validation, onChange }: CharacterOptionsStepProps) {
   const [kind, setKind] = useState<CharacterOptionKind>('perk');
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const definitions = getAllCharacterOptions();
+  const sourcePacks = getAllCharacterSourcePacks();
+  const sourceOptions = getCharacterDefinitionSources(definitions, sourcePacks);
   const selectionById = new Map(selections.map((selection) => [selection.optionId, selection]));
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visible = definitions.filter((definition) => (
     definition.kind === kind
+    && (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
     && (!normalizedSearch || definition.name.toLocaleLowerCase().includes(normalizedSearch))
   ));
 
@@ -80,6 +89,12 @@ export function CharacterOptionsStep({ selections, validation, onChange }: Chara
           <Tab value="flaw" label="Flaws" />
         </Tabs>
         <TextField size="small" label="Search options" value={search} onChange={(event) => setSearch(event.target.value)} fullWidth />
+        <CharacterSourceFilter
+          id="character-options-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={setSourceFilter}
+        />
       </Stack>
       <TableContainer sx={{ maxHeight: 'calc(100vh - 350px)', minHeight: 380 }}>
         <Table stickyHeader size="small">

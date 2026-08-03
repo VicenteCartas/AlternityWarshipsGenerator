@@ -23,16 +23,21 @@ import type {
   ItemQuality,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
+import { EquipmentProgressLevelFilter } from './EquipmentProgressLevelFilter';
 
 interface EquipmentStepProps {
   selections: EquipmentSelection[];
   dieRolls: number[];
   wealthDegree?: FundsDegree;
   progressLevel: number;
+  progressLevelFilter: number[];
+  availableProgressLevels: number[];
   validation: CharacterValidationResult;
   onSelectionsChange: (selections: EquipmentSelection[]) => void;
   onDieRollsChange: (dieRolls: number[]) => void;
   onWealthDegreeChange: (wealthDegree?: FundsDegree) => void;
+  onProgressLevelFilterChange: (levels: number[]) => void;
 }
 
 type EquipmentTab = 'all' | EquipmentCategory;
@@ -43,10 +48,13 @@ export function EquipmentStep({
   dieRolls,
   wealthDegree,
   progressLevel,
+  progressLevelFilter,
+  availableProgressLevels,
   validation,
   onSelectionsChange,
   onDieRollsChange,
   onWealthDegreeChange,
+  onProgressLevelFilterChange,
 }: EquipmentStepProps) {
   const [category, setCategory] = useState<EquipmentTab>('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -59,11 +67,13 @@ export function EquipmentStep({
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visible = definitions.filter((definition) => (
     (category === 'all' || definition.category === category)
+    && (progressLevelFilter.length === 0 || progressLevelFilter.includes(definition.progressLevel))
     && (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
     && (!normalizedSearch || [definition.name, getCharacterDefinitionSource(definition, sourcePacks).label]
       .some((value) => value.toLocaleLowerCase().includes(normalizedSearch)))
   ));
-  const pageRows = visible.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+  const effectivePage = Math.min(page, Math.max(0, Math.ceil(visible.length / ROWS_PER_PAGE) - 1));
+  const pageRows = visible.slice(effectivePage * ROWS_PER_PAGE, (effectivePage + 1) * ROWS_PER_PAGE);
   const wealthOptionId = validation.options.wealthOptionId;
   const fundsReady = validation.startingFunds.valid;
 
@@ -158,43 +168,48 @@ export function EquipmentStep({
         </Alert>
       )}
       {errors.length > 0 && <Alert severity="error">{errors.join(' ')}</Alert>}
-      <Stack direction={{ xs: 'column', lg: 'row' }} gap={2}>
-        <Tabs
-          value={category}
-          onChange={(_event, value: EquipmentTab) => { setCategory(value); setPage(0); }}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          <Tab value="all" label="All" />
-          <Tab value="sensor" label="Sensors" />
-          <Tab value="miscellaneous" label="Misc" />
-          <Tab value="survival" label="Survival" />
-          <Tab value="service" label="Services" />
-          <Tab value="computer" label="Computers" />
-        </Tabs>
-        <FormControl size="small" sx={{ width: { xs: '100%', lg: 220 }, flexShrink: 0 }}>
-          <InputLabel id="equipment-source-label">Source</InputLabel>
-          <Select
-            labelId="equipment-source-label"
-            label="Source"
-            value={sourceFilter}
-            onChange={(event) => { setSourceFilter(event.target.value); setPage(0); }}
-          >
-            <MenuItem value="all">All sources</MenuItem>
-            {sourceOptions.map((source) => (
-              <MenuItem key={source.key} value={source.key}>
-                {source.label}{source.kind === 'Mod' ? ' (Mod)' : ''}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Tabs
+        value={category}
+        onChange={(_event, value: EquipmentTab) => { setCategory(value); setPage(0); }}
+        variant="scrollable"
+        scrollButtons="auto"
+        aria-label="Equipment categories"
+      >
+        <Tab value="all" label="All" />
+        <Tab value="clothing" label="Clothing" />
+        <Tab value="communications" label="Communications" />
+        <Tab value="medical" label="Medical" />
+        <Tab value="professional" label="Professional" />
+        <Tab value="sensor" label="Sensors" />
+        <Tab value="miscellaneous" label="Misc" />
+        <Tab value="survival" label="Survival" />
+        <Tab value="service" label="Services" />
+        <Tab value="computer" label="Computers" />
+      </Tabs>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        gap={2}
+        role="group"
+        aria-label="Equipment catalogue filters"
+      >
         <TextField
           size="small"
           label="Search equipment"
           value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(0); }}
-          sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0 }}
+          fullWidth
+        />
+        <EquipmentProgressLevelFilter
+          id="equipment-progress-level"
+          availableLevels={availableProgressLevels}
+          selectedLevels={progressLevelFilter}
+          onChange={onProgressLevelFilterChange}
+        />
+        <CharacterSourceFilter
+          id="equipment-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={(value) => { setSourceFilter(value); setPage(0); }}
         />
       </Stack>
       <TableContainer sx={scrollableTableContainerSx}>
@@ -256,7 +271,11 @@ export function EquipmentStep({
                     />
                   </TableCell>
                   <TableCell>
-                    {definition.costMode === 'fixed' && definition.cost !== null ? definition.cost : (
+                    {definition.costMode === 'fixed' && definition.cost !== null ? (
+                      <Typography variant="body2">
+                        {definition.cost}{definition.costUnit ? ` / ${definition.costUnit}` : ''}
+                      </Typography>
+                    ) : (
                       <TextField
                         size="small"
                         type="number"
@@ -264,6 +283,7 @@ export function EquipmentStep({
                         disabled={!selection}
                         onChange={(event) => updateSelection({ ...selection!, unitCostOverride: Number(event.target.value) })}
                         inputProps={{ min: 0, 'aria-label': `${definition.name} unit cost` }}
+                        helperText={definition.costText || 'Actual price'}
                       />
                     )}
                   </TableCell>
@@ -285,7 +305,7 @@ export function EquipmentStep({
       <TablePagination
         component="div"
         count={visible.length}
-        page={page}
+        page={effectivePage}
         onPageChange={(_event, nextPage) => setPage(nextPage)}
         rowsPerPage={ROWS_PER_PAGE}
         rowsPerPageOptions={[ROWS_PER_PAGE]}

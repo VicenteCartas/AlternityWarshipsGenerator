@@ -17,6 +17,7 @@ export default defineConfig({
       '@battles': path.resolve(__dirname, 'src/modules/battles'),
       '@travel': path.resolve(__dirname, 'src/modules/travel'),
       '@characters': path.resolve(__dirname, 'src/modules/characters'),
+      '@campaign': path.resolve(__dirname, 'src/modules/campaign'),
     },
   },
   build: {

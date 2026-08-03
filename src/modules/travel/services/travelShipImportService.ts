@@ -2,7 +2,11 @@ import type { WarshipSaveFile } from '@warships/types/saveFile';
 import { deserializeWarship, jsonToSaveFile } from '@warships/services/saveService';
 import { calculateEngineStats } from '@warships/services/engineService';
 import type { EngineType } from '@warships/types/engine';
-import { accelerationRatingToMps2, type WarshipsScaleId } from './travelCalculationService';
+import {
+  accelerationRatingToMps2,
+  type AccelerationConversionMethod,
+  type WarshipsScaleId,
+} from './travelCalculationService';
 
 export interface ImportedEngineProfile {
   engineTypeId: string;
@@ -102,11 +106,11 @@ export function deriveTravelShipProfile(saveFile: WarshipSaveFile): ImportedTrav
   }
   if (pl6AccelerationRating > 0) {
     warnings.push(
-      'PL6 acceleration uses the dimensionally consistent 50 km / 5 minute scale conversion; Warships\' published 17 G per Acceleration 1 is shown only as a sourcebook note.',
+      'This design includes PL6 engines. Scale-derived and Warships-published acceleration conversions produce very different results; use the selected calculation method.',
     );
   }
   if (pl6AccelerationRating > 0 && pl7AccelerationRating > 0) {
-    warnings.push('This design mixes PL6 and PL7+ engine scales. Their ratings were converted separately and combined in m/s^2.');
+    warnings.push('This design mixes PL6 and PL7+ engine scales. Their ratings are converted separately using the selected method and combined in m/s^2.');
   }
   if (engines.some((engine) => engine.engineTypeId === 'photon-sail')) {
     warnings.push('Photon-sail acceleration varies with distance from its star; the calculator treats the imported rating as constant.');
@@ -127,6 +131,16 @@ export function deriveTravelShipProfile(saveFile: WarshipSaveFile): ImportedTrav
       engines.length > 0 && engines.every((engine) => engine.scaleId === 'pl7plus'),
     warnings,
   };
+}
+
+export function getImportedShipAccelerationMps2(
+  ship: ImportedTravelShip,
+  method: AccelerationConversionMethod = 'scale-derived',
+): number {
+  return ship.engines.reduce(
+    (sum, engine) => sum + accelerationRatingToMps2(engine.accelerationRating, engine.scaleId, method),
+    0,
+  );
 }
 
 /** Read a .warship.json design and derive its travel profile. */

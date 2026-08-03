@@ -4,6 +4,12 @@ export type AbilityId = typeof ABILITY_IDS[number];
 export type AbilityScores = Record<AbilityId, number>;
 export type ResistanceAbilityId = Exclude<AbilityId, 'per'>;
 
+export interface CharacterIdentityOptions {
+  motivations: string[];
+  moralAttitudes: string[];
+  characterTraits: string[];
+}
+
 export interface AbilityRange {
   min: number;
   max: number;
@@ -347,7 +353,16 @@ export interface CybergearResult {
   effectIds: string[];
 }
 
-export type EquipmentCategory = 'sensor' | 'miscellaneous' | 'survival' | 'service' | 'computer';
+export type EquipmentCategory =
+  | 'clothing'
+  | 'communications'
+  | 'medical'
+  | 'professional'
+  | 'sensor'
+  | 'miscellaneous'
+  | 'survival'
+  | 'service'
+  | 'computer';
 export type CostMode = 'fixed' | 'variable' | 'formula';
 
 export interface EquipmentDefinition {

@@ -1,0 +1,71 @@
+{
+  "maximumTargetLevel": 30,
+  "benefits": [
+    { "id": "action-check-bonus", "name": "Action Check Bonus", "type": "action-check-bonus", "maximumPurchases": 1, "professionRules": {
+      "combat-spec": { "cost": 10, "level": 3 }, "diplomat": { "cost": 12, "level": 5 }, "free-agent": { "cost": 10, "level": 3 }, "tech-op": { "cost": 10, "level": 3 }, "mindwalker": { "cost": 10, "level": 3 }
+    }},
+    { "id": "action-check-increase", "name": "Action Check Increase", "type": "action-check-increase", "maximumPurchases": 3, "professionRules": {
+      "combat-spec": { "cost": 4, "level": 3 }, "diplomat": { "cost": 4, "level": 3 }, "free-agent": { "cost": 3, "level": 3 }, "tech-op": { "cost": 4, "level": 4 }, "mindwalker": { "cost": 4, "level": 6 }
+    }},
+    { "id": "extra-action", "name": "Extra Action", "type": "extra-action", "maximumPurchases": 1, "professionRules": {
+      "combat-spec": { "cost": 6, "level": 6 }, "diplomat": { "cost": 6, "level": 6 }, "free-agent": { "cost": 5, "level": 4 }, "tech-op": { "cost": 6, "level": 5 }, "mindwalker": { "cost": 6, "level": 4 }
+    }},
+    { "id": "fatigue-rating-increase", "name": "Fatigue Rating Increase", "type": "fatigue-rating-increase", "maximumPurchases": 1, "professionRules": {
+      "combat-spec": { "cost": 4, "level": 3 }, "diplomat": { "cost": 5, "level": 4 }, "free-agent": { "cost": 10, "level": 3 }, "tech-op": { "cost": 10, "level": 4 }, "mindwalker": { "cost": 6, "level": 5 }
+    }},
+    { "id": "mortal-rating-increase", "name": "Mortal Rating Increase", "type": "mortal-rating-increase", "maximumPurchases": 1, "professionRules": {
+      "combat-spec": { "cost": 8, "level": 3 }, "diplomat": { "cost": 10, "level": 6 }, "free-agent": { "cost": 20, "level": 5 }, "tech-op": { "cost": 20, "level": 6 }, "mindwalker": { "cost": 12, "level": 7 }
+    }},
+    { "id": "stun-rating-increase", "name": "Stun Rating Increase", "type": "stun-rating-increase", "maximumPurchases": 3, "professionRules": {
+      "combat-spec": { "cost": 4, "level": 4 }, "diplomat": { "cost": 4, "level": 4 }, "free-agent": { "cost": 4, "level": 3 }, "tech-op": { "cost": 4, "level": 5 }, "mindwalker": { "cost": 4, "level": 5 }
+    }},
+    { "id": "wound-rating-increase", "name": "Wound Rating Increase", "type": "wound-rating-increase", "maximumPurchases": 2, "professionRules": {
+      "combat-spec": { "cost": 6, "level": 5 }, "diplomat": { "cost": 7, "level": 5 }, "free-agent": { "cost": 7, "level": 4 }, "tech-op": { "cost": 7, "level": 4 }, "mindwalker": { "cost": 8, "level": 6 }
+    }},
+    { "id": "monetary-award", "name": "Monetary Award", "type": "monetary-award", "professionRules": {
+      "combat-spec": { "cost": 6, "level": 3 }, "diplomat": { "cost": 5, "level": 3 }, "free-agent": { "cost": 6, "level": 3 }, "tech-op": { "cost": 6, "level": 3 }, "mindwalker": { "cost": 6, "level": 3 }
+    }}
+  ],
+  "abilityScoreIncreases": [
+    { "ability": "str", "professionRules": {
+      "combat-spec": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "diplomat": { "first": { "cost": 15, "level": 6 }, "second": { "cost": 30, "level": 9 } }, "free-agent": { "first": { "cost": 15, "level": 6 }, "second": { "cost": 30, "level": 9 } }, "tech-op": { "first": { "cost": 15, "level": 9 }, "second": { "cost": 30, "level": 12 } }, "mindwalker": { "first": { "cost": 15, "level": 9 }, "second": { "cost": 30, "level": 12 } }
+    }},
+    { "ability": "dex", "professionRules": {
+      "combat-spec": { "first": { "cost": 15, "level": 5 }, "second": { "cost": 30, "level": 8 } }, "diplomat": { "first": { "cost": 15, "level": 7 }, "second": { "cost": 30, "level": 10 } }, "free-agent": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "tech-op": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "mindwalker": { "first": { "cost": 15, "level": 6 }, "second": { "cost": 30, "level": 9 } }
+    }},
+    { "ability": "con", "professionRules": {
+      "combat-spec": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "diplomat": { "first": { "cost": 15, "level": 9 }, "second": { "cost": 30, "level": 12 } }, "free-agent": { "first": { "cost": 15, "level": 5 }, "second": { "cost": 30, "level": 8 } }, "tech-op": { "first": { "cost": 15, "level": 6 }, "second": { "cost": 30, "level": 9 } }, "mindwalker": { "first": { "cost": 10, "level": 4 }, "second": { "cost": 20, "level": 7 } }
+    }},
+    { "ability": "int", "professionRules": {
+      "combat-spec": { "first": { "cost": 15, "level": 6 }, "second": { "cost": 30, "level": 9 } }, "diplomat": { "first": { "cost": 10, "level": 5 }, "second": { "cost": 20, "level": 8 } }, "free-agent": { "first": { "cost": 15, "level": 4 }, "second": { "cost": 30, "level": 7 } }, "tech-op": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "mindwalker": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }
+    }},
+    { "ability": "wil", "professionRules": {
+      "combat-spec": { "first": { "cost": 15, "level": 7 }, "second": { "cost": 30, "level": 10 } }, "diplomat": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "free-agent": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "tech-op": { "first": { "cost": 10, "level": 5 }, "second": { "cost": 20, "level": 8 } }, "mindwalker": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }
+    }},
+    { "ability": "per", "professionRules": {
+      "combat-spec": { "first": { "cost": 10, "level": 4 }, "second": { "cost": 20, "level": 7 } }, "diplomat": { "first": { "cost": 10, "level": 3 }, "second": { "cost": 20, "level": 6 } }, "free-agent": { "first": { "cost": 10, "level": 5 }, "second": { "cost": 20, "level": 8 } }, "tech-op": { "first": { "cost": 15, "level": 7 }, "second": { "cost": 30, "level": 10 } }, "mindwalker": { "first": { "cost": 15, "level": 4 }, "second": { "cost": 30, "level": 7 } }
+    }}
+  ],
+  "perks": [
+    { "optionId": "ambidextrous", "professionRules": { "combat-spec": { "cost": 6, "level": 7 }, "diplomat": { "cost": 6, "level": 6 }, "free-agent": { "cost": 5, "level": 3 }, "tech-op": { "cost": 5, "level": 6 }, "mindwalker": { "cost": 6, "level": 6 } } },
+    { "optionId": "animal-friend", "professionRules": { "combat-spec": { "cost": 3, "level": 3 }, "diplomat": { "cost": 3, "level": 4 }, "free-agent": { "cost": 3, "level": 4 }, "tech-op": { "cost": 4, "level": 4 }, "mindwalker": { "cost": 4, "level": 5 } } },
+    { "optionId": "celebrity", "professionRules": { "combat-spec": { "cost": 4, "level": 6 }, "diplomat": { "cost": 4, "level": 3 }, "free-agent": { "cost": 4, "level": 5 }, "tech-op": { "cost": 4, "level": 9 }, "mindwalker": { "cost": 4, "level": 8 } } },
+    { "optionId": "concentration", "professionRules": { "combat-spec": { "cost": 5, "level": 5 }, "diplomat": { "cost": 5, "level": 4 }, "free-agent": { "cost": 5, "level": 5 }, "tech-op": { "cost": 4, "level": 3 }, "mindwalker": { "cost": 4, "level": 3 } } },
+    { "optionId": "danger-sense", "professionRules": { "combat-spec": { "cost": 5, "level": 6 }, "diplomat": { "cost": 6, "level": 7 }, "free-agent": { "cost": 5, "level": 3 }, "tech-op": { "cost": 6, "level": 7 }, "mindwalker": { "cost": 5, "level": 6 } } },
+    { "optionId": "fists-of-iron", "professionRules": { "combat-spec": { "cost": [3, 6], "level": 5 }, "diplomat": { "cost": [4, 8], "level": 9 }, "free-agent": { "cost": [3, 6], "level": 4 }, "tech-op": { "cost": [4, 8], "level": 9 }, "mindwalker": { "cost": [4, 8], "level": 9 } } },
+    { "optionId": "fortitude", "professionRules": { "combat-spec": { "cost": 5, "level": 3 }, "diplomat": { "cost": 6, "level": 5 }, "free-agent": { "cost": 6, "level": 5 }, "tech-op": { "cost": 5, "level": 5 }, "mindwalker": { "cost": 6, "level": 8 } } },
+    { "optionId": "observant", "professionRules": { "combat-spec": { "cost": 5, "level": 3 }, "diplomat": { "cost": 5, "level": 4 }, "free-agent": { "cost": 5, "level": 3 }, "tech-op": { "cost": 6, "level": 5 }, "mindwalker": { "cost": 5, "level": 5 } } },
+    { "optionId": "photo-memory", "professionRules": { "combat-spec": { "cost": 5, "level": 8 }, "diplomat": { "cost": 4, "level": 5 }, "free-agent": { "cost": 5, "level": 7 }, "tech-op": { "cost": 4, "level": 7 }, "mindwalker": { "cost": 4, "level": 3 } } },
+    { "optionId": "powerful-ally", "professionRules": { "combat-spec": { "cost": 5, "level": 4 }, "diplomat": { "cost": 5, "level": 6 }, "free-agent": { "cost": 5, "level": 4 }, "tech-op": { "cost": 6, "level": 7 }, "mindwalker": { "cost": 6, "level": 8 } } },
+    { "optionId": "reflexes", "professionRules": { "combat-spec": { "cost": 6, "level": 4 }, "diplomat": { "cost": 6, "level": 6 }, "free-agent": { "cost": 5, "level": 3 }, "tech-op": { "cost": 5, "level": 4 }, "mindwalker": { "cost": 6, "level": 6 } } },
+    { "optionId": "reputation", "professionRules": { "combat-spec": { "cost": 4, "level": 4 }, "diplomat": { "cost": 5, "level": 5 }, "free-agent": { "cost": 5, "level": 5 }, "tech-op": { "cost": 5, "level": 4 }, "mindwalker": { "cost": 4, "level": 6 } } },
+    { "optionId": "tough-as-nails", "professionRules": { "combat-spec": { "cost": 5, "level": 3 }, "diplomat": { "cost": 6, "level": 9 }, "free-agent": { "cost": 6, "level": 6 }, "tech-op": { "cost": 5, "level": 5 }, "mindwalker": { "cost": 6, "level": 9 } } },
+    { "optionId": "willpower", "professionRules": { "combat-spec": { "cost": 6, "level": 8 }, "diplomat": { "cost": 6, "level": 5 }, "free-agent": { "cost": 6, "level": 6 }, "tech-op": { "cost": 6, "level": 5 }, "mindwalker": { "cost": 5, "level": 4 } } }
+  ],
+  "removeFlaw": { "id": "remove-flaw", "name": "Remove Flaw", "type": "remove-flaw", "professionRules": {
+    "combat-spec": { "cost": 0, "level": 6 }, "diplomat": { "cost": 0, "level": 6 }, "free-agent": { "cost": 0, "level": 6 }, "tech-op": { "cost": 0, "level": 6 }, "mindwalker": { "cost": 0, "level": 6 }
+  }},
+  "acquireContact": { "id": "acquire-contact", "name": "Acquire Contact", "type": "acquire-contact", "professionRules": {
+    "combat-spec": { "cost": 5, "level": 4 }, "diplomat": { "cost": 3, "level": 2 }, "free-agent": { "cost": 4, "level": 3 }, "tech-op": { "cost": 5, "level": 4 }, "mindwalker": { "cost": 5, "level": 6 }
+  }}
+}

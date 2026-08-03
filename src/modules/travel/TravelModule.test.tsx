@@ -29,12 +29,28 @@ describe('TravelModule', () => {
     renderModule();
 
     await user.click(screen.getByRole('button', { name: 'Physical' }));
+    expect(screen.queryByLabelText('Acceleration calculation')).not.toBeInTheDocument();
     const accelerationInput = screen.getByLabelText('Acceleration');
     await user.clear(accelerationInput);
     await user.type(accelerationInput, '1');
 
     expect(screen.getByText(/9\.807 m\/s\^2 \(1 g\)/)).toBeInTheDocument();
     expect(screen.getByText(/Cancels the acceleration felt by the crew/)).toBeInTheDocument();
+  });
+
+  it('switches between scale-derived and Warships-published acceleration', async () => {
+    const user = userEvent.setup();
+    renderModule();
+
+    const calculationMethod = screen.getByLabelText('Acceleration calculation');
+    expect(calculationMethod).toHaveTextContent('Scale-derived');
+    expect(screen.getByText(/1,111\.111 m\/s\^2 \(113\.302 g\)/)).toBeInTheDocument();
+
+    await user.click(calculationMethod);
+    await user.click(screen.getByRole('option', { name: 'Warships published' }));
+
+    expect(screen.getByText(/33,333\.333 m\/s\^2 \(3,399\.054 g\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Warships published conversion is active/)).toBeInTheDocument();
   });
 
   it('returns to the suite hub', async () => {

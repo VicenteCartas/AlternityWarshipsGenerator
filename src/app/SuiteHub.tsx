@@ -6,6 +6,8 @@ import {
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PublicIcon from '@mui/icons-material/Public';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -22,6 +24,8 @@ interface SuiteHubProps {
   onOpenBattles: () => void;
   onOpenTravel: () => void;
   onOpenCharacters: () => void;
+  onOpenStarSystems: () => void;
+  onOpenCivilizations: () => void;
   onShowAbout: () => void;
 }
 
@@ -81,6 +85,8 @@ export function SuiteHub({
   onOpenBattles,
   onOpenTravel,
   onOpenCharacters,
+  onOpenStarSystems,
+  onOpenCivilizations,
   onShowAbout,
 }: SuiteHubProps) {
   const cycleTheme = () => {
@@ -115,7 +121,7 @@ export function SuiteHub({
               <Chip label={`v${APP_VERSION}`} size="small" variant="outlined" />
             </Stack>
             <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-              Character creation, spacecraft design, travel, and campaign-scale combat.
+              Character creation, spacecraft design, setting tools, travel, and campaign-scale combat.
             </Typography>
           </Box>
 
@@ -133,6 +139,24 @@ export function SuiteHub({
                 description="Design warships, stations, bases, and carried craft."
                 icon={<RocketLaunchIcon />}
                 onClick={onOpenWarships}
+              />
+            </Paper>
+          </Box>
+
+          <Box>
+            <Typography variant="overline" color="text.secondary">Build a setting</Typography>
+            <Paper variant="outlined" sx={{ mt: 0.5, overflow: 'hidden' }}>
+              <ToolRow
+                title="Star System Generator"
+                description="Generate stars, planets, environments, moons, and life with GMG tables G58-G68."
+                icon={<PublicIcon />}
+                onClick={onOpenStarSystems}
+              />
+              <ToolRow
+                title="Civilization Builder"
+                description="Define Progress, Civilization, and Law Levels, culture, economy, and settlements."
+                icon={<AccountBalanceIcon />}
+                onClick={onOpenCivilizations}
               />
             </Paper>
           </Box>

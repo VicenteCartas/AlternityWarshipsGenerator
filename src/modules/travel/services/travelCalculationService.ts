@@ -1,4 +1,5 @@
 export type WarshipsScaleId = 'pl6' | 'pl7plus';
+export type AccelerationConversionMethod = 'scale-derived' | 'warships-published';
 export type TravelProfile = 'rest-to-rest' | 'flyby';
 export type DistanceUnitId =
   | 'km'
@@ -107,23 +108,42 @@ export function getWarshipsScale(scaleId: WarshipsScaleId): WarshipsScale {
 /**
  * Convert a Warships acceleration rating into SI acceleration.
  *
- * A rating of 1 changes velocity by one hex per round over one round, so the
- * dimensionally correct conversion is hex length / round duration squared.
+ * The scale-derived method treats a rating as velocity gained over the full
+ * round. The published method reproduces Warships' conversion by treating that
+ * velocity gain as an acceleration value.
  */
-export function accelerationRatingToMps2(rating: number, scaleId: WarshipsScaleId): number {
+export function accelerationRatingToMps2(
+  rating: number,
+  scaleId: WarshipsScaleId,
+  method: AccelerationConversionMethod = 'scale-derived',
+): number {
   if (!Number.isFinite(rating)) return 0;
   const scale = getWarshipsScale(scaleId);
-  return rating * scale.hexMeters / (scale.roundSeconds ** 2);
+  const timeDivisor = method === 'warships-published'
+    ? scale.roundSeconds
+    : scale.roundSeconds ** 2;
+  return rating * scale.hexMeters / timeDivisor;
 }
 
-export function accelerationRatingToG(rating: number, scaleId: WarshipsScaleId): number {
-  return accelerationRatingToMps2(rating, scaleId) / STANDARD_GRAVITY_MPS2;
+export function accelerationRatingToG(
+  rating: number,
+  scaleId: WarshipsScaleId,
+  method: AccelerationConversionMethod = 'scale-derived',
+): number {
+  return accelerationRatingToMps2(rating, scaleId, method) / STANDARD_GRAVITY_MPS2;
 }
 
-export function mps2ToAccelerationRating(accelerationMps2: number, scaleId: WarshipsScaleId): number {
+export function mps2ToAccelerationRating(
+  accelerationMps2: number,
+  scaleId: WarshipsScaleId,
+  method: AccelerationConversionMethod = 'scale-derived',
+): number {
   if (!Number.isFinite(accelerationMps2)) return 0;
   const scale = getWarshipsScale(scaleId);
-  return accelerationMps2 * (scale.roundSeconds ** 2) / scale.hexMeters;
+  const timeMultiplier = method === 'warships-published'
+    ? scale.roundSeconds
+    : scale.roundSeconds ** 2;
+  return accelerationMps2 * timeMultiplier / scale.hexMeters;
 }
 
 export function speedRatingToMps(speedRating: number, scaleId: WarshipsScaleId): number {

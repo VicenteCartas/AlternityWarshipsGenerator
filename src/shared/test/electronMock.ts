@@ -29,7 +29,12 @@ type MenuEventName =
   | 'onSaveCharacter'
   | 'onSaveCharacterAs'
   | 'onExportCharacterPdf'
-  | 'onImportTravelShip';
+  | 'onImportTravelShip'
+  | 'onNewCampaignDocument'
+  | 'onOpenCampaignDocument'
+  | 'onSaveCampaignDocument'
+  | 'onSaveCampaignDocumentAs'
+  | 'onExportCampaignPdf';
 
 /**
  * Creates a complete mock ElectronAPI. Menu event listeners store their
@@ -62,6 +67,11 @@ export function createMockElectronAPI() {
     onSaveCharacterAs: vi.fn((cb) => { menuCallbacks.onSaveCharacterAs = cb; }),
     onExportCharacterPdf: vi.fn((cb) => { menuCallbacks.onExportCharacterPdf = cb; }),
     onImportTravelShip: vi.fn((cb) => { menuCallbacks.onImportTravelShip = cb; }),
+    onNewCampaignDocument: vi.fn((cb) => { menuCallbacks.onNewCampaignDocument = cb; }),
+    onOpenCampaignDocument: vi.fn((cb) => { menuCallbacks.onOpenCampaignDocument = cb; }),
+    onSaveCampaignDocument: vi.fn((cb) => { menuCallbacks.onSaveCampaignDocument = cb; }),
+    onSaveCampaignDocumentAs: vi.fn((cb) => { menuCallbacks.onSaveCampaignDocumentAs = cb; }),
+    onExportCampaignPdf: vi.fn((cb) => { menuCallbacks.onExportCampaignPdf = cb; }),
     removeAllListeners: vi.fn(),
 
     // File operations
@@ -110,6 +120,8 @@ export function createMockElectronAPI() {
     showBattleOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
     showCharacterSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
     showCharacterOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+    showCampaignSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
+    showCampaignOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
     scanBattleFiles: vi.fn().mockResolvedValue({ success: true, files: [] }),
     writeBattleAutoSave: vi.fn().mockResolvedValue({ success: true }),
     readBattleAutoSave: vi.fn().mockResolvedValue({ success: false }),

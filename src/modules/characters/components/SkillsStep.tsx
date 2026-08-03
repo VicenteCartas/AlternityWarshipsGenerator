@@ -14,7 +14,16 @@ import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOu
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { scrollableTableContainerSx } from '@shared/constants/tableStyles';
-import { getAllSkills, getSkillRankBenefits, getSpeciesById } from '../services/characterDataService';
+import {
+  getAllCharacterSourcePacks,
+  getAllSkills,
+  getSkillRankBenefits,
+  getSpeciesById,
+} from '../services/characterDataService';
+import {
+  getCharacterDefinitionSource,
+  getCharacterDefinitionSources,
+} from '../services/characterDefinitionSourceService';
 import { calculateSkillListCost, calculateSpecialtyPurchaseCost } from '../services/skillPurchaseService';
 import type {
   AbilityId,
@@ -23,6 +32,7 @@ import type {
   SpecialtySkillPurchase,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
 
 interface SkillsStepProps {
   speciesId: string;
@@ -61,9 +71,12 @@ export function SkillsStep({
 }: SkillsStepProps) {
   const [ability, setAbility] = useState<AbilityId>('str');
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [rankBenefitSkillId, setRankBenefitSkillId] = useState<string | null>(null);
   const species = getSpeciesById(speciesId);
   const allSkills = getAllSkills();
+  const sourcePacks = getAllCharacterSourcePacks();
+  const sourceOptions = getCharacterDefinitionSources(allSkills, sourcePacks);
   const [expandedBroadSkillIds, setExpandedBroadSkillIds] = useState<Set<string>>(() => {
     const purchasedSpecialtyIds = new Set(plan.specialtySkills.map((purchase) => purchase.skillId));
     return new Set(
@@ -89,9 +102,15 @@ export function SkillsStep({
   const rankBenefitSkill = allSkills.find((skill) => skill.id === rankBenefitSkillId);
   const selectedRankBenefits = rankBenefitSkill ? getSkillRankBenefits(rankBenefitSkill) : [];
   const selectedRank = rankBenefitSkill
-    ? Math.max(0, ...(specialtyPurchasesBySkillId.get(rankBenefitSkill.id) || []).map(({ purchase }) => purchase.rank))
+    ? Math.max(
+        rankBenefitSkill.id === 'language' && plan.nativeLanguage.trim() ? 3 : 0,
+        ...(specialtyPurchasesBySkillId.get(rankBenefitSkill.id) || []).map(({ purchase }) => purchase.rank),
+      )
     : 0;
   const normalizedSearch = search.trim().toLocaleLowerCase();
+  const skillMatchesSource = (skill: (typeof allSkills)[number]) => (
+    sourceFilter === 'all' || getCharacterDefinitionSource(skill, sourcePacks).key === sourceFilter
+  );
 
   const skillMatchesSearch = (skill: (typeof allSkills)[number]) => {
     if (skill.name.toLocaleLowerCase().includes(normalizedSearch)) return true;
@@ -103,9 +122,11 @@ export function SkillsStep({
 
   const broadSkills = allSkills.filter((skill) => {
     if (skill.kind !== 'broad' || skill.ability !== ability) return false;
+    const specialties = allSkills.filter((entry) => entry.parentSkillId === skill.id);
+    if (!skillMatchesSource(skill) && !specialties.some(skillMatchesSource)) return false;
     if (!normalizedSearch) return true;
     return skillMatchesSearch(skill)
-      || allSkills.some((entry) => entry.parentSkillId === skill.id && skillMatchesSearch(entry));
+      || specialties.some((entry) => skillMatchesSource(entry) && skillMatchesSearch(entry));
   });
 
   const updateSingleSpecialty = (skillId: string, rank: number) => {
@@ -236,27 +257,20 @@ export function SkillsStep({
           />
         </Stack>
       </Paper>
-      <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} alignItems={{ sm: 'center' }}>
-        <TextField
-          size="small"
-          label="Native Language"
-          value={plan.nativeLanguage}
-          onChange={(event) => onChange({ ...plan, nativeLanguage: event.target.value })}
-          helperText="Granted at rank 3 for free"
-          required
-          sx={{ width: { xs: '100%', sm: 320 } }}
-        />
-        <Chip label="Rank 3" color="primary" variant="outlined" />
-        <Chip label="Free" color="success" variant="outlined" />
-      </Stack>
       {validation.skills.errors.length > 0 && <Alert severity="error">{validation.skills.errors.join(' ')}</Alert>}
-      <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
+      <Stack direction={{ xs: 'column', md: 'row' }} gap={1}>
         <TextField
           size="small"
           label="Search skills"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           fullWidth
+        />
+        <CharacterSourceFilter
+          id="skills-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={setSourceFilter}
         />
         <Stack direction="row" justifyContent="flex-end">
           <Tooltip title="Expand all broad skills in this Ability">
@@ -304,16 +318,18 @@ export function SkillsStep({
               const isTrained = trainedBroadIds.has(broadSkill.id);
               const specialties = allSkills.filter((skill) => skill.parentSkillId === broadSkill.id);
               const broadMatchesSearch = skillMatchesSearch(broadSkill);
+              const sourceSpecialties = specialties.filter(skillMatchesSource);
               const visibleSpecialties = normalizedSearch && !broadMatchesSearch
-                ? specialties.filter(skillMatchesSearch)
-                : specialties;
+                ? sourceSpecialties.filter(skillMatchesSearch)
+                : sourceSpecialties;
               const searchExpanded = Boolean(normalizedSearch) && visibleSpecialties.length > 0;
               const expanded = searchExpanded || expandedBroadSkillIds.has(broadSkill.id);
-              const trainedSpecialtyCount = specialties.reduce(
+              const trainedSpecialtyCount = sourceSpecialties.reduce(
                 (count, specialty) => count + (specialtyPurchasesBySkillId.get(specialty.id)?.length || 0),
                 0,
-              );
-              const rankBenefitSpecialtyCount = specialties.filter((specialty) => getSkillRankBenefits(specialty).length > 0).length;
+              ) + (sourceSpecialties.some((specialty) => specialty.id === 'language') && plan.nativeLanguage.trim() ? 1 : 0);
+              const rankBenefitSpecialtyCount = sourceSpecialties
+                .filter((specialty) => getSkillRankBenefits(specialty).length > 0).length;
               const broadRow = (
                 <TableRow key={broadSkill.id} sx={{ bgcolor: 'action.hover' }}>
                   <TableCell>
@@ -345,7 +361,7 @@ export function SkillsStep({
                         </Stack>
                         <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
                           <Typography variant="caption" color="text.secondary">
-                            {specialties.length} specialties
+                            {sourceSpecialties.length} {sourceSpecialties.length === 1 ? 'specialty' : 'specialties'}
                           </Typography>
                           {rankBenefitSpecialtyCount > 0 && (
                             <Stack direction="row" spacing={0.5} alignItems="center" color="primary.main">
@@ -382,12 +398,46 @@ export function SkillsStep({
                   && isTrained
                   && purchaseEntries.length > 0
                   && purchaseEntries.every(({ purchase: entry }) => Boolean(entry.specialization?.trim()));
+                const nativeLanguageRow = specialty.id === 'language' ? (
+                  <TableRow key="language-native">
+                    <TableCell />
+                    <TableCell sx={{ pl: 5 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">Language</Typography>
+                        <Chip label="Native" size="small" color="success" variant="outlined" />
+                      </Stack>
+                    </TableCell>
+                    <TableCell>Free</TableCell>
+                    <TableCell>
+                      <Select
+                        size="small"
+                        value={3}
+                        disabled
+                        inputProps={{ 'aria-label': 'Native Language rank' }}
+                        fullWidth
+                      >
+                        <MenuItem value={3}>3</MenuItem>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={plan.nativeLanguage}
+                        onChange={(event) => onChange({ ...plan, nativeLanguage: event.target.value })}
+                        inputProps={{ 'aria-label': 'Native Language specialization' }}
+                        placeholder="Language"
+                        required
+                        fullWidth
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : null;
                 const primaryRow = (
                   <TableRow key={`${specialty.id}-primary`}>
                     <TableCell />
                     <TableCell sx={{ pl: 5 }}>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2">{specialty.name}</Typography>
+                        <Typography variant="body2">{specialty.id === 'language' ? 'Additional language' : specialty.name}</Typography>
                         {rankBenefits.length > 0 && (
                           <Tooltip title={`Rank benefits at ranks ${rankBenefitRanks.join(', ')}`}>
                             <Button
@@ -512,7 +562,7 @@ export function SkillsStep({
                       );
                     })
                   : [];
-                return [primaryRow, ...additionalRows];
+                return [nativeLanguageRow, primaryRow, ...additionalRows].filter(Boolean);
               }) : [];
               return [broadRow, ...specialtyRows.flat()];
             })}

@@ -19,6 +19,12 @@ function renderBuilder() {
   return result;
 }
 
+function expectSearchBeforeSource(searchLabel: string) {
+  const search = screen.getByLabelText(searchLabel);
+  const source = screen.getByRole('combobox', { name: 'Source' });
+  expect(search.compareDocumentPosition(source) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+}
+
 describe('CharactersModule', () => {
   it('starts on a Character Creator menu with current and planned actions', () => {
     renderModule();
@@ -124,6 +130,7 @@ describe('CharactersModule', () => {
     const user = userEvent.setup();
     renderBuilder();
     await user.click(screen.getByText('Skills'));
+    expectSearchBeforeSource('Search skills');
     await user.click(screen.getByRole('tab', { name: 'DEX' }));
     await user.click(screen.getByRole('checkbox', { name: 'Purchase Stealth' }));
     await user.click(screen.getByRole('combobox', { name: 'Sneak rank' }));
@@ -152,6 +159,7 @@ describe('CharactersModule', () => {
     const user = userEvent.setup();
     renderBuilder();
     await user.click(screen.getByText('Perks & Flaws'));
+    expectSearchBeforeSource('Search options');
     await user.click(screen.getByRole('checkbox', { name: 'Select Ambidextrous' }));
     await user.click(screen.getByRole('tab', { name: 'Flaws' }));
     await user.click(screen.getByRole('checkbox', { name: 'Select Bad Luck' }));
@@ -164,6 +172,7 @@ describe('CharactersModule', () => {
     await user.click(screen.getByText('Psionics'));
     await user.click(screen.getByLabelText('Access Path'));
     await user.click(screen.getByRole('option', { name: 'Talent' }));
+    expectSearchBeforeSource('Search psionics');
     await user.click(screen.getByRole('checkbox', { name: 'Purchase Extrasensory Perception (ESP)' }));
     await user.click(screen.getByRole('combobox', { name: 'Empathy rank' }));
     await user.click(screen.getByRole('option', { name: '1' }));
@@ -177,6 +186,7 @@ describe('CharactersModule', () => {
     await user.click(screen.getByText('Species'));
     await user.click(screen.getByRole('row', { name: 'Select Mutant Human' }));
     await user.click(screen.getByRole('button', { name: 'Mutations (Required)' }));
+    expectSearchBeforeSource('Search mutations');
     fireEvent.change(screen.getByLabelText('Advantage Budget'), { target: { value: '1' } });
     fireEvent.change(screen.getByLabelText('Drawback Budget'), { target: { value: '1' } });
     await user.click(screen.getByRole('checkbox', { name: 'Select Improved Constitution' }));
@@ -190,6 +200,7 @@ describe('CharactersModule', () => {
     const user = userEvent.setup();
     renderBuilder();
     await user.click(screen.getByText('Cybergear'));
+    expectSearchBeforeSource('Search cybergear');
     await user.click(screen.getByRole('checkbox', { name: 'Install Body Plating' }));
     expect(screen.getByText('2/10 tolerance')).toBeInTheDocument();
     expect(screen.getByText('Cybergear training: 10 skill points')).toBeInTheDocument();
@@ -207,6 +218,9 @@ describe('CharactersModule', () => {
       fireEvent.change(screen.getByLabelText(`Funds Die ${index + 1}`), { target: { value: rolls[index] } });
     }
     expect(screen.getByText('3000 starting credits')).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: 'Progress Levels' }));
+    await user.click(screen.getByRole('option', { name: 'All PLs' }));
+    await user.keyboard('{Escape}');
     fireEvent.change(screen.getByLabelText('Search equipment'), { target: { value: 'Bedroll' } });
     await user.click(screen.getByRole('checkbox', { name: 'Buy Bedroll' }));
     expect(screen.getByText('2975 credits remaining')).toBeInTheDocument();

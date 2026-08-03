@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Alert, Checkbox, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Tab,
+  Alert, Checkbox, Chip, Stack, Tab,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs,
   TablePagination, TextField, Typography,
 } from '@mui/material';
@@ -20,14 +20,19 @@ import type {
   WeaponSelection,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
+import { EquipmentProgressLevelFilter } from './EquipmentProgressLevelFilter';
 
 interface CombatGearStepProps {
   weaponSelections: WeaponSelection[];
   armorSelections: ArmorSelection[];
   progressLevel: number;
+  progressLevelFilter: number[];
+  availableProgressLevels: number[];
   validation: CharacterValidationResult;
   onWeaponSelectionsChange: (selections: WeaponSelection[]) => void;
   onArmorSelectionsChange: (selections: ArmorSelection[]) => void;
+  onProgressLevelFilterChange: (levels: number[]) => void;
 }
 
 type CombatGearTab = WeaponCategory | 'armor';
@@ -37,9 +42,12 @@ export function CombatGearStep({
   weaponSelections,
   armorSelections,
   progressLevel,
+  progressLevelFilter,
+  availableProgressLevels,
   validation,
   onWeaponSelectionsChange,
   onArmorSelectionsChange,
+  onProgressLevelFilterChange,
 }: CombatGearStepProps) {
   const [tab, setTab] = useState<CombatGearTab>('melee');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -54,16 +62,19 @@ export function CombatGearStep({
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visibleWeapons = weapons.filter((weapon) => (
     weapon.category === tab
+    && (progressLevelFilter.length === 0 || progressLevelFilter.includes(weapon.progressLevel))
     && (sourceFilter === 'all' || getCharacterDefinitionSource(weapon, sourcePacks).key === sourceFilter)
     && (!normalizedSearch || weapon.name.toLocaleLowerCase().includes(normalizedSearch))
   ));
   const visibleArmor = armor.filter((definition) => (
-    (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
+    (progressLevelFilter.length === 0 || progressLevelFilter.includes(definition.progressLevel))
+    && (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
     && (!normalizedSearch || definition.name.toLocaleLowerCase().includes(normalizedSearch))
   ));
-  const pageWeapons = visibleWeapons.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
-  const pageArmor = visibleArmor.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
   const visibleCount = tab === 'armor' ? visibleArmor.length : visibleWeapons.length;
+  const effectivePage = Math.min(page, Math.max(0, Math.ceil(visibleCount / ROWS_PER_PAGE) - 1));
+  const pageWeapons = visibleWeapons.slice(effectivePage * ROWS_PER_PAGE, (effectivePage + 1) * ROWS_PER_PAGE);
+  const pageArmor = visibleArmor.slice(effectivePage * ROWS_PER_PAGE, (effectivePage + 1) * ROWS_PER_PAGE);
   const fundsReady = validation.startingFunds.valid;
 
   const updateWeapon = (selection: WeaponSelection) => {
@@ -102,41 +113,42 @@ export function CombatGearStep({
       )}
       {validation.combatGear.errors.length > 0 && <Alert severity="error">{validation.combatGear.errors.join(' ')}</Alert>}
       {validation.combatGear.warnings.length > 0 && <Alert severity="warning">{validation.combatGear.warnings.join(' ')}</Alert>}
-      <Stack direction={{ xs: 'column', lg: 'row' }} gap={2}>
-        <Tabs
-          value={tab}
-          onChange={(_event, value: CombatGearTab) => { setTab(value); setPage(0); }}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          <Tab value="melee" label="Melee" />
-          <Tab value="ranged" label="Ranged" />
-          <Tab value="heavy" label="Heavy" />
-          <Tab value="armor" label="Armor" />
-        </Tabs>
-        <FormControl size="small" sx={{ width: { xs: '100%', lg: 220 }, flexShrink: 0 }}>
-          <InputLabel id="combat-gear-source-label">Source</InputLabel>
-          <Select
-            labelId="combat-gear-source-label"
-            label="Source"
-            value={sourceFilter}
-            onChange={(event) => { setSourceFilter(event.target.value); setPage(0); }}
-          >
-            <MenuItem value="all">All sources</MenuItem>
-            {sourceOptions.map((source) => (
-              <MenuItem key={source.key} value={source.key}>
-                {source.label}{source.kind === 'Mod' ? ' (Mod)' : ''}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Tabs
+        value={tab}
+        onChange={(_event, value: CombatGearTab) => { setTab(value); setPage(0); }}
+        variant="scrollable"
+        scrollButtons="auto"
+        aria-label="Combat gear categories"
+      >
+        <Tab value="melee" label="Melee" />
+        <Tab value="ranged" label="Ranged" />
+        <Tab value="heavy" label="Heavy" />
+        <Tab value="armor" label="Armor" />
+      </Tabs>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        gap={2}
+        role="group"
+        aria-label="Combat gear catalogue filters"
+      >
         <TextField
           size="small"
           label="Search combat gear"
           value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(0); }}
-          sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0 }}
+          fullWidth
+        />
+        <EquipmentProgressLevelFilter
+          id="combat-gear-progress-level"
+          availableLevels={availableProgressLevels}
+          selectedLevels={progressLevelFilter}
+          onChange={onProgressLevelFilterChange}
+        />
+        <CharacterSourceFilter
+          id="combat-gear-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={(value) => { setSourceFilter(value); setPage(0); }}
         />
       </Stack>
       {tab !== 'armor' ? (
@@ -274,7 +286,7 @@ export function CombatGearStep({
       <TablePagination
         component="div"
         count={visibleCount}
-        page={page}
+        page={effectivePage}
         onPageChange={(_event, nextPage) => setPage(nextPage)}
         rowsPerPage={ROWS_PER_PAGE}
         rowsPerPageOptions={[ROWS_PER_PAGE]}

@@ -15,11 +15,34 @@ import {
 
 describe('PHB noncombat equipment', () => {
   it('loads the personal, service, and computer catalogues with unique IDs', () => {
-    expect(getAllPersonalEquipment()).toHaveLength(75);
+    expect(getAllPersonalEquipment()).toHaveLength(129);
     expect(getAllServices()).toHaveLength(36);
     expect(getAllComputers()).toHaveLength(32);
     const all = getAllEquipment();
     expect(new Set(all.map((entry) => entry.id)).size).toBe(all.length);
+  });
+
+  it('contains every missing Table P33 personal-equipment category', () => {
+    const personal = getAllPersonalEquipment();
+    const counts = Object.fromEntries(
+      ['clothing', 'communications', 'medical', 'professional'].map((category) => [
+        category,
+        personal.filter((entry) => entry.category === category).length,
+      ]),
+    );
+    expect(counts).toEqual({ clothing: 21, communications: 6, medical: 16, professional: 11 });
+    expect(getEquipmentById('antiscan-weave')).toMatchObject({
+      progressLevel: 7, mass: null, costMode: 'formula', cost: null, costText: 'Base item cost ×3',
+    });
+    expect(getEquipmentById('comm-gear')).toMatchObject({
+      category: 'communications', progressLevel: 7, mass: null, cost: 175,
+    });
+    expect(getEquipmentById('pharmaceutical-antiradiation')).toMatchObject({
+      category: 'medical', progressLevel: 6, mass: null, cost: 100, costUnit: 'dose',
+    });
+    expect(getEquipmentById('workshop-portable')).toMatchObject({
+      category: 'professional', progressLevel: 6, mass: 100, cost: 1000,
+    });
   });
 
   it('calculates profession funds and wealth outcome adjustments', () => {

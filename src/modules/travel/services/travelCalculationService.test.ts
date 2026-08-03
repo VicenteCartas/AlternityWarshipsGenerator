@@ -20,9 +20,19 @@ describe('Warships scale conversions', () => {
     expect(accelerationRatingToG(1, 'pl6')).toBeCloseTo(0.05665, 4);
   });
 
-  it('does not repeat the published PL6 dimensional error of 17 G per rating', () => {
+  it('keeps the scale-derived conversion as the default', () => {
     expect(accelerationRatingToG(1, 'pl6')).toBeLessThan(0.1);
     expect(accelerationRatingToG(1, 'pl6')).not.toBeCloseTo(17, 0);
+  });
+
+  it('reproduces the published Warships acceleration interpretation', () => {
+    expect(accelerationRatingToG(1, 'pl6', 'warships-published')).toBeCloseTo(17, 0);
+    expect(accelerationRatingToG(1, 'pl7plus', 'warships-published')).toBeCloseTo(3399, 0);
+    expect(mps2ToAccelerationRating(
+      accelerationRatingToMps2(2.5, 'pl6', 'warships-published'),
+      'pl6',
+      'warships-published',
+    )).toBeCloseTo(2.5, 12);
   });
 
   it('converts PL7+ acceleration from 1,000 km hexes and 30-second rounds', () => {

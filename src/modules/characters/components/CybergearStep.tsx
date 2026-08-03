@@ -3,9 +3,15 @@ import {
   Alert, Checkbox, Chip, MenuItem, Select, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from '@mui/material';
-import { getAllCybergear } from '../services/characterDataService';
+import { getAllCharacterSourcePacks, getAllCybergear } from '../services/characterDataService';
+import {
+  getCharacterDefinitionSource,
+  getCharacterDefinitionSources,
+} from '../services/characterDefinitionSourceService';
 import type { CybergearSelection, EquipmentQuality } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
+import { EquipmentProgressLevelFilter } from './EquipmentProgressLevelFilter';
 
 interface CybergearStepProps {
   speciesId: string;
@@ -17,11 +23,22 @@ interface CybergearStepProps {
 
 export function CybergearStep({ speciesId, selections, progressLevel, validation, onChange }: CybergearStepProps) {
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [selectedProgressLevels, setSelectedProgressLevels] = useState<number[] | null>(null);
   const definitions = getAllCybergear();
+  const sourcePacks = getAllCharacterSourcePacks();
+  const sourceOptions = getCharacterDefinitionSources(definitions, sourcePacks);
+  const progressLevelFilter = selectedProgressLevels ?? [progressLevel];
+  const availableProgressLevels = Array.from(new Set([
+    ...definitions.map((definition) => definition.progressLevel),
+    progressLevel,
+  ])).sort((left, right) => left - right);
   const selectionById = new Map(selections.map((selection) => [selection.gearId, selection]));
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visible = definitions.filter((definition) => (
-    !normalizedSearch || definition.name.toLocaleLowerCase().includes(normalizedSearch)
+    (progressLevelFilter.length === 0 || progressLevelFilter.includes(definition.progressLevel))
+    && (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
+    && (!normalizedSearch || definition.name.toLocaleLowerCase().includes(normalizedSearch))
   ));
 
   const updateSelection = (selection: CybergearSelection) => {
@@ -73,7 +90,21 @@ export function CybergearStep({ speciesId, selections, progressLevel, validation
       )}
       {validation.cybergear.requiresAcceptanceCheck && <Alert severity="warning">This installation requires a cyber tolerance acceptance check.</Alert>}
       {validation.cybergear.errors.length > 0 && <Alert severity="error">{validation.cybergear.errors.join(' ')}</Alert>}
-      <TextField size="small" label="Search cybergear" value={search} onChange={(event) => setSearch(event.target.value)} />
+      <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
+        <TextField size="small" label="Search cybergear" value={search} onChange={(event) => setSearch(event.target.value)} fullWidth />
+        <EquipmentProgressLevelFilter
+          id="cybergear-progress-level"
+          availableLevels={availableProgressLevels}
+          selectedLevels={progressLevelFilter}
+          onChange={setSelectedProgressLevels}
+        />
+        <CharacterSourceFilter
+          id="cybergear-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={setSourceFilter}
+        />
+      </Stack>
       <TableContainer sx={{ maxHeight: 'calc(100vh - 350px)', minHeight: 380 }}>
         <Table stickyHeader size="small">
           <TableHead>

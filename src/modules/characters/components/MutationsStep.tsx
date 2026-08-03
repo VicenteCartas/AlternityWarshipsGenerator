@@ -4,13 +4,18 @@ import {
   Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, Tabs, TextField, Typography,
 } from '@mui/material';
-import { getAllMutations } from '../services/characterDataService';
+import { getAllCharacterSourcePacks, getAllMutations } from '../services/characterDataService';
+import {
+  getCharacterDefinitionSource,
+  getCharacterDefinitionSources,
+} from '../services/characterDefinitionSourceService';
 import type {
   MutationKind,
   MutationPlan,
   MutationSelection,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
 
 interface MutationsStepProps {
   speciesId: string;
@@ -24,8 +29,11 @@ const ROWS_PER_PAGE = 20;
 export function MutationsStep({ speciesId, plan, validation, onChange }: MutationsStepProps) {
   const [kind, setKind] = useState<MutationKind>('advantage');
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [page, setPage] = useState(0);
   const definitions = getAllMutations();
+  const sourcePacks = getAllCharacterSourcePacks();
+  const sourceOptions = getCharacterDefinitionSources(definitions, sourcePacks);
   const selectionById = new Map(plan.selections.map((selection) => [selection.mutationId, selection]));
   const selectedAdvantages = plan.selections
     .map((selection) => ({ selection, definition: definitions.find((entry) => entry.id === selection.mutationId) }))
@@ -33,9 +41,11 @@ export function MutationsStep({ speciesId, plan, validation, onChange }: Mutatio
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visible = definitions.filter((definition) => (
     definition.kind === kind
+    && (sourceFilter === 'all' || getCharacterDefinitionSource(definition, sourcePacks).key === sourceFilter)
     && (!normalizedSearch || definition.name.toLocaleLowerCase().includes(normalizedSearch))
   ));
-  const pageRows = visible.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+  const effectivePage = Math.min(page, Math.max(0, Math.ceil(visible.length / ROWS_PER_PAGE) - 1));
+  const pageRows = visible.slice(effectivePage * ROWS_PER_PAGE, (effectivePage + 1) * ROWS_PER_PAGE);
 
   const updateSelection = (selection: MutationSelection) => {
     onChange({
@@ -101,6 +111,12 @@ export function MutationsStep({ speciesId, plan, validation, onChange }: Mutatio
           <Tab value="drawback" label="Drawbacks" />
         </Tabs>
         <TextField size="small" label="Search mutations" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} fullWidth />
+        <CharacterSourceFilter
+          id="mutations-source"
+          value={sourceFilter}
+          options={sourceOptions}
+          onChange={(value) => { setSourceFilter(value); setPage(0); }}
+        />
       </Stack>
       <TableContainer sx={{ maxHeight: 'calc(100vh - 430px)', minHeight: 340 }}>
         <Table stickyHeader size="small">
@@ -167,7 +183,7 @@ export function MutationsStep({ speciesId, plan, validation, onChange }: Mutatio
       <TablePagination
         component="div"
         count={visible.length}
-        page={page}
+        page={effectivePage}
         onPageChange={(_event, nextPage) => setPage(nextPage)}
         rowsPerPage={ROWS_PER_PAGE}
         rowsPerPageOptions={[ROWS_PER_PAGE]}

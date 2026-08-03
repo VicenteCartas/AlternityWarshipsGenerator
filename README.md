@@ -1,6 +1,6 @@
 # Alternity Workshop
 
-A suite of desktop tools for the **Alternity** sci-fi tabletop role-playing game. The current release ships with the **Warships Generator** module — a complete implementation of the construction rules from the *Warships* sourcebook by Richard Baker. Future releases will add additional modules (Battle Resolution, Character Builder, …) that share the same hub, theming, and mod system.
+A suite of desktop tools for the **Alternity** sci-fi tabletop role-playing game. Its modules share one hub and theme while covering character creation, spacecraft design, campaign setting design, travel, and combat.
 
 ![Screenshot](docs/screenshot.png)
 
@@ -9,7 +9,11 @@ A suite of desktop tools for the **Alternity** sci-fi tabletop role-playing game
 | Module | Status | Description |
 |---|---|---|
 | **Warships Generator** | Available | Design warships, space stations, ground bases, and outposts using the *Warships* sourcebook construction rules. |
-| **Battle Resolution** | Coming in v2.0 | Run space combat encounters using the abstract combat system from *The Externals*. |
+| **Character Creator** | Available | Create and advance heroes with Player's Handbook rules. |
+| **Star System Generator** | Available | Choose exact GMG tables or seeded science-informed generation with automatic GMG Environment Class and GRAPH translation; save and export both result sets. |
+| **Civilization Builder** | Available | Develop culture and economy with repeatable cities, towns, stations, and installations; save and export full or individual reports. |
+| **Travel Calculator** | Available | Plan sublight journeys from physical acceleration, Warships ratings, or imported designs. |
+| **Battle Resolution** | Available | Resolve campaign-scale space, ground, orbital, and mixed engagements. |
 
 On launch, the app shows a **Hub** page where you choose which module to use. Use the **Back to Hub** button or **File → Return to Hub** to navigate between modules.
 

@@ -1,9 +1,19 @@
+import { useState } from 'react';
 import {
   Alert, Checkbox, Chip, FormControl, FormControlLabel, InputLabel, MenuItem,
   Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Typography,
+  TableRow, TextField, Typography,
 } from '@mui/material';
-import { getAllPsionicSkills, getPsionicRules, getSpeciesById } from '../services/characterDataService';
+import {
+  getAllCharacterSourcePacks,
+  getAllPsionicSkills,
+  getPsionicRules,
+  getSpeciesById,
+} from '../services/characterDataService';
+import {
+  getCharacterDefinitionSource,
+  getCharacterDefinitionSources,
+} from '../services/characterDefinitionSourceService';
 import type {
   PsionicAccessPath,
   PsionicPurchasePlan,
@@ -11,6 +21,7 @@ import type {
   SpecialtySkillPurchase,
 } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
+import { CharacterSourceFilter } from './CharacterSourceFilter';
 
 interface PsionicsStepProps {
   speciesId: string;
@@ -31,10 +42,27 @@ export function PsionicsStep({
   onChange,
   onCoreSkillPlanChange,
 }: PsionicsStepProps) {
+  const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const skills = getAllPsionicSkills();
   const rules = getPsionicRules();
   const species = getSpeciesById(speciesId);
   const broadSkills = skills.filter((skill) => skill.kind === 'broad');
+  const sourcePacks = getAllCharacterSourcePacks();
+  const sourceOptions = getCharacterDefinitionSources(skills, sourcePacks);
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const skillMatchesSource = (skill: (typeof skills)[number]) => (
+    sourceFilter === 'all' || getCharacterDefinitionSource(skill, sourcePacks).key === sourceFilter
+  );
+  const skillMatchesSearch = (skill: (typeof skills)[number]) => (
+    !normalizedSearch || skill.name.toLocaleLowerCase().includes(normalizedSearch)
+  );
+  const visibleBroadSkills = broadSkills.filter((broadSkill) => {
+    const specialties = skills.filter((skill) => skill.parentSkillId === broadSkill.id);
+    if (!skillMatchesSource(broadSkill) && !specialties.some(skillMatchesSource)) return false;
+    return skillMatchesSearch(broadSkill)
+      || specialties.some((skill) => skillMatchesSource(skill) && skillMatchesSearch(skill));
+  });
   const trainedBroadIds = new Set(validation.psionics.trainedBroadSkillIds);
   const selectedSpecialties = new Map(plan.specialtySkills.map((purchase) => [purchase.skillId, purchase]));
   const selectedCostById = new Map(validation.psionics.costs.map((cost) => [cost.skillId, cost.cost]));
@@ -106,7 +134,23 @@ export function PsionicsStep({
         </FormControl>
       )}
       {plan.accessPath !== 'none' && (
-        <TableContainer sx={{ maxHeight: 'calc(100vh - 390px)', minHeight: 360 }}>
+        <>
+          <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
+            <TextField
+              size="small"
+              label="Search psionics"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              fullWidth
+            />
+            <CharacterSourceFilter
+              id="psionics-source"
+              value={sourceFilter}
+              options={sourceOptions}
+              onChange={setSourceFilter}
+            />
+          </Stack>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 390px)', minHeight: 360 }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
@@ -117,9 +161,10 @@ export function PsionicsStep({
               </TableRow>
             </TableHead>
             <TableBody>
-              {broadSkills.flatMap((broadSkill) => {
+              {visibleBroadSkills.flatMap((broadSkill) => {
                 const isFree = species?.freeBroadSkillIds.includes(broadSkill.id) || false;
                 const isTrained = trainedBroadIds.has(broadSkill.id);
+                const broadMatchesSearch = skillMatchesSearch(broadSkill);
                 const broadRow = (
                   <TableRow key={broadSkill.id} sx={{ bgcolor: 'action.hover' }}>
                     <TableCell>
@@ -142,6 +187,8 @@ export function PsionicsStep({
                 );
                 const specialtyRows = skills
                   .filter((skill) => skill.parentSkillId === broadSkill.id)
+                  .filter(skillMatchesSource)
+                  .filter((skill) => broadMatchesSearch || skillMatchesSearch(skill))
                   .map((skill) => {
                     const purchase = selectedSpecialties.get(skill.id);
                     const rank = purchase?.rank || 0;
@@ -176,7 +223,8 @@ export function PsionicsStep({
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+          </TableContainer>
+        </>
       )}
       {plan.accessPath === 'talent' && (
         <FormControlLabel
