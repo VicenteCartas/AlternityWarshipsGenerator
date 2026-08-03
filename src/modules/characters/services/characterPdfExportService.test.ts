@@ -58,4 +58,19 @@ describe('character PDF export', () => {
     const pdf = createPrintableCharacterSheetPdf(state, validateCharacter(state));
     expect(pdf.output()).toContain('INCOMPLETE: 8 ISSUES');
   });
+
+  it('adds advancement history pages for an advanced character', () => {
+    const state = createEmptyCharacter();
+    state.identity.heroName = 'Advanced Hero';
+    state.skillPlan.nativeLanguage = 'English';
+    state.level = 3;
+    state.advancementPlan.levels = [
+      { level: 2, broadSkills: [], specialtySkills: [], benefits: [], lastResortPointsSpent: 0, lastResortPointsPurchased: 0, creditsAwarded: 0, acquisitions: [], notes: '' },
+      { level: 3, broadSkills: [], specialtySkills: [], benefits: [], lastResortPointsSpent: 0, lastResortPointsPurchased: 0, creditsAwarded: 0, acquisitions: [], notes: '' },
+    ];
+    const validation = validateCharacter(state);
+
+    expect(createPrintableCharacterSheetPdf(state, validation).getNumberOfPages()).toBe(3);
+    expect(createCharacterPdf(state, validation).getNumberOfPages()).toBeGreaterThanOrEqual(5);
+  });
 });

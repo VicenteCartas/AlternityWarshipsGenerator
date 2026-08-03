@@ -1,4 +1,5 @@
 import { calculateCharacterDerivedStats, validateAbilityAllocation } from './characterCalculationService';
+import { evaluateAdvancementPlan } from './advancementService';
 import {
   getAllCharacterOptions,
   getAllCharacterSourcePacks,
@@ -22,12 +23,13 @@ import { resolveCharacterSourcePacks } from './characterSourcePackService';
 import { evaluateCybergear } from './cybergearService';
 import { calculateStartingFunds, evaluateEquipmentPurchases } from './equipmentService';
 import { evaluateMutationPlan } from './mutationService';
-import { evaluatePsionicPurchasePlan } from './psionicService';
+import { calculateMaximumPsionicEnergy, evaluatePsionicPurchasePlan } from './psionicService';
 import { evaluateSpeciesBenefits } from './speciesAbilityService';
 import { evaluateSkillPurchasePlan } from './skillPurchaseService';
 import type {
   AbilityId,
   AbilityScores,
+  AdvancementResult,
   CharacterDerivedStats,
   MutationResult,
   SpeciesDefinition,
@@ -112,6 +114,32 @@ function combineDerivedBonuses(
   };
 }
 
+function applyAdvancementDerivedBonuses(
+  derived: CharacterDerivedStats,
+  advancement: AdvancementResult,
+): CharacterDerivedStats {
+  const score = derived.actionCheck.score + advancement.actionCheckScoreIncreases;
+  return {
+    ...derived,
+    actionCheck: {
+      score,
+      marginal: score + 1,
+      ordinary: score,
+      good: Math.floor(score / 2),
+      amazing: Math.floor(score / 4),
+      dieStep: derived.actionCheck.dieStep - advancement.actionCheckBonusSteps,
+    },
+    actionsPerRound: Math.min(4, derived.actionsPerRound + advancement.extraActions),
+    durability: {
+      stun: derived.durability.stun + advancement.durabilityBonuses.stun,
+      wound: derived.durability.wound + advancement.durabilityBonuses.wound,
+      mortal: derived.durability.mortal + advancement.durabilityBonuses.mortal,
+      fatigue: derived.durability.fatigue + advancement.durabilityBonuses.fatigue,
+    },
+    lastResorts: { ...derived.lastResorts, initial: advancement.currentLastResortPoints },
+  };
+}
+
 export function validateCharacter(state: CharacterState): CharacterValidationResult {
   const rules = getCharacterRules();
   const sourcePacks = resolveCharacterSourcePacks(state.selectedSourcePackIds, getAllCharacterSourcePacks());
@@ -129,6 +157,9 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
   if (!profession) identityErrors.push('Profession is required.');
   if (state.progressLevel < 4 || state.progressLevel > 9) {
     identityErrors.push('Progress Level must be between 4 and 9.');
+  }
+  if (!Number.isInteger(state.level) || state.level < 1) {
+    identityErrors.push('Target Level must be a positive whole number.');
   }
 
   const professionErrors: string[] = [];
@@ -193,6 +224,7 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     getAllSkills(),
     getAllProfessions(),
     rules,
+    state.skillRules,
   );
   const psionics = evaluatePsionicPurchasePlan(
     state.psionicPlan,
@@ -203,6 +235,7 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     getAllPsionicSkills(),
     getPsionicRules(),
     rules.startingSpecialtyRankLimit,
+    state.skillRules.specialtySkillCosts,
   );
   const cybertechEnabled = (sourcePacks.activeSourcePackIdsBySection.cybertech || []).length > 0;
   const cybergear = evaluateCybergear(
@@ -267,15 +300,106 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     species,
     profession,
     rules,
-    { resistanceBonusAbility: state.resistanceBonusAbility },
+    { resistanceBonusAbility: state.resistanceBonusAbility, skillRules: state.skillRules },
   );
-  const derived = combineDerivedBonuses(
+  const creationDerived = combineDerivedBonuses(
     baseDerived,
     mutations,
     options,
     cybergear,
     combatGear.armorActionCheckPenalty,
   );
+  const purchasedCoreSpecialtyIds = new Set(state.skillPlan.specialtySkills.map((purchase) => purchase.skillId));
+  const advancementCoreSpecialties = [
+    ...state.skillPlan.specialtySkills,
+    ...(skills.nativeLanguage ? [{ skillId: 'language', rank: 3, specialization: skills.nativeLanguage }] : []),
+    ...Object.entries(speciesBenefits.grantedSpecialtyRanks)
+      .filter(([skillId]) => !purchasedCoreSpecialtyIds.has(skillId))
+      .map(([skillId, rank]) => ({ skillId, rank })),
+  ];
+  let advancement = evaluateAdvancementPlan(state, {
+    effectiveAbilityScores,
+    coreBroadSkillIds: skills.trainedBroadSkillIds,
+    coreSpecialtySkills: advancementCoreSpecialties,
+    psionicBroadSkillIds: psionics.trainedBroadSkillIds,
+    psionicSpecialtySkills: state.psionicPlan.specialtySkills,
+    skillDiscountProfessionIds: skills.skillDiscountProfessionIds,
+    remainingSkillPoints,
+    remainingCredits: remainingFunds,
+    currentLastResortPoints: creationDerived.lastResorts.initial,
+    maximumLastResortPoints: creationDerived.lastResorts.maximum,
+    lastResortPointCost: creationDerived.lastResorts.cost,
+  });
+  const finalOptionSelections = [
+    ...state.optionSelections.filter((selection) => !advancement.removedFlawIds.includes(selection.optionId)),
+    ...advancement.addedPerks,
+  ];
+  const finalOptions = evaluateCharacterOptions(
+    finalOptionSelections,
+    mutations.effectiveAbilityScores,
+    species,
+    getAllCharacterOptions(),
+    state.psionicPlan.accessPath !== 'none',
+  );
+  const finalCybergear = evaluateCybergear(
+    advancement.finalCybergearSelections,
+    finalOptions.effectiveAbilityScores.con + (advancement.abilityScoreBonuses.con || 0),
+    species,
+    getAllCybergear(),
+    getCybergearTrainingSkillPointCost(),
+    cybertechEnabled,
+    state.progressLevel,
+  );
+  const finalEffectiveAbilityScores = applyAbilityAdjustments(
+    applyAbilityAdjustments(finalOptions.effectiveAbilityScores, advancement.abilityScoreBonuses),
+    finalCybergear.abilityAdjustments,
+  );
+  const finalCombatGear = evaluateCombatGear(
+    advancement.finalWeaponSelections,
+    advancement.finalArmorSelections,
+    getAllWeapons(),
+    getAllArmor(),
+    0,
+    state.progressLevel,
+    advancement.finalCoreBroadSkillIds,
+    advancement.finalCoreSpecialtySkills,
+    false,
+  );
+  const advancementIntegrationErrors = [
+    ...finalOptions.errors.filter((error) => !options.errors.includes(error)),
+    ...finalCybergear.errors.filter((error) => !cybergear.errors.includes(error)),
+    ...finalCombatGear.errors.filter((error) => !combatGear.errors.includes(error)),
+  ];
+  advancement = {
+    ...advancement,
+    valid: advancement.valid && advancementIntegrationErrors.length === 0,
+    errors: [...advancement.errors, ...advancementIntegrationErrors],
+    finalCybergear,
+    finalCombatGear,
+  };
+  const finalBaseDerived = calculateCharacterDerivedStats(
+    finalEffectiveAbilityScores,
+    species,
+    profession,
+    rules,
+    { resistanceBonusAbility: state.resistanceBonusAbility, skillRules: state.skillRules },
+  );
+  const finalCombinedDerived = combineDerivedBonuses(
+    finalBaseDerived,
+    mutations,
+    finalOptions,
+    finalCybergear,
+    finalCombatGear.armorActionCheckPenalty,
+  );
+  const derived = applyAdvancementDerivedBonuses(finalCombinedDerived, advancement);
+  const finalPsionics = {
+    ...psionics,
+    maximumEnergyPoints: calculateMaximumPsionicEnergy(
+      finalEffectiveAbilityScores,
+      species,
+      state.psionicPlan.accessPath,
+    ),
+  };
   const errors = [
     ...identityErrors,
     ...professionErrors,
@@ -292,12 +416,13 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     ...cybergearFundsErrors,
     ...equipment.errors,
     ...combatGear.errors,
+    ...advancement.errors,
   ];
 
   return {
     valid: errors.length === 0,
     errors,
-    effectiveAbilityScores,
+    effectiveAbilityScores: finalEffectiveAbilityScores,
     sourcePacks,
     speciesBenefits,
     professionErrors,
@@ -305,11 +430,12 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     mutations,
     options,
     skills,
-    psionics,
+    psionics: finalPsionics,
     cybergear,
     startingFunds,
     equipment,
     combatGear,
+    advancement,
     derived,
     remainingSkillPoints,
     remainingFunds,

@@ -69,7 +69,21 @@ export interface CharacterSheetNamedDetail {
   details: string;
 }
 
+export interface CharacterSheetAdvancementLevel {
+  level: number;
+  skillPointsEarned: number;
+  skillPointsSpent: number;
+  skillPointsRemaining: number;
+  creditsAwarded: number;
+  acquisitionCost: number;
+  creditsRemaining: number;
+  purchases: string[];
+  notes: string;
+}
+
 export interface CharacterSheetModel {
+  level: number;
+  achievementPoints: number;
   heroName: string;
   playerName: string;
   species: string;
@@ -111,6 +125,9 @@ export interface CharacterSheetModel {
   mutationScope: CharacterState['mutationPlan']['scope'];
   speciesAbilities: string[];
   professionBenefits: string[];
+  skillRuleLabels: string[];
+  skillRulesSummary: string;
+  advancementLevels: CharacterSheetAdvancementLevel[];
   strengthDamageAdjustment: number;
   actionCheck: CharacterValidationResult['derived']['actionCheck'];
   actionsPerRound: number;
@@ -134,6 +151,10 @@ function details(...values: Array<string | number | undefined | null>): string {
   return values.filter((value) => value !== undefined && value !== null && value !== '').join(' | ');
 }
 
+function normalizedSpecialization(value: string | undefined): string {
+  return (value || '').trim().toLocaleLowerCase();
+}
+
 function optionDetails(selection: CharacterState['optionSelections'][number]): string {
   return details(
     selection.value !== undefined ? `${selection.value} points` : '',
@@ -145,14 +166,13 @@ function optionDetails(selection: CharacterState['optionSelections'][number]): s
 
 function skillScoreForWeapon(
   skillId: string,
-  state: CharacterState,
   validation: CharacterValidationResult,
 ): SkillScore | null {
   const skills = getAllSkills();
   const skill = skills.find((entry) => entry.id === skillId);
   if (!skill) return null;
-  const purchase = state.skillPlan.specialtySkills.find((entry) => entry.skillId === skillId);
-  const trainedBroad = Boolean(skill.parentSkillId && validation.skills.trainedBroadSkillIds.includes(skill.parentSkillId));
+    const purchase = validation.advancement.finalCoreSpecialtySkills.find((entry) => entry.skillId === skillId);
+    const trainedBroad = Boolean(skill.parentSkillId && validation.advancement.finalCoreBroadSkillIds.includes(skill.parentSkillId));
   const base = purchase
     ? validation.effectiveAbilityScores[skill.ability] + purchase.rank
     : trainedBroad
@@ -175,6 +195,18 @@ export function buildCharacterSheetModel(
   const mutationDefinitions = getAllMutations();
   const species = getSpeciesById(state.speciesId);
   const profession = state.professionId ? getProfessionById(state.professionId) : undefined;
+  const optionalSkillRules = [
+    state.skillRules.startingSkillAllocation === 'optional-2ab' ? '2A/2B' : '',
+    state.skillRules.specialtySkillCosts === 'optional-2c' ? '2C' : '',
+  ].filter(Boolean);
+  const skillRuleLabels = [
+    state.skillRules.startingSkillAllocation === 'optional-2ab'
+      ? 'Starting Skills: Official Optional Rules 2A/2B'
+      : 'Starting Skills: Standard PHB',
+    state.skillRules.specialtySkillCosts === 'optional-2c'
+      ? 'Specialty Costs: Official Optional Rule 2C'
+      : 'Specialty Costs: Standard PHB',
+  ];
 
   const abilities = (Object.keys(ABILITY_LABELS) as AbilityId[]).map((id) => ({
     id,
@@ -184,7 +216,7 @@ export function buildCharacterSheetModel(
     resistance: validation.derived.resistanceModifiers[id],
   }));
 
-  const broadSkills: CharacterSheetSkill[] = validation.skills.trainedBroadSkillIds.map((skillId) => {
+  const broadSkills: CharacterSheetSkill[] = validation.advancement.finalCoreBroadSkillIds.map((skillId) => {
     const definition = skills.find((entry) => entry.id === skillId);
     const ability = definition?.ability || 'int';
     const score = calculateSkillScore(validation.effectiveAbilityScores[ability], 0);
@@ -196,53 +228,39 @@ export function buildCharacterSheetModel(
       ...score,
     };
   });
-  const specialtySkills: CharacterSheetSkill[] = state.skillPlan.specialtySkills.map((purchase) => {
+  const specialtySkills: CharacterSheetSkill[] = validation.advancement.finalCoreSpecialtySkills.map((purchase) => {
     const definition = skills.find((entry) => entry.id === purchase.skillId);
     const ability = definition?.ability || 'int';
+    const isNative = purchase.skillId === 'language'
+      && normalizedSpecialization(purchase.specialization) === normalizedSpecialization(validation.skills.nativeLanguage);
+    const isPurchased = state.skillPlan.specialtySkills.some((entry) => (
+      entry.skillId === purchase.skillId
+      && normalizedSpecialization(entry.specialization) === normalizedSpecialization(purchase.specialization)
+    ));
+    const isSpecies = !isNative && !isPurchased && validation.speciesBenefits.grantedSpecialtyRanks[purchase.skillId] !== undefined;
     return {
       ability,
       name: `${definition?.name || purchase.skillId}${purchase.specialization ? ` (${purchase.specialization})` : ''}`,
       rank: purchase.rank,
-      source: 'Purchased',
+      source: isNative ? 'Native' : isSpecies ? 'Species' : 'Purchased',
       ...calculateSkillScore(validation.effectiveAbilityScores[ability], purchase.rank),
     };
   });
-  const purchasedSpecialtyIds = new Set(state.skillPlan.specialtySkills.map((purchase) => purchase.skillId));
-  const speciesSpecialtySkills: CharacterSheetSkill[] = Object.entries(validation.speciesBenefits.grantedSpecialtyRanks)
-    .filter(([skillId]) => !purchasedSpecialtyIds.has(skillId))
-    .map(([skillId, rank]) => {
-      const definition = skills.find((entry) => entry.id === skillId);
-      const ability = definition?.ability || 'int';
-      return {
-        ability,
-        name: definition?.name || skillId,
-        rank,
-        source: 'Species',
-        ...calculateSkillScore(validation.effectiveAbilityScores[ability], rank),
-      };
-    });
-  const nativeLanguage: CharacterSheetSkill = {
-    ability: 'int',
-    name: `Language (${validation.skills.nativeLanguage || 'Not selected'})`,
-    rank: 3,
-    source: 'Native',
-    ...calculateSkillScore(validation.effectiveAbilityScores.int, 3),
-  };
 
   const attacks: CharacterSheetAttack[] = [
     {
       name: 'Unarmed', skill: 'Unarmed Attack',
-      score: skillScoreForWeapon('brawl', state, validation),
+      score: skillScoreForWeapon('brawl', validation),
       accuracy: '-', actions: '1', mode: '-', range: 'Personal',
       damage: `d4s/d4+1s/d4+2s (${validation.derived.strengthDamageAdjustment >= 0 ? '+' : ''}${validation.derived.strengthDamageAdjustment} STR)`,
       quantity: 1, clips: 0,
     },
-    ...state.weaponSelections.map((selection) => {
+    ...validation.advancement.finalWeaponSelections.map((selection) => {
       const definition = weaponDefinitions.find((entry) => entry.id === selection.weaponId);
       return {
         name: definition?.name || selection.weaponId,
         skill: definition?.skillId || '-',
-        score: definition ? skillScoreForWeapon(definition.skillId, state, validation) : null,
+        score: definition ? skillScoreForWeapon(definition.skillId, validation) : null,
         accuracy: definition ? `${definition.accuracy >= 0 ? '+' : ''}${definition.accuracy}` : '-',
         actions: String(definition?.actions ?? '-'),
         mode: definition?.mode || '-',
@@ -255,7 +273,7 @@ export function buildCharacterSheetModel(
     ...(validation.speciesBenefits.naturalWeapon ? [{
       name: 'Natural weapon',
       skill: validation.speciesBenefits.naturalWeapon.skillId,
-      score: skillScoreForWeapon(validation.speciesBenefits.naturalWeapon.skillId, state, validation),
+      score: skillScoreForWeapon(validation.speciesBenefits.naturalWeapon.skillId, validation),
       accuracy: '-', actions: '1', mode: '-', range: 'Personal',
       damage: `${validation.speciesBenefits.naturalWeapon.damageType} ${validation.speciesBenefits.naturalWeapon.damage}`,
       quantity: 1, clips: 0,
@@ -263,7 +281,7 @@ export function buildCharacterSheetModel(
   ];
 
   const armor = [
-    ...state.armorSelections.map((selection) => {
+    ...validation.advancement.finalArmorSelections.map((selection) => {
     const definition = armorDefinitions.find((entry) => entry.id === selection.armorId);
     return {
       name: definition?.name || selection.armorId,
@@ -284,7 +302,7 @@ export function buildCharacterSheetModel(
     }] : []),
   ];
 
-  const selectedEquipment = state.equipmentSelections.map((selection) => {
+  const selectedEquipment = validation.advancement.finalEquipmentSelections.map((selection) => {
     const definition = equipmentDefinitions.find((entry) => entry.id === selection.equipmentId);
     return {
       definition,
@@ -302,7 +320,11 @@ export function buildCharacterSheetModel(
     { name: 'Reflex device circuitry', quantity: 1, details: 'Natural | Granted', mass: 0 },
   ] : [];
 
-  const options = state.optionSelections.map((selection) => ({
+  const finalOptionSelections = [
+    ...state.optionSelections.filter((selection) => !validation.advancement.removedFlawIds.includes(selection.optionId)),
+    ...validation.advancement.addedPerks,
+  ];
+  const options = finalOptionSelections.map((selection) => ({
     definition: optionDefinitions.find((entry) => entry.id === selection.optionId),
     selection,
   }));
@@ -313,7 +335,18 @@ export function buildCharacterSheetModel(
       details: details(definition?.tier, selection.targetAbility?.toUpperCase(), selection.notes),
     };
   });
-  const psionicRows: CharacterSheetSkill[] = state.psionicPlan.specialtySkills.map((purchase) => {
+  const psionicBroadRows: CharacterSheetSkill[] = validation.advancement.finalPsionicBroadSkillIds.map((skillId) => {
+    const definition = psionicSkills.find((entry) => entry.id === skillId);
+    const ability = definition?.ability || 'int';
+    return {
+      ability,
+      name: definition?.name || skillId,
+      rank: null,
+      source: state.psionicPlan.purchasedBroadSkillIds.includes(skillId) ? 'Purchased' : 'Free',
+      ...calculateSkillScore(validation.effectiveAbilityScores[ability], 0),
+    };
+  });
+  const psionicSpecialtyRows: CharacterSheetSkill[] = validation.advancement.finalPsionicSpecialtySkills.map((purchase) => {
     const definition = psionicSkills.find((entry) => entry.id === purchase.skillId);
     const ability = definition?.ability || 'int';
     return {
@@ -340,7 +373,49 @@ export function buildCharacterSheetModel(
     professionBenefits.push(`Favored psionic discipline: ${favored || 'Not selected'} (-1 step)`);
   }
 
+  const finalCybergear = validation.advancement.finalCybergear || validation.cybergear;
+  const cybergearItems: CharacterSheetItem[] = [
+    ...intrinsicCybergear,
+    ...validation.advancement.finalCybergearSelections.map((selection) => ({
+      name: cybergearDefinitions.find((entry) => entry.id === selection.gearId)?.name || selection.gearId,
+      quantity: selection.quantity,
+      details: details(selection.quality, selection.notes),
+      mass: (cybergearDefinitions.find((entry) => entry.id === selection.gearId)?.qualities
+        .find((quality) => quality.quality === selection.quality)?.mass || 0) * selection.quantity,
+    })),
+  ];
+  const advancementLevels: CharacterSheetAdvancementLevel[] = validation.advancement.levelResults.map((result) => {
+    const plan = state.advancementPlan.levels.find((entry) => entry.level === result.level);
+    const acquisitions = validation.advancement.acquisitions.filter((entry) => entry.level === result.level);
+    return {
+      level: result.level,
+      skillPointsEarned: result.skillPointsEarned,
+      skillPointsSpent: result.spent,
+      skillPointsRemaining: result.remaining,
+      creditsAwarded: result.creditsAwarded,
+      acquisitionCost: result.acquisitionCost,
+      creditsRemaining: result.creditsRemaining,
+      purchases: [
+        ...result.costs.map((entry) => `${entry.name} (${entry.cost} SP)`),
+        ...acquisitions.map((entry) => `${entry.quantity}x ${entry.name} (${entry.method === 'granted' ? 'Granted' : `${entry.cost} credits`})`),
+      ],
+      notes: plan?.notes || '',
+    };
+  });
+  const equipmentItems = selectedEquipment.filter(({ definition }) => definition?.category !== 'computer').map(({ item }) => item);
+  const computerItems = selectedEquipment.filter(({ definition }) => definition?.category === 'computer').map(({ item }) => item);
+  const totalCarriedMass = equipmentItems.reduce((sum, item) => sum + item.mass, 0)
+    + computerItems.reduce((sum, item) => sum + item.mass, 0)
+    + cybergearItems.reduce((sum, item) => sum + item.mass, 0)
+    + armor.reduce((sum, item) => sum + item.mass, 0)
+    + validation.advancement.finalWeaponSelections.reduce((sum, selection) => {
+      const definition = weaponDefinitions.find((entry) => entry.id === selection.weaponId);
+      return sum + (definition?.mass || 0) * selection.quantity;
+    }, 0);
+
   return {
+    level: state.level,
+    achievementPoints: validation.advancement.achievementPoints,
     heroName: state.identity.heroName || 'Unnamed Hero',
     playerName: state.identity.playerName,
     species: species?.name || state.speciesId,
@@ -363,25 +438,16 @@ export function buildCharacterSheetModel(
     characterTraits: state.identity.characterTraits,
     allegiance: state.identity.allegiance,
     socialStatus: state.identity.socialStatus,
-    contacts: state.identity.contacts,
+    contacts: [state.identity.contacts, ...validation.advancement.acquiredContacts].filter(Boolean).join('; '),
     enemies: state.identity.enemies,
     notes: state.identity.notes,
     abilities,
-    skills: [...broadSkills, nativeLanguage, ...speciesSpecialtySkills, ...specialtySkills],
+    skills: [...broadSkills, ...specialtySkills],
     attacks,
     armor,
-    equipment: selectedEquipment.filter(({ definition }) => definition?.category !== 'computer').map(({ item }) => item),
-    computers: selectedEquipment.filter(({ definition }) => definition?.category === 'computer').map(({ item }) => item),
-    cybergear: [
-      ...intrinsicCybergear,
-      ...state.cybergearSelections.map((selection) => ({
-        name: cybergearDefinitions.find((entry) => entry.id === selection.gearId)?.name || selection.gearId,
-        quantity: selection.quantity,
-        details: details(selection.quality, selection.notes),
-        mass: (cybergearDefinitions.find((entry) => entry.id === selection.gearId)?.qualities
-          .find((quality) => quality.quality === selection.quality)?.mass || 0) * selection.quantity,
-      })),
-    ],
+    equipment: equipmentItems,
+    computers: computerItems,
+    cybergear: cybergearItems,
     perks: options.filter(({ definition }) => definition?.kind === 'perk').map(({ definition, selection }) => ({
       name: definition?.name || selection.optionId,
       details: optionDetails(selection),
@@ -391,12 +457,17 @@ export function buildCharacterSheetModel(
       details: optionDetails(selection),
     })),
     mutations,
-    psionicSkills: psionicRows,
+    psionicSkills: [...psionicBroadRows, ...psionicSpecialtyRows],
     psionicAccessPath: state.psionicPlan.accessPath,
     mutationOrigin: state.mutationPlan.origin,
     mutationScope: state.mutationPlan.scope,
     speciesAbilities: validation.speciesBenefits.summaries,
     professionBenefits,
+    skillRuleLabels,
+    skillRulesSummary: optionalSkillRules.length > 0
+      ? `Official optional skill rules: ${optionalSkillRules.join(' + ')}`
+      : 'Skill rules: Standard PHB',
+    advancementLevels,
     strengthDamageAdjustment: validation.derived.strengthDamageAdjustment,
     actionCheck: validation.derived.actionCheck,
     actionsPerRound: validation.derived.actionsPerRound,
@@ -404,14 +475,14 @@ export function buildCharacterSheetModel(
     durability: validation.derived.durability,
     lastResorts: validation.derived.lastResorts,
     psionicEnergy: validation.psionics.maximumEnergyPoints,
-    cyberTolerance: validation.cybergear.cyberTolerance,
-    usedCyberTolerance: validation.cybergear.usedTolerance,
+    cyberTolerance: finalCybergear.cyberTolerance,
+    usedCyberTolerance: finalCybergear.usedTolerance,
     startingFunds: validation.startingFunds.totalFunds,
-    remainingFunds: validation.remainingFunds,
-    availableSkillPoints: validation.skills.availableSkillPoints,
-    spentSkillPoints: validation.skills.availableSkillPoints - validation.remainingSkillPoints,
-    remainingSkillPoints: validation.remainingSkillPoints,
-    totalCarriedMass: validation.equipment.totalMass + validation.cybergear.totalMass + validation.combatGear.totalMass,
+    remainingFunds: validation.advancement.remainingCredits,
+    availableSkillPoints: validation.skills.availableSkillPoints + validation.advancement.totalSkillPointsEarned,
+    spentSkillPoints: validation.skills.availableSkillPoints - validation.remainingSkillPoints + validation.advancement.totalSkillPointsSpent,
+    remainingSkillPoints: validation.advancement.remainingSkillPoints,
+    totalCarriedMass,
     valid: validation.valid,
     errors: validation.errors,
   };

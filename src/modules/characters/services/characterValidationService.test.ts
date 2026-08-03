@@ -131,4 +131,59 @@ describe('complete character validation', () => {
     expect(result.speciesBenefits.technologyUseStepPenalty).toBe(1);
     expect(result.skills.availableSkillPoints).toBe(41);
   });
+
+  it('applies achievement benefits to final derived statistics', () => {
+    const state = validHumanFreeAgent();
+    state.level = 4;
+    state.advancementPlan.levels = [
+      { level: 2, broadSkills: [], specialtySkills: [], benefits: [], lastResortPointsSpent: 0, lastResortPointsPurchased: 0, creditsAwarded: 0, acquisitions: [], notes: '' },
+      {
+        level: 3,
+        broadSkills: [],
+        specialtySkills: [],
+        benefits: [
+          { type: 'ability-score-increase', ability: 'dex' },
+          { type: 'action-check-increase' },
+          { type: 'stun-rating-increase' },
+        ],
+        lastResortPointsSpent: 0,
+        lastResortPointsPurchased: 0,
+        creditsAwarded: 0,
+        acquisitions: [],
+        notes: '',
+      },
+      { level: 4, broadSkills: [], specialtySkills: [], benefits: [{ type: 'extra-action' }], lastResortPointsSpent: 0, lastResortPointsPurchased: 0, creditsAwarded: 0, acquisitions: [], notes: '' },
+    ];
+
+    const result = validateCharacter(state);
+    expect(result.valid).toBe(true);
+    expect(result.effectiveAbilityScores.dex).toBe(13);
+    expect(result.derived.actionCheck.score).toBe(15);
+    expect(result.derived.actionsPerRound).toBe(3);
+    expect(result.derived.durability.stun).toBe(11);
+    expect(result.advancement.remainingSkillPoints).toBe(59);
+  });
+
+  it('applies granted advancement equipment without charging campaign credits', () => {
+    const state = validHumanFreeAgent();
+    state.level = 2;
+    state.advancementPlan.levels = [{
+      level: 2,
+      broadSkills: [],
+      specialtySkills: [],
+      benefits: [],
+      lastResortPointsSpent: 0,
+      lastResortPointsPurchased: 0,
+      creditsAwarded: 0,
+      acquisitions: [{ kind: 'armor', itemId: 'battle-jacket', method: 'granted', quantity: 1 }],
+      notes: '',
+    }];
+
+    const result = validateCharacter(state);
+    expect(result.valid).toBe(true);
+    expect(result.advancement.remainingCredits).toBe(3000);
+    expect(result.advancement.finalArmorSelections).toEqual([{ armorId: 'battle-jacket', quantity: 1 }]);
+    expect(result.derived.actionCheck.dieStep).toBe(1);
+    expect(result.derived.resistanceModifiers.dex).toBe(1);
+  });
 });

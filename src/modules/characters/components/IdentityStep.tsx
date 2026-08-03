@@ -4,15 +4,19 @@ import type { CharacterIdentity } from '../types/characterState';
 interface IdentityStepProps {
   identity: CharacterIdentity;
   progressLevel: number;
+  targetLevel: number;
   onIdentityChange: (identity: CharacterIdentity) => void;
   onProgressLevelChange: (progressLevel: number) => void;
+  onTargetLevelChange: (targetLevel: number) => void;
 }
 
 export function IdentityStep({
   identity,
   progressLevel,
+  targetLevel,
   onIdentityChange,
   onProgressLevelChange,
+  onTargetLevelChange,
 }: IdentityStepProps) {
   const setField = (field: keyof CharacterIdentity, value: string | string[]) => {
     onIdentityChange({ ...identity, [field]: value });
@@ -30,6 +34,14 @@ export function IdentityStep({
         <TextField select label="Progress Level" value={progressLevel} onChange={(event) => onProgressLevelChange(Number(event.target.value))}>
           {[4, 5, 6, 7, 8, 9].map((level) => <MenuItem key={level} value={level}>PL {level}</MenuItem>)}
         </TextField>
+        <TextField
+          label="Target Level"
+          type="number"
+          value={targetLevel}
+          onChange={(event) => onTargetLevelChange(Number(event.target.value))}
+          helperText="Level 1 is created first; later levels use Advancement"
+          inputProps={{ min: 1, max: 30, step: 1 }}
+        />
         <TextField label="Gender" value={identity.gender} onChange={(event) => setField('gender', event.target.value)} />
         <TextField label="Age" value={identity.age} onChange={(event) => setField('age', event.target.value)} />
         <TextField label="Height" value={identity.height} onChange={(event) => setField('height', event.target.value)} />

@@ -51,7 +51,7 @@ export function CharactersWelcome({
               <Box>
                 <Typography variant="h4" component="h1">Character Creator</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Player's Handbook character creation
+                  Player's Handbook character creation and advancement
                 </Typography>
               </Box>
             </Stack>

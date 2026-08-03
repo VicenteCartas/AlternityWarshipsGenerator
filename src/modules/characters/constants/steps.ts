@@ -21,6 +21,7 @@ const ALL_CHARACTER_STEPS: CharacterStepDefinition[] = [
   { id: 'mutations', label: 'Mutations', required: false },
   { id: 'cybergear', label: 'Cybergear', required: false },
   { id: 'equipment', label: 'Equipment', required: true },
+  { id: 'advancement', label: 'Advancement', required: true },
   { id: 'summary', label: 'Summary', required: true },
 ];
 
@@ -67,6 +68,7 @@ export function getCharacterStepCompletion(
     ['mutations', state.mutationPlan.selections.length > 0 && validation.mutations.valid],
     ['cybergear', state.cybergearSelections.length > 0 && validation.cybergear.valid],
     ['equipment', validation.startingFunds.valid && validation.equipment.valid && validation.combatGear.valid],
+    ['advancement', validation.advancement.valid],
     ['summary', validation.valid],
   ]);
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
-import type { SkillPurchasePlan } from '../types/character';
+import type { CharacterSkillRules, SkillPurchasePlan } from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
 import { SkillsStep } from './SkillsStep';
 
@@ -38,12 +38,18 @@ function TestSkillsStep() {
     specialtySkills: [],
     additionalDiscountProfessionIds: [],
   });
+  const [skillRules, setSkillRules] = useState<CharacterSkillRules>({
+    startingSkillAllocation: 'standard',
+    specialtySkillCosts: 'standard',
+  });
   return (
     <SkillsStep
       speciesId="human"
       plan={plan}
+      skillRules={skillRules}
       validation={validation}
       onChange={setPlan}
+      onSkillRulesChange={setSkillRules}
     />
   );
 }
@@ -57,6 +63,19 @@ function renderStep() {
 }
 
 describe('SkillsStep', () => {
+  it('selects the paired 2A/2B rules independently from Rule 2C', async () => {
+    const user = userEvent.setup();
+    renderStep();
+    const startingRules = screen.getByRole('switch', { name: /Optional Rules 2A and 2B/ });
+    const costRules = screen.getByRole('switch', { name: /Optional Rule 2C/ });
+
+    await user.click(startingRules);
+    expect(startingRules).toBeChecked();
+    expect(costRules).not.toBeChecked();
+    await user.click(costRules);
+    expect(costRules).toBeChecked();
+  });
+
   it('starts with specialty rows collapsed and toggles one broad skill', async () => {
     const user = userEvent.setup();
     renderStep();

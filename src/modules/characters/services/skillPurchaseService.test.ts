@@ -10,7 +10,8 @@ import {
   getSpeciesById,
   getSpecialtySkillsForBroadSkill,
 } from './characterDataService';
-import { evaluateSkillPurchasePlan } from './skillPurchaseService';
+import { calculateSpecialtyPurchaseCost, evaluateSkillPurchasePlan } from './skillPurchaseService';
+import { calculateSkillBudget } from './characterCalculationService';
 import type { AbilityScores, SkillPurchasePlan } from '../types/character';
 
 const rules = getCharacterRules();
@@ -143,6 +144,33 @@ describe('PHB core skill catalogue', () => {
 });
 
 describe('level-one skill purchasing', () => {
+  it('applies Optional Rules 2A and 2B with both human bonuses', () => {
+    const optionalRules = {
+      startingSkillAllocation: 'optional-2ab' as const,
+      specialtySkillCosts: 'standard' as const,
+    };
+
+    expect(calculateSkillBudget(9, getSpeciesById('fraal')!, rules, optionalRules)).toEqual({
+      baseSkillPoints: 57,
+      totalSkillPoints: 57,
+      maxPurchasedBroadSkills: 6,
+    });
+    expect(calculateSkillBudget(9, getSpeciesById('human')!, rules, optionalRules)).toEqual({
+      baseSkillPoints: 57,
+      totalSkillPoints: 62,
+      maxPurchasedBroadSkills: 7,
+    });
+    expect(calculateSkillBudget(6, getSpeciesById('human')!, rules, optionalRules).maxPurchasedBroadSkills).toBe(6);
+  });
+
+  it('applies Optional Rule 2C without increasing later rank costs', () => {
+    const fall = getSkillById('fall')!;
+    const freeAgentDiscount = new Set(['free-agent']);
+
+    expect(calculateSpecialtyPurchaseCost(fall, 3, freeAgentDiscount)).toBe(9);
+    expect(calculateSpecialtyPurchaseCost(fall, 3, freeAgentDiscount, 'optional-2c')).toBe(6);
+  });
+
   it('prices profession discounts and cumulative specialty ranks', () => {
     const plan = emptyPlan({
       purchasedBroadSkillIds: ['acrobatics', 'stealth'],

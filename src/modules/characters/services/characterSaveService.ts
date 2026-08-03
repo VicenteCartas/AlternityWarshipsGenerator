@@ -6,6 +6,7 @@ import type {
   AbilityId,
   AbilityScores,
   FundsDegree,
+  AdvancementLevelPlan,
   PsionicAccessPath,
   ResistanceAbilityId,
 } from '../types/character';
@@ -119,10 +120,12 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
 
   const defaults = createEmptyCharacter();
   const identity = record(raw.identity);
+  const skillRules = record(raw.skillRules);
   const skillPlan = record(raw.skillPlan);
   const psionicPlan = record(raw.psionicPlan);
   const mutationPlan = record(raw.mutationPlan);
   const professionBenefits = record(raw.professionBenefits);
+  const advancementPlan = record(raw.advancementPlan);
   const resistanceBonusAbility = RESISTANCE_ABILITY_IDS.includes(raw.resistanceBonusAbility as ResistanceAbilityId)
     ? raw.resistanceBonusAbility as ResistanceAbilityId
     : undefined;
@@ -134,9 +137,17 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
     : 'none';
 
   const character: CharacterState = {
-    level: 1,
+    level: Math.max(1, Math.floor(numberValue(raw.level, 1))),
     progressLevel: numberValue(raw.progressLevel, defaults.progressLevel),
     selectedSourcePackIds: stringArray(raw.selectedSourcePackIds, defaults.selectedSourcePackIds),
+    skillRules: {
+      startingSkillAllocation: skillRules.startingSkillAllocation === 'optional-2ab'
+        ? 'optional-2ab'
+        : 'standard',
+      specialtySkillCosts: skillRules.specialtySkillCosts === 'optional-2c'
+        ? 'optional-2c'
+        : 'standard',
+    },
     identity: {
       heroName: stringValue(identity.heroName, ''),
       playerName: stringValue(identity.playerName, ''),
@@ -209,10 +220,26 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
     equipmentSelections: objectArray(raw.equipmentSelections),
     weaponSelections: objectArray(raw.weaponSelections),
     armorSelections: objectArray(raw.armorSelections),
+    advancementPlan: {
+      levels: objectArray<AdvancementLevelPlan>(advancementPlan.levels).map((entry) => ({
+        level: Math.max(2, Math.floor(numberValue(entry.level, 2))),
+        broadSkills: objectArray(entry.broadSkills),
+        specialtySkills: objectArray(entry.specialtySkills),
+        benefits: objectArray(entry.benefits),
+        lastResortPointsSpent: Math.max(0, numberValue(entry.lastResortPointsSpent, 0)),
+        lastResortPointsPurchased: Math.max(0, numberValue(entry.lastResortPointsPurchased, 0)),
+        creditsAwarded: Math.max(0, numberValue(entry.creditsAwarded, 0)),
+        acquisitions: objectArray(entry.acquisitions),
+        notes: stringValue(entry.notes, ''),
+      })),
+    },
   };
 
   if (!Array.isArray(raw.selectedSourcePackIds)) {
     warnings.push('The file had no source-pack selection, so the PHB was enabled.');
+  }
+  if (!raw.skillRules || typeof raw.skillRules !== 'object') {
+    warnings.push('The file had no skill-rule selection, so standard PHB skill rules were used.');
   }
 
   return {

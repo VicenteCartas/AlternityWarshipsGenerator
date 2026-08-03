@@ -1,4 +1,5 @@
 import rulesData from '../data/characterRules.json';
+import advancementData from '../data/advancement.json';
 import characterOptionsData from '../data/characterOptions.json';
 import mutationsData from '../data/mutations.json';
 import cybergearData from '../data/cybergear.json';
@@ -14,6 +15,7 @@ import speciesData from '../data/species.json';
 import skillsData from '../data/skills.json';
 import type {
   AbilityId,
+  AdvancementRules,
   ArmorDefinition,
   CharacterOptionDefinition,
   CharacterRules,
@@ -31,6 +33,7 @@ import type {
 import type { CharacterSourcePackDefinition } from '../types/sourcePack';
 
 const rules = rulesData as unknown as CharacterRules;
+const advancementRules = advancementData as unknown as AdvancementRules;
 const characterOptions = characterOptionsData.options as unknown as CharacterOptionDefinition[];
 const mutations = mutationsData.mutations as unknown as MutationDefinition[];
 const cybergear = cybergearData.gear as unknown as CybergearDefinition[];
@@ -61,6 +64,10 @@ const armor = armorData.armor as unknown as ArmorDefinition[];
 
 export function getCharacterRules(): CharacterRules {
   return rules;
+}
+
+export function getAdvancementRules(): AdvancementRules {
+  return advancementRules;
 }
 
 export function getAllCharacterOptions(): CharacterOptionDefinition[] {

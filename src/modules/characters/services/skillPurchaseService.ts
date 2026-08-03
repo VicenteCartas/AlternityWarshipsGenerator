@@ -2,6 +2,7 @@ import { calculateSkillBudget } from './characterCalculationService';
 import type {
   AbilityScores,
   CharacterRules,
+  CharacterSkillRules,
   ProfessionDefinition,
   SkillDefinition,
   SkillPurchaseCost,
@@ -9,6 +10,7 @@ import type {
   SkillPurchaseResult,
   SpeciesDefinition,
 } from '../types/character';
+import { STANDARD_CHARACTER_SKILL_RULES } from '../constants/characterSkillRules';
 
 function normalizedSpecialization(value: string | undefined): string {
   return (value || '').trim().toLocaleLowerCase();
@@ -23,11 +25,12 @@ export function calculateSpecialtyPurchaseCost(
   skill: SkillDefinition,
   rank: number,
   discountProfessionIds: Set<string>,
+  costRule: CharacterSkillRules['specialtySkillCosts'] = 'standard',
 ): number {
   const rankOneCost = calculateSkillListCost(skill, discountProfessionIds);
   let total = 0;
   for (let currentRank = 0; currentRank < rank; currentRank += 1) {
-    total += rankOneCost + currentRank;
+    total += rankOneCost + (costRule === 'optional-2c' ? 0 : currentRank);
   }
   return total;
 }
@@ -40,6 +43,7 @@ export function evaluateSkillPurchasePlan(
   skills: SkillDefinition[],
   professions: ProfessionDefinition[],
   rules: CharacterRules,
+  skillRules: CharacterSkillRules = STANDARD_CHARACTER_SKILL_RULES,
 ): SkillPurchaseResult {
   const errors: string[] = [];
   const costs: SkillPurchaseCost[] = [];
@@ -123,7 +127,7 @@ export function evaluateSkillPurchasePlan(
     });
   }
 
-  const skillBudget = calculateSkillBudget(scores.int, species, rules);
+  const skillBudget = calculateSkillBudget(scores.int, species, rules, skillRules);
   const purchasedBroadSkillCount = costs.filter((entry) => entry.kind === 'broad').length;
   if (purchasedBroadSkillCount > skillBudget.maxPurchasedBroadSkills) {
     errors.push(
@@ -186,7 +190,12 @@ export function evaluateSkillPurchasePlan(
       kind: 'specialty',
       rank: purchase.rank,
       specialization: purchase.specialization?.trim() || undefined,
-      cost: calculateSpecialtyPurchaseCost(skill, purchase.rank, discountProfessionIds),
+      cost: calculateSpecialtyPurchaseCost(
+        skill,
+        purchase.rank,
+        discountProfessionIds,
+        skillRules.specialtySkillCosts,
+      ),
     });
   }
 

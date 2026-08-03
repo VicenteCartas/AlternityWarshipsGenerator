@@ -521,6 +521,14 @@ export interface SkillBudget {
   maxPurchasedBroadSkills: number;
 }
 
+export type StartingSkillAllocationRule = 'standard' | 'optional-2ab';
+export type SpecialtySkillCostRule = 'standard' | 'optional-2c';
+
+export interface CharacterSkillRules {
+  startingSkillAllocation: StartingSkillAllocationRule;
+  specialtySkillCosts: SpecialtySkillCostRule;
+}
+
 export interface LastResortStats {
   maximum: number;
   initial: number;
@@ -530,6 +538,7 @@ export interface LastResortStats {
 
 export interface CharacterCalculationOptions {
   resistanceBonusAbility?: ResistanceAbilityId;
+  skillRules?: CharacterSkillRules;
 }
 
 export interface ActionCheckStats {
@@ -564,4 +573,153 @@ export interface CharacterDerivedStats {
   movement: CombatMovementBand;
   durability: DurabilityStats;
   strengthDamageAdjustment: number;
+}
+
+export type AdvancementSkillDomain = 'core' | 'psionic';
+export type AdvancementAcquisitionKind = 'equipment' | 'weapon' | 'armor' | 'cybergear';
+export type AdvancementAcquisitionMethod = 'purchased' | 'granted';
+export type AdvancementBenefitType =
+  | 'action-check-bonus'
+  | 'action-check-increase'
+  | 'extra-action'
+  | 'ability-score-increase'
+  | 'fatigue-rating-increase'
+  | 'mortal-rating-increase'
+  | 'stun-rating-increase'
+  | 'wound-rating-increase'
+  | 'monetary-award'
+  | 'new-perk'
+  | 'remove-flaw'
+  | 'acquire-contact';
+
+export interface AdvancementBroadSkillPurchase {
+  domain: AdvancementSkillDomain;
+  skillId: string;
+}
+
+export interface AdvancementSpecialtyPurchase {
+  domain: AdvancementSkillDomain;
+  skillId: string;
+  specialization?: string;
+}
+
+export interface AdvancementBenefitPurchase {
+  type: AdvancementBenefitType;
+  ability?: AbilityId;
+  optionSelection?: CharacterOptionSelection;
+  flawId?: string;
+  credits?: number;
+  notes?: string;
+}
+
+export interface AdvancementEquipmentAcquisition {
+  kind: AdvancementAcquisitionKind;
+  itemId: string;
+  method: AdvancementAcquisitionMethod;
+  quantity: number;
+  quality?: ItemQuality | EquipmentQuality;
+  spareClips?: number;
+  unitCostOverride?: number;
+  notes?: string;
+}
+
+export interface AdvancementLevelPlan {
+  level: number;
+  broadSkills: AdvancementBroadSkillPurchase[];
+  specialtySkills: AdvancementSpecialtyPurchase[];
+  benefits: AdvancementBenefitPurchase[];
+  lastResortPointsSpent: number;
+  lastResortPointsPurchased: number;
+  creditsAwarded: number;
+  acquisitions: AdvancementEquipmentAcquisition[];
+  notes: string;
+}
+
+export interface AdvancementPlan {
+  levels: AdvancementLevelPlan[];
+}
+
+export interface AdvancementCostLine {
+  type: 'broad-skill' | 'specialty-rank' | 'benefit' | 'last-resort' | 'cyber-training';
+  name: string;
+  cost: number;
+}
+
+export interface AdvancementLevelResult {
+  level: number;
+  achievementPointsRequired: number;
+  skillPointsEarned: number;
+  carriedIn: number;
+  spent: number;
+  remaining: number;
+  creditsAwarded: number;
+  acquisitionCost: number;
+  creditsRemaining: number;
+  costs: AdvancementCostLine[];
+}
+
+export interface AdvancementResult {
+  valid: boolean;
+  errors: string[];
+  targetLevel: number;
+  achievementPoints: number;
+  totalSkillPointsEarned: number;
+  totalSkillPointsSpent: number;
+  remainingSkillPoints: number;
+  levelResults: AdvancementLevelResult[];
+  finalCoreBroadSkillIds: string[];
+  finalCoreSpecialtySkills: SpecialtySkillPurchase[];
+  finalPsionicBroadSkillIds: string[];
+  finalPsionicSpecialtySkills: SpecialtySkillPurchase[];
+  abilityScoreBonuses: Partial<Record<AbilityId, number>>;
+  actionCheckBonusSteps: number;
+  actionCheckScoreIncreases: number;
+  extraActions: number;
+  durabilityBonuses: DurabilityStats;
+  currentLastResortPoints: number;
+  addedPerks: CharacterOptionSelection[];
+  removedFlawIds: string[];
+  acquiredContacts: string[];
+  campaignCreditsAwarded: number;
+  acquisitionCost: number;
+  remainingCredits: number;
+  acquisitions: Array<AdvancementEquipmentAcquisition & { level: number; name: string; cost: number }>;
+  finalEquipmentSelections: EquipmentSelection[];
+  finalWeaponSelections: WeaponSelection[];
+  finalArmorSelections: ArmorSelection[];
+  finalCybergearSelections: CybergearSelection[];
+  finalCybergear?: CybergearResult;
+  finalCombatGear?: CombatGearResult;
+}
+
+export interface AdvancementProfessionRule {
+  cost: number | number[];
+  level: number;
+}
+
+export interface AdvancementBenefitRule {
+  id: string;
+  name: string;
+  type: AdvancementBenefitType;
+  maximumPurchases?: number;
+  professionRules: Record<string, AdvancementProfessionRule>;
+}
+
+export interface AdvancementAbilityRule {
+  ability: AbilityId;
+  professionRules: Record<string, { first: AdvancementProfessionRule; second: AdvancementProfessionRule }>;
+}
+
+export interface AdvancementPerkRule {
+  optionId: string;
+  professionRules: Record<string, AdvancementProfessionRule>;
+}
+
+export interface AdvancementRules {
+  maximumTargetLevel: number;
+  benefits: AdvancementBenefitRule[];
+  abilityScoreIncreases: AdvancementAbilityRule[];
+  perks: AdvancementPerkRule[];
+  removeFlaw: AdvancementBenefitRule;
+  acquireContact: AdvancementBenefitRule;
 }

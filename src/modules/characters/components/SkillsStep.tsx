@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Alert, Box, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Paper,
   Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, Stack, Tab,
+  Switch,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs,
   TextField, Tooltip, Typography,
 } from '@mui/material';
@@ -15,14 +16,21 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { scrollableTableContainerSx } from '@shared/constants/tableStyles';
 import { getAllSkills, getSkillRankBenefits, getSpeciesById } from '../services/characterDataService';
 import { calculateSkillListCost, calculateSpecialtyPurchaseCost } from '../services/skillPurchaseService';
-import type { AbilityId, SkillPurchasePlan, SpecialtySkillPurchase } from '../types/character';
+import type {
+  AbilityId,
+  CharacterSkillRules,
+  SkillPurchasePlan,
+  SpecialtySkillPurchase,
+} from '../types/character';
 import type { CharacterValidationResult } from '../types/characterState';
 
 interface SkillsStepProps {
   speciesId: string;
   plan: SkillPurchasePlan;
+  skillRules: CharacterSkillRules;
   validation: CharacterValidationResult;
   onChange: (plan: SkillPurchasePlan) => void;
+  onSkillRulesChange: (skillRules: CharacterSkillRules) => void;
 }
 
 const ABILITIES: AbilityId[] = ['str', 'dex', 'con', 'int', 'wil', 'per'];
@@ -43,7 +51,14 @@ function formatRankBenefitRanks(ranks: number[]): string {
   return `${ranks.length} milestones`;
 }
 
-export function SkillsStep({ speciesId, plan, validation, onChange }: SkillsStepProps) {
+export function SkillsStep({
+  speciesId,
+  plan,
+  skillRules,
+  validation,
+  onChange,
+  onSkillRulesChange,
+}: SkillsStepProps) {
   const [ability, setAbility] = useState<AbilityId>('str');
   const [search, setSearch] = useState('');
   const [rankBenefitSkillId, setRankBenefitSkillId] = useState<string | null>(null);
@@ -165,6 +180,62 @@ export function SkillsStep({ speciesId, plan, validation, onChange }: SkillsStep
           <Chip label={`${validation.skills.purchasedBroadSkillCount}/${validation.skills.maxPurchasedBroadSkills} broad skills`} variant="outlined" />
         </Stack>
       </Stack>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1}>
+            <Box>
+              <Typography variant="subtitle1">Official Optional Skill Rules</Typography>
+              <Typography variant="body2" color="text.secondary">
+                First-party alternatives published by the Alternity development team.
+              </Typography>
+            </Box>
+            <Chip label="Standard PHB remains the default" size="small" variant="outlined" />
+          </Stack>
+          <FormControlLabel
+            labelPlacement="start"
+            sx={{ m: 0, justifyContent: 'space-between', gap: 2 }}
+            label={(
+              <Box>
+                <Typography variant="subtitle2">Optional Rules 2A and 2B</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  30 + (3 x INT) starting skill points and 6 + INT resistance modifier broad skills.
+                  Humans retain +5 skill points and +1 broad skill.
+                </Typography>
+              </Box>
+            )}
+            control={(
+              <Switch
+                checked={skillRules.startingSkillAllocation === 'optional-2ab'}
+                onChange={(_event, checked) => onSkillRulesChange({
+                  ...skillRules,
+                  startingSkillAllocation: checked ? 'optional-2ab' : 'standard',
+                })}
+              />
+            )}
+          />
+          <FormControlLabel
+            labelPlacement="start"
+            sx={{ m: 0, justifyContent: 'space-between', gap: 2 }}
+            label={(
+              <Box>
+                <Typography variant="subtitle2">Optional Rule 2C</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Every specialty rank costs its list price, or list price -1 with a profession discount.
+                </Typography>
+              </Box>
+            )}
+            control={(
+              <Switch
+                checked={skillRules.specialtySkillCosts === 'optional-2c'}
+                onChange={(_event, checked) => onSkillRulesChange({
+                  ...skillRules,
+                  specialtySkillCosts: checked ? 'optional-2c' : 'standard',
+                })}
+              />
+            )}
+          />
+        </Stack>
+      </Paper>
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} alignItems={{ sm: 'center' }}>
         <TextField
           size="small"
@@ -300,7 +371,12 @@ export function SkillsStep({ speciesId, plan, validation, onChange }: SkillsStep
                 const rankBenefits = getSkillRankBenefits(specialty);
                 const rankBenefitRanks = getRankBenefitRanks(rankBenefits);
                 const cost = rank > 0
-                  ? calculateSpecialtyPurchaseCost(specialty, rank, discountProfessionIds)
+                  ? calculateSpecialtyPurchaseCost(
+                    specialty,
+                    rank,
+                    discountProfessionIds,
+                    skillRules.specialtySkillCosts,
+                  )
                   : calculateSkillListCost(specialty, discountProfessionIds);
                 const canAddSpecialization = specialty.requiresSpecialization
                   && isTrained
@@ -393,7 +469,12 @@ export function SkillsStep({ speciesId, plan, validation, onChange }: SkillsStep
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {calculateSpecialtyPurchaseCost(specialty, additionalPurchase.rank, discountProfessionIds)}
+                            {calculateSpecialtyPurchaseCost(
+                              specialty,
+                              additionalPurchase.rank,
+                              discountProfessionIds,
+                              skillRules.specialtySkillCosts,
+                            )}
                           </TableCell>
                           <TableCell>
                             <Select

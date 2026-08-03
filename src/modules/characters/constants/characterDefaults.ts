@@ -1,10 +1,12 @@
 import type { CharacterState } from '../types/characterState';
+import { STANDARD_CHARACTER_SKILL_RULES } from './characterSkillRules';
 
 export function createEmptyCharacter(): CharacterState {
   return {
     level: 1,
     progressLevel: 6,
     selectedSourcePackIds: ['phb'],
+    skillRules: { ...STANDARD_CHARACTER_SKILL_RULES },
     identity: {
       heroName: '',
       playerName: '',
@@ -58,5 +60,6 @@ export function createEmptyCharacter(): CharacterState {
     equipmentSelections: [],
     weaponSelections: [],
     armorSelections: [],
+    advancementPlan: { levels: [] },
   };
 }

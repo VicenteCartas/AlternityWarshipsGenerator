@@ -40,8 +40,8 @@ describe('character save files', () => {
       priority: 1,
       files: [],
     }], '2026-07-30T00:00:00.000Z');
-    expect(CHARACTER_SAVE_FILE_VERSION).toBe('1.1');
-    expect(file.version).toBe('1.1');
+    expect(CHARACTER_SAVE_FILE_VERSION).toBe('1.3');
+    expect(file.version).toBe('1.3');
     expect(file.createdAt).toBe('2026-07-30T00:00:00.000Z');
     expect(file.sourcePacks).toEqual([{ id: 'phb', version: '1.0' }]);
     expect(file.activeMods).toEqual([{ name: 'Test Characters', version: '1.2' }]);
@@ -68,6 +68,42 @@ describe('character save files', () => {
     expect(result.character?.skillPlan.specialtySkills).toEqual(original.skillPlan.specialtySkills);
   });
 
+  it('round-trips official optional skill rules', () => {
+    const original = sampleCharacter();
+    original.skillRules = {
+      startingSkillAllocation: 'optional-2ab',
+      specialtySkillCosts: 'optional-2c',
+    };
+
+    const parsed = jsonToCharacterSaveFile(characterSaveFileToJson(serializeCharacter(original)));
+    const result = deserializeCharacter(parsed!);
+
+    expect(result.character?.skillRules).toEqual(original.skillRules);
+  });
+
+  it('round-trips target level and advancement transactions', () => {
+    const original = sampleCharacter();
+    original.level = 3;
+    original.advancementPlan.levels = [
+      {
+        level: 2,
+        broadSkills: [],
+        specialtySkills: [{ domain: 'core', skillId: 'sneak' }],
+        benefits: [],
+        lastResortPointsSpent: 0,
+        lastResortPointsPurchased: 0,
+        creditsAwarded: 500,
+        acquisitions: [{ kind: 'equipment', itemId: 'bedroll', method: 'granted', quantity: 1 }],
+        notes: 'First advancement',
+      },
+    ];
+
+    const parsed = jsonToCharacterSaveFile(characterSaveFileToJson(serializeCharacter(original)));
+    const result = deserializeCharacter(parsed!);
+    expect(result.character?.level).toBe(3);
+    expect(result.character?.advancementPlan).toEqual(original.advancementPlan);
+  });
+
   it('defaults missing fields and reports migration warnings', () => {
     const partial = {
       version: '0.5',
@@ -86,6 +122,12 @@ describe('character save files', () => {
     expect(result.character?.identity.heroName).toBe('Legacy Hero');
     expect(result.character?.abilityScores).toEqual({ str: 9, dex: 10, con: 10, int: 10, wil: 10, per: 10 });
     expect(result.character?.selectedSourcePackIds).toEqual(['phb']);
+    expect(result.character?.level).toBe(1);
+    expect(result.character?.advancementPlan).toEqual({ levels: [] });
+    expect(result.character?.skillRules).toEqual({
+      startingSkillAllocation: 'standard',
+      specialtySkillCosts: 'standard',
+    });
     expect(result.character?.skillPlan.nativeLanguage).toBe('');
     expect(result.character?.identity).toMatchObject({
       gamemaster: '', allegiance: '', socialStatus: '', contacts: '', enemies: '', notes: '',
@@ -93,6 +135,7 @@ describe('character save files', () => {
     expect(result.warnings).toEqual(expect.arrayContaining([
       expect.stringContaining('saved in format 0.5'),
       'The file had no source-pack selection, so the PHB was enabled.',
+      'The file had no skill-rule selection, so standard PHB skill rules were used.',
     ]));
   });
 

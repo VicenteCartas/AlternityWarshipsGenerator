@@ -2,7 +2,7 @@ import type { SavedModReference } from '@shared/types/mod';
 import type { CharacterState } from './characterState';
 import type { SavedCharacterSourcePackReference } from './sourcePack';
 
-export const CHARACTER_SAVE_FILE_VERSION = '1.1';
+export const CHARACTER_SAVE_FILE_VERSION = '1.3';
 export const CHARACTER_FILE_EXTENSION = '.character.json';
 
 export interface CharacterSaveFile {

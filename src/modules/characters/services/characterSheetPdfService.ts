@@ -98,7 +98,7 @@ function drawCorePage(pdf: jsPDF, model: CharacterSheetModel): void {
   field(pdf, 'Profession', model.profession, 90, 30, 34);
   field(pdf, 'Career', model.career, 127, 30, 35, 2);
   field(pdf, 'Gender', model.gender, 165, 30, 18);
-  field(pdf, 'PL', model.progressLevel, 187, 30, 14);
+    field(pdf, 'Level / PL', `${model.level} / ${model.progressLevel}`, 184, 30, 19);
   field(pdf, 'Attributes', model.attributes, 12, 40, 73);
   field(pdf, 'Setting', model.setting, 90, 40, 38);
   field(pdf, 'Gamemaster', model.gamemaster, 132, 40, 40);
@@ -281,10 +281,11 @@ function drawSupplementalPage(pdf: jsPDF, model: CharacterSheetModel): void {
   field(pdf, 'Contacts', model.contacts, 12, 228, 91, 2);
   field(pdf, 'Enemies', model.enemies, 109, 228, 91, 2);
   const narrative = [
+    model.skillRulesSummary,
     model.background ? `Background: ${model.background}` : '',
     model.notes ? `Notes: ${model.notes}` : '',
   ].filter(Boolean).join(' | ');
-  field(pdf, 'Background / Notes', narrative, 12, 242, 188, 2);
+  field(pdf, 'Rules / Background / Notes', narrative, 12, 242, 188, 2);
 }
 
 function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void {
@@ -370,6 +371,26 @@ function drawMutationContinuationPages(pdf: jsPDF, model: CharacterSheetModel): 
   }
 }
 
+function drawAdvancementPages(pdf: jsPDF, model: CharacterSheetModel): void {
+  const levelsPerPage = 18;
+  for (let offset = 0; offset < model.advancementLevels.length; offset += levelsPerPage) {
+    pdf.addPage();
+    title(pdf, model, offset === 0 ? 'Advancement History' : 'Advancement Continued');
+    panel(pdf, 9, 21, 198, 246, 'Advancement');
+    field(pdf, 'Current Level / Achievement Points', `${model.level} / ${model.achievementPoints}`, 12, 31, 85);
+    field(pdf, 'Stored Skill Points / Credits', `${model.remainingSkillPoints} / ${model.remainingFunds}`, 109, 31, 88);
+    model.advancementLevels.slice(offset, offset + levelsPerPage).forEach((level, index) => {
+      const y = 43 + index * 12.2;
+      setText(pdf, 7, true, ACCENT);
+      pdf.text(`LEVEL ${level.level}`, 12, y);
+      setText(pdf, 5.8, true, MUTED);
+      pdf.text(`+${level.skillPointsEarned} SP | ${level.skillPointsSpent} spent | ${level.skillPointsRemaining} stored | ${level.creditsRemaining} credits`, 42, y);
+      setText(pdf, 6.1);
+      drawFittedText(pdf, level.purchases.join('; ') || 'No purchases; points carried forward.', 12, y + 4, 190, 2);
+    });
+  }
+}
+
 export function createPrintableCharacterSheetPdf(
   state: CharacterState,
   validation: CharacterValidationResult,
@@ -382,6 +403,7 @@ export function createPrintableCharacterSheetPdf(
   drawAttackContinuationPages(pdf, model);
   drawItemContinuationPages(pdf, model);
   drawSkillContinuationPages(pdf, model, model.skills.slice(60), 'Skills Continued');
+  if (model.level > 1) drawAdvancementPages(pdf, model);
   const hasSupplement = model.psionicSkills.length > 0 || model.mutations.length > 0
     || model.cybergear.length > 0 || model.computers.length > 0;
   if (hasSupplement) {

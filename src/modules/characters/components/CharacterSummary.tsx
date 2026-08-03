@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
-  Alert, Box, Chip, Divider, Stack, Tab, Table, TableBody, TableCell,
+  Alert, Box, Chip, Divider, Paper, Stack, Tab, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Tabs, Typography,
 } from '@mui/material';
 import { scrollableTableContainerSx } from '@shared/constants/tableStyles';
@@ -12,7 +12,7 @@ interface CharacterSummaryProps {
   validation: CharacterValidationResult;
 }
 
-type SummaryTab = 'overview' | 'skills' | 'combat' | 'gear' | 'options';
+type SummaryTab = 'overview' | 'skills' | 'combat' | 'gear' | 'advancement' | 'options';
 
 function Value({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
@@ -41,7 +41,7 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
         <Box>
           <Typography variant="h4">{model.heroName}</Typography>
           <Typography color="text.secondary">
-            Level 1 {model.species} {model.profession} | {model.career || 'No career'} | PL {model.progressLevel}
+            Level {model.level} {model.species} {model.profession} | {model.career || 'No career'} | PL {model.progressLevel}
           </Typography>
         </Box>
         <Chip label={model.valid ? 'Creation complete' : `${model.errors.length} issues`} color={model.valid ? 'success' : 'warning'} />
@@ -53,6 +53,7 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
         <Tab value="skills" label="Skills" />
         <Tab value="combat" label="Combat" />
         <Tab value="gear" label="Gear" />
+        <Tab value="advancement" label="Advancement" />
         <Tab value="options" label="Options & Notes" />
       </Tabs>
       <Divider />
@@ -86,6 +87,7 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
               <Chip label={`Action ${model.actionCheck.marginal}/${model.actionCheck.ordinary}/${model.actionCheck.good}/${model.actionCheck.amazing}`} color="primary" variant="outlined" />
               <Chip label={`${model.actionsPerRound} actions`} variant="outlined" />
               <Chip label={`Last Resorts ${model.lastResorts.initial}/${model.lastResorts.maximum}`} variant="outlined" />
+              <Chip label={`${model.achievementPoints} Achievement Points`} variant="outlined" />
               <Chip label={`Stun ${model.durability.stun}`} variant="outlined" /><Chip label={`Wound ${model.durability.wound}`} variant="outlined" />
               <Chip label={`Mortal ${model.durability.mortal}`} variant="outlined" /><Chip label={`Fatigue ${model.durability.fatigue}`} variant="outlined" />
             </Stack>
@@ -104,9 +106,10 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
       {tab === 'skills' && (
         <Stack spacing={2}>
           <Stack direction="row" gap={1} flexWrap="wrap">
-            <Chip label={`Native: ${validation.skills.nativeLanguage || 'Not selected'} (rank 3)`} color="primary" variant="outlined" />
+            <Chip label={`Native: ${validation.skills.nativeLanguage || 'Not selected'} (rank ${model.skills.find((skill) => skill.source === 'Native')?.rank || 3})`} color="primary" variant="outlined" />
             <Chip label={`${model.spentSkillPoints} spent`} variant="outlined" />
             <Chip label={`${model.remainingSkillPoints} remaining`} color={model.remainingSkillPoints >= 0 ? 'success' : 'error'} variant="outlined" />
+            {model.skillRuleLabels.map((label) => <Chip key={label} label={label} variant="outlined" />)}
           </Stack>
           <TableContainer sx={scrollableTableContainerSx}><Table size="small">
             <TableHead><TableRow><TableCell>Ability</TableCell><TableCell>Skill</TableCell><TableCell>Rank</TableCell><TableCell>O / G / A</TableCell><TableCell>Source</TableCell></TableRow></TableHead>
@@ -158,6 +161,37 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
         </Stack>
       )}
 
+      {tab === 'advancement' && (
+        <Stack spacing={2}>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            <Chip label={`Current level ${model.level}`} color="primary" variant="outlined" />
+            <Chip label={`${model.achievementPoints} Achievement Points`} variant="outlined" />
+            <Chip label={`${model.remainingSkillPoints} stored skill points`} variant="outlined" />
+          </Stack>
+          {model.advancementLevels.length === 0 ? (
+            <Typography color="text.secondary">No advancement beyond level 1.</Typography>
+          ) : model.advancementLevels.map((level) => (
+            <Paper key={level.level} variant="outlined" sx={{ p: 2 }}>
+              <Stack spacing={1}>
+                <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1}>
+                  <Typography variant="h6">Level {level.level}</Typography>
+                  <Stack direction="row" gap={1} flexWrap="wrap">
+                    <Chip size="small" label={`+${level.skillPointsEarned} SP`} variant="outlined" />
+                    <Chip size="small" label={`${level.skillPointsSpent} spent`} variant="outlined" />
+                    <Chip size="small" label={`${level.skillPointsRemaining} stored`} variant="outlined" />
+                    <Chip size="small" label={`${level.creditsRemaining} credits`} variant="outlined" />
+                  </Stack>
+                </Stack>
+                {level.purchases.length > 0
+                  ? <Stack component="ul" spacing={0.5} sx={{ m: 0, pl: 2.5 }}>{level.purchases.map((purchase, index) => <Typography component="li" variant="body2" key={`${purchase}-${index}`}>{purchase}</Typography>)}</Stack>
+                  : <Typography variant="body2" color="text.secondary">No purchases; points carried forward.</Typography>}
+                {level.notes && <Typography variant="body2">{level.notes}</Typography>}
+              </Stack>
+            </Paper>
+          ))}
+        </Stack>
+      )}
+
       {tab === 'options' && (
         <Stack spacing={3}>
           <Section title="Species Abilities">
@@ -179,7 +213,7 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
             <Section title="Psionics">
               <Typography variant="body2" sx={{ mb: 1 }}>Access: {model.psionicAccessPath} | Energy: {model.psionicEnergy}</Typography>
               {model.psionicSkills.length > 0
-                ? <Stack spacing={1}>{model.psionicSkills.map((skill, index) => <Value key={`${skill.name}-${index}`} label={`${skill.name} (rank ${skill.rank})`} value={`${skill.ordinary}/${skill.good}/${skill.amazing}`} />)}</Stack>
+                ? <Stack spacing={1}>{model.psionicSkills.map((skill, index) => <Value key={`${skill.name}-${index}`} label={skill.rank === null ? `${skill.name} (broad)` : `${skill.name} (rank ${skill.rank})`} value={`${skill.ordinary}/${skill.good}/${skill.amazing}`} />)}</Stack>
                 : <Typography color="text.secondary">None</Typography>}
             </Section>
           </Box>

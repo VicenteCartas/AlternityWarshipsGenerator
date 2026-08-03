@@ -22,6 +22,7 @@ describe('CharacterSummary', () => {
     state.skillPlan.nativeLanguage = 'English';
     state.skillPlan.purchasedBroadSkillIds = ['stealth'];
     state.skillPlan.specialtySkills = [{ skillId: 'sneak', rank: 1 }];
+    state.skillRules.specialtySkillCosts = 'optional-2c';
     state.startingFundsDieRolls = [8, 7, 6, 5, 4];
     state.weaponSelections = [{ weaponId: 'combat-knife', quantity: 1, spareClips: 0 }];
     state.armorSelections = [{ armorId: 'battle-jacket', quantity: 1 }];
@@ -40,6 +41,8 @@ describe('CharacterSummary', () => {
     expect(screen.getByText('Native: English (rank 3)')).toBeInTheDocument();
     expect(screen.getByText('Language (English)')).toBeInTheDocument();
     expect(screen.getByText('Sneak')).toBeInTheDocument();
+    expect(screen.getByText('Starting Skills: Standard PHB')).toBeInTheDocument();
+    expect(screen.getByText('Specialty Costs: Official Optional Rule 2C')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Combat' }));
     expect(screen.getByText('Combat knife')).toBeInTheDocument();

@@ -84,6 +84,29 @@ describe('PHB psionic catalogue', () => {
 });
 
 describe('PHB psionic skill purchasing', () => {
+  it('applies Optional Rule 2C to psionic specialty ranks', () => {
+    const scores: AbilityScores = { str: 8, dex: 8, con: 9, int: 10, wil: 13, per: 12 };
+    const result = evaluatePsionicPurchasePlan(
+      psionicPlan({
+        accessPath: 'mindwalker',
+        purchasedBroadSkillIds: ['biokinesis'],
+        specialtySkills: [{ skillId: 'heal', rank: 2 }],
+        favoredBroadSkillId: 'biokinesis',
+      }),
+      scores,
+      getSpeciesById('human')!,
+      getProfessionById('mindwalker')!,
+      coreBudget(scores, 'human', 'mindwalker'),
+      psionicSkills,
+      psionicRules,
+      characterRules.startingSpecialtyRankLimit,
+      'optional-2c',
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.costs.find(({ skillId }) => skillId === 'heal')?.cost).toBe(8);
+  });
+
   it('prices Mindwalker skills with normal cumulative ranks and the shared broad-skill limit', () => {
     const scores: AbilityScores = { str: 8, dex: 8, con: 9, int: 10, wil: 13, per: 12 };
     const budget = coreBudget(scores, 'human', 'mindwalker');

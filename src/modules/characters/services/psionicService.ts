@@ -12,6 +12,7 @@ import type {
   PsionicSkillBudgetContext,
   PsionicSkillDefinition,
   SkillKind,
+  SpecialtySkillCostRule,
   SpeciesDefinition,
 } from '../types/character';
 
@@ -30,11 +31,12 @@ function psionicSpecialtyCost(
   rank: number,
   accessPath: PsionicAccessPath,
   rules: PsionicRules,
+  costRule: SpecialtySkillCostRule,
 ): number {
   const rankOneCost = psionicListCost(skill, accessPath, rules);
   let total = 0;
   for (let currentRank = 0; currentRank < rank; currentRank += 1) {
-    total += rankOneCost + currentRank;
+    total += rankOneCost + (costRule === 'optional-2c' ? 0 : currentRank);
   }
   return total;
 }
@@ -91,6 +93,7 @@ export function evaluatePsionicPurchasePlan(
   skills: PsionicSkillDefinition[],
   rules: PsionicRules,
   startingSpecialtyRankLimit: number,
+  specialtySkillCostRule: SpecialtySkillCostRule = 'standard',
 ): PsionicPurchaseResult {
   const errors: string[] = [];
   const costs: PsionicPurchaseCost[] = [];
@@ -207,7 +210,13 @@ export function evaluatePsionicPurchasePlan(
       name: skill.name,
       kind: 'specialty',
       rank: purchase.rank,
-      cost: psionicSpecialtyCost(skill, purchase.rank, plan.accessPath, rules),
+      cost: psionicSpecialtyCost(
+        skill,
+        purchase.rank,
+        plan.accessPath,
+        rules,
+        specialtySkillCostRule,
+      ),
     });
   }
 

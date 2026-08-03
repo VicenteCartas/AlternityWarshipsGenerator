@@ -40,11 +40,14 @@ import { PsionicsStep } from './components/PsionicsStep';
 import { MutationsStep } from './components/MutationsStep';
 import { CybergearStep } from './components/CybergearStep';
 import { LoadoutStep } from './components/LoadoutStep';
+import { AdvancementStep } from './components/AdvancementStep';
 import { CharactersWelcome } from './components/CharactersWelcome';
 import { CharacterPdfExportDialog } from './components/CharacterPdfExportDialog';
 import { useNotification } from '@shared/hooks/useNotification';
 import { useCharacterSaveLoad } from './hooks/useCharacterSaveLoad';
 import { exportCharacterPdf, type CharacterPdfFormat } from './services/characterPdfExportService';
+import { normalizeAdvancementPlan } from './services/advancementService';
+import type { CharacterSkillRules } from './types/character';
 
 interface CharactersModuleProps {
   themeMode: ThemeMode;
@@ -61,6 +64,7 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   const [activeStepId, setActiveStepId] = useState<CharacterStepId>('identity');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [pendingSkillRules, setPendingSkillRules] = useState<CharacterSkillRules | null>(null);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const { snackbar, showNotification, handleCloseSnackbar } = useNotification();
   const saveLoad = useCharacterSaveLoad();
@@ -109,6 +113,22 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
     setHasUnsavedChanges(true);
     pushHistoryState(next);
   }, [state, pushHistoryState]);
+
+  const requestSkillRulesChange = (skillRules: CharacterSkillRules) => {
+    const hasSkillPurchases = state.skillPlan.cashedInFreeBroadSkillIds.length > 0
+      || state.skillPlan.purchasedBroadSkillIds.length > 0
+      || state.skillPlan.specialtySkills.length > 0
+      || state.psionicPlan.purchasedBroadSkillIds.length > 0
+      || state.psionicPlan.specialtySkills.length > 0
+      || state.advancementPlan.levels.some((level) => (
+        level.broadSkills.length > 0 || level.specialtySkills.length > 0
+      ));
+    if (hasSkillPurchases) {
+      setPendingSkillRules(skillRules);
+      return;
+    }
+    updateState({ skillRules });
+  };
 
   const selectProfession = (professionId: string) => {
     const leavingDiplomat = state.professionId === 'diplomat' && professionId !== 'diplomat';
@@ -245,7 +265,22 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   const renderStep = () => {
     switch (activeStepId) {
       case 'identity':
-        return <IdentityStep identity={state.identity} progressLevel={state.progressLevel} onIdentityChange={(identity) => updateState({ identity })} onProgressLevelChange={(progressLevel) => updateState({ progressLevel })} />;
+        return (
+          <IdentityStep
+            identity={state.identity}
+            progressLevel={state.progressLevel}
+            targetLevel={state.level}
+            onIdentityChange={(identity) => updateState({ identity })}
+            onProgressLevelChange={(progressLevel) => updateState({ progressLevel })}
+            onTargetLevelChange={(level) => {
+              const normalizedLevel = Math.min(30, Math.max(1, Math.floor(level || 1)));
+              updateState({
+                level: normalizedLevel,
+                advancementPlan: normalizeAdvancementPlan(state.advancementPlan, normalizedLevel),
+              });
+            }}
+          />
+        );
       case 'species':
         return (
           <SpeciesStep
@@ -274,7 +309,16 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
       case 'abilities':
         return <AbilitiesStep scores={state.abilityScores} speciesId={state.speciesId} errors={validation.abilities.errors} onChange={(abilityScores) => updateState({ abilityScores })} />;
       case 'skills':
-        return <SkillsStep speciesId={state.speciesId} plan={state.skillPlan} validation={validation} onChange={(skillPlan) => updateState({ skillPlan })} />;
+        return (
+          <SkillsStep
+            speciesId={state.speciesId}
+            plan={state.skillPlan}
+            skillRules={state.skillRules}
+            validation={validation}
+            onChange={(skillPlan) => updateState({ skillPlan })}
+            onSkillRulesChange={requestSkillRulesChange}
+          />
+        );
       case 'options':
         return <CharacterOptionsStep selections={state.optionSelections} validation={validation} onChange={(optionSelections) => updateState({ optionSelections })} />;
       case 'psionics':
@@ -310,6 +354,8 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
             onWealthDegreeChange={(wealthDegree) => updateState({ wealthDegree })}
           />
         );
+      case 'advancement':
+        return <AdvancementStep state={state} validation={validation} onChange={(advancementPlan) => updateState({ advancementPlan })} />;
       case 'summary':
         return <CharacterSummary state={state} validation={validation} />;
       default:
@@ -333,6 +379,19 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
           if (action) runAction(action);
         }}
         onCancel={() => setPendingAction(null)}
+      />
+      <ConfirmDialog
+        open={pendingSkillRules !== null}
+        title="Change skill rules?"
+        message="Changing these rules recalculates existing core, psionic, and advancement skill costs. The character may need additional changes to remain valid."
+        confirmLabel="Change Rules"
+        confirmColor="primary"
+        onConfirm={() => {
+          const skillRules = pendingSkillRules;
+          setPendingSkillRules(null);
+          if (skillRules) updateState({ skillRules });
+        }}
+        onCancel={() => setPendingSkillRules(null)}
       />
       <CharacterPdfExportDialog
         open={pdfDialogOpen}

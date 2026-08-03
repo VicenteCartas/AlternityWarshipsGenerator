@@ -124,7 +124,7 @@ export function SuiteHub({
             <Paper variant="outlined" sx={{ mt: 0.5, overflow: 'hidden' }}>
               <ToolRow
                 title="Character Creator"
-                description="Build a level-1 hero with Player's Handbook rules."
+                description="Build and advance heroes with Player's Handbook rules."
                 icon={<PersonAddAlt1Icon />}
                 onClick={onOpenCharacters}
               />

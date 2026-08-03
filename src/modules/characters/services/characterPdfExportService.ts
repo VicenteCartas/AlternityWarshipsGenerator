@@ -92,14 +92,15 @@ function renderCore(context: PdfContext, model: CharacterSheetModel): void {
   context.pdf.text(model.heroName, context.margin, context.y);
   context.y += 8;
   context.pdf.setTextColor(0);
-  body(context, `Level 1 ${model.species} ${model.profession} | ${model.career || 'No career'} | PL ${model.progressLevel}`, 10);
+    body(context, `Level ${model.level} ${model.species} ${model.profession} | ${model.career || 'No career'} | PL ${model.progressLevel}`, 10);
   context.y += 2;
   keyValues(context, [
     ['Player', model.playerName], ['Campaign', model.setting], ['Gamemaster', model.gamemaster],
     ['Gender', model.gender], ['Age', model.age], ['Height', model.height],
     ['Weight', model.weight], ['Hair', model.hair], ['Eyes', model.eyes],
     ['Motivation', model.motivation], ['Moral Attitude', model.moralAttitude], ['Traits', model.characterTraits.join(', ')],
-    ['Allegiance', model.allegiance], ['Social Status', model.socialStatus], ['Status', model.valid ? 'Complete' : `${model.errors.length} issues`],
+      ['Allegiance', model.allegiance], ['Social Status', model.socialStatus], ['Achievement Points', String(model.achievementPoints)],
+      ['Status', model.valid ? 'Complete' : `${model.errors.length} issues`],
   ]);
   if (model.appearance) body(context, `Appearance: ${model.appearance}`);
   if (model.background) body(context, `Background: ${model.background}`);
@@ -134,6 +135,7 @@ function renderSkills(context: PdfContext, model: CharacterSheetModel): void {
 function renderOptions(context: PdfContext, model: CharacterSheetModel): void {
   heading(context, 'Perks, Flaws & Optional Rules');
   table(context, ['Type', 'Option', 'Details'], [28, 70, 86], [
+    ...model.skillRuleLabels.map((label) => ['Skill Rule', label, '']),
     ...model.perks.map((entry) => ['Perk', entry.name, entry.details || '-']),
     ...model.flaws.map((entry) => ['Flaw', entry.name, entry.details || '-']),
   ]);
@@ -193,11 +195,24 @@ export function createCharacterPdf(state: CharacterState, validation: CharacterV
   const context: PdfContext = { pdf, y: 14, pageWidth, pageHeight, margin: 13, contentWidth: pageWidth - 26 };
   renderCore(context, model);
   pdf.addPage(); context.y = context.margin; renderSkills(context, model);
+    if (model.level > 1) {
+      pdf.addPage(); context.y = context.margin; renderAdvancement(context, model);
+    }
   pdf.addPage(); context.y = context.margin; renderOptions(context, model);
   pdf.addPage(); context.y = context.margin; renderEquipment(context, model);
   renderFooters(context);
   return pdf;
 }
+  function renderAdvancement(context: PdfContext, model: CharacterSheetModel): void {
+    heading(context, 'Advancement History');
+    body(context, `Level ${model.level}; ${model.achievementPoints} Achievement Points; ${model.remainingSkillPoints} stored skill points.`);
+    for (const level of model.advancementLevels) {
+      heading(context, `Level ${level.level}`, 10);
+      body(context, `Earned ${level.skillPointsEarned} SP; spent ${level.skillPointsSpent}; stored ${level.skillPointsRemaining}; credits ${level.creditsRemaining}.`);
+      for (const purchase of level.purchases) body(context, `- ${purchase}`, 7.5);
+      if (level.notes) body(context, `Notes: ${level.notes}`, 7.5);
+    }
+  }
 
 export type CharacterPdfFormat = 'sheet' | 'report';
 

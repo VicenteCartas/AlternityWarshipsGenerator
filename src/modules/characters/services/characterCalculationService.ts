@@ -5,6 +5,7 @@ import type {
   CharacterCalculationOptions,
   CharacterDerivedStats,
   CharacterRules,
+  CharacterSkillRules,
   CombatMovementBand,
   DurabilityStats,
   LastResortBand,
@@ -16,6 +17,7 @@ import type {
   SpeciesDefinition,
 } from '../types/character';
 import { ABILITY_IDS } from '../types/character';
+import { STANDARD_CHARACTER_SKILL_RULES } from '../constants/characterSkillRules';
 
 function inBand(value: number, band: { min?: number; max?: number }): boolean {
   return (band.min === undefined || value >= band.min)
@@ -77,7 +79,18 @@ export function calculateSkillBudget(
   intelligence: number,
   species: SpeciesDefinition,
   rules: CharacterRules,
+  skillRules: CharacterSkillRules = STANDARD_CHARACTER_SKILL_RULES,
 ): SkillBudget {
+  if (skillRules.startingSkillAllocation === 'optional-2ab') {
+    return {
+      baseSkillPoints: 30 + (3 * intelligence),
+      totalSkillPoints: 30 + (3 * intelligence) + species.startingSkillPointBonus,
+      maxPurchasedBroadSkills: 6
+        + calculateResistanceModifier(intelligence, rules)
+        + species.broadSkillLimitBonus,
+    };
+  }
+
   const sorted = [...rules.startingSkillPoints].sort((a, b) => a.intelligence - b.intelligence);
   const row = sorted.find((entry) => entry.intelligence === intelligence)
     ?? (intelligence < sorted[0].intelligence ? sorted[0] : sorted[sorted.length - 1]);
@@ -188,7 +201,7 @@ export function calculateCharacterDerivedStats(
   return {
     untrainedScores,
     resistanceModifiers,
-    skillBudget: calculateSkillBudget(scores.int, species, rules),
+    skillBudget: calculateSkillBudget(scores.int, species, rules, options.skillRules),
     lastResorts: calculateLastResorts(scores.per, rules, profession),
     actionCheck: calculateActionCheck(scores, species, profession),
     actionsPerRound: calculateActionsPerRound(scores, rules),

@@ -78,6 +78,16 @@ describe('CharactersModule', () => {
     expect(screen.getByRole('heading', { name: 'Species' })).toBeInTheDocument();
   });
 
+  it('creates advancement levels from the Identity target level', async () => {
+    const user = userEvent.setup();
+    renderBuilder();
+    fireEvent.change(screen.getByLabelText('Target Level'), { target: { value: '3' } });
+    await user.click(screen.getByRole('button', { name: 'Advancement (Required)' }));
+    expect(screen.getByRole('heading', { name: 'Advancement' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Level 2' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Level 3' })).toBeInTheDocument();
+  });
+
   it('undoes and redoes complete character snapshots', async () => {
     const user = userEvent.setup();
     renderBuilder();
@@ -119,6 +129,23 @@ describe('CharactersModule', () => {
     await user.click(screen.getByRole('combobox', { name: 'Sneak rank' }));
     await user.click(screen.getByRole('option', { name: '1' }));
     expect(screen.getByText('38 points remaining')).toBeInTheDocument();
+  });
+
+  it('applies official optional skill rules and confirms repricing existing purchases', async () => {
+    const user = userEvent.setup();
+    renderBuilder();
+    await user.click(screen.getByText('Skills'));
+    await user.click(screen.getByRole('switch', { name: /Optional Rules 2A and 2B/ }));
+    expect(screen.getByText('65 points remaining')).toBeInTheDocument();
+    expect(screen.getByText('0/7 broad skills')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'DEX' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Purchase Stealth' }));
+    await user.click(screen.getByRole('switch', { name: /Optional Rule 2C/ }));
+    expect(screen.getByRole('heading', { name: 'Change skill rules?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Change Rules' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Change skill rules?' })).not.toBeInTheDocument());
+    expect(screen.getByRole('switch', { name: /Optional Rule 2C/ })).toBeChecked();
   });
 
   it('selects a perk and flaw and updates the shared skill-point adjustment', async () => {

@@ -16,6 +16,9 @@ import type {
   PsionicPurchaseResult,
   ResistanceAbilityId,
   ArmorSelection,
+  AdvancementPlan,
+  AdvancementResult,
+  CharacterSkillRules,
   SkillPurchasePlan,
   SkillPurchaseResult,
   SpeciesBenefitResult,
@@ -35,6 +38,7 @@ export const CHARACTER_STEP_IDS = [
   'mutations',
   'cybergear',
   'equipment',
+  'advancement',
   'summary',
 ] as const;
 
@@ -70,9 +74,10 @@ export interface ProfessionBenefitChoices {
 }
 
 export interface CharacterState {
-  level: 1;
+  level: number;
   progressLevel: number;
   selectedSourcePackIds: string[];
+  skillRules: CharacterSkillRules;
   identity: CharacterIdentity;
   speciesId: string;
   professionId: string | null;
@@ -90,6 +95,7 @@ export interface CharacterState {
   equipmentSelections: EquipmentSelection[];
   weaponSelections: WeaponSelection[];
   armorSelections: ArmorSelection[];
+  advancementPlan: AdvancementPlan;
 }
 
 export interface CharacterValidationResult {
@@ -108,6 +114,7 @@ export interface CharacterValidationResult {
   startingFunds: StartingFundsResult;
   equipment: EquipmentPurchaseResult;
   combatGear: CombatGearResult;
+  advancement: AdvancementResult;
   derived: CharacterDerivedStats;
   remainingSkillPoints: number;
   remainingFunds: number;
