@@ -25,7 +25,7 @@ export interface BattleSaveFile {
 }
 
 /** Current battle save file version */
-export const BATTLE_SAVE_FILE_VERSION = '1.0';
+export const BATTLE_SAVE_FILE_VERSION = '1.1';
 
 /** File extension used for saved engagements */
 export const BATTLE_FILE_EXTENSION = '.battle.json';

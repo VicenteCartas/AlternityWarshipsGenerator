@@ -17,6 +17,10 @@ import {
   createStackFromUnitType,
   createCustomStack,
   createSystemDefenseStack,
+  casualtyEffectiveLoss,
+  confirmCasualtyAllocation,
+  pendingCasualtiesForTheatre,
+  suggestCasualtyAllocation,
 } from './battleResolutionService';
 import type {
   BattleRules, BattleState, BattleUnitType, Side, Theatre, UnitSpecialization, UnitStack,
@@ -221,6 +225,61 @@ describe('applyRound (book example, p. 65)', () => {
     expect(round).toBeNull();
     expect(next).toBe(state);
   });
+
+  it('does not resolve another round after the theatre is concluded', () => {
+    const state = battle(
+      side('A', [stack({ combatStrengthPerUnit: 100 })]),
+      side('B', [stack({ combatStrengthPerUnit: 100 })]),
+    );
+    const concludedState = {
+      ...state,
+      theatres: state.theatres.map((entry) => ({
+        ...entry,
+        conclusion: { winnerSideId: 'A' as const, reason: 'manual' as const, round: 0 },
+      })),
+    };
+
+    const resolved = applyRound(concludedState, spaceTheatre.id, 'ordinary', rules);
+    expect(resolved).toEqual({ state: concludedState, round: null });
+  });
+
+  it('defers specific losses in tracked mode until allocations are confirmed', () => {
+    const tracked = { ...state, casualtyMode: 'tracked' as const, pendingCasualties: [] };
+    const { state: pendingState } = applyRound(tracked, spaceTheatre.id, 'ordinary', rules);
+    expect(pendingState.sideA.stacks[0].currentStrength).toBe(12500);
+    const pending = pendingCasualtiesForTheatre(pendingState, spaceTheatre.id)!;
+    expect(pending.targetEffectiveLoss).toEqual({ A: 1875, B: 1500 });
+    const confirmed = confirmCasualtyAllocation(pendingState, spaceTheatre.id, pending.allocations, rules);
+    expect(computeForceStrength(confirmed.sideA, confirmed.theatres[0], rules)).toBeCloseTo(10625);
+    expect(computeForceStrength(confirmed.sideB, confirmed.theatres[0], rules)).toBeCloseTo(8500);
+    expect(confirmed.pendingCasualties).toHaveLength(0);
+  });
+});
+
+describe('specific casualty allocation', () => {
+  const escorts = stack({
+    id: 'escorts', name: 'Escorts', category: 'destroyer', combatStrengthPerUnit: 100,
+    initialQuantity: 5, priorityAsset: false,
+  });
+  const capital = stack({
+    id: 'capital', name: 'Battleship', category: 'battleship', combatStrengthPerUnit: 1000,
+    priorityAsset: true,
+  });
+  const fleet = side('A', [escorts, capital]);
+
+  it('protects priority assets and uses at most one partial stack', () => {
+    const allocations = suggestCasualtyAllocation(fleet, spaceTheatre, 550, rules, true);
+    expect(allocations).toEqual([
+      { stackId: 'escorts', strengthLoss: 500 },
+      { stackId: 'capital', strengthLoss: 50 },
+    ]);
+    expect(casualtyEffectiveLoss(fleet, spaceTheatre, allocations, rules)).toBeCloseTo(550);
+  });
+
+  it('can vary loss order when priority protection is disabled', () => {
+    const allocations = suggestCasualtyAllocation(fleet, spaceTheatre, 300, rules, false, () => 0);
+    expect(casualtyEffectiveLoss(fleet, spaceTheatre, allocations, rules)).toBeCloseTo(300);
+  });
 });
 
 describe('shouldWithdraw', () => {
@@ -244,10 +303,14 @@ describe('resetBattle', () => {
       side('B', [stack({ combatStrengthPerUnit: 200, currentStrength: 10 })]),
     );
     const { state: fought } = applyRound(state, spaceTheatre.id, 'good', rules);
+    fought.theatres[0].conclusion = { winnerSideId: 'A', reason: 'manual', round: 1 };
+    fought.theatres[0].continuedObjectiveIds = ['objective-1'];
     const reset = resetBattle(fought);
     expect(reset.sideA.stacks[0].currentStrength).toBe(500);
     expect(reset.sideB.stacks[0].currentStrength).toBe(200);
     expect(isBattleStarted(reset)).toBe(false);
+    expect(reset.theatres[0].conclusion).toBeUndefined();
+    expect(reset.theatres[0].continuedObjectiveIds).toEqual([]);
   });
 });
 

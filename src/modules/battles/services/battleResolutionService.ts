@@ -12,7 +12,9 @@ import type {
   BattleDomain,
   BattleRules,
   BattleState,
+  BattleUnitCategory,
   BattleUnitType,
+  PendingCasualtyAllocation,
   CheckResult,
   RoundResult,
   Side,
@@ -20,6 +22,7 @@ import type {
   Theatre,
   TheatreKind,
   UnitSpecialization,
+  StackCasualtyAllocation,
   UnitStack,
 } from '../types/battle';
 import { THEATRE_DOMAIN, THEATRE_TACTICS_SKILL } from '../types/battle';
@@ -156,6 +159,153 @@ export function tacticsScoreFor(side: Side, kind: TheatreKind): number {
   return THEATRE_TACTICS_SKILL[kind] === 'space' ? side.tacticsSpaceScore : side.tacticsGroundScore;
 }
 
+const DEFAULT_PRIORITY_CATEGORIES = new Set<BattleUnitCategory>([
+  'carrier', 'battleship', 'dreadnought', 'fortress', 'monitor', 'cathedral',
+]);
+
+export function isDefaultPriorityCategory(category: BattleUnitCategory): boolean {
+  return DEFAULT_PRIORITY_CATEGORIES.has(category);
+}
+
+export function casualtyEffectiveLoss(
+  side: Side,
+  theatre: Theatre,
+  allocations: StackCasualtyAllocation[],
+  rules: BattleRules,
+): number {
+  const domain = THEATRE_DOMAIN[theatre.kind];
+  const stackById = new Map(side.stacks.map((stack) => [stack.id, stack]));
+  return allocations.reduce((total, allocation) => {
+    const stack = stackById.get(allocation.stackId);
+    if (!stack || stack.theatreId !== theatre.id) return total;
+    const factor = effectiveFactor(stack, domain, rules);
+    if (factor === null) return total;
+    return total + Math.min(Math.max(0, allocation.strengthLoss), stack.currentStrength) * factor;
+  }, 0);
+}
+
+function shuffled<T>(values: T[], rng: () => number): T[] {
+  return values
+    .map((value, index) => ({ value, index, order: rng() }))
+    .sort((left, right) => left.order - right.order || left.index - right.index)
+    .map(({ value }) => value);
+}
+
+/**
+ * Suggest sourcebook-style specific losses: whole units first, then at most one
+ * partially damaged stack to meet the effective-CS target. Priority assets are
+ * used only after non-priority units when protection is enabled.
+ */
+export function suggestCasualtyAllocation(
+  side: Side,
+  theatre: Theatre,
+  targetEffectiveLoss: number,
+  rules: BattleRules,
+  protectPriorityAssets = true,
+  rng: () => number = () => 0.5,
+): StackCasualtyAllocation[] {
+  const domain = THEATRE_DOMAIN[theatre.kind];
+  const candidates = stacksInTheatre(side, theatre.id)
+    .map((stack) => ({ stack, factor: effectiveFactor(stack, domain, rules) }))
+    .filter((entry): entry is { stack: UnitStack; factor: number } => (
+      entry.factor !== null && entry.factor > 0 && entry.stack.currentStrength > 0
+    ));
+  const availableEffectiveStrength = candidates.reduce(
+    (total, entry) => total + entry.stack.currentStrength * entry.factor,
+    0,
+  );
+  let remaining = Math.min(Math.max(0, targetEffectiveLoss), availableEffectiveStrength);
+  const tiers = protectPriorityAssets
+    ? [candidates.filter(({ stack }) => !stack.priorityAsset), candidates.filter(({ stack }) => stack.priorityAsset)]
+    : [candidates];
+  const lossByStack = new Map<string, number>();
+
+  for (const tier of tiers) {
+    const ordered = shuffled(tier, rng);
+    for (const { stack, factor } of ordered) {
+      if (remaining <= 1e-8) break;
+      const wholeUnitEffective = stack.combatStrengthPerUnit * factor;
+      const availableWholeUnits = Math.floor((stack.currentStrength + 1e-8) / stack.combatStrengthPerUnit);
+      const wholeUnits = wholeUnitEffective > 0
+        ? Math.min(availableWholeUnits, Math.floor((remaining + 1e-8) / wholeUnitEffective))
+        : 0;
+      if (wholeUnits > 0) {
+        const nativeLoss = wholeUnits * stack.combatStrengthPerUnit;
+        lossByStack.set(stack.id, nativeLoss);
+        remaining -= nativeLoss * factor;
+      }
+    }
+  }
+
+  if (remaining > 1e-8) {
+    for (const tier of tiers) {
+      const partial = shuffled(tier, rng).find(({ stack, factor }) => {
+        const alreadyLost = lossByStack.get(stack.id) ?? 0;
+        return (stack.currentStrength - alreadyLost) * factor > 1e-8;
+      });
+      if (!partial) continue;
+      const alreadyLost = lossByStack.get(partial.stack.id) ?? 0;
+      const nativeLoss = Math.min(
+        partial.stack.currentStrength - alreadyLost,
+        remaining / partial.factor,
+      );
+      lossByStack.set(partial.stack.id, alreadyLost + nativeLoss);
+      remaining -= nativeLoss * partial.factor;
+      break;
+    }
+  }
+
+  return candidates
+    .map(({ stack }) => ({ stackId: stack.id, strengthLoss: lossByStack.get(stack.id) ?? 0 }))
+    .filter((allocation) => allocation.strengthLoss > 1e-8);
+}
+
+export function pendingCasualtiesForTheatre(
+  state: BattleState,
+  theatreId: string,
+): PendingCasualtyAllocation | null {
+  return (state.pendingCasualties || []).find((pending) => pending.theatreId === theatreId) ?? null;
+}
+
+export function confirmCasualtyAllocation(
+  state: BattleState,
+  theatreId: string,
+  allocations: Record<SideId, StackCasualtyAllocation[]>,
+  rules: BattleRules,
+): BattleState {
+  const pending = pendingCasualtiesForTheatre(state, theatreId);
+  const theatre = state.theatres.find((entry) => entry.id === theatreId);
+  if (!pending || !theatre) return state;
+  const apply = (side: Side, sideAllocations: StackCasualtyAllocation[]): Side => {
+    const lossById = new Map(sideAllocations.map((allocation) => [allocation.stackId, allocation.strengthLoss]));
+    return {
+      ...side,
+      stacks: side.stacks.map((stack) => ({
+        ...stack,
+        currentStrength: stack.theatreId === theatreId
+          ? Math.max(0, stack.currentStrength - Math.max(0, lossById.get(stack.id) ?? 0))
+          : stack.currentStrength,
+      })),
+    };
+  };
+  const sideA = apply(state.sideA, allocations.A);
+  const sideB = apply(state.sideB, allocations.B);
+  const rounds = theatre.rounds.map((round) => round.round === pending.round
+    ? {
+        ...round,
+        attackerStrengthAfter: computeForceStrength(round.attackerSide === 'A' ? sideA : sideB, theatre, rules),
+        defenderStrengthAfter: computeForceStrength(round.defenderSide === 'A' ? sideA : sideB, theatre, rules),
+      }
+    : round);
+  return {
+    ...state,
+    sideA,
+    sideB,
+    theatres: state.theatres.map((entry) => entry.id === theatreId ? { ...entry, rounds } : entry),
+    pendingCasualties: (state.pendingCasualties || []).filter((entry) => entry.theatreId !== theatreId),
+  };
+}
+
 // ============== Round resolution ==============
 
 /** Reduce every stack a side has in a theatre by the given loss fraction. */
@@ -184,6 +334,8 @@ export function applyRound(
 ): { state: BattleState; round: RoundResult | null } {
   const theatre = state.theatres.find((t) => t.id === theatreId);
   if (!theatre) return { state, round: null };
+  if (theatre.conclusion) return { state, round: null };
+  if (pendingCasualtiesForTheatre(state, theatreId)) return { state, round: null };
 
   const fsA = computeForceStrength(state.sideA, theatre, rules);
   const fsB = computeForceStrength(state.sideB, theatre, rules);
@@ -199,8 +351,13 @@ export function applyRound(
     B: attacker === 'B' ? attackerLossPct : defenderLossPct,
   };
 
-  const sideA = applyLossFraction(state.sideA, theatreId, lossBySide.A);
-  const sideB = applyLossFraction(state.sideB, theatreId, lossBySide.B);
+  const tracked = state.casualtyMode === 'tracked';
+  const sideA = tracked ? state.sideA : applyLossFraction(state.sideA, theatreId, lossBySide.A);
+  const sideB = tracked ? state.sideB : applyLossFraction(state.sideB, theatreId, lossBySide.B);
+  const targetLossBySide: Record<SideId, number> = {
+    A: fsA * lossBySide.A,
+    B: fsB * lossBySide.B,
+  };
 
   const round: RoundResult = {
     round: theatre.rounds.length + 1,
@@ -213,9 +370,23 @@ export function applyRound(
     checkResult: result,
     attackerLossPct,
     defenderLossPct,
-    attackerStrengthAfter: computeForceStrength(attacker === 'A' ? sideA : sideB, theatre, rules),
-    defenderStrengthAfter: computeForceStrength(defender === 'A' ? sideA : sideB, theatre, rules),
+    attackerStrengthAfter: tracked
+      ? Math.max(0, atkFS * (1 - attackerLossPct))
+      : computeForceStrength(attacker === 'A' ? sideA : sideB, theatre, rules),
+    defenderStrengthAfter: tracked
+      ? Math.max(0, defFS * (1 - defenderLossPct))
+      : computeForceStrength(defender === 'A' ? sideA : sideB, theatre, rules),
   };
+
+  const pending: PendingCasualtyAllocation | null = tracked ? {
+    theatreId,
+    round: round.round,
+    targetEffectiveLoss: targetLossBySide,
+    allocations: {
+      A: suggestCasualtyAllocation(state.sideA, theatre, targetLossBySide.A, rules),
+      B: suggestCasualtyAllocation(state.sideB, theatre, targetLossBySide.B, rules),
+    },
+  } : null;
 
   return {
     state: {
@@ -225,6 +396,9 @@ export function applyRound(
       theatres: state.theatres.map((t) =>
         t.id === theatreId ? { ...t, rounds: [...t.rounds, round] } : t,
       ),
+      pendingCasualties: pending
+        ? [...(state.pendingCasualties || []).filter((entry) => entry.theatreId !== theatreId), pending]
+        : state.pendingCasualties,
     },
     round,
   };
@@ -251,7 +425,13 @@ export function resetBattle(state: BattleState): BattleState {
     ...state,
     sideA: resetSide(state.sideA),
     sideB: resetSide(state.sideB),
-    theatres: state.theatres.map((t) => ({ ...t, rounds: [] })),
+    theatres: state.theatres.map((t) => ({
+      ...t,
+      rounds: [],
+      conclusion: undefined,
+      continuedObjectiveIds: [],
+    })),
+    pendingCasualties: [],
   };
 }
 
@@ -307,6 +487,7 @@ export function createStackFromUnitType(
     theatreId,
     notes: notes || undefined,
     source: 'catalogue',
+    priorityAsset: isDefaultPriorityCategory(unit.category),
   };
 }
 
@@ -334,6 +515,7 @@ export function createCustomStack(params: {
     theatreId: params.theatreId,
     notes: params.notes,
     source: 'custom',
+    priorityAsset: false,
   };
 }
 
@@ -358,5 +540,6 @@ export function createSystemDefenseStack(
     theatreId,
     notes: `Type ${Math.floor(rating)} system defenses`,
     source: 'systemDefense',
+    priorityAsset: true,
   };
 }

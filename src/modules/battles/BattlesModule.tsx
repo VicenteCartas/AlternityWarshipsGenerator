@@ -24,6 +24,7 @@ import { BattleLibrary } from './components/BattleLibrary';
 import { ScenarioStep } from './components/ScenarioStep';
 import { ForcesStep } from './components/ForcesStep';
 import { ResolveStep } from './components/ResolveStep';
+import { ResultsStep } from './components/ResultsStep';
 import { ALL_BATTLE_STEPS } from './constants/steps';
 import { createEmptyBattle } from './constants/battleDefaults';
 import type { BattleState, BattleStepId } from './types/battle';
@@ -32,6 +33,7 @@ import { loadBattlesData, reloadBattlesDataWithMods, getBattleRules } from './se
 import { formatCombatStrength } from './services/battleFormatters';
 import { deserializeBattle, jsonToBattleSaveFile } from './services/battleSaveService';
 import { exportBattleReport } from './services/battleReportService';
+import { summarizeBattleResults } from './services/battleResultsService';
 import { useBattleSaveLoad } from './hooks/useBattleSaveLoad';
 import {
   checkForBattleAutoSave, clearBattleAutoSave, useBattleAutoSave,
@@ -352,12 +354,20 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
   const fsA = computeTotalStrength(state.sideA);
   const fsB = computeTotalStrength(state.sideB);
   const totalRounds = state.theatres.reduce((sum, t) => sum + t.rounds.length, 0);
+  const battleResults = summarizeBattleResults(state, rules);
+  const withdrawalNames = [...new Set(battleResults.theatres.flatMap((theatre) => [
+    theatre.sideA.shouldWithdraw ? state.sideA.name : null,
+    theatre.sideB.shouldWithdraw ? state.sideB.name : null,
+  ]).filter((name): name is string => name !== null))];
+  const achievedObjectives = battleResults.objectiveResults.filter((objective) => objective.status === 'achieved').length;
+  const failedObjectives = battleResults.objectiveResults.filter((objective) => objective.status === 'failed').length;
 
   const stepCompletion: Record<BattleStepId, boolean> = {
     scenario: state.scenarioName.trim().length > 0 && state.theatres.length > 0,
     forcesA: state.sideA.stacks.length > 0,
     forcesB: state.sideB.stacks.length > 0,
     resolve: isBattleStarted(state),
+    results: state.theatres.length > 0 && state.theatres.every((theatre) => !!theatre.conclusion),
   };
 
   const activeStepIndex = ALL_BATTLE_STEPS.findIndex((s) => s.id === activeStepId);
@@ -371,10 +381,11 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
 
   const renderStep = () => {
     switch (activeStepId) {
-      case 'scenario': return <ScenarioStep state={state} onChange={updateState} />;
+      case 'scenario': return <ScenarioStep state={state} rules={rules} onChange={updateState} />;
       case 'forcesA': return <ForcesStep state={state} side="A" stepNumber={2} rules={rules} onChange={updateState} />;
       case 'forcesB': return <ForcesStep state={state} side="B" stepNumber={3} rules={rules} onChange={updateState} />;
       case 'resolve': return <ResolveStep state={state} stepNumber={4} rules={rules} onChange={updateState} />;
+      case 'results': return <ResultsStep state={state} stepNumber={5} rules={rules} />;
       default: return null;
     }
   };
@@ -390,14 +401,26 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
               <ArrowBackIcon />
             </IconButton>
           </Tooltip>
-          <Typography variant="h6" sx={{ flexGrow: 1, ml: 1 }}>
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1, ml: 1, minWidth: 0 }}>
             {APP_NAME} — Battle Resolution
             {hasUnsavedChanges && ' •'}
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ mr: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ mr: 2, display: { xs: 'none', lg: 'flex' } }}>
             <Chip label={`${state.sideA.name}: ${formatCombatStrength(fsA)}`} size="small" color="primary" variant="outlined" sx={appBarChipSx} />
             <Chip label={`${state.sideB.name}: ${formatCombatStrength(fsB)}`} size="small" color="primary" variant="outlined" sx={appBarChipSx} />
             <Chip label={`${totalRounds} round(s)`} size="small" variant="outlined" sx={appBarChipSx} />
+            {withdrawalNames.length > 0 && (
+              <Chip label={`Withdraw: ${withdrawalNames.join(', ')}`} size="small" color="warning" variant="outlined" />
+            )}
+            {achievedObjectives > 0 && (
+              <Chip label={`${achievedObjectives} objective(s) achieved`} size="small" color="success" variant="outlined" />
+            )}
+            {failedObjectives > 0 && (
+              <Chip label={`${failedObjectives} objective(s) failed`} size="small" color="error" variant="outlined" />
+            )}
+            {battleResults.casualtiesPending && (
+              <Chip label="Casualties pending" size="small" color="error" variant="outlined" />
+            )}
           </Stack>
           <Tooltip title="Undo">
             <span>
@@ -430,8 +453,8 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
       </AppBar>
 
       <Container maxWidth={false} sx={{ flexGrow: 1, py: 3 }}>
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Stepper nonLinear activeStep={activeStepIndex}>
+        <Paper sx={{ p: 2, mb: 2, overflowX: 'auto', overflowY: 'hidden' }}>
+          <Stepper nonLinear activeStep={activeStepIndex} sx={{ minWidth: 720 }}>
             {ALL_BATTLE_STEPS.map((step) => (
               <Step key={step.id} completed={stepCompletion[step.id]}>
                 <StepButton onClick={() => setActiveStepId(step.id)}>

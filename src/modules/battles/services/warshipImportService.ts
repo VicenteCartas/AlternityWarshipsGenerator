@@ -31,6 +31,7 @@ export interface WarshipCombatProfile {
   name: string;
   /** Hull class name, for display. */
   hullName: string | null;
+  shipClass: 'small-craft' | 'light' | 'medium' | 'heavy' | 'super-heavy';
   totalHullPoints: number;
   weaponHullPoints: number;
   defenseHullPoints: number;
@@ -115,6 +116,7 @@ export function deriveCombatProfile(
   return {
     name: saveFile.name || hull.name,
     hullName: hull.name,
+    shipClass: hull.shipClass,
     totalHullPoints,
     weaponHullPoints,
     defenseHullPoints,
@@ -169,5 +171,9 @@ export function createStackFromWarshipProfile(params: {
       ? `Imported design · ${params.profile.hullName} · ${params.profile.totalHullPoints} HP`
       : 'Imported design',
   });
-  return { ...stack, source: 'warshipDesign' };
+  return {
+    ...stack,
+    source: 'warshipDesign',
+    priorityAsset: params.profile.shipClass === 'heavy' || params.profile.shipClass === 'super-heavy',
+  };
 }

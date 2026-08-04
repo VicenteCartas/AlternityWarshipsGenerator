@@ -40,5 +40,8 @@ export function createEmptyBattle(): BattleState {
       withdrawThreshold: DEFAULT_EXTERNAL_WITHDRAW_THRESHOLD,
     },
     theatres: [createTheatre('space')],
+    casualtyMode: 'abstract',
+    pendingCasualties: [],
+    victoryConditions: [],
   };
 }

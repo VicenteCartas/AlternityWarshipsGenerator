@@ -10,7 +10,9 @@ import { APP_VERSION } from '@shared/constants/version';
 import type { Mod, SavedModReference } from '@shared/types/mod';
 import type {
   BattleDomain, BattleState, BattleUnitCategory, CheckResult, RoundResult,
-  Side, SideId, Theatre, TheatreKind, UnitSpecialization, UnitStack,
+  PendingCasualtyAllocation, Side, SideId, StackCasualtyAllocation, Theatre,
+  TheatreConclusion, TheatreKind, UnitSpecialization, UnitStack,
+  VictoryCondition, VictoryConditionKind,
 } from '../types/battle';
 import type { BattleSaveFile } from '../types/battleSaveFile';
 import { BATTLE_FILE_EXTENSION, BATTLE_SAVE_FILE_VERSION } from '../types/battleSaveFile';
@@ -29,6 +31,18 @@ export interface BattleLoadResult {
 const THEATRE_KINDS: TheatreKind[] = ['space', 'bombardment', 'ground'];
 const SPECIALIZATIONS: UnitSpecialization[] = ['none', 'bomber', 'planetaryDefenseBattery'];
 const CHECK_RESULTS: CheckResult[] = ['criticalFailure', 'failure', 'ordinary', 'good', 'amazing'];
+const THEATRE_CONCLUSION_REASONS: TheatreConclusion['reason'][] = [
+  'objective', 'withdrawal', 'destruction', 'manual',
+];
+const VICTORY_CONDITION_KINDS: VictoryConditionKind[] = [
+  'opponentWithdraws', 'allUnitsDestroyed', 'priorityAssetsDestroyed',
+  'categoriesDestroyed', 'stacksDestroyed', 'categoryStrengthBelow', 'preserveStacks',
+];
+const BATTLE_UNIT_CATEGORIES: BattleUnitCategory[] = [
+  'fighter', 'cutter', 'destroyer', 'escort', 'cruiser', 'carrier', 'battleship',
+  'dreadnought', 'fortress', 'monitor', 'cathedral', 'systemDefense', 'infantry',
+  'armor', 'artillery', 'fortification', 'custom',
+];
 
 // ============== Serialize ==============
 
@@ -74,6 +88,24 @@ function str(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 
+function readTheatreConclusion(raw: unknown): TheatreConclusion | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const conclusion = raw as Record<string, unknown>;
+  const reason = THEATRE_CONCLUSION_REASONS.includes(conclusion.reason as TheatreConclusion['reason'])
+    ? conclusion.reason as TheatreConclusion['reason']
+    : 'manual';
+  return {
+    winnerSideId: conclusion.winnerSideId === 'A' || conclusion.winnerSideId === 'B'
+      ? conclusion.winnerSideId
+      : null,
+    reason,
+    ...(typeof conclusion.conditionId === 'string' && conclusion.conditionId.length > 0
+      ? { conditionId: conclusion.conditionId }
+      : {}),
+    round: Math.max(0, Math.trunc(num(conclusion.round, 0))),
+  };
+}
+
 function readTheatres(raw: unknown, warnings: string[]): Theatre[] {
   const list = Array.isArray(raw) ? raw : [];
   const theatres: Theatre[] = [];
@@ -90,6 +122,10 @@ function readTheatres(raw: unknown, warnings: string[]): Theatre[] {
       name: str(t.name, 'Engagement'),
       kind,
       rounds: readRounds(t.rounds),
+      ...(readTheatreConclusion(t.conclusion)
+        ? { conclusion: readTheatreConclusion(t.conclusion) }
+        : {}),
+      continuedObjectiveIds: readStringList(t.continuedObjectiveIds),
     });
   }
 
@@ -169,9 +205,84 @@ function readStacks(raw: unknown, theatres: Theatre[], warnings: string[], sideN
         .includes(s.source as never)
         ? (s.source as UnitStack['source'])
         : 'custom',
+      priorityAsset: typeof s.priorityAsset === 'boolean' ? s.priorityAsset : false,
     });
   }
   return stacks;
+}
+
+function readCasualtyAllocations(raw: unknown): StackCasualtyAllocation[] {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .map((entry) => ({
+      stackId: str(entry.stackId, ''),
+      strengthLoss: Math.max(0, num(entry.strengthLoss, 0)),
+    }))
+    .filter((entry) => entry.stackId.length > 0 && entry.strengthLoss > 0);
+}
+
+function readPendingCasualties(raw: unknown, theatres: Theatre[]): PendingCasualtyAllocation[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const theatreIds = new Set(theatres.map((theatre) => theatre.id));
+  return list.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .filter((entry) => theatreIds.has(str(entry.theatreId, '')))
+    .map((entry) => {
+      const target = entry.targetEffectiveLoss && typeof entry.targetEffectiveLoss === 'object'
+        ? entry.targetEffectiveLoss as Record<string, unknown>
+        : {};
+      const allocations = entry.allocations && typeof entry.allocations === 'object'
+        ? entry.allocations as Record<string, unknown>
+        : {};
+      return {
+        theatreId: str(entry.theatreId, ''),
+        round: Math.max(1, Math.trunc(num(entry.round, 1))),
+        targetEffectiveLoss: {
+          A: Math.max(0, num(target.A, 0)),
+          B: Math.max(0, num(target.B, 0)),
+        },
+        allocations: {
+          A: readCasualtyAllocations(allocations.A),
+          B: readCasualtyAllocations(allocations.B),
+        },
+      };
+    });
+}
+
+function readStringList(raw: unknown): string[] {
+  return [...new Set((Array.isArray(raw) ? raw : [])
+    .filter((value): value is string => typeof value === 'string' && value.length > 0))];
+}
+
+function readVictoryConditions(raw: unknown, theatres: Theatre[]): VictoryCondition[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const theatreIds = new Set(theatres.map((theatre) => theatre.id));
+  return list.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .map((entry, index) => {
+      const kind = VICTORY_CONDITION_KINDS.includes(entry.kind as VictoryConditionKind)
+        ? entry.kind as VictoryConditionKind
+        : 'priorityAssetsDestroyed';
+      const beneficiarySideId: SideId = entry.beneficiarySideId === 'B' ? 'B' : 'A';
+      const targetSideId: SideId = entry.targetSideId === 'A' || entry.targetSideId === 'B'
+        ? entry.targetSideId
+        : beneficiarySideId === 'A' ? 'B' : 'A';
+      const categorySet = new Set(BATTLE_UNIT_CATEGORIES);
+      const theatreId = typeof entry.theatreId === 'string' && theatreIds.has(entry.theatreId)
+        ? entry.theatreId
+        : null;
+      return {
+        id: str(entry.id, `objective-${index + 1}`),
+        name: str(entry.name, `Objective ${index + 1}`),
+        beneficiarySideId,
+        targetSideId,
+        theatreId,
+        kind,
+        categories: readStringList(entry.categories)
+          .filter((category): category is BattleUnitCategory => categorySet.has(category as BattleUnitCategory)),
+        stackIds: readStringList(entry.stackIds),
+        thresholdPct: Math.max(0, Math.min(1, num(entry.thresholdPct, 0.25))),
+        minimumSurvivingQuantity: Math.max(1, Math.trunc(num(entry.minimumSurvivingQuantity, 1))),
+      };
+    });
 }
 
 function readSide(raw: unknown, id: SideId, theatres: Theatre[], warnings: string[]): Side {
@@ -229,6 +340,9 @@ export function deserializeBattle(saveFile: BattleSaveFile): BattleLoadResult {
     sideA: readSide(battle.sideA, 'A', theatres, warnings),
     sideB: readSide(battle.sideB, 'B', theatres, warnings),
     theatres,
+    casualtyMode: battle.casualtyMode === 'tracked' ? 'tracked' : 'abstract',
+    pendingCasualties: readPendingCasualties(battle.pendingCasualties, theatres),
+    victoryConditions: readVictoryConditions(battle.victoryConditions, theatres),
   };
 
   if (theatres.some((theatre) => theatre.rounds.some((round) => round.stepModifier > 0))) {

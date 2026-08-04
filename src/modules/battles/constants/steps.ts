@@ -9,6 +9,7 @@ export const ALL_BATTLE_STEPS: BattleStepDef[] = [
   { id: 'forcesA', label: 'Side A Forces', required: true },
   { id: 'forcesB', label: 'Side B Forces', required: true },
   { id: 'resolve', label: 'Resolve', required: true },
+  { id: 'results', label: 'Results', required: false },
 ];
 
 /** Full display names for each battle step. */
@@ -17,4 +18,5 @@ export const BATTLE_STEP_FULL_NAMES: Record<BattleStepId, string> = {
   forcesA: 'Side A Forces',
   forcesB: 'Side B Forces',
   resolve: 'Resolve Battle',
+  results: 'Results',
 };

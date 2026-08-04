@@ -14,12 +14,16 @@ import {
   computeForceStrength, computeStartingForceStrength, determineRoles,
   tacticalAdvantageStep, applyRound, shouldWithdraw, resetBattle, tacticsScoreFor,
   stacksInTheatre,
+  pendingCasualtiesForTheatre,
 } from '../services/battleResolutionService';
 import { rollTacticsCheck, stepDieSize } from '../services/alternityRoll';
 import {
   CHECK_RESULT_LABELS, formatCombatStrength, formatStepModifier, formatTacticsDice,
   getTheatreKindDescription, getTheatreKindLabel,
 } from '../services/battleFormatters';
+import { CasualtyAllocationPanel } from './CasualtyAllocationPanel';
+import { TheatreObjectivesPanel } from './TheatreObjectivesPanel';
+import { concludeTheatre, reopenTheatre } from '../services/battleOutcomeService';
 
 interface ResolveStepProps {
   state: BattleState;
@@ -69,11 +73,14 @@ export function ResolveStep({ state, stepNumber, rules, onChange }: ResolveStepP
 
   const aWithdraw = shouldWithdraw(state.sideA, theatre, rules);
   const bWithdraw = shouldWithdraw(state.sideB, theatre, rules);
-  const theatreDecided = fsA <= 0 || fsB <= 0;
+  const forceEliminated = fsA <= 0 || fsB <= 0;
+  const theatreDecided = forceEliminated || !!theatre.conclusion;
+  const destructionWinner = fsA <= 0 && fsB <= 0 ? null : fsA <= 0 ? 'B' : 'A';
   const hasLegacyAdvantageRounds = theatre.rounds.some((r) => r.stepModifier > 0);
   const noContest =
     (fsA <= 0 && stacksInTheatre(state.sideA, theatre.id).length > 0) ||
     (fsB <= 0 && stacksInTheatre(state.sideB, theatre.id).length > 0);
+  const pendingCasualties = pendingCasualtiesForTheatre(state, theatre.id);
 
   const handleRoll = () => {
     const r = rollTacticsCheck(attackerTactics, stepMod);
@@ -125,9 +132,43 @@ export function ResolveStep({ state, stepNumber, rules, onChange }: ResolveStepP
         </Alert>
       )}
 
-      {theatreDecided && (
-        <Alert severity="success" sx={{ mt: 2 }}>
-          {theatre.name} concluded — {fsA <= 0 ? state.sideB.name : state.sideA.name} holds the field.
+      {theatre.conclusion && (
+        <Alert
+          severity="success"
+          sx={{ mt: 2 }}
+          action={(
+            <Button color="inherit" size="small" onClick={() => onChange(reopenTheatre(state, theatre.id))}>
+              Reopen Theatre
+            </Button>
+          )}
+        >
+          {theatre.name} concluded — {theatre.conclusion.winnerSideId
+            ? `${theatre.conclusion.winnerSideId === 'A' ? state.sideA.name : state.sideB.name} won`
+            : 'no winner recorded'}.
+        </Alert>
+      )}
+      {forceEliminated && !theatre.conclusion && (
+        <Alert
+          severity="success"
+          sx={{ mt: 2 }}
+          action={(
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => onChange(concludeTheatre(
+                state,
+                theatre.id,
+                destructionWinner,
+                'destruction',
+              ))}
+            >
+              Conclude Theatre
+            </Button>
+          )}
+        >
+          {destructionWinner
+            ? `${destructionWinner === 'A' ? state.sideA.name : state.sideB.name} holds the field.`
+            : 'Neither side has remaining combat strength.'}
         </Alert>
       )}
       {noContest && !aWithdraw && !bWithdraw && (
@@ -136,13 +177,36 @@ export function ResolveStep({ state, stepNumber, rules, onChange }: ResolveStepP
           They are targets rather than combatants; decide their fate yourself.
         </Alert>
       )}
-      {(aWithdraw || bWithdraw) && !theatreDecided && (
-        <Alert severity="warning" sx={{ mt: 2 }}>
-          Withdraw threshold crossed:{' '}
-          {[aWithdraw && state.sideA.name, bWithdraw && state.sideB.name].filter(Boolean).join(', ')}
-          . A Gamemaster-controlled force would normally break off here.
+      {(aWithdraw || bWithdraw) && !forceEliminated && !theatre.conclusion && (
+        <Alert
+          severity="warning"
+          sx={{ mt: 2, border: 2, borderColor: 'warning.main', '& .MuiAlert-message': { width: '100%' } }}
+        >
+          <Typography variant="h6" component="div">
+            {[aWithdraw && state.sideA.name, bWithdraw && state.sideB.name].filter(Boolean).join(' and ')} SHOULD WITHDRAW
+          </Typography>
+          <Typography variant="body2">
+            The configured loss threshold has been crossed. A Gamemaster-controlled force would normally break off here.
+          </Typography>
         </Alert>
       )}
+
+      {pendingCasualties && (
+        <CasualtyAllocationPanel
+          state={state}
+          theatre={theatre}
+          pending={pendingCasualties}
+          rules={rules}
+          onChange={onChange}
+        />
+      )}
+
+      <TheatreObjectivesPanel
+        state={state}
+        theatre={theatre}
+        rules={rules}
+        onChange={onChange}
+      />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mt: 2 }}>
         {(['A', 'B'] as const).map((sid) => {
@@ -198,14 +262,14 @@ export function ResolveStep({ state, stepNumber, rules, onChange }: ResolveStepP
               <MenuItem key={k} value={k}>{CHECK_RESULT_LABELS[k]}</MenuItem>
             ))}
           </TextField>
-          <Button startIcon={<CasinoIcon />} onClick={handleRoll} disabled={theatreDecided}>
+          <Button startIcon={<CasinoIcon />} onClick={handleRoll} disabled={theatreDecided || !!pendingCasualties}>
             Roll for {atkSide.name}
           </Button>
           <Button
             variant="contained"
             startIcon={<PlayArrowIcon />}
             onClick={handleRunRound}
-            disabled={theatreDecided || atkFS <= 0 || defFS <= 0}
+            disabled={theatreDecided || !!pendingCasualties || atkFS <= 0 || defFS <= 0}
           >
             Run Round {theatre.rounds.length + 1}
           </Button>

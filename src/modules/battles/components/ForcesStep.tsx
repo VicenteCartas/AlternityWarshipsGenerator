@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Box, Stack, Typography, Button, Paper, Table, TableHead, TableBody,
-  TableRow, TableCell, Chip, IconButton, TextField, Alert, Tooltip, MenuItem,
+  TableRow, TableCell, Checkbox, Chip, IconButton, TextField, Alert, Tooltip, MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -121,6 +121,7 @@ export function ForcesStep({ state, side, stepNumber, rules, onChange }: ForcesS
               <TableCell>Theatre</TableCell>
               <TableCell align="right">Effective CS</TableCell>
               <TableCell align="right">Remaining CS</TableCell>
+              <TableCell align="center">Priority</TableCell>
               <TableCell>Notes</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -128,7 +129,7 @@ export function ForcesStep({ state, side, stepNumber, rules, onChange }: ForcesS
           <TableBody>
             {sideObj.stacks.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} sx={{ textAlign: 'center', color: 'text.secondary', py: 4 }}>
+                <TableCell colSpan={9} sx={{ textAlign: 'center', color: 'text.secondary', py: 4 }}>
                   No units yet. Click <strong>Add Unit Stack</strong> to begin.
                 </TableCell>
               </TableRow>
@@ -210,6 +211,18 @@ export function ForcesStep({ state, side, stepNumber, rules, onChange }: ForcesS
                         variant="outlined"
                         color={depleted ? 'error' : damaged ? 'warning' : 'success'}
                       />
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Suggested tracked casualties protect priority assets until other units are exhausted.">
+                      <span>
+                        <Checkbox
+                          checked={s.priorityAsset ?? false}
+                          disabled={battleStarted}
+                          onChange={(event) => patchStack(s.id, { priorityAsset: event.target.checked })}
+                          inputProps={{ 'aria-label': `${s.name} priority asset` }}
+                        />
+                      </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 260 }}>

@@ -7,19 +7,21 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { StepHeader } from '@shared/components/StepHeader';
 import { ConfirmDialog } from '@shared/components';
-import type { BattleState, Side, SideId, TheatreKind } from '../types/battle';
+import type { BattleRules, BattleState, CasualtyMode, Side, SideId, TheatreKind } from '../types/battle';
 import { createTheatre } from '../constants/battleDefaults';
 import { getTheatreKindDescription, getTheatreKindLabel } from '../services/battleFormatters';
 import { isBattleStarted } from '../services/battleResolutionService';
+import { VictoryObjectivesPanel } from './VictoryObjectivesPanel';
 
 interface ScenarioStepProps {
   state: BattleState;
+  rules: BattleRules;
   onChange: (next: BattleState) => void;
 }
 
 const THEATRE_KINDS: TheatreKind[] = ['space', 'bombardment', 'ground'];
 
-export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
+export function ScenarioStep({ state, rules, onChange }: ScenarioStepProps) {
   const [newTheatreKind, setNewTheatreKind] = useState<TheatreKind>('ground');
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
@@ -54,6 +56,9 @@ export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
       theatres: remaining,
       sideA: reassign(state.sideA),
       sideB: reassign(state.sideB),
+      victoryConditions: (state.victoryConditions || []).map((objective) => (
+        objective.theatreId === id ? { ...objective, theatreId: fallbackId } : objective
+      )),
     });
     setPendingRemoveId(null);
   };
@@ -121,6 +126,23 @@ export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
           sx={{ maxWidth: 600 }}
         />
 
+        <TextField
+          select
+          label="Casualty tracking"
+          value={state.casualtyMode ?? 'abstract'}
+          onChange={(event) => onChange({
+            ...state,
+            casualtyMode: event.target.value as CasualtyMode,
+            pendingCasualties: [],
+          })}
+          disabled={battleStarted}
+          helperText="Abstract keeps only force-strength totals. Tracked mode assigns each round's losses to specific unit stacks."
+          sx={{ maxWidth: 600 }}
+        >
+          <MenuItem value="abstract">Abstract totals (sourcebook default)</MenuItem>
+          <MenuItem value="tracked">Track specific units</MenuItem>
+        </TextField>
+
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           {renderSide(state.sideA)}
           {renderSide(state.sideB)}
@@ -140,8 +162,8 @@ export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
             </Alert>
           )}
 
-          <Paper variant="outlined">
-            <Table size="small">
+          <Paper variant="outlined" sx={{ overflowX: 'auto' }}>
+            <Table size="small" sx={{ minWidth: 640 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
@@ -185,7 +207,12 @@ export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
             </Table>
           </Paper>
 
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            sx={{ mt: 2 }}
+          >
             <TextField
               select
               label="Theatre type"
@@ -212,6 +239,8 @@ export function ScenarioStep({ state, onChange }: ScenarioStepProps) {
             </Typography>
           </Stack>
         </Box>
+
+        <VictoryObjectivesPanel state={state} rules={rules} onChange={onChange} />
       </Stack>
 
       <ConfirmDialog

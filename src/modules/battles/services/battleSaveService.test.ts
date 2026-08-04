@@ -119,6 +119,9 @@ describe('deserializeBattle', () => {
     expect(result.battle?.sideA.stacks[0].currentStrength).toBe(850);
     expect(result.battle?.theatres[0].rounds).toHaveLength(1);
     expect(result.warnings).toBeUndefined();
+    expect(result.battle?.casualtyMode).toBe('abstract');
+    expect(result.battle?.pendingCasualties).toEqual([]);
+    expect(result.battle?.victoryConditions).toEqual([]);
   });
 
   it('fails when the file has no battle object', () => {
@@ -197,6 +200,45 @@ describe('deserializeBattle', () => {
   it('warns when the file was written by a different format version', () => {
     const result = deserializeBattle(wrap(sampleBattle(), '0.5'));
     expect(result.warnings?.some((w) => w.includes('migrated'))).toBe(true);
+  });
+
+  it('restores tracked casualties and priority assets', () => {
+    const battle = sampleBattle();
+    battle.casualtyMode = 'tracked';
+    battle.sideA.stacks[0].priorityAsset = true;
+    battle.pendingCasualties = [{
+      theatreId: 'sp',
+      round: 1,
+      targetEffectiveLoss: { A: 150, B: 100 },
+      allocations: { A: [{ stackId: 'stack-1', strengthLoss: 150 }], B: [] },
+    }];
+    const result = deserializeBattle(wrap(battle));
+    expect(result.battle?.casualtyMode).toBe('tracked');
+    expect(result.battle?.sideA.stacks[0].priorityAsset).toBe(true);
+    expect(result.battle?.pendingCasualties?.[0].allocations.A[0].strengthLoss).toBe(150);
+  });
+
+  it('restores objectives and theatre conclusions defensively', () => {
+    const battle = sampleBattle();
+    battle.theatres[0].conclusion = {
+      winnerSideId: 'A', reason: 'objective', conditionId: 'objective-1', round: 1,
+    };
+    battle.victoryConditions = [{
+      id: 'objective-1',
+      name: 'Destroy the cruisers',
+      beneficiarySideId: 'A',
+      targetSideId: 'B',
+      theatreId: 'sp',
+      kind: 'categoryStrengthBelow',
+      categories: ['cruiser'],
+      stackIds: [],
+      thresholdPct: 0.25,
+      minimumSurvivingQuantity: 1,
+    }];
+
+    const result = deserializeBattle(wrap(battle));
+    expect(result.battle?.theatres[0].conclusion).toEqual(battle.theatres[0].conclusion);
+    expect(result.battle?.victoryConditions).toEqual(battle.victoryConditions);
   });
 
   it('warns about rounds resolved with the reversed tactical-advantage sign', () => {

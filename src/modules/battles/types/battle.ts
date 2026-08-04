@@ -47,6 +47,54 @@ export type SpaceUnitCategory =
 export type GroundUnitCategory = 'infantry' | 'armor' | 'artillery' | 'fortification';
 
 export type BattleUnitCategory = SpaceUnitCategory | GroundUnitCategory | 'custom';
+export type CasualtyMode = 'abstract' | 'tracked';
+
+export interface StackCasualtyAllocation {
+  stackId: string;
+  /** Native combat strength removed from this stack. */
+  strengthLoss: number;
+}
+
+export interface PendingCasualtyAllocation {
+  theatreId: string;
+  round: number;
+  targetEffectiveLoss: Record<SideId, number>;
+  allocations: Record<SideId, StackCasualtyAllocation[]>;
+}
+
+export type VictoryConditionKind =
+  | 'opponentWithdraws'
+  | 'allUnitsDestroyed'
+  | 'priorityAssetsDestroyed'
+  | 'categoriesDestroyed'
+  | 'stacksDestroyed'
+  | 'categoryStrengthBelow'
+  | 'preserveStacks';
+
+export interface VictoryCondition {
+  id: string;
+  name: string;
+  /** Side that achieves this objective. */
+  beneficiarySideId: SideId;
+  /** Side whose losses/status are tested (normally the opponent). */
+  targetSideId: SideId;
+  /** Null applies across the whole battle; otherwise one theatre. */
+  theatreId: string | null;
+  kind: VictoryConditionKind;
+  categories: BattleUnitCategory[];
+  stackIds: string[];
+  /** Fraction remaining for categoryStrengthBelow (0.25 = 25%). */
+  thresholdPct: number;
+  /** Required survivors for preserveStacks. */
+  minimumSurvivingQuantity: number;
+}
+
+export interface TheatreConclusion {
+  winnerSideId: SideId | null;
+  reason: 'objective' | 'withdrawal' | 'destruction' | 'manual';
+  conditionId?: string;
+  round: number;
+}
 
 /**
  * A unit may be designated at construction as a specialist. The designation
@@ -112,6 +160,8 @@ export interface UnitStack {
   notes?: string;
   /** Origin tag, useful for tracing. */
   source: 'catalogue' | 'custom' | 'systemDefense' | 'warshipDesign';
+  /** Scenario-important unit protected by suggested casualty allocations. */
+  priorityAsset?: boolean;
 }
 
 export type SideId = 'A' | 'B';
@@ -159,6 +209,9 @@ export interface Theatre {
   name: string;
   kind: TheatreKind;
   rounds: RoundResult[];
+  conclusion?: TheatreConclusion;
+  /** Achieved objectives the GM acknowledged without ending this theatre. */
+  continuedObjectiveIds?: string[];
 }
 
 export interface BattleState {
@@ -166,10 +219,15 @@ export interface BattleState {
   sideA: Side;
   sideB: Side;
   theatres: Theatre[];
+  /** Abstract is the sourcebook default; tracked assigns losses to specific stacks. */
+  casualtyMode?: CasualtyMode;
+  /** Tracked rounds awaiting player-approved stack losses. */
+  pendingCasualties?: PendingCasualtyAllocation[];
+  victoryConditions?: VictoryCondition[];
 }
 
 /** Wizard step identifiers for the battle builder. */
-export type BattleStepId = 'scenario' | 'forcesA' | 'forcesB' | 'resolve';
+export type BattleStepId = 'scenario' | 'forcesA' | 'forcesB' | 'resolve' | 'results';
 
 export interface BattleStepDef {
   id: BattleStepId;

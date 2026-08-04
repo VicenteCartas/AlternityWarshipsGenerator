@@ -7,16 +7,21 @@
 
 import { jsPDF } from 'jspdf';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
-import type { BattleRules, BattleState, Side, Theatre } from '../types/battle';
-import { THEATRE_DOMAIN, THEATRE_TACTICS_SKILL } from '../types/battle';
+import type { BattleRules, BattleState, Side } from '../types/battle';
+import { THEATRE_TACTICS_SKILL } from '../types/battle';
 import {
-  computeForceStrength, computeStartingForceStrength, effectiveFactor,
-  shouldWithdraw, stacksInTheatre, tacticsScoreFor,
+  tacticsScoreFor,
 } from './battleResolutionService';
 import {
   CHECK_RESULT_LABELS, formatCombatStrength, formatStepModifier,
-  getSpecializationLabel, getTheatreKindLabel,
+  getSpecializationLabel, getTheatreKindLabel, getUnitCategoryLabel,
 } from './battleFormatters';
+import {
+  summarizeBattleResults,
+  type ObjectiveResultStatus,
+  type SideTheatreResult,
+  type TheatreResultSummary,
+} from './battleResultsService';
 
 interface ReportContext {
   pdf: jsPDF;
@@ -80,72 +85,130 @@ function table(ctx: ReportContext, headers: string[], widths: number[], rows: st
   ctx.y += 2;
 }
 
-function renderOrderOfBattle(ctx: ReportContext, side: Side, theatre: Theatre, rules: BattleRules): void {
-  const stacks = stacksInTheatre(side, theatre.id);
-  if (stacks.length === 0) {
+function objectiveStatusLabel(status: ObjectiveResultStatus): string {
+  if (status === 'inProgress') return 'In progress';
+  if (status === 'unavailable') return 'Not available';
+  if (status === 'satisfied') return 'Currently satisfied';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function casualtyCount(value: number | null): string {
+  return value === null ? 'n/a' : String(value);
+}
+
+function renderOrderOfBattle(
+  ctx: ReportContext,
+  side: Side,
+  result: SideTheatreResult,
+  casualtiesAllocated: boolean,
+): void {
+  if (result.stacks.length === 0) {
     body(ctx, `${side.name}: no units committed.`);
     return;
   }
 
-  const domain = THEATRE_DOMAIN[theatre.kind];
-  const rows = stacks.map((s) => {
-    const factor = effectiveFactor(s, domain, rules);
-    const startingNative = s.combatStrengthPerUnit * s.initialQuantity;
+  body(
+    ctx,
+    `${side.name}: effective force strength ${formatCombatStrength(result.startingForceStrength)} to ` +
+    `${formatCombatStrength(result.remainingForceStrength)} (${(result.lossFraction * 100).toFixed(1)}% lost).`,
+  );
+  if (!casualtiesAllocated) {
+    body(ctx, 'Specific casualties unallocated; surviving, damaged, and destroyed unit counts are not assigned.');
+  }
+
+  const stackRows = result.stacks.map((stack) => {
+    const source = side.stacks.find((candidate) => candidate.id === stack.stackId);
+    const name = source?.specialization && source.specialization !== 'none'
+      ? `${stack.name} (${getSpecializationLabel(source.specialization)})`
+      : stack.name;
     return [
-      s.specialization === 'none' ? s.name : `${s.name} (${getSpecializationLabel(s.specialization)})`,
-      String(s.initialQuantity),
-      formatCombatStrength(startingNative),
-      factor === null ? 'cannot engage' : `${Math.round(factor * 100)}%`,
-      factor === null ? '—' : formatCombatStrength(startingNative * factor),
-      formatCombatStrength(Math.max(0, s.currentStrength)),
+      stack.priorityAsset ? `${name} [priority]` : name,
+      getUnitCategoryLabel(stack.category),
+      String(stack.initialQuantity),
+      casualtyCount(stack.survivingQuantity),
+      casualtyCount(stack.damagedQuantity),
+      casualtyCount(stack.destroyedQuantity),
+      formatCombatStrength(stack.startingStrength),
+      formatCombatStrength(stack.remainingStrength),
     ];
   });
-
-  body(ctx, `${side.name} — Tactics ${tacticsScoreFor(side, theatre.kind)}, withdraws at ${Math.round(side.withdrawThreshold * 100)}% losses`);
   table(
     ctx,
-    ['Unit', 'Qty', 'Starting CS', 'Effect.', 'Effective CS', 'Remaining CS'],
-    [58, 14, 26, 18, 26, 26],
-    rows,
+    ['Unit', 'Category', 'Start', 'Surv.', 'Dmg.', 'Lost', 'Start CS', 'Remain CS'],
+    [42, 27, 14, 16, 16, 16, 24, 24],
+    stackRows,
+  );
+
+  const categoryRows = result.categories.map((category) => [
+    getUnitCategoryLabel(category.category),
+    String(category.initialQuantity),
+    casualtyCount(category.survivingQuantity),
+    casualtyCount(category.damagedQuantity),
+    casualtyCount(category.destroyedQuantity),
+    formatCombatStrength(category.startingStrength),
+    formatCombatStrength(category.remainingStrength),
+  ]);
+  table(
+    ctx,
+    ['Category', 'Start', 'Surv.', 'Dmg.', 'Lost', 'Start CS', 'Remain CS'],
+    [52, 18, 20, 20, 20, 26, 26],
+    categoryRows,
   );
 }
 
-function renderTheatre(ctx: ReportContext, state: BattleState, theatre: Theatre, rules: BattleRules): void {
+function renderTheatre(
+  ctx: ReportContext,
+  state: BattleState,
+  result: TheatreResultSummary,
+  casualtiesAllocated: boolean,
+): void {
+  const { theatre } = result;
   heading(ctx, `${theatre.name} — ${getTheatreKindLabel(theatre.kind)}`, 11);
-
-  const fsA = computeForceStrength(state.sideA, theatre, rules);
-  const fsB = computeForceStrength(state.sideB, theatre, rules);
-  const startA = computeStartingForceStrength(state.sideA, theatre, rules);
-  const startB = computeStartingForceStrength(state.sideB, theatre, rules);
 
   body(
     ctx,
     `Resolved with Tactics-${THEATRE_TACTICS_SKILL[theatre.kind]} tactics. ` +
-    `${state.sideA.name}: ${formatCombatStrength(startA)} to ${formatCombatStrength(fsA)}. ` +
-    `${state.sideB.name}: ${formatCombatStrength(startB)} to ${formatCombatStrength(fsB)}.`,
+    `${state.sideA.name}: ${formatCombatStrength(result.sideA.startingForceStrength)} to ${formatCombatStrength(result.sideA.remainingForceStrength)}. ` +
+    `${state.sideB.name}: ${formatCombatStrength(result.sideB.startingForceStrength)} to ${formatCombatStrength(result.sideB.remainingForceStrength)}.`,
   );
 
-  let outcome: string;
-  if (fsA <= 0 && fsB <= 0) {
-    outcome = 'Both forces were destroyed.';
-  } else if (fsA <= 0) {
-    outcome = `${state.sideB.name} holds the field.`;
-  } else if (fsB <= 0) {
-    outcome = `${state.sideA.name} holds the field.`;
-  } else {
-    const withdrawing = [
-      shouldWithdraw(state.sideA, theatre, rules) ? state.sideA.name : null,
-      shouldWithdraw(state.sideB, theatre, rules) ? state.sideB.name : null,
-    ].filter(Boolean);
-    outcome = withdrawing.length > 0
-      ? `Undecided. Past the withdrawal threshold: ${withdrawing.join(', ')}.`
-      : 'Undecided — both forces are still in the fight.';
-  }
+  const outcome = result.winnerSideId
+    ? `${result.winnerSideId === 'A' ? state.sideA.name : state.sideB.name} won this theatre.`
+    : result.status === 'concluded'
+      ? 'The theatre concluded without a winner.'
+      : result.status === 'forcesEliminated'
+        ? 'Both forces were eliminated.'
+        : 'The theatre remains unresolved.';
   body(ctx, `Outcome: ${outcome}`);
+  const withdrawing = [
+    result.sideA.shouldWithdraw ? state.sideA.name : null,
+    result.sideB.shouldWithdraw ? state.sideB.name : null,
+  ].filter((name): name is string => name !== null);
+  if (withdrawing.length > 0) {
+    body(ctx, `SHOULD WITHDRAW: ${withdrawing.join(', ')}.`);
+  }
+  if (result.casualtiesPending) {
+    body(ctx, 'Casualty allocations are still pending; these results are provisional.');
+  }
+  if (result.objectives.length > 0) {
+    table(
+      ctx,
+      ['Objective', 'Side', 'Status', 'Result'],
+      [52, 34, 30, 70],
+      result.objectives.map((objective) => [
+        objective.condition.name,
+        objective.condition.beneficiarySideId === 'A' ? state.sideA.name : state.sideB.name,
+        objectiveStatusLabel(objective.status),
+        objective.evaluation.detail,
+      ]),
+    );
+  }
   ctx.y += 2;
 
-  renderOrderOfBattle(ctx, state.sideA, theatre, rules);
-  renderOrderOfBattle(ctx, state.sideB, theatre, rules);
+  body(ctx, `${state.sideA.name} — Tactics ${tacticsScoreFor(state.sideA, theatre.kind)}, withdraws at ${Math.round(state.sideA.withdrawThreshold * 100)}% losses`);
+  renderOrderOfBattle(ctx, state.sideA, result.sideA, casualtiesAllocated);
+  body(ctx, `${state.sideB.name} — Tactics ${tacticsScoreFor(state.sideB, theatre.kind)}, withdraws at ${Math.round(state.sideB.withdrawThreshold * 100)}% losses`);
+  renderOrderOfBattle(ctx, state.sideB, result.sideB, casualtiesAllocated);
 
   if (theatre.rounds.length === 0) {
     body(ctx, 'No rounds have been resolved in this theatre.');
@@ -197,15 +260,9 @@ export function getBattleReportFileName(scenarioName: string): string {
   return `${base || 'Engagement'}_battle_report.pdf`;
 }
 
-/**
- * Build and save an after-action report. Saves next to the given directory in
- * the desktop app, or downloads it in a browser.
- */
-export async function exportBattleReport(
-  state: BattleState,
-  rules: BattleRules,
-  targetDirectory?: string,
-): Promise<string> {
+/** Build the report document without saving it, for previews and tests. */
+export function createBattleReportPdf(state: BattleState, rules: BattleRules): jsPDF {
+  const summary = summarizeBattleResults(state, rules);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -230,20 +287,55 @@ export async function exportBattleReport(
   ctx.y += 8;
 
   heading(ctx, 'Engagement Summary');
-  const totalRounds = state.theatres.reduce((sum, t) => sum + t.rounds.length, 0);
+  const totalRounds = state.theatres.reduce((sum, theatre) => sum + theatre.rounds.length, 0);
+  body(ctx, `${state.theatres.length} theatre(s), ${totalRounds} round(s) resolved.`);
+  body(ctx, `Overall result: ${summary.overallLabel}`);
   body(
     ctx,
-    `${state.theatres.length} theatre(s), ${totalRounds} round(s) resolved. ` +
-    `Combat strengths are shown as effective values for each theatre; a unit that cannot ` +
-    `engage in a theatre contributes nothing to that force's strength.`,
+    summary.casualtiesAllocated
+      ? 'Specific casualties allocated: survivor, damaged, and destroyed counts reflect approved stack losses.'
+      : 'Specific casualties unallocated: this engagement used abstract proportional combat-strength losses.',
   );
-  ctx.y += 2;
+  if (summary.casualtiesPending) {
+    body(ctx, 'One or more casualty allocations remain pending; the report is provisional.');
+  }
 
-  for (const theatre of state.theatres) {
-    renderTheatre(ctx, state, theatre, rules);
+  if (summary.objectiveResults.length > 0) {
+    heading(ctx, 'Victory Objectives');
+    table(
+      ctx,
+      ['Objective', 'Side', 'Scope', 'Status', 'Result'],
+      [44, 30, 32, 28, 52],
+      summary.objectiveResults.map((objective) => [
+        objective.condition.name,
+        objective.condition.beneficiarySideId === 'A' ? state.sideA.name : state.sideB.name,
+        objective.condition.theatreId === null
+          ? 'Whole battle'
+          : state.theatres.find((theatre) => theatre.id === objective.condition.theatreId)?.name ?? 'Missing theatre',
+        objectiveStatusLabel(objective.status),
+        objective.evaluation.detail,
+      ]),
+    );
+  }
+
+  for (const theatreResult of summary.theatres) {
+    renderTheatre(ctx, state, theatreResult, summary.casualtiesAllocated);
   }
 
   renderFooter(ctx);
+  return pdf;
+}
+
+/**
+ * Build and save an after-action report. Saves next to the given directory in
+ * the desktop app, or downloads it in a browser.
+ */
+export async function exportBattleReport(
+  state: BattleState,
+  rules: BattleRules,
+  targetDirectory?: string,
+): Promise<string> {
+  const pdf = createBattleReportPdf(state, rules);
 
   const filename = getBattleReportFileName(state.scenarioName);
   if (window.electronAPI && targetDirectory) {
