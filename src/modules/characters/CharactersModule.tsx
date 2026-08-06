@@ -213,8 +213,19 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
 
   const handleExportPdf = async (format: CharacterPdfFormat) => {
     try {
-      const filePath = await exportCharacterPdf(state, validation, format);
-      showNotification(`Character PDF saved to ${filePath}`, 'success');
+      const currentFilePath = saveLoad.currentFilePath;
+      const separatorIndex = currentFilePath
+        ? Math.max(currentFilePath.lastIndexOf('\\'), currentFilePath.lastIndexOf('/'))
+        : -1;
+      const defaultDirectory = separatorIndex >= 0
+        ? currentFilePath!.slice(0, separatorIndex)
+        : undefined;
+      const filePath = await exportCharacterPdf(state, validation, format, defaultDirectory);
+      if (!filePath) return;
+      showNotification(`Character PDF saved to ${filePath}`, 'success', window.electronAPI ? {
+        label: 'Open',
+        onClick: () => { void window.electronAPI?.openPath(filePath); },
+      } : undefined);
     } catch (error) {
       showNotification(error instanceof Error ? error.message : 'Failed to export character PDF.', 'error');
     }
@@ -366,7 +377,16 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   const overlays = (
     <>
       <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          action={snackbar.action ? (
+            <Button color="inherit" size="small" onClick={snackbar.action.onClick}>{snackbar.action.label}</Button>
+          ) : undefined}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
       </Snackbar>
       <ConfirmDialog
         open={pendingAction !== null}

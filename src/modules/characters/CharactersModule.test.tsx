@@ -74,6 +74,38 @@ describe('CharactersModule', () => {
     expect(screen.getByRole('heading', { name: 'Export Character PDF' })).toBeInTheDocument();
   });
 
+  it('exports beside the saved character by default and can open the selected PDF', async () => {
+    const user = userEvent.setup();
+    const electron = installMockElectronAPI();
+    electron.api.showCharacterSaveDialog = vi.fn().mockResolvedValue({
+      canceled: false,
+      filePath: 'C:\\Characters\\Jordan_Kade.character.json',
+    });
+    electron.api.showPdfSaveDialog = vi.fn().mockResolvedValue({
+      canceled: false,
+      filePath: 'C:\\Exports\\Jordan_Kade_npc_profile.pdf',
+    });
+    renderBuilder();
+
+    fireEvent.change(screen.getByLabelText(/hero name/i), { target: { value: 'Jordan Kade' } });
+    await user.click(screen.getByRole('button', { name: 'Save Character As' }));
+    await waitFor(() => expect(electron.api.saveFile).toHaveBeenCalled());
+
+    await user.click(screen.getByRole('button', { name: 'Export Character PDF' }));
+    await user.click(screen.getByRole('button', { name: 'NPC Profile' }));
+
+    await waitFor(() => expect(electron.api.showPdfSaveDialog).toHaveBeenCalledWith(
+      'Jordan_Kade_npc_profile.pdf',
+      'C:\\Characters',
+    ));
+    expect(electron.api.savePdfFile).toHaveBeenCalledWith(
+      'C:\\Exports\\Jordan_Kade_npc_profile.pdf',
+      expect.any(String),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Open' }));
+    expect(electron.api.openPath).toHaveBeenCalledWith('C:\\Exports\\Jordan_Kade_npc_profile.pdf');
+  });
+
   it('edits identity and navigates with string-based steps', async () => {
     const user = userEvent.setup();
     renderBuilder();

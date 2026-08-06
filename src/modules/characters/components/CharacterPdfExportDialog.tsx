@@ -16,16 +16,16 @@ interface CharacterPdfExportDialogProps {
 
 const FORMATS: Array<{ format: CharacterPdfFormat; title: string; description: string; icon: ReactNode }> = [
   {
-    format: 'sheet',
-    title: 'Printable Character Sheet',
-    description: 'Compact hero and skills/equipment sheets, with supplemental or continuation pages when needed.',
-    icon: <PrintOutlinedIcon color="primary" />,
+    format: 'npc',
+    title: 'NPC Profile',
+    description: 'Compact PHB-style character template for quick Gamemaster reference.',
+    icon: <DescriptionOutlinedIcon color="primary" />,
   },
   {
-    format: 'report',
-    title: 'Detailed Character Report',
-    description: 'Expanded Workshop report with identity, calculations, skills, options, and equipment sections.',
-    icon: <DescriptionOutlinedIcon color="primary" />,
+    format: 'pc',
+    title: 'Player Character Sheet',
+    description: 'Full printable character sheet with skills, equipment, and any required continuation pages.',
+    icon: <PrintOutlinedIcon color="primary" />,
   },
 ];
 
@@ -57,7 +57,7 @@ export function CharacterPdfExportDialog({ open, onClose, onExport }: CharacterP
       {exporting && <LinearProgress />}
       <DialogContent sx={{ py: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Choose the document suited to how you will use the character.
+          Choose an NPC profile or a full player character sheet. You will choose the PDF location next.
         </Typography>
         <Stack spacing={0.75}>
           {FORMATS.map((entry) => (

@@ -79,7 +79,7 @@ import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 interface WarshipsModuleProps {
   themeMode: ThemeMode;
   onThemeModeChange: (mode: ThemeMode) => void;
-  /** Optional callback to return to the suite hub. Renders a "Back to Hub" button when provided. */
+  /** Optional callback to return to the suite hub. Renders a "Workshop Home" button when provided. */
   onReturnToHub?: () => void;
 }
 

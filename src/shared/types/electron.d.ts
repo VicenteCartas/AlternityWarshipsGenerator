@@ -145,6 +145,7 @@ export interface ElectronAPI {
   
   // PDF export operations
   getDocumentsPath: () => Promise<string>;
+  showPdfSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
   savePdfFile: (filePath: string, base64Data: string) => Promise<FileOperationResult>;
   openPath: (filePath: string) => Promise<FileOperationResult>;
   

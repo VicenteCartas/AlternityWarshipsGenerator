@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
 import { createPrintableCharacterSheetPdf } from './characterSheetPdfService';
+import { createNpcCharacterPdf } from './characterNpcPdfService';
 import { buildCharacterSheetModel, type CharacterSheetModel } from './characterSheetService';
 import type { CharacterState, CharacterValidationResult } from '../types/characterState';
 
@@ -214,30 +215,30 @@ export function createCharacterPdf(state: CharacterState, validation: CharacterV
     }
   }
 
-export type CharacterPdfFormat = 'sheet' | 'report';
+export type CharacterPdfFormat = 'npc' | 'pc';
 
-export function getCharacterPdfFileName(heroName: string, format: CharacterPdfFormat = 'sheet'): string {
+export function getCharacterPdfFileName(heroName: string, format: CharacterPdfFormat = 'pc'): string {
   const base = (heroName || 'New Character').replace(/[^a-zA-Z0-9_-]/g, '_') || 'New_Character';
-  return `${base}_${format === 'sheet' ? 'character_sheet' : 'character_report'}.pdf`;
+  return `${base}_${format === 'npc' ? 'npc_profile' : 'character_sheet'}.pdf`;
 }
 
 export async function exportCharacterPdf(
   state: CharacterState,
   validation: CharacterValidationResult,
-  format: CharacterPdfFormat = 'sheet',
-): Promise<string> {
-  const pdf = format === 'sheet'
-    ? createPrintableCharacterSheetPdf(state, validation)
-    : createCharacterPdf(state, validation);
+  format: CharacterPdfFormat = 'pc',
+  defaultDirectory?: string,
+): Promise<string | null> {
+  const pdf = format === 'npc'
+    ? createNpcCharacterPdf(state, validation)
+    : createPrintableCharacterSheetPdf(state, validation);
   const filename = getCharacterPdfFileName(state.identity.heroName, format);
   if (window.electronAPI) {
-    const directory = await window.electronAPI.getDocumentsPath();
-    const separator = directory.includes('\\') ? '\\' : '/';
-    const fullPath = `${directory}${separator}${filename}`;
+    const dialogResult = await window.electronAPI.showPdfSaveDialog(filename, defaultDirectory);
+    if (dialogResult.canceled || !dialogResult.filePath) return null;
     const base64Data = pdf.output('datauristring').split(',')[1];
-    const result = await window.electronAPI.savePdfFile(fullPath, base64Data);
+    const result = await window.electronAPI.savePdfFile(dialogResult.filePath, base64Data);
     if (!result.success) throw new Error(result.error || 'Failed to save character PDF.');
-    return fullPath;
+    return dialogResult.filePath;
   }
   pdf.save(filename);
   return filename;

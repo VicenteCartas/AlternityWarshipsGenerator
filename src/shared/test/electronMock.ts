@@ -86,6 +86,7 @@ export function createMockElectronAPI() {
 
     // PDF export
     getDocumentsPath: vi.fn().mockResolvedValue('/mock/docs'),
+    showPdfSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '/mock/docs/character.pdf' }),
     savePdfFile: vi.fn().mockResolvedValue({ success: true }),
     openPath: vi.fn().mockResolvedValue({ success: true }),
 

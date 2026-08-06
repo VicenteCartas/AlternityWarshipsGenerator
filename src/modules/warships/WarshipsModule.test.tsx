@@ -104,7 +104,7 @@ describe('App — Loading & Welcome', () => {
     renderApp();
     await waitForWelcome();
     // The welcome page includes a version badge
-    expect(screen.getByText(/warship generator/i)).toBeInTheDocument();
+    expect(screen.getByText(/warships generator/i)).toBeInTheDocument();
   });
 });
 
@@ -429,6 +429,7 @@ describe('App — Save Flow', () => {
       expect(mockElectron.api.saveFile).toHaveBeenCalled();
       expect(savedContent).toBeTruthy();
     });
+    await screen.findByText('Warship saved successfully');
 
     // Now simulate loading the same file
     mockElectron.api.showOpenDialog = vi.fn().mockResolvedValue({
@@ -444,10 +445,13 @@ describe('App — Save Flow', () => {
     await act(async () => {
       mockElectron.triggerMenuEvent('onReturnToStart');
     });
+    if (screen.queryByRole('heading', { name: 'Discard unsaved design changes?' })) {
+      await user.click(screen.getByRole('button', { name: 'Discard' }));
+    }
     await waitForWelcome();
 
     // Load the file
-    await user.click(screen.getByRole('button', { name: /load design/i }));
+    await user.click(screen.getByRole('button', { name: /open design/i }));
 
     // After loading, should be in builder mode with the correct name
     await waitFor(() => {

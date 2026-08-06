@@ -50,7 +50,7 @@ describe('CivilizationBuilderModule', () => {
     expect(screen.getByLabelText('Human Civilization Level')).toBeInTheDocument();
     expect(screen.getByLabelText('Alien Civilization Level')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Return to hub' }));
+    await user.click(screen.getByRole('button', { name: 'Workshop Home' }));
     expect(screen.getByRole('heading', { name: 'Discard unsaved civilization changes?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard unsaved civilization changes?' })).not.toBeInTheDocument());

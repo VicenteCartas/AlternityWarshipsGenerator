@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Stack } from '@mui/material';
 import WarshipsModule from '@warships/WarshipsModule';
 import BattlesModule from '@battles/BattlesModule';
@@ -33,6 +33,10 @@ function App({ themeMode, onThemeModeChange }: AppProps) {
   const [suiteMode, setSuiteMode] = useState<SuiteMode>('loading');
   const [aboutOpen, setAboutOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [suiteMode]);
 
   // Load all game data on mount, then transition to the hub.
   useEffect(() => {

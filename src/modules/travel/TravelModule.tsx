@@ -25,7 +25,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
@@ -35,6 +34,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
+import { WorkshopHomeBar } from '@shared/components';
 import type { ThemeMode } from '@app/theme';
 import {
   DISTANCE_UNITS,
@@ -249,14 +249,10 @@ export function TravelModule({
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <WorkshopHomeBar onReturnToHub={onReturnToHub} />
       <AppBar position="static" color="primary" enableColorOnDark>
         <Toolbar>
-          <Tooltip title="Return to Hub">
-            <IconButton color="inherit" onClick={onReturnToHub} aria-label="Return to hub">
-              <ArrowBackIcon />
-            </IconButton>
-          </Tooltip>
-          <RouteIcon sx={{ ml: 1, mr: 1.5 }} />
+          <RouteIcon sx={{ mr: 1.5 }} />
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {APP_NAME} - Travel Calculator
           </Typography>

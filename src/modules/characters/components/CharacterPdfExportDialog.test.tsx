@@ -6,8 +6,8 @@ import { CharacterPdfExportDialog } from './CharacterPdfExportDialog';
 
 describe('CharacterPdfExportDialog', () => {
   it.each([
-    ['Printable Character Sheet', 'sheet'],
-    ['Detailed Character Report', 'report'],
+    ['NPC Profile', 'npc'],
+    ['Player Character Sheet', 'pc'],
   ] as const)('exports %s using the %s format', async (buttonName, format) => {
     const user = userEvent.setup();
     const onExport = vi.fn().mockResolvedValue(undefined);
@@ -18,8 +18,8 @@ describe('CharacterPdfExportDialog', () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByRole('button', { name: 'Printable Character Sheet' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Detailed Character Report' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'NPC Profile' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Player Character Sheet' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: buttonName }));
     expect(onExport).toHaveBeenCalledWith(format);
     expect(onClose).toHaveBeenCalled();

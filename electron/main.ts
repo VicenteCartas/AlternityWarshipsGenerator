@@ -774,6 +774,18 @@ ipcMain.handle('get-documents-path', async () => {
   return app.getPath('documents');
 });
 
+ipcMain.handle('show-pdf-save-dialog', async (_event, defaultFileName: string, defaultDirectory?: string) => {
+  if (!mainWindow) return { canceled: true };
+  return dialog.showSaveDialog(mainWindow, {
+    title: 'Export PDF',
+    defaultPath: defaultDirectory ? path.join(defaultDirectory, defaultFileName) : defaultFileName,
+    filters: [
+      { name: 'PDF Files', extensions: ['pdf'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+});
+
 // Save PDF file to a specific path (base64 encoded data)
 ipcMain.handle('save-pdf-file', async (_event, filePath: string, base64Data: string) => {
   try {

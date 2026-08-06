@@ -1,9 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEmptyCharacter } from '../constants/characterDefaults';
 import { validateCharacter } from './characterValidationService';
-import { createCharacterPdf, getCharacterPdfFileName } from './characterPdfExportService';
+import { createCharacterPdf, exportCharacterPdf, getCharacterPdfFileName } from './characterPdfExportService';
 import { createPrintableCharacterSheetPdf } from './characterSheetPdfService';
+import { createNpcCharacterPdf } from './characterNpcPdfService';
 import { getAllEquipment } from './characterDataService';
+import { installMockElectronAPI } from '@shared/test/electronMock';
+
+afterEach(() => {
+  Reflect.deleteProperty(window, 'electronAPI');
+});
 
 describe('character PDF export', () => {
   it('creates a clean four-section character sheet and safe filename', () => {
@@ -24,7 +30,7 @@ describe('character PDF export', () => {
     expect(pdf.getNumberOfPages()).toBeGreaterThanOrEqual(4);
     expect(pdf.output('arraybuffer').byteLength).toBeGreaterThan(5000);
     expect(getCharacterPdfFileName('Jordan / Kade')).toBe('Jordan___Kade_character_sheet.pdf');
-    expect(getCharacterPdfFileName('Jordan / Kade', 'report')).toBe('Jordan___Kade_character_report.pdf');
+    expect(getCharacterPdfFileName('Jordan / Kade', 'npc')).toBe('Jordan___Kade_npc_profile.pdf');
   });
 
   it('creates a two-page printable sheet plus a supplemental page when needed', () => {
@@ -39,6 +45,56 @@ describe('character PDF export', () => {
     const supplemental = createPrintableCharacterSheetPdf(state, validation);
     expect(supplemental.getNumberOfPages()).toBe(3);
     expect(supplemental.output('arraybuffer').byteLength).toBeGreaterThan(8000);
+  });
+
+  it('creates a compact PHB-style NPC profile', () => {
+    const state = createEmptyCharacter();
+    state.identity.heroName = 'Jordan Kade';
+    state.identity.career = 'Scout';
+    state.professionId = 'free-agent';
+    state.skillPlan.nativeLanguage = 'English';
+    const pdf = createNpcCharacterPdf(state, validateCharacter(state));
+
+    expect(pdf.getNumberOfPages()).toBe(1);
+    expect(pdf.output('arraybuffer').byteLength).toBeGreaterThan(4000);
+    expect(pdf.output()).toContain('NPC PROFILE');
+    expect(pdf.output()).toContain('ACTION CHECK SCORE');
+  });
+
+  it('asks where to save a desktop export and writes the chosen path', async () => {
+    const electron = installMockElectronAPI();
+    electron.api.showPdfSaveDialog = vi.fn().mockResolvedValue({
+      canceled: false,
+      filePath: 'C:\\Exports\\Jordan_Kade_npc_profile.pdf',
+    });
+    const state = createEmptyCharacter();
+    state.identity.heroName = 'Jordan Kade';
+
+    const savedPath = await exportCharacterPdf(
+      state,
+      validateCharacter(state),
+      'npc',
+      'C:\\Characters',
+    );
+
+    expect(electron.api.showPdfSaveDialog).toHaveBeenCalledWith(
+      'Jordan_Kade_npc_profile.pdf',
+      'C:\\Characters',
+    );
+    expect(electron.api.savePdfFile).toHaveBeenCalledWith(
+      'C:\\Exports\\Jordan_Kade_npc_profile.pdf',
+      expect.any(String),
+    );
+    expect(savedPath).toBe('C:\\Exports\\Jordan_Kade_npc_profile.pdf');
+  });
+
+  it('does not write a PDF when Save As is canceled', async () => {
+    const electron = installMockElectronAPI();
+    electron.api.showPdfSaveDialog = vi.fn().mockResolvedValue({ canceled: true });
+    const state = createEmptyCharacter();
+
+    await expect(exportCharacterPdf(state, validateCharacter(state), 'pc')).resolves.toBeNull();
+    expect(electron.api.savePdfFile).not.toHaveBeenCalled();
   });
 
   it('adds continuation pages instead of dropping inventory beyond the main sheet capacity', () => {

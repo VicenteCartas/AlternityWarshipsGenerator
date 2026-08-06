@@ -64,7 +64,7 @@ describe('TravelModule', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Return to hub' }));
+    await user.click(screen.getByRole('button', { name: 'Workshop Home' }));
     expect(onReturnToHub).toHaveBeenCalledOnce();
   });
 });

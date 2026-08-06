@@ -143,6 +143,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // PDF export operations
   getDocumentsPath: () =>
     ipcRenderer.invoke('get-documents-path'),
+  showPdfSaveDialog: (defaultFileName: string, defaultDirectory?: string) =>
+    ipcRenderer.invoke('show-pdf-save-dialog', defaultFileName, defaultDirectory),
   savePdfFile: (filePath: string, base64Data: string) =>
     ipcRenderer.invoke('save-pdf-file', filePath, base64Data),
   openPath: (filePath: string) =>

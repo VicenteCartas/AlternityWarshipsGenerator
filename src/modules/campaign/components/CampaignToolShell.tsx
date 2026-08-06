@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 import {
   AppBar, Box, Container, IconButton, Toolbar, Tooltip, Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
+import { WorkshopHomeBar } from '@shared/components';
 import type { ThemeMode } from '@app/theme';
 
 interface CampaignToolShellProps {
@@ -43,14 +43,10 @@ export function CampaignToolShell({
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <WorkshopHomeBar onReturnToHub={onReturnToHub} />
       <AppBar position="static" color="primary" enableColorOnDark>
         <Toolbar>
-          <Tooltip title="Return to Hub">
-            <IconButton color="inherit" onClick={onReturnToHub} aria-label="Return to hub">
-              <ArrowBackIcon />
-            </IconButton>
-          </Tooltip>
-          <Box sx={{ ml: 1, mr: 1.5, display: 'grid', placeItems: 'center' }}>{icon}</Box>
+          <Box sx={{ mr: 1.5, display: 'grid', placeItems: 'center' }}>{icon}</Box>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>{APP_NAME} - {title}</Typography>
           <Tooltip title={`Theme: ${themeMode}`}>
             <IconButton color="inherit" onClick={cycleTheme} aria-label="Toggle theme">{themeIcon}</IconButton>
