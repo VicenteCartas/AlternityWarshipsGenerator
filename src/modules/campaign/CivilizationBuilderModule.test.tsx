@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CivilizationBuilderModule } from './CivilizationBuilderModule';
@@ -12,6 +12,7 @@ describe('CivilizationBuilderModule', () => {
     render(<CivilizationBuilderModule themeMode="dark" onThemeModeChange={vi.fn()} onReturnToHub={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Civilization Builder' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'New Civilization' }));
     expect(screen.getByRole('heading', { name: 'CL 4: Nation' })).toBeInTheDocument();
     await user.click(screen.getByLabelText('Progress Level'));
     await user.click(screen.getByRole('option', { name: 'PL 4' }));
@@ -50,6 +51,10 @@ describe('CivilizationBuilderModule', () => {
     expect(screen.getByLabelText('Human Civilization Level')).toBeInTheDocument();
     expect(screen.getByLabelText('Alien Civilization Level')).toBeInTheDocument();
 
+    await act(async () => { electron.triggerMenuEvent('onReturnToStart'); });
+    expect(screen.getByRole('heading', { name: 'Discard unsaved civilization changes?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard unsaved civilization changes?' })).not.toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Workshop Home' }));
     expect(screen.getByRole('heading', { name: 'Discard unsaved civilization changes?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));

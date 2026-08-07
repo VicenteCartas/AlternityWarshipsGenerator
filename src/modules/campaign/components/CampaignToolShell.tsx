@@ -12,7 +12,7 @@ import type { ThemeMode } from '@app/theme';
 
 interface CampaignToolShellProps {
   title: string;
-  mode: 'star-system' | 'civilization';
+  mode: 'sector-editor' | 'star-system-editor' | 'civilization-editor' | 'artifact-editor';
   icon: ReactNode;
   themeMode: ThemeMode;
   onThemeModeChange: (mode: ThemeMode) => void;

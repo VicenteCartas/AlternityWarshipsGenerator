@@ -34,6 +34,7 @@ import { CityTownEditor, InstallationEditor } from './components/CivilizationLoc
 import { useCivilizationSaveLoad } from './hooks/useCampaignSaveLoad';
 import { exportCivilizationPdf, exportLocationPdf } from './services/campaignPdfService';
 import { ConfirmDialog } from '@shared/components/ConfirmDialog';
+import { DocumentWelcome } from '@shared/components';
 
 interface CivilizationBuilderModuleProps {
   themeMode: ThemeMode;
@@ -42,7 +43,7 @@ interface CivilizationBuilderModuleProps {
 }
 
 type PendingCivilizationAction =
-  | { type: 'new' | 'open' | 'hub' }
+  | { type: 'new' | 'open' | 'welcome' | 'hub' }
   | { type: 'openPath'; filePath: string };
 
 type CivilizationTab = 'culture' | 'economy' | 'cities' | 'installations' | 'society';
@@ -52,6 +53,7 @@ const FIELD_SX = { '& .MuiInputBase-root': { alignItems: 'flex-start' } } as con
 const COMMODITIES_PER_PAGE = 10;
 
 export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps) {
+  const [mode, setMode] = useState<'welcome' | 'editor'>('welcome');
   const [design, setDesign] = useState<CivilizationDesign>(DEFAULT_CIVILIZATION_DESIGN);
   const [tab, setTab] = useState<CivilizationTab>('culture');
   const [copied, setCopied] = useState(false);
@@ -175,6 +177,7 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
       setCommoditySearch('');
       setCommodityPage(0);
       setHasUnsavedChanges(false);
+      setMode('editor');
     }
     if (result.severity !== 'info') showNotification(result.message, result.severity);
   };
@@ -185,6 +188,7 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
     setCommoditySearch('');
     setCommodityPage(0);
     setHasUnsavedChanges(false);
+    setMode('editor');
   };
   const handleOpenPath = async (filePath: string) => {
     const result = await saveLoad.openPath(filePath);
@@ -208,9 +212,13 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
     }
   };
   const runAction = (action: PendingCivilizationAction) => {
-    if (action.type === 'new') reset();
+    if (action.type === 'new') {
+      reset();
+      setMode('editor');
+    }
     else if (action.type === 'open') void handleOpen();
     else if (action.type === 'openPath') void handleOpenPath(action.filePath);
+    else if (action.type === 'welcome') setMode('welcome');
     else props.onReturnToHub();
   };
   const requestAction = (action: PendingCivilizationAction) => {
@@ -226,6 +234,7 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
     api.onSaveCampaignDocumentAs(() => { void handleSave(true); });
     api.onExportCampaignPdf(() => { void handleExportPdf(); });
     api.onOpenRecent((filePath) => requestAction({ type: 'openPath', filePath }));
+    api.onReturnToStart(() => requestAction({ type: 'welcome' }));
     api.onReturnToHub(() => requestAction({ type: 'hub' }));
     return () => {
       api.removeAllListeners('menu-new-campaign-document');
@@ -234,14 +243,58 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
       api.removeAllListeners('menu-save-campaign-document-as');
       api.removeAllListeners('menu-export-campaign-pdf');
       api.removeAllListeners('menu-open-recent');
+      api.removeAllListeners('menu-return-to-start');
       api.removeAllListeners('menu-return-to-hub');
     };
   });
 
+  useEffect(() => {
+    if (mode === 'welcome') window.electronAPI?.setBuilderMode('civilization-welcome');
+  }, [mode]);
+
+  const overlays = (
+    <>
+      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+      </Snackbar>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title="Discard unsaved civilization changes?"
+        message="This action replaces or closes the current civilization. Unsaved changes will be lost."
+        confirmLabel="Discard"
+        confirmColor="warning"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action) runAction(action);
+        }}
+      />
+    </>
+  );
+
+  if (mode === 'welcome') {
+    return (
+      <>
+        <DocumentWelcome
+          kind="civilization"
+          title="Civilization Builder"
+          description="Define Progress, Civilization, and Law Levels, culture, economy, and settlements"
+          icon={<AccountBalanceIcon sx={{ fontSize: 36 }} />}
+          onNew={() => requestAction({ type: 'new' })}
+          onOpen={() => requestAction({ type: 'open' })}
+          onOpenRecent={(filePath) => requestAction({ type: 'openPath', filePath })}
+          onReturnToHub={props.onReturnToHub}
+        />
+        {overlays}
+      </>
+    );
+  }
+
   return (
     <CampaignToolShell
       title="Civilization Builder"
-      mode="civilization"
+      mode="civilization-editor"
       icon={<AccountBalanceIcon />}
       {...props}
       onReturnToHub={() => requestAction({ type: 'hub' })}
@@ -474,22 +527,7 @@ export function CivilizationBuilderModule(props: CivilizationBuilderModuleProps)
           </Stack>
         </Box>
       </Stack>
-      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
-      </Snackbar>
-      <ConfirmDialog
-        open={pendingAction !== null}
-        title="Discard unsaved civilization changes?"
-        message="This action replaces or closes the current civilization. Unsaved changes will be lost."
-        confirmLabel="Discard"
-        confirmColor="warning"
-        onCancel={() => setPendingAction(null)}
-        onConfirm={() => {
-          const action = pendingAction;
-          setPendingAction(null);
-          if (action) runAction(action);
-        }}
-      />
+      {overlays}
     </CampaignToolShell>
   );
 }

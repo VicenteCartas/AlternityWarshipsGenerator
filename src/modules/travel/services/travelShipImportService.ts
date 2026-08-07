@@ -7,38 +7,16 @@ import {
   type AccelerationConversionMethod,
   type WarshipsScaleId,
 } from './travelCalculationService';
-
-export interface ImportedEngineProfile {
-  engineTypeId: string;
-  name: string;
-  scaleId: WarshipsScaleId;
-  engineHullPoints: number;
-  accelerationRating: number;
-  accelerationMps2: number;
-  requiresFuel: boolean;
-  fuelOptional: boolean;
-  fuelEfficiency: number;
-  fuelTankHullPoints: number;
-  fuelEnduranceDays: number | null;
-}
-
-export interface ImportedTravelShip {
-  name: string;
-  hullName: string;
-  progressLevel: number;
-  pl6AccelerationRating: number;
-  pl7AccelerationRating: number;
-  accelerationMps2: number;
-  engines: ImportedEngineProfile[];
-  hasAccelerationCompensation: boolean;
-  warnings: string[];
-}
-
-export interface EngineFuelAssessment extends ImportedEngineProfile {
-  requiredFuelHullPoints: number;
-  remainingFuelHullPoints: number;
-  hasEnoughFuel: boolean;
-}
+import type {
+  EngineFuelAssessment,
+  ImportedEngineProfile,
+  ImportedTravelShip,
+} from '../types/travelDocument';
+export type {
+  EngineFuelAssessment,
+  ImportedEngineProfile,
+  ImportedTravelShip,
+} from '../types/travelDocument';
 
 interface EngineAccumulator {
   type: EngineType;

@@ -5,6 +5,8 @@ import {
   SYSTEM_FILE_EXTENSION,
   SYSTEM_SAVE_FILE_VERSION,
   type CivilizationSaveFile,
+  type ArtifactSaveFile,
+  type SectorSaveFile,
   type StarSystemDocument,
   type StarSystemSaveFile,
 } from '../types/campaignSaveFile';
@@ -99,7 +101,7 @@ export function serializeCivilization(civilization: CivilizationDesign, createdA
   };
 }
 
-export function campaignSaveFileToJson(saveFile: StarSystemSaveFile | CivilizationSaveFile): string {
+export function campaignSaveFileToJson(saveFile: StarSystemSaveFile | CivilizationSaveFile | ArtifactSaveFile | SectorSaveFile): string {
   return JSON.stringify(saveFile, null, 2);
 }
 

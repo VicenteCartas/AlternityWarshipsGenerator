@@ -125,6 +125,10 @@ export interface ElectronAPI {
   onSaveCharacter: (callback: () => void) => void;
   onSaveCharacterAs: (callback: () => void) => void;
   onExportCharacterPdf: (callback: () => void) => void;
+  onNewTravelDocument: (callback: () => void) => void;
+  onOpenTravelDocument: (callback: () => void) => void;
+  onSaveTravelDocument: (callback: () => void) => void;
+  onSaveTravelDocumentAs: (callback: () => void) => void;
   onImportTravelShip: (callback: () => void) => void;
   onNewCampaignDocument: (callback: () => void) => void;
   onOpenCampaignDocument: (callback: () => void) => void;
@@ -185,11 +189,15 @@ export interface ElectronAPI {
 
   // Campaign setting save/load file dialogs
   showCampaignSaveDialog: (
-    kind: 'system' | 'civilization',
+    kind: 'system' | 'civilization' | 'artifact' | 'sector',
     defaultFileName: string,
     defaultDirectory?: string,
   ) => Promise<SaveDialogResult>;
-  showCampaignOpenDialog: (kind: 'system' | 'civilization') => Promise<OpenDialogResult>;
+  showCampaignOpenDialog: (kind: 'system' | 'civilization' | 'artifact' | 'sector') => Promise<OpenDialogResult>;
+
+  // Travel save/load file dialogs
+  showTravelSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
+  showTravelOpenDialog: () => Promise<OpenDialogResult>;
 
   // Battle library & auto-save
   scanBattleFiles: (directoryPath: string) => Promise<ScanBattleFilesResult>;

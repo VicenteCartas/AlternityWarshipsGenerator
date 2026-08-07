@@ -7,7 +7,9 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PublicIcon from '@mui/icons-material/Public';
+import HubIcon from '@mui/icons-material/Hub';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -25,7 +27,9 @@ interface SuiteHubProps {
   onOpenTravel: () => void;
   onOpenCharacters: () => void;
   onOpenStarSystems: () => void;
+  onOpenSectors: () => void;
   onOpenCivilizations: () => void;
+  onOpenArtifacts: () => void;
   onShowAbout: () => void;
 }
 
@@ -86,7 +90,9 @@ export function SuiteHub({
   onOpenTravel,
   onOpenCharacters,
   onOpenStarSystems,
+  onOpenSectors,
   onOpenCivilizations,
+  onOpenArtifacts,
   onShowAbout,
 }: SuiteHubProps) {
   const cycleTheme = () => {
@@ -147,6 +153,12 @@ export function SuiteHub({
             <Typography variant="overline" color="text.secondary">Build a setting</Typography>
             <Paper variant="outlined" sx={{ mt: 0.5, overflow: 'hidden' }}>
               <ToolRow
+                title="Star Sector Generator"
+                description="Create 3D campaign maps with systems, routes, factions, borders, and highlighted sites."
+                icon={<HubIcon />}
+                onClick={onOpenSectors}
+              />
+              <ToolRow
                 title="Star System Generator"
                 description="Generate stars, planets, environments, moons, and life with GMG tables G58-G68."
                 icon={<PublicIcon />}
@@ -157,6 +169,12 @@ export function SuiteHub({
                 description="Define Progress, Civilization, and Law Levels, culture, economy, and settlements."
                 icon={<AccountBalanceIcon />}
                 onClick={onOpenCivilizations}
+              />
+              <ToolRow
+                title="Alien Artifact Designer"
+                description="Design or generate alien artifacts with GMG tables G51-G56."
+                icon={<AutoAwesomeIcon />}
+                onClick={onOpenArtifacts}
               />
             </Paper>
           </Box>

@@ -22,6 +22,7 @@ import { CampaignToolShell } from './components/CampaignToolShell';
 import { useStarSystemSaveLoad } from './hooks/useCampaignSaveLoad';
 import { exportStarSystemPdf } from './services/campaignPdfService';
 import { ConfirmDialog } from '@shared/components/ConfirmDialog';
+import { DocumentWelcome } from '@shared/components';
 import {
   DEFAULT_SCIENCE_SETTINGS,
   generateScienceStarSystem,
@@ -35,7 +36,7 @@ interface StarSystemGeneratorModuleProps {
 }
 
 type PendingSystemAction =
-  | { type: 'generate' | 'new' | 'open' | 'hub' }
+  | { type: 'generate' | 'new' | 'open' | 'welcome' | 'hub' }
   | { type: 'openPath'; filePath: string };
 
 function planetColor(planet: GeneratedPlanet): string {
@@ -237,6 +238,7 @@ function PlanetDetails({ planet }: { planet: GeneratedPlanet | null }) {
 }
 
 export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps) {
+  const [mode, setMode] = useState<'welcome' | 'editor'>('welcome');
   const [starCount, setStarCount] = useState<number | 'random'>('random');
   const [generationModel, setGenerationModel] = useState<StarSystemGenerationModel>('gmg');
   const [scienceSeed, setScienceSeed] = useState('Horizon');
@@ -283,6 +285,7 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
       setScienceSeed(result.value.system.seed || 'Horizon');
       setScienceSettings(result.value.system.scienceSettings || DEFAULT_SCIENCE_SETTINGS);
       setHasUnsavedChanges(false);
+      setMode('editor');
     }
     if (result.severity !== 'info') showNotification(result.message, result.severity);
   };
@@ -297,6 +300,7 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
       setScienceSeed(result.value.system.seed || 'Horizon');
       setScienceSettings(result.value.system.scienceSettings || DEFAULT_SCIENCE_SETTINGS);
       setHasUnsavedChanges(false);
+      setMode('editor');
     }
     showNotification(result.message, result.severity);
   };
@@ -323,7 +327,9 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
       setHasUnsavedChanges(false);
     } else if (action.type === 'open') void handleOpen();
     else if (action.type === 'openPath') void handleOpenPath(action.filePath);
+    else if (action.type === 'welcome') setMode('welcome');
     else props.onReturnToHub();
+    if (action.type === 'new') setMode('editor');
   };
   const requestAction = (action: PendingSystemAction) => {
     if (hasUnsavedChanges) setPendingAction(action);
@@ -338,6 +344,7 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
     api.onSaveCampaignDocumentAs(() => { void handleSave(true); });
     api.onExportCampaignPdf(() => { void handleExportPdf(); });
     api.onOpenRecent((filePath) => requestAction({ type: 'openPath', filePath }));
+    api.onReturnToStart(() => requestAction({ type: 'welcome' }));
     api.onReturnToHub(() => requestAction({ type: 'hub' }));
     return () => {
       api.removeAllListeners('menu-new-campaign-document');
@@ -346,14 +353,58 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
       api.removeAllListeners('menu-save-campaign-document-as');
       api.removeAllListeners('menu-export-campaign-pdf');
       api.removeAllListeners('menu-open-recent');
+      api.removeAllListeners('menu-return-to-start');
       api.removeAllListeners('menu-return-to-hub');
     };
   });
 
+  useEffect(() => {
+    if (mode === 'welcome') window.electronAPI?.setBuilderMode('star-system-welcome');
+  }, [mode]);
+
+  const overlays = (
+    <>
+      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+      </Snackbar>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title="Discard unsaved star system changes?"
+        message="This action replaces or closes the current star system. Unsaved changes will be lost."
+        confirmLabel="Discard"
+        confirmColor="warning"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action) runAction(action);
+        }}
+      />
+    </>
+  );
+
+  if (mode === 'welcome') {
+    return (
+      <>
+        <DocumentWelcome
+          kind="star-system"
+          title="Star System Generator"
+          description="Generate stellar systems with GMG tables or a seeded science-informed model"
+          icon={<PublicIcon sx={{ fontSize: 36 }} />}
+          onNew={() => requestAction({ type: 'new' })}
+          onOpen={() => requestAction({ type: 'open' })}
+          onOpenRecent={(filePath) => requestAction({ type: 'openPath', filePath })}
+          onReturnToHub={props.onReturnToHub}
+        />
+        {overlays}
+      </>
+    );
+  }
+
   return (
     <CampaignToolShell
       title="Star System Generator"
-      mode="star-system"
+      mode="star-system-editor"
       icon={<PublicIcon />}
       {...props}
       onReturnToHub={() => requestAction({ type: 'hub' })}
@@ -554,22 +605,7 @@ export function StarSystemGeneratorModule(props: StarSystemGeneratorModuleProps)
           </Stack>
         </Box>
       </Stack>
-      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
-      </Snackbar>
-      <ConfirmDialog
-        open={pendingAction !== null}
-        title="Discard unsaved star system changes?"
-        message="This action replaces or closes the current star system. Unsaved changes will be lost."
-        confirmLabel="Discard"
-        confirmColor="warning"
-        onCancel={() => setPendingAction(null)}
-        onConfirm={() => {
-          const action = pendingAction;
-          setPendingAction(null);
-          if (action) runAction(action);
-        }}
-      />
+      {overlays}
     </CampaignToolShell>
   );
 }

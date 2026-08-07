@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { StarSystemGeneratorModule } from './StarSystemGeneratorModule';
@@ -13,6 +13,7 @@ describe('StarSystemGeneratorModule', () => {
     render(<StarSystemGeneratorModule themeMode="dark" onThemeModeChange={vi.fn()} onReturnToHub={onReturnToHub} />);
 
     expect(screen.getByRole('heading', { name: 'Star System Generator' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'New Star System' }));
     await user.click(screen.getByLabelText('Stars'));
     await user.click(screen.getByRole('option', { name: '1' }));
     await user.click(screen.getByRole('button', { name: 'Generate' }));
@@ -39,6 +40,8 @@ describe('StarSystemGeneratorModule', () => {
 
     await user.click(screen.getByRole('button', { name: 'Export PDF' }));
     expect(electron.api.savePdfFile).toHaveBeenCalledOnce();
+    await act(async () => { electron.triggerMenuEvent('onReturnToStart'); });
+    expect(screen.getByRole('button', { name: 'New Star System' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Workshop Home' }));
     expect(onReturnToHub).toHaveBeenCalledOnce();
   });

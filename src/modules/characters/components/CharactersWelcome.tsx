@@ -1,9 +1,8 @@
-import AddIcon from '@mui/icons-material/Add';
 import CollectionsBookmarkOutlinedIcon from '@mui/icons-material/CollectionsBookmarkOutlined';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import {
+  DocumentWelcomeActions,
   ModuleWelcomeAction,
   ModuleWelcomeSection,
   ModuleWelcomeShell,
@@ -12,12 +11,14 @@ import {
 interface CharactersWelcomeProps {
   onNewCharacter: () => void;
   onOpenCharacter: () => void;
+  onOpenRecent: (filePath: string) => void;
   onReturnToHub: () => void;
 }
 
 export function CharactersWelcome({
   onNewCharacter,
   onOpenCharacter,
+  onOpenRecent,
   onReturnToHub,
 }: CharactersWelcomeProps) {
   return (
@@ -27,19 +28,12 @@ export function CharactersWelcome({
       icon={<PersonAddAlt1Icon fontSize="large" />}
       onReturnToHub={onReturnToHub}
     >
-      <ModuleWelcomeSection label="Start">
-        <ModuleWelcomeAction
-          label="New Character"
-          icon={<AddIcon />}
-          onClick={onNewCharacter}
-          primary
-        />
-        <ModuleWelcomeAction
-          label="Open Character"
-          icon={<FolderOpenIcon color="primary" />}
-          onClick={onOpenCharacter}
-        />
-      </ModuleWelcomeSection>
+      <DocumentWelcomeActions
+        kind="character"
+        onNew={onNewCharacter}
+        onOpen={onOpenCharacter}
+        onOpenRecent={onOpenRecent}
+      />
 
       <ModuleWelcomeSection label="Planned">
         <ModuleWelcomeAction

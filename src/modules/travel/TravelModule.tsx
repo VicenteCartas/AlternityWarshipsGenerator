@@ -11,6 +11,7 @@ import {
   IconButton,
   MenuItem,
   Paper,
+  Snackbar,
   Stack,
   Switch,
   Table,
@@ -29,12 +30,16 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import SaveIcon from '@mui/icons-material/Save';
+import SaveAsIcon from '@mui/icons-material/SaveAs';
 import RouteIcon from '@mui/icons-material/Route';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
-import { WorkshopHomeBar } from '@shared/components';
+import { ConfirmDialog, DocumentWelcome, WorkshopHomeBar } from '@shared/components';
+import { useNotification } from '@shared/hooks/useNotification';
 import type { ThemeMode } from '@app/theme';
 import {
   DISTANCE_UNITS,
@@ -56,8 +61,15 @@ import {
   assessEngineFuel,
   getImportedShipAccelerationMps2,
   loadTravelShipProfile,
-  type ImportedTravelShip,
 } from './services/travelShipImportService';
+import { useTravelSaveLoad } from './hooks/useTravelSaveLoad';
+import {
+  DEFAULT_TRAVEL_DOCUMENT,
+  type AccelerationSource,
+  type PhysicalAccelerationUnit,
+  type SpeedCapUnit,
+  type TravelDocument,
+} from './types/travelDocument';
 import {
   formatAcceleration,
   formatDistance,
@@ -73,9 +85,9 @@ interface TravelModuleProps {
   onReturnToHub: () => void;
 }
 
-type AccelerationSource = 'rating' | 'physical' | 'ship';
-type PhysicalAccelerationUnit = 'g' | 'mps2';
-type SpeedCapUnit = 'percent-c' | 'kmps' | 'rating';
+type PendingTravelAction =
+  | { type: 'new' | 'open' | 'welcome' | 'hub' }
+  | { type: 'openPath'; filePath: string };
 
 function positiveNumber(raw: string): number {
   const value = Number(raw);
@@ -87,26 +99,28 @@ export function TravelModule({
   onThemeModeChange,
   onReturnToHub,
 }: TravelModuleProps) {
-  const [distance, setDistance] = useState(25);
-  const [distanceUnit, setDistanceUnit] = useState<DistanceUnitId>('AU');
-  const [scaleId, setScaleId] = useState<WarshipsScaleId>('pl7plus');
-  const [accelerationSource, setAccelerationSource] = useState<AccelerationSource>('rating');
-  const [accelerationConversionMethod, setAccelerationConversionMethod] = useState<AccelerationConversionMethod>('scale-derived');
-  const [accelerationRating, setAccelerationRating] = useState(1);
-  const [physicalAcceleration, setPhysicalAcceleration] = useState(1);
-  const [physicalAccelerationUnit, setPhysicalAccelerationUnit] = useState<PhysicalAccelerationUnit>('g');
-  const [profile, setProfile] = useState<TravelProfile>('rest-to-rest');
-  const [speedCapEnabled, setSpeedCapEnabled] = useState(false);
-  const [speedCap, setSpeedCap] = useState(1);
-  const [speedCapUnit, setSpeedCapUnit] = useState<SpeedCapUnit>('percent-c');
-  const [accelerationCompensated, setAccelerationCompensated] = useState(true);
-  const [importedShip, setImportedShip] = useState<ImportedTravelShip | null>(null);
+  const [mode, setMode] = useState<'welcome' | 'editor'>('welcome');
+  const [document, setDocument] = useState<TravelDocument>(DEFAULT_TRAVEL_DOCUMENT);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingTravelAction | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const saveLoad = useTravelSaveLoad();
+  const { snackbar, showNotification, handleCloseSnackbar } = useNotification();
+  const {
+    name, distance, distanceUnit, scaleId, accelerationSource, accelerationConversionMethod,
+    accelerationRating, physicalAcceleration, physicalAccelerationUnit, profile,
+    speedCapEnabled, speedCap, speedCapUnit, accelerationCompensated, importedShip,
+  } = document;
+
+  const updateDocument = (patch: Partial<TravelDocument>) => {
+    setDocument((current) => ({ ...current, ...patch }));
+    setHasUnsavedChanges(true);
+  };
 
   useEffect(() => {
-    window.electronAPI?.setBuilderMode('travel');
-  }, []);
+    window.electronAPI?.setBuilderMode(mode === 'welcome' ? 'travel-welcome' : 'travel-editor');
+  }, [mode]);
 
   const scale = getWarshipsScale(scaleId);
   const distanceMeters = distanceToMeters(distance, distanceUnit, scaleId);
@@ -154,8 +168,12 @@ export function TravelModule({
   }, [themeMode, onThemeModeChange]);
 
   const handleScaleChange = (nextScale: WarshipsScaleId) => {
-    setScaleId(nextScale);
-    if (accelerationSource !== 'ship') setAccelerationCompensated(nextScale === 'pl7plus');
+    updateDocument({
+      scaleId: nextScale,
+      ...(accelerationSource !== 'ship'
+        ? { accelerationCompensated: nextScale === 'pl7plus' }
+        : {}),
+    });
   };
 
   const handleImport = async () => {
@@ -177,22 +195,86 @@ export function TravelModule({
       return;
     }
 
-    setImportedShip(ship);
-    setAccelerationSource('ship');
-    setAccelerationCompensated(ship.hasAccelerationCompensation);
-    if (ship.pl7AccelerationRating > 0) setScaleId('pl7plus');
-    else setScaleId('pl6');
+    updateDocument({
+      importedShip: ship,
+      accelerationSource: 'ship',
+      accelerationCompensated: ship.hasAccelerationCompensation,
+      scaleId: ship.pl7AccelerationRating > 0 ? 'pl7plus' : 'pl6',
+    });
   };
 
-  const handleImportMenu = useEffectEvent(() => {
-    void handleImport();
+  const adoptDocument = (next: TravelDocument) => {
+    setDocument(next);
+    setImportError(null);
+    setHasUnsavedChanges(false);
+    setMode('editor');
+  };
+
+  const handleSave = async (saveAs = false) => {
+    const result = saveAs ? await saveLoad.saveAs(document) : await saveLoad.save(document);
+    if (result.ok) setHasUnsavedChanges(false);
+    if (result.severity !== 'info') showNotification(result.message, result.severity);
+  };
+
+  const handleOpen = async () => {
+    const result = await saveLoad.open();
+    if (result.ok && result.document) adoptDocument(result.document);
+    if (result.severity !== 'info') showNotification(result.message, result.severity);
+  };
+
+  const handleOpenPath = async (filePath: string) => {
+    const result = await saveLoad.openPath(filePath);
+    if (result.ok && result.document) adoptDocument(result.document);
+    if (result.severity !== 'info') showNotification(result.message, result.severity);
+  };
+
+  const runAction = (action: PendingTravelAction) => {
+    if (action.type === 'new') {
+      saveLoad.clearFile();
+      adoptDocument(DEFAULT_TRAVEL_DOCUMENT);
+    } else if (action.type === 'open') void handleOpen();
+    else if (action.type === 'openPath') void handleOpenPath(action.filePath);
+    else if (action.type === 'welcome') setMode('welcome');
+    else onReturnToHub();
+  };
+
+  const requestAction = (action: PendingTravelAction) => {
+    if (mode === 'editor' && hasUnsavedChanges) setPendingAction(action);
+    else runAction(action);
+  };
+
+  const handleMenuAction = useEffectEvent((action: 'new' | 'open' | 'save' | 'saveAs' | 'import' | 'welcome' | 'hub') => {
+    if (action === 'save') void handleSave(false);
+    else if (action === 'saveAs') void handleSave(true);
+    else if (action === 'import') void handleImport();
+    else requestAction({ type: action });
+  });
+
+  const handleMenuRecent = useEffectEvent((filePath: string) => {
+    requestAction({ type: 'openPath', filePath });
   });
 
   useEffect(() => {
     const api = window.electronAPI;
-    if (!api?.onImportTravelShip) return;
-    api.onImportTravelShip(() => handleImportMenu());
-    return () => api.removeAllListeners('menu-import-travel-ship');
+    if (!api?.onNewTravelDocument) return;
+    api.onNewTravelDocument(() => handleMenuAction('new'));
+    api.onOpenTravelDocument(() => handleMenuAction('open'));
+    api.onSaveTravelDocument(() => handleMenuAction('save'));
+    api.onSaveTravelDocumentAs(() => handleMenuAction('saveAs'));
+    api.onImportTravelShip(() => handleMenuAction('import'));
+    api.onOpenRecent((filePath) => handleMenuRecent(filePath));
+    api.onReturnToStart(() => handleMenuAction('welcome'));
+    api.onReturnToHub(() => handleMenuAction('hub'));
+    return () => {
+      api.removeAllListeners('menu-new-travel-document');
+      api.removeAllListeners('menu-open-travel-document');
+      api.removeAllListeners('menu-save-travel-document');
+      api.removeAllListeners('menu-save-travel-document-as');
+      api.removeAllListeners('menu-import-travel-ship');
+      api.removeAllListeners('menu-open-recent');
+      api.removeAllListeners('menu-return-to-start');
+      api.removeAllListeners('menu-return-to-hub');
+    };
   }, []);
 
   const themeIcon = themeMode === 'dark'
@@ -247,9 +329,49 @@ export function TravelModule({
     whiteSpace: { xl: 'nowrap' },
   } as const;
 
+  const overlays = (
+    <>
+      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title="Discard unsaved trip changes?"
+        message="This action replaces or closes the current trip. Unsaved changes will be lost."
+        confirmLabel="Discard"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action) runAction(action);
+        }}
+      />
+    </>
+  );
+
+  if (mode === 'welcome') {
+    return (
+      <>
+        <DocumentWelcome
+          kind="travel"
+          title="Travel Calculator"
+          description="Plan sublight trips and assess imported ship performance"
+          icon={<RouteIcon sx={{ fontSize: 36 }} />}
+          onNew={() => requestAction({ type: 'new' })}
+          onOpen={() => requestAction({ type: 'open' })}
+          onOpenRecent={(filePath) => requestAction({ type: 'openPath', filePath })}
+          onReturnToHub={onReturnToHub}
+        />
+        {overlays}
+      </>
+    );
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <WorkshopHomeBar onReturnToHub={onReturnToHub} />
+      <WorkshopHomeBar onReturnToHub={() => requestAction({ type: 'hub' })} />
       <AppBar position="static" color="primary" enableColorOnDark>
         <Toolbar>
           <RouteIcon sx={{ mr: 1.5 }} />
@@ -265,6 +387,33 @@ export function TravelModule({
       </AppBar>
 
       <Container maxWidth={false} sx={{ flexGrow: 1, py: 3 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1}
+          alignItems={{ md: 'center' }}
+          sx={{ mb: 2 }}
+        >
+          <TextField
+            label="Trip name"
+            size="small"
+            value={name}
+            onChange={(event) => updateDocument({ name: event.target.value })}
+            sx={{ minWidth: 260 }}
+          />
+          <Button startIcon={<FolderOpenIcon />} onClick={() => requestAction({ type: 'open' })}>Open</Button>
+          <Button startIcon={<SaveIcon />} onClick={() => { void handleSave(false); }}>Save</Button>
+          <Tooltip title="Save As">
+            <IconButton aria-label="Save trip as" onClick={() => { void handleSave(true); }}>
+              <SaveAsIcon />
+            </IconButton>
+          </Tooltip>
+          <Box sx={{ flexGrow: 1 }} />
+          {saveLoad.currentFilePath && (
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 420 }}>
+              {saveLoad.currentFilePath}
+            </Typography>
+          )}
+        </Stack>
         <Box
           sx={{
             display: 'grid',
@@ -283,7 +432,7 @@ export function TravelModule({
                     label="Distance"
                     type="number"
                     value={distance}
-                    onChange={(event) => setDistance(positiveNumber(event.target.value))}
+                    onChange={(event) => updateDocument({ distance: positiveNumber(event.target.value) })}
                     slotProps={{ htmlInput: { min: 0, step: 'any' } }}
                     fullWidth
                   />
@@ -291,7 +440,7 @@ export function TravelModule({
                     select
                     label="Unit"
                     value={distanceUnit}
-                    onChange={(event) => setDistanceUnit(event.target.value as DistanceUnitId)}
+                    onChange={(event) => updateDocument({ distanceUnit: event.target.value as DistanceUnitId })}
                     sx={{ minWidth: 190 }}
                   >
                     {distanceOptions.map((unit) => (
@@ -308,7 +457,7 @@ export function TravelModule({
                   exclusive
                   fullWidth
                   value={accelerationSource}
-                  onChange={(_event, value: AccelerationSource | null) => value && setAccelerationSource(value)}
+                  onChange={(_event, value: AccelerationSource | null) => value && updateDocument({ accelerationSource: value })}
                   aria-label="Acceleration source"
                 >
                   <ToggleButton value="rating">Warships</ToggleButton>
@@ -322,9 +471,9 @@ export function TravelModule({
                       select
                       label="Acceleration calculation"
                       value={accelerationConversionMethod}
-                      onChange={(event) => setAccelerationConversionMethod(
-                        event.target.value as AccelerationConversionMethod,
-                      )}
+                      onChange={(event) => updateDocument({
+                        accelerationConversionMethod: event.target.value as AccelerationConversionMethod,
+                      })}
                       fullWidth
                     >
                       <MenuItem value="scale-derived">Scale-derived</MenuItem>
@@ -348,7 +497,7 @@ export function TravelModule({
                       label="Acceleration rating"
                       type="number"
                       value={accelerationRating}
-                      onChange={(event) => setAccelerationRating(positiveNumber(event.target.value))}
+                      onChange={(event) => updateDocument({ accelerationRating: positiveNumber(event.target.value) })}
                       slotProps={{ htmlInput: { min: 0, step: 'any' } }}
                       fullWidth
                     />
@@ -360,7 +509,7 @@ export function TravelModule({
                         label="Acceleration"
                         type="number"
                         value={physicalAcceleration}
-                        onChange={(event) => setPhysicalAcceleration(positiveNumber(event.target.value))}
+                        onChange={(event) => updateDocument({ physicalAcceleration: positiveNumber(event.target.value) })}
                         slotProps={{ htmlInput: { min: 0, step: 'any' } }}
                         fullWidth
                       />
@@ -368,7 +517,7 @@ export function TravelModule({
                         select
                         label="Unit"
                         value={physicalAccelerationUnit}
-                        onChange={(event) => setPhysicalAccelerationUnit(event.target.value as PhysicalAccelerationUnit)}
+                        onChange={(event) => updateDocument({ physicalAccelerationUnit: event.target.value as PhysicalAccelerationUnit })}
                         sx={{ minWidth: 130 }}
                       >
                         <MenuItem value="g">g</MenuItem>
@@ -415,7 +564,7 @@ export function TravelModule({
                   exclusive
                   fullWidth
                   value={profile}
-                  onChange={(_event, value: TravelProfile | null) => value && setProfile(value)}
+                  onChange={(_event, value: TravelProfile | null) => value && updateDocument({ profile: value })}
                   aria-label="Flight profile"
                 >
                   <ToggleButton value="rest-to-rest">Arrive at rest</ToggleButton>
@@ -427,7 +576,7 @@ export function TravelModule({
                     control={(
                       <Switch
                         checked={speedCapEnabled}
-                        onChange={(event) => setSpeedCapEnabled(event.target.checked)}
+                        onChange={(event) => updateDocument({ speedCapEnabled: event.target.checked })}
                       />
                     )}
                     label="Cruise speed limit"
@@ -438,7 +587,7 @@ export function TravelModule({
                         label="Maximum speed"
                         type="number"
                         value={speedCap}
-                        onChange={(event) => setSpeedCap(positiveNumber(event.target.value))}
+                        onChange={(event) => updateDocument({ speedCap: positiveNumber(event.target.value) })}
                         slotProps={{ htmlInput: { min: 0, step: 'any' } }}
                         fullWidth
                       />
@@ -446,7 +595,7 @@ export function TravelModule({
                         select
                         label="Unit"
                         value={speedCapUnit}
-                        onChange={(event) => setSpeedCapUnit(event.target.value as SpeedCapUnit)}
+                        onChange={(event) => updateDocument({ speedCapUnit: event.target.value as SpeedCapUnit })}
                         sx={{ minWidth: 170 }}
                       >
                         <MenuItem value="percent-c">% of light</MenuItem>
@@ -459,7 +608,7 @@ export function TravelModule({
                     control={(
                       <Switch
                         checked={accelerationCompensated}
-                        onChange={(event) => setAccelerationCompensated(event.target.checked)}
+                        onChange={(event) => updateDocument({ accelerationCompensated: event.target.checked })}
                       />
                     )}
                     label="Acceleration compensation"
@@ -674,6 +823,7 @@ export function TravelModule({
       <Box component="footer" sx={{ py: 1, textAlign: 'center', color: 'text.secondary' }}>
         <Typography variant="caption">{APP_NAME} v{APP_VERSION}</Typography>
       </Box>
+      {overlays}
     </Box>
   );
 }

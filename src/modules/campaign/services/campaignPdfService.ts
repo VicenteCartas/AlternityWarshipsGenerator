@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
 import type { StarSystemDocument } from '../types/campaignSaveFile';
 import type { CityTownLocation, CivilizationDesign, InstallationLocation } from '../types/worldbuilding';
+import type { ArtifactDesign } from '../types/artifact';
+import type { SectorDocument } from '../types/sector';
 import {
   INSTALLATION_FACILITIES,
   TRADE_COMMODITIES,
@@ -10,6 +12,13 @@ import {
   validateCivilizationDesign,
 } from './civilizationDesignService';
 import { formatGraphCode, GRAPH_LABELS } from './gmgScienceTranslationService';
+import {
+  getArtifactDrawback,
+  getArtifactPower,
+  validateArtifact,
+} from './artifactDesignService';
+import { ARTIFACT_FORMS, ARTIFACT_PURPOSES } from '../data/artifactCatalogue';
+import { SECTOR_SCALES } from './sectorGenerationService';
 
 interface PdfContext {
   pdf: jsPDF;
@@ -343,6 +352,182 @@ export function createLocationPdf(
   return ctx.pdf;
 }
 
+export function createArtifactPdf(artifact: ArtifactDesign): jsPDF {
+  const ctx = createContext();
+  const form = ARTIFACT_FORMS.find((entry) => entry.id === artifact.formCategory);
+  const subtype = form?.subtypes.find((entry) => entry.id === artifact.formSubtype);
+  const primary = ARTIFACT_PURPOSES.find((entry) => entry.id === artifact.primaryPurpose);
+  const secondary = ARTIFACT_PURPOSES.find((entry) => entry.id === artifact.secondaryPurpose);
+  const validation = validateArtifact(artifact);
+
+  title(ctx, artifact.name || 'Unnamed Artifact', 'Alien Artifact Dossier - Gamemaster Guide pp. 164-175');
+  heading(ctx, 'Design Overview');
+  labeled(ctx, 'Acquisition', artifact.acquisition === 'story'
+    ? 'Story discovery'
+    : `${artifact.acquisition === 'perk' ? 'Alien Artifact perk' : 'Alien Artifact flaw'}; balance roll ${artifact.balanceRoll ?? '-'}`);
+  labeled(ctx, 'Form', `${form?.name ?? artifact.formCategory}${subtype ? ` - ${subtype.name}` : ''}`);
+  labeled(ctx, 'Primary purpose', primary?.name ?? artifact.primaryPurpose);
+  labeled(ctx, 'Secondary purpose', secondary?.name ?? 'None');
+  body(ctx, validation.valid ? 'Balance validation: valid.' : `Balance validation: ${validation.errors.length} issue(s).`);
+  validation.errors.forEach((error) => body(ctx, `Issue: ${error}`));
+  validation.warnings.forEach((warning) => body(ctx, `Note: ${warning}`));
+
+  heading(ctx, 'Powers');
+  if (artifact.powers.length === 0) body(ctx, 'No powers selected.');
+  else artifact.powers.forEach((selection) => {
+    const definition = getArtifactPower(selection.powerId);
+    heading(ctx, `${definition?.name ?? selection.powerId} - ${selection.quality} ${selection.source}`, 9);
+    body(ctx, definition?.summary ?? '');
+    body(ctx, definition?.effects[selection.quality] ?? '');
+    labeled(ctx, 'Notes', selection.notes);
+  });
+
+  heading(ctx, 'Drawbacks');
+  if (artifact.drawbacks.length === 0) body(ctx, 'No drawbacks selected.');
+  else artifact.drawbacks.forEach((selection) => {
+    const definition = getArtifactDrawback(selection.drawbackId);
+    heading(ctx, `${definition?.name ?? selection.drawbackId} - ${selection.severity}`, 9);
+    body(ctx, definition?.summary ?? '');
+    body(ctx, definition?.effects[selection.severity] ?? '');
+    labeled(ctx, 'Notes', selection.notes);
+  });
+
+  heading(ctx, 'Story');
+  labeled(ctx, 'Creator', artifact.creator);
+  labeled(ctx, 'Origin', artifact.origin);
+  labeled(ctx, 'Appearance', artifact.appearance);
+  labeled(ctx, 'Activation', artifact.activation);
+  labeled(ctx, 'History', artifact.history);
+  labeled(ctx, 'Current owner', artifact.currentOwner);
+  labeled(ctx, 'Interested factions', artifact.interestedFactions);
+  labeled(ctx, 'Secrets', artifact.secrets);
+  labeled(ctx, 'Campaign hooks', artifact.campaignHooks);
+  labeled(ctx, 'Notes', artifact.notes);
+  footer(ctx);
+  return ctx.pdf;
+}
+
+function rgb(value: string): [number, number, number] {
+  const normalized = value.replace('#', '').padEnd(6, '0').slice(0, 6);
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function drawSectorMap(ctx: PdfContext, sector: SectorDocument): void {
+  ensureSpace(ctx, 112);
+  const x = ctx.margin;
+  const y = ctx.y;
+  const width = ctx.contentWidth;
+  const height = 100;
+  const half = sector.diameterLy / 2;
+  const toX = (xLy: number) => x + (xLy + half) / sector.diameterLy * width;
+  const toY = (yLy: number) => y + height / 2 - yLy / (sector.diameterLy * 0.7) * height;
+  const byId = new Map(sector.systems.map((system) => [system.id, system]));
+
+  ctx.pdf.setFillColor(245, 248, 251);
+  ctx.pdf.setDrawColor(145, 160, 175);
+  ctx.pdf.rect(x, y, width, height, 'FD');
+  sector.factions.forEach((faction) => {
+    const capital = byId.get(faction.capitalSystemId);
+    if (!capital) return;
+    const color = rgb(faction.color);
+    ctx.pdf.setFillColor(...color);
+    ctx.pdf.setDrawColor(...color);
+    const radius = faction.influenceRadiusLy / sector.diameterLy * width;
+    ctx.pdf.circle(toX(capital.xLy), toY(capital.yLy), radius, 'FD');
+  });
+  ctx.pdf.setFillColor(245, 248, 251);
+  ctx.pdf.rect(x, y, width, height, 'S');
+
+  sector.features.forEach((feature) => {
+    const color: [number, number, number] = feature.kind === 'nebula' ? [105, 130, 165]
+      : feature.kind === 'rift' ? [70, 75, 90]
+        : feature.kind === 'ruins' ? [145, 95, 55] : [125, 70, 145];
+    ctx.pdf.setDrawColor(...color);
+    ctx.pdf.setLineDashPattern([1.5, 1.5], 0);
+    ctx.pdf.circle(toX(feature.xLy), toY(feature.yLy), Math.max(2, feature.radiusLy / sector.diameterLy * width), 'S');
+  });
+  ctx.pdf.setLineDashPattern([], 0);
+
+  sector.routes.forEach((route) => {
+    const from = byId.get(route.fromSystemId);
+    const to = byId.get(route.toSystemId);
+    if (!from || !to) return;
+    ctx.pdf.setDrawColor(route.type === 'major' ? 45 : route.type === 'frontier' ? 170 : 105);
+    ctx.pdf.setLineWidth(route.type === 'major' ? 0.6 : 0.25);
+    if (route.type === 'frontier') ctx.pdf.setLineDashPattern([1, 1], 0);
+    ctx.pdf.line(toX(from.xLy), toY(from.yLy), toX(to.xLy), toY(to.yLy));
+    ctx.pdf.setLineDashPattern([], 0);
+  });
+
+  sector.systems.forEach((system) => {
+    const color = rgb(system.color);
+    const px = toX(system.xLy);
+    const py = toY(system.yLy);
+    ctx.pdf.setFillColor(...color);
+    ctx.pdf.setDrawColor(20);
+    ctx.pdf.circle(px, py, system.importance >= 4 ? 1.7 : 1.1, 'FD');
+    if (system.hook) ctx.pdf.circle(px, py, system.importance >= 4 ? 2.6 : 2, 'S');
+    if (system.importance >= 4) {
+      ctx.pdf.setFont('helvetica', 'normal');
+      ctx.pdf.setFontSize(5.5);
+      ctx.pdf.setTextColor(20);
+      ctx.pdf.text(`${system.name} (${system.zLy >= 0 ? '+' : ''}${system.zLy})`, px + 2.5, py + 1);
+    }
+  });
+  ctx.y += height + 6;
+}
+
+export function createSectorPdf(sector: SectorDocument): jsPDF {
+  const ctx = createContext();
+  const scale = SECTOR_SCALES[sector.settings.scaleId];
+  title(ctx, sector.name || 'Unnamed Sector', 'Star Sector Map and Gazetteer - GMG p. 190 plus Workshop model');
+  heading(ctx, 'Sector Overview');
+  body(ctx, `${scale.name}; ${sector.diameterLy.toLocaleString()} light-years across; ${sector.mapScaleLyPerHex.toLocaleString()} light-years per hex; ${sector.systems.length} mapped systems; approximately ${sector.backgroundStarCount.toLocaleString()} background stars (${sector.backgroundEstimateLabel}).`);
+  body(ctx, `${sector.settings.model === 'gmg' ? 'GMG campaign-map' : 'Science-informed'} generation; seed ${sector.settings.seed}; ${sector.routes.length} routes; ${sector.factions.length} factions.`);
+  labeled(ctx, 'Overview', sector.overview);
+  drawSectorMap(ctx, sector);
+
+  heading(ctx, 'Factions and Borders');
+  if (sector.factions.length === 0) body(ctx, 'No factions recorded.');
+  sector.factions.forEach((faction) => {
+    const capital = sector.systems.find((system) => system.id === faction.capitalSystemId);
+    heading(ctx, faction.name, 9);
+    body(ctx, `${faction.government}; capital ${capital?.name ?? 'unknown'}; influence radius ${faction.influenceRadiusLy.toLocaleString()} light-years.`);
+    labeled(ctx, 'Goal', faction.goal);
+    labeled(ctx, 'Notes', faction.notes);
+  });
+
+  heading(ctx, 'Mapped Systems');
+  sector.systems
+    .slice()
+    .sort((first, second) => second.importance - first.importance)
+    .forEach((system) => {
+      const faction = sector.factions.find((entry) => entry.id === system.factionId);
+      heading(ctx, system.name, 9);
+      body(ctx, `${system.spectralClass}; ${system.multiplicity} star(s); ${system.role}; coordinates (${system.xLy}, ${system.yLy}, ${system.zLy}) light-years; ${faction?.name ?? 'unclaimed'}.`);
+      if (system.tags.length > 0) labeled(ctx, 'Tags', system.tags.join(', '));
+      labeled(ctx, 'Hook', system.hook);
+      labeled(ctx, 'Notes', system.notes);
+    });
+
+  heading(ctx, 'Spatial Features');
+  if (sector.features.length === 0) body(ctx, 'No large-scale features recorded.');
+  sector.features.forEach((feature) => {
+    body(ctx, `${feature.name} (${feature.kind}): ${feature.description} Center (${feature.xLy}, ${feature.yLy}, ${feature.zLy}); radius ${feature.radiusLy} light-years.`);
+  });
+  heading(ctx, 'Campaign Notes');
+  labeled(ctx, 'History', sector.history);
+  labeled(ctx, 'Current conflicts', sector.currentConflicts);
+  labeled(ctx, 'Campaign hooks', sector.campaignHooks);
+  labeled(ctx, 'Notes', sector.notes);
+  footer(ctx);
+  return ctx.pdf;
+}
+
 export function getStarSystemPdfFileName(name: string): string {
   return `${safeFileBase(name, 'Star_System')}_system_report.pdf`;
 }
@@ -353,6 +538,14 @@ export function getCivilizationPdfFileName(name: string): string {
 
 export function getLocationPdfFileName(name: string): string {
   return `${safeFileBase(name, 'Location')}_location_sheet.pdf`;
+}
+
+export function getArtifactPdfFileName(name: string): string {
+  return `${safeFileBase(name, 'Alien_Artifact')}_artifact_dossier.pdf`;
+}
+
+export function getSectorPdfFileName(name: string): string {
+  return `${safeFileBase(name, 'Star_Sector')}_sector_gazetteer.pdf`;
 }
 
 async function savePdf(pdf: jsPDF, fileName: string): Promise<string> {
@@ -375,6 +568,14 @@ export function exportStarSystemPdf(document: StarSystemDocument): Promise<strin
 
 export function exportCivilizationPdf(design: CivilizationDesign): Promise<string> {
   return savePdf(createCivilizationPdf(design), getCivilizationPdfFileName(design.name));
+}
+
+export function exportArtifactPdf(artifact: ArtifactDesign): Promise<string> {
+  return savePdf(createArtifactPdf(artifact), getArtifactPdfFileName(artifact.name));
+}
+
+export function exportSectorPdf(sector: SectorDocument): Promise<string> {
+  return savePdf(createSectorPdf(sector), getSectorPdfFileName(sector.name));
 }
 
 export function exportLocationPdf(

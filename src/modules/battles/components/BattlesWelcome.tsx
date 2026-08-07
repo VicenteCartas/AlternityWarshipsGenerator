@@ -1,10 +1,9 @@
 import { Typography } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import {
+  DocumentWelcomeActions,
   ModuleWelcomeAction,
   ModuleWelcomeSection,
   ModuleWelcomeShell,
@@ -13,13 +12,14 @@ import {
 interface BattlesWelcomeProps {
   onNewBattle: () => void;
   onOpenBattle?: () => void;
+  onOpenRecent: (filePath: string) => void;
   onOpenLibrary?: () => void;
   onManageMods?: () => void;
   onReturnToHub?: () => void;
 }
 
 export function BattlesWelcome({
-  onNewBattle, onOpenBattle, onOpenLibrary, onManageMods, onReturnToHub,
+  onNewBattle, onOpenBattle, onOpenRecent, onOpenLibrary, onManageMods, onReturnToHub,
 }: BattlesWelcomeProps) {
   return (
     <ModuleWelcomeShell
@@ -28,21 +28,12 @@ export function BattlesWelcome({
       icon={<GpsFixedIcon sx={{ fontSize: 36 }} />}
       onReturnToHub={onReturnToHub}
     >
-      <ModuleWelcomeSection label="Start">
-        <ModuleWelcomeAction
-          label="New Battle"
-          icon={<AddIcon />}
-          onClick={onNewBattle}
-          primary
-        />
-        {onOpenBattle && (
-          <ModuleWelcomeAction
-            label="Open Battle"
-            icon={<FolderOpenIcon color="primary" />}
-            onClick={onOpenBattle}
-          />
-        )}
-      </ModuleWelcomeSection>
+      <DocumentWelcomeActions
+        kind="battle"
+        onNew={onNewBattle}
+        onOpen={onOpenBattle ?? (() => undefined)}
+        onOpenRecent={onOpenRecent}
+      />
 
       <ModuleWelcomeSection label="Manage">
         {onOpenLibrary && (

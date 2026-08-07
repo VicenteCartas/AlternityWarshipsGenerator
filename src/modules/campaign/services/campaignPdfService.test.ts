@@ -4,12 +4,18 @@ import { generateScienceStarSystem } from './scienceStarSystemService';
 import { DEFAULT_CIVILIZATION_DESIGN, createCityTown, createInstallation } from './civilizationDesignService';
 import {
   createCivilizationPdf,
+  createArtifactPdf,
+  createSectorPdf,
   createLocationPdf,
   createStarSystemPdf,
   getCivilizationPdfFileName,
+  getArtifactPdfFileName,
+  getSectorPdfFileName,
   getLocationPdfFileName,
   getStarSystemPdfFileName,
 } from './campaignPdfService';
+import { DEFAULT_ARTIFACT_DESIGN } from './artifactDesignService';
+import { DEFAULT_SECTOR_SETTINGS, generateSector } from './sectorGenerationService';
 
 describe('campaign PDF export', () => {
   it('creates a star-system report with orbit and body details', () => {
@@ -57,5 +63,35 @@ describe('campaign PDF export', () => {
     expect(cityPdf.output()).toContain('Port Meridian');
     expect(stationPdf.output()).toContain('Gateway');
     expect(getLocationPdfFileName('Gateway / One')).toBe('Gateway_One_location_sheet.pdf');
+  });
+
+  it('creates an alien artifact dossier with powers and balance status', () => {
+    const pdf = createArtifactPdf({
+      ...DEFAULT_ARTIFACT_DESIGN,
+      name: 'Gate of Glass',
+      creator: 'Unknown precursors',
+      campaignHooks: 'A rival expedition has the activation sequence.',
+    });
+    const output = pdf.output();
+
+    expect(output).toContain('Gate of Glass');
+    expect(output).toContain('Analysis');
+    expect(output).toContain('Balance validation');
+    expect(getArtifactPdfFileName('Gate / Glass')).toBe('Gate_Glass_artifact_dossier.pdf');
+  });
+
+  it('creates a star sector map and gazetteer', () => {
+    const pdf = createSectorPdf({
+      ...generateSector(DEFAULT_SECTOR_SETTINGS),
+      name: 'Orion Reach',
+      overview: 'A disputed frontier cluster.',
+    });
+    const output = pdf.output();
+
+    expect(pdf.getNumberOfPages()).toBeGreaterThanOrEqual(2);
+    expect(output).toContain('Orion Reach');
+    expect(output).toContain('Factions and Borders');
+    expect(output).toContain('Mapped Systems');
+    expect(getSectorPdfFileName('Orion / Reach')).toBe('Orion_Reach_sector_gazetteer.pdf');
   });
 });

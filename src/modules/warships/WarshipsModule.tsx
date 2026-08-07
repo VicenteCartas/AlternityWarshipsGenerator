@@ -593,6 +593,7 @@ function WarshipsModule({ themeMode, onThemeModeChange, onReturnToHub }: Warship
         <WarshipsWelcome
           onNewWarship={handleNewWarship}
           onLoadWarship={handleLoadWarship}
+          onOpenRecent={(filePath) => { void loadFromFile(filePath); }}
           onManageMods={handleManageMods}
           onOpenLibrary={handleOpenLibrary}
           onRecoverAutoSave={handleRecoverAutoSave}

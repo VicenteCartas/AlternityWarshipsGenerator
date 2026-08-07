@@ -10,7 +10,9 @@ describe('SuiteHub', () => {
     const openCharacters = vi.fn();
     const openWarships = vi.fn();
     const openStarSystems = vi.fn();
+    const openSectors = vi.fn();
     const openCivilizations = vi.fn();
+    const openArtifacts = vi.fn();
     render(
       <ThemeProvider theme={createTheme()}>
         <SuiteHub
@@ -21,7 +23,9 @@ describe('SuiteHub', () => {
           onOpenTravel={vi.fn()}
           onOpenBattles={vi.fn()}
           onOpenStarSystems={openStarSystems}
+          onOpenSectors={openSectors}
           onOpenCivilizations={openCivilizations}
+          onOpenArtifacts={openArtifacts}
           onShowAbout={vi.fn()}
         />
       </ThemeProvider>,
@@ -36,11 +40,15 @@ describe('SuiteHub', () => {
     expect(screen.getByText('Run a campaign')).toBeInTheDocument();
     await user.click(screen.getByText('Character Creator'));
     await user.click(screen.getByText('Warships Generator'));
+    await user.click(screen.getByText('Star Sector Generator'));
     await user.click(screen.getByText('Star System Generator'));
     await user.click(screen.getByText('Civilization Builder'));
+    await user.click(screen.getByText('Alien Artifact Designer'));
     expect(openCharacters).toHaveBeenCalledOnce();
     expect(openWarships).toHaveBeenCalledOnce();
     expect(openStarSystems).toHaveBeenCalledOnce();
+    expect(openSectors).toHaveBeenCalledOnce();
     expect(openCivilizations).toHaveBeenCalledOnce();
+    expect(openArtifacts).toHaveBeenCalledOnce();
   });
 });

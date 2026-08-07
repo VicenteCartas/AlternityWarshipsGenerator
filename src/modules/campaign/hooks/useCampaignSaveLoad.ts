@@ -1,10 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CivilizationDesign } from '../types/worldbuilding';
 import type {
+  ArtifactSaveFile,
+  SectorSaveFile,
   CivilizationSaveFile,
   StarSystemDocument,
   StarSystemSaveFile,
 } from '../types/campaignSaveFile';
+import type { ArtifactDesign } from '../types/artifact';
+import type { SectorDocument } from '../types/sector';
 import {
   campaignSaveFileToJson,
   deserializeCivilization,
@@ -17,6 +21,18 @@ import {
   serializeStarSystem,
   type CampaignLoadResult,
 } from '../services/campaignSaveService';
+import {
+  deserializeArtifact,
+  getDefaultArtifactFileName,
+  jsonToArtifactSaveFile,
+  serializeArtifact,
+} from '../services/artifactSaveService';
+import {
+  deserializeSector,
+  getDefaultSectorFileName,
+  jsonToSectorSaveFile,
+  serializeSector,
+} from '../services/sectorSaveService';
 
 export interface CampaignFileResult<T> {
   ok: boolean;
@@ -26,7 +42,7 @@ export interface CampaignFileResult<T> {
 }
 
 interface CampaignSaveLoadOptions<T, TSaveFile> {
-  kind: 'system' | 'civilization';
+  kind: 'system' | 'civilization' | 'artifact' | 'sector';
   label: string;
   defaultFileName: (value: T) => string;
   serialize: (value: T, createdAt?: string) => TSaveFile;
@@ -48,9 +64,9 @@ function useCampaignSaveLoad<T, TSaveFile>(options: CampaignSaveLoadOptions<T, T
     const api = window.electronAPI;
     if (!api) return NO_ELECTRON;
     const saveFile = options.serialize(value, createdAtRef.current);
-    const result = await api.saveFile(filePath, campaignSaveFileToJson(saveFile as StarSystemSaveFile | CivilizationSaveFile));
+    const result = await api.saveFile(filePath, campaignSaveFileToJson(saveFile as StarSystemSaveFile | CivilizationSaveFile | ArtifactSaveFile | SectorSaveFile));
     if (!result.success) return { ok: false, message: result.error || 'Failed to write the file.', severity: 'error' };
-    createdAtRef.current = (saveFile as StarSystemSaveFile | CivilizationSaveFile).createdAt;
+    createdAtRef.current = (saveFile as StarSystemSaveFile | CivilizationSaveFile | ArtifactSaveFile | SectorSaveFile).createdAt;
     setCurrentFilePath(filePath);
     await api.addRecentFile(filePath);
     return { ok: true, message: `${options.label} saved.`, severity: 'success' };
@@ -130,5 +146,27 @@ export function useCivilizationSaveLoad() {
     serialize: serializeCivilization,
     parse: jsonToCivilizationSaveFile,
     deserialize: deserializeCivilization,
+  });
+}
+
+export function useArtifactSaveLoad() {
+  return useCampaignSaveLoad<ArtifactDesign, ArtifactSaveFile>({
+    kind: 'artifact',
+    label: 'Artifact',
+    defaultFileName: (artifact) => getDefaultArtifactFileName(artifact.name),
+    serialize: serializeArtifact,
+    parse: jsonToArtifactSaveFile,
+    deserialize: deserializeArtifact,
+  });
+}
+
+export function useSectorSaveLoad() {
+  return useCampaignSaveLoad<SectorDocument, SectorSaveFile>({
+    kind: 'sector',
+    label: 'Star sector',
+    defaultFileName: (sector) => getDefaultSectorFileName(sector.name),
+    serialize: serializeSector,
+    parse: jsonToSectorSaveFile,
+    deserialize: deserializeSector,
   });
 }

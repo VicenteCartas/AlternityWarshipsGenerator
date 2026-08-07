@@ -69,6 +69,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onExportCharacterPdf: (callback: () => void) => {
     ipcRenderer.on('menu-export-character-pdf', callback);
   },
+  onNewTravelDocument: (callback: () => void) => {
+    ipcRenderer.on('menu-new-travel-document', callback);
+  },
+  onOpenTravelDocument: (callback: () => void) => {
+    ipcRenderer.on('menu-open-travel-document', callback);
+  },
+  onSaveTravelDocument: (callback: () => void) => {
+    ipcRenderer.on('menu-save-travel-document', callback);
+  },
+  onSaveTravelDocumentAs: (callback: () => void) => {
+    ipcRenderer.on('menu-save-travel-document-as', callback);
+  },
   onImportTravelShip: (callback: () => void) => {
     ipcRenderer.on('menu-import-travel-ship', callback);
   },
@@ -119,10 +131,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showCharacterOpenDialog: () =>
     ipcRenderer.invoke('show-character-open-dialog'),
 
-  showCampaignSaveDialog: (kind: 'system' | 'civilization', defaultFileName: string, defaultDirectory?: string) =>
+  showCampaignSaveDialog: (kind: 'system' | 'civilization' | 'artifact' | 'sector', defaultFileName: string, defaultDirectory?: string) =>
     ipcRenderer.invoke('show-campaign-save-dialog', kind, defaultFileName, defaultDirectory),
-  showCampaignOpenDialog: (kind: 'system' | 'civilization') =>
+  showCampaignOpenDialog: (kind: 'system' | 'civilization' | 'artifact' | 'sector') =>
     ipcRenderer.invoke('show-campaign-open-dialog', kind),
+  showTravelSaveDialog: (defaultFileName: string, defaultDirectory?: string) =>
+    ipcRenderer.invoke('show-travel-save-dialog', defaultFileName, defaultDirectory),
+  showTravelOpenDialog: () =>
+    ipcRenderer.invoke('show-travel-open-dialog'),
 
   // Battle library & auto-save
   scanBattleFiles: (directoryPath: string) =>

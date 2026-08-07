@@ -427,6 +427,7 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
         <CharactersWelcome
           onNewCharacter={() => requestAction('new')}
           onOpenCharacter={() => requestAction('open')}
+          onOpenRecent={(filePath) => { void handleOpenPath(filePath); }}
           onReturnToHub={() => requestAction('hub')}
         />
         {overlays}

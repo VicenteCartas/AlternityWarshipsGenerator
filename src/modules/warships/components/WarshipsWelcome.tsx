@@ -7,8 +7,6 @@ import {
   Alert,
   Collapse,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import RestoreIcon from '@mui/icons-material/Restore';
@@ -16,6 +14,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
+  DocumentWelcomeActions,
   ModuleWelcomeAction,
   ModuleWelcomeSection,
   ModuleWelcomeShell,
@@ -25,6 +24,7 @@ import { checkForAutoSave, clearAutoSave } from '../hooks/useAutoSave';
 interface WelcomePageProps {
   onNewWarship: () => void;
   onLoadWarship: () => void;
+  onOpenRecent: (filePath: string) => void;
   onManageMods: () => void;
   onOpenLibrary?: () => void;
   onRecoverAutoSave?: (content: string) => Promise<boolean>;
@@ -32,7 +32,7 @@ interface WelcomePageProps {
   onReturnToHub?: () => void;
 }
 
-export function WarshipsWelcome({ onNewWarship, onLoadWarship, onManageMods, onOpenLibrary, onRecoverAutoSave, onReturnToHub }: WelcomePageProps) {
+export function WarshipsWelcome({ onNewWarship, onLoadWarship, onOpenRecent, onManageMods, onOpenLibrary, onRecoverAutoSave, onReturnToHub }: WelcomePageProps) {
   const [autoSaveContent, setAutoSaveContent] = useState<string | null>(null);
   const [recovering, setRecovering] = useState(false);
   const [showGettingStarted, setShowGettingStarted] = useState(false);
@@ -97,19 +97,12 @@ export function WarshipsWelcome({ onNewWarship, onLoadWarship, onManageMods, onO
         </Alert>
       )}
 
-      <ModuleWelcomeSection label="Start">
-        <ModuleWelcomeAction
-          label="New Design"
-          icon={<AddIcon />}
-          onClick={onNewWarship}
-          primary
-        />
-        <ModuleWelcomeAction
-          label="Open Design"
-          icon={<FolderOpenIcon color="primary" />}
-          onClick={onLoadWarship}
-        />
-      </ModuleWelcomeSection>
+      <DocumentWelcomeActions
+        kind="warship"
+        onNew={onNewWarship}
+        onOpen={onLoadWarship}
+        onOpenRecent={onOpenRecent}
+      />
 
       <ModuleWelcomeSection label="Manage">
         {onOpenLibrary && (

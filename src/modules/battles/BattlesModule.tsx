@@ -322,6 +322,7 @@ export function BattlesModule({ themeMode, onThemeModeChange, onReturnToHub }: B
         <BattlesWelcome
           onNewBattle={doNewBattle}
           onOpenBattle={doOpen}
+          onOpenRecent={(filePath) => { void doOpenPath(filePath); }}
           onOpenLibrary={() => setMode('library')}
           onManageMods={() => setMode('mods')}
           onReturnToHub={onReturnToHub}
