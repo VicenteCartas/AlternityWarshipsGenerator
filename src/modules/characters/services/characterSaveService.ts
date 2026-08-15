@@ -11,6 +11,7 @@ import type {
   ResistanceAbilityId,
 } from '../types/character';
 import type { CharacterState } from '../types/characterState';
+import type { FxAbilityDesign, FxAbilityPurchase, FxFaithPurchase } from '../types/fx';
 import type { CharacterSaveFile } from '../types/characterSaveFile';
 import {
   CHARACTER_FILE_EXTENSION,
@@ -60,6 +61,65 @@ function readAbilities(value: unknown, fallback: AbilityScores): AbilityScores {
   return Object.fromEntries(
     ABILITY_IDS.map((ability) => [ability, numberValue(raw[ability], fallback[ability])]),
   ) as AbilityScores;
+}
+
+function readFxDesign(value: unknown): FxAbilityDesign | null {
+  const raw = record(value);
+  const discipline = raw.discipline === 'arcane' || raw.discipline === 'super-power'
+    ? raw.discipline
+    : null;
+  if (
+    typeof raw.id !== 'string'
+    || typeof raw.name !== 'string'
+    || !discipline
+    || typeof raw.category !== 'string'
+    || !ABILITY_IDS.includes(raw.ability as AbilityId)
+    || typeof raw.description !== 'string'
+  ) return null;
+  const trappings = record(raw.trappings);
+  return {
+    id: raw.id,
+    name: raw.name,
+    discipline,
+    category: raw.category as FxAbilityDesign['category'],
+    ability: raw.ability as AbilityId,
+    description: raw.description,
+    characteristics: objectArray<Record<string, unknown>>(raw.characteristics).flatMap((entry) => (
+      typeof entry.characteristicId === 'string' && typeof entry.choiceId === 'string'
+        ? [{
+          characteristicId: entry.characteristicId,
+          choiceId: entry.choiceId,
+          ...(typeof entry.notes === 'string' ? { notes: entry.notes } : {}),
+        }]
+        : []
+    )),
+    trappings: {
+      ...(trappings.complexRitual === true ? { complexRitual: true } : {}),
+      ...(typeof trappings.ritual === 'string' ? { ritual: trappings.ritual } : {}),
+      ...(typeof trappings.component === 'string' ? { component: trappings.component } : {}),
+      ...(['simple', 'ordinary', 'good', 'amazing'].includes(trappings.componentComplexity as string)
+        ? { componentComplexity: trappings.componentComplexity as FxAbilityDesign['trappings']['componentComplexity'] }
+        : {}),
+      ...(typeof trappings.focus === 'string' ? { focus: trappings.focus } : {}),
+      ...(typeof trappings.limitation === 'string' ? { limitation: trappings.limitation } : {}),
+      ...(typeof trappings.trigger === 'string' ? { trigger: trappings.trigger } : {}),
+    },
+  };
+}
+
+function readFxAbilityPurchase(value: unknown): FxAbilityPurchase | null {
+  const raw = record(value);
+  return typeof raw.designId === 'string' && typeof raw.rank === 'number' && Number.isFinite(raw.rank)
+    ? { designId: raw.designId, rank: raw.rank }
+    : null;
+}
+
+function readFxFaithPurchase(value: unknown): FxFaithPurchase | null {
+  const raw = record(value);
+  return ['ordinary', 'good', 'amazing'].includes(raw.quality as string)
+    && typeof raw.rank === 'number' && Number.isFinite(raw.rank)
+    ? { quality: raw.quality as FxFaithPurchase['quality'], rank: raw.rank }
+    : null;
 }
 
 export function serializeCharacter(
@@ -123,6 +183,7 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
   const skillRules = record(raw.skillRules);
   const skillPlan = record(raw.skillPlan);
   const psionicPlan = record(raw.psionicPlan);
+  const fxPlan = record(raw.fxPlan);
   const mutationPlan = record(raw.mutationPlan);
   const professionBenefits = record(raw.professionBenefits);
   const advancementPlan = record(raw.advancementPlan);
@@ -135,6 +196,17 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
   const accessPath = PSIONIC_ACCESS_PATHS.includes(psionicPlan.accessPath as PsionicAccessPath)
     ? psionicPlan.accessPath as PsionicAccessPath
     : 'none';
+  const rawFxDesigns = Array.isArray(fxPlan.designs) ? fxPlan.designs : [];
+  const rawFxAbilityPurchases = Array.isArray(fxPlan.abilityPurchases) ? fxPlan.abilityPurchases : [];
+  const rawFxFaithPurchases = Array.isArray(fxPlan.faithPurchases) ? fxPlan.faithPurchases : [];
+  const fxDesigns = rawFxDesigns.map(readFxDesign).filter((entry): entry is FxAbilityDesign => entry !== null);
+  const fxAbilityPurchases = rawFxAbilityPurchases.map(readFxAbilityPurchase).filter((entry): entry is FxAbilityPurchase => entry !== null);
+  const fxFaithPurchases = rawFxFaithPurchases.map(readFxFaithPurchase).filter((entry): entry is FxFaithPurchase => entry !== null);
+  if (
+    fxDesigns.length !== rawFxDesigns.length
+    || fxAbilityPurchases.length !== rawFxAbilityPurchases.length
+    || fxFaithPurchases.length !== rawFxFaithPurchases.length
+  ) warnings.push('Invalid FX designs or purchases were skipped while loading.');
 
   const character: CharacterState = {
     level: Math.max(1, Math.floor(numberValue(raw.level, 1))),
@@ -203,6 +275,18 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
         ? { favoredBroadSkillId: psionicPlan.favoredBroadSkillId }
         : {}),
     },
+    fxPlan: {
+      campaignTone: ['realistic', 'heroic', 'super-heroic'].includes(fxPlan.campaignTone as string)
+        ? fxPlan.campaignTone as CharacterState['fxPlan']['campaignTone']
+        : null,
+      broadSkill: ['arcane', 'faith', 'super-power'].includes(fxPlan.broadSkill as string)
+        ? fxPlan.broadSkill as CharacterState['fxPlan']['broadSkill']
+        : null,
+      ...(typeof fxPlan.faithFocus === 'string' ? { faithFocus: fxPlan.faithFocus } : {}),
+      designs: fxDesigns,
+      abilityPurchases: fxAbilityPurchases,
+      faithPurchases: fxFaithPurchases,
+    },
     mutationPlan: {
       origin: ['engineered', 'natural', 'directed'].includes(mutationPlan.origin as string)
         ? mutationPlan.origin as CharacterState['mutationPlan']['origin']
@@ -228,6 +312,9 @@ export function deserializeCharacter(saveFile: CharacterSaveFile): CharacterLoad
         benefits: objectArray(entry.benefits),
         lastResortPointsSpent: Math.max(0, numberValue(entry.lastResortPointsSpent, 0)),
         lastResortPointsPurchased: Math.max(0, numberValue(entry.lastResortPointsPurchased, 0)),
+        ...(typeof entry.fxEnergyPointsPurchased === 'number'
+          ? { fxEnergyPointsPurchased: Math.max(0, numberValue(entry.fxEnergyPointsPurchased, 0)) }
+          : {}),
         creditsAwarded: Math.max(0, numberValue(entry.creditsAwarded, 0)),
         acquisitions: objectArray(entry.acquisitions),
         notes: stringValue(entry.notes, ''),

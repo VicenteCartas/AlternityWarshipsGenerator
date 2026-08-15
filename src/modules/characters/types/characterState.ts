@@ -26,6 +26,7 @@ import type {
   WeaponSelection,
 } from './character';
 import type { CharacterSourcePackResolution } from './sourcePack';
+import type { FxPlan, FxPurchaseResult } from './fx';
 
 export const CHARACTER_STEP_IDS = [
   'identity',
@@ -35,6 +36,7 @@ export const CHARACTER_STEP_IDS = [
   'skills',
   'options',
   'psionics',
+  'fx',
   'mutations',
   'cybergear',
   'equipment',
@@ -88,6 +90,7 @@ export interface CharacterState {
   skillPlan: SkillPurchasePlan;
   optionSelections: CharacterOptionSelection[];
   psionicPlan: PsionicPurchasePlan;
+  fxPlan: FxPlan;
   mutationPlan: MutationPlan;
   cybergearSelections: CybergearSelection[];
   startingFundsDieRolls: number[];
@@ -110,6 +113,7 @@ export interface CharacterValidationResult {
   options: CharacterOptionResult;
   skills: SkillPurchaseResult;
   psionics: PsionicPurchaseResult;
+  fx: FxPurchaseResult;
   cybergear: CybergearResult;
   startingFunds: StartingFundsResult;
   equipment: EquipmentPurchaseResult;

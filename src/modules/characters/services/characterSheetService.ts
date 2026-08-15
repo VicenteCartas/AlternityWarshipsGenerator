@@ -8,11 +8,14 @@ import {
   getAllPsionicSkills,
   getAllSkills,
   getAllWeapons,
+  getFxRules,
   getProfessionById,
   getSpeciesById,
 } from './characterDataService';
+import { getFxAttemptEnergyCost } from './fxService';
 import type { AbilityId, SkillScore } from '../types/character';
 import type { CharacterState, CharacterValidationResult } from '../types/characterState';
+import type { FxDiscipline, FxQuality } from '../types/fx';
 
 const ABILITY_LABELS: Record<AbilityId, string> = {
   str: 'Strength', dex: 'Dexterity', con: 'Constitution',
@@ -69,6 +72,19 @@ export interface CharacterSheetNamedDetail {
   details: string;
 }
 
+export interface CharacterSheetFxAbility extends SkillScore {
+  name: string;
+  discipline: FxDiscipline;
+  category: string;
+  ability: AbilityId;
+  quality: FxQuality;
+  rank: number;
+  purchaseCost: number;
+  energyCost: number;
+  description: string;
+  trappings: string;
+}
+
 export interface CharacterSheetAdvancementLevel {
   level: number;
   skillPointsEarned: number;
@@ -120,6 +136,11 @@ export interface CharacterSheetModel {
   flaws: CharacterSheetNamedDetail[];
   mutations: CharacterSheetNamedDetail[];
   psionicSkills: CharacterSheetSkill[];
+  fxAbilities: CharacterSheetFxAbility[];
+  fxBroadSkill: string;
+  fxCampaignTone: string;
+  currentMaximumFxEnergy: number;
+  maximumFxEnergy: number;
   psionicAccessPath: CharacterState['psionicPlan']['accessPath'];
   mutationOrigin: CharacterState['mutationPlan']['origin'];
   mutationScope: CharacterState['mutationPlan']['scope'];
@@ -193,6 +214,7 @@ export function buildCharacterSheetModel(
   const cybergearDefinitions = getAllCybergear();
   const optionDefinitions = getAllCharacterOptions();
   const mutationDefinitions = getAllMutations();
+  const fxRules = getFxRules();
   const species = getSpeciesById(state.speciesId);
   const profession = state.professionId ? getProfessionById(state.professionId) : undefined;
   const optionalSkillRules = [
@@ -207,6 +229,10 @@ export function buildCharacterSheetModel(
       ? 'Specialty Costs: Official Optional Rule 2C'
       : 'Specialty Costs: Standard PHB',
   ];
+  const fxBroadDefinition = fxRules.broadSkills.find((entry) => (
+    entry.discipline === validation.advancement.finalFxBroadSkill
+  ));
+  const fxToneDefinition = fxRules.campaignTones.find((entry) => entry.id === state.fxPlan.campaignTone);
 
   const abilities = (Object.keys(ABILITY_LABELS) as AbilityId[]).map((id) => ({
     id,
@@ -246,6 +272,53 @@ export function buildCharacterSheetModel(
       ...calculateSkillScore(validation.effectiveAbilityScores[ability], purchase.rank),
     };
   });
+
+  const fxAbilities: CharacterSheetFxAbility[] = [
+    ...validation.advancement.finalFxAbilityPurchases.flatMap((purchase) => {
+      const design = state.fxPlan.designs.find((entry) => entry.id === purchase.designId);
+      const designResult = validation.fx.designResults.find((entry) => entry.designId === purchase.designId);
+      if (!design || !designResult?.quality) return [];
+      const trappings = [
+        design.trappings.complexRitual ? `Ritual: ${design.trappings.ritual?.trim() || 'Complex ritual'}` : '',
+        design.trappings.component ? `Component: ${design.trappings.component}` : '',
+        design.trappings.focus ? `Focus: ${design.trappings.focus}` : '',
+        design.trappings.limitation ? `Limitation: ${design.trappings.limitation}` : '',
+        design.trappings.trigger ? `Trigger: ${design.trappings.trigger}` : '',
+      ].filter(Boolean).join(' | ');
+      return [{
+        name: design.name,
+        discipline: design.discipline,
+        category: design.category,
+        ability: design.ability,
+        quality: designResult.quality,
+        rank: purchase.rank,
+        purchaseCost: designResult.purchaseCost,
+        energyCost: getFxAttemptEnergyCost(design.discipline, designResult.quality, designResult.quality, fxRules),
+        description: design.description,
+        trappings,
+        ...calculateSkillScore(validation.effectiveAbilityScores[design.ability], purchase.rank),
+      }];
+    }),
+    ...validation.advancement.finalFxFaithPurchases.flatMap((purchase) => {
+      const definition = fxRules.faithSpecialties.find((entry) => entry.quality === purchase.quality);
+      if (!definition) return [];
+      return [{
+        name: definition.name,
+        discipline: 'faith' as const,
+        category: 'miracle',
+        ability: 'wil' as const,
+        quality: definition.quality,
+        rank: purchase.rank,
+        purchaseCost: definition.cost,
+        energyCost: getFxAttemptEnergyCost('faith', definition.quality, definition.quality, fxRules),
+        description: `${definition.quality} miracle requests`,
+        trappings: state.fxPlan.faithFocus?.trim()
+          ? `Prayer | Focus: ${state.fxPlan.faithFocus.trim()}`
+          : `Prayer | No focus (+${{ ordinary: 1, good: 2, amazing: 3 }[definition.quality]} step penalty)`,
+        ...calculateSkillScore(validation.effectiveAbilityScores.wil, purchase.rank),
+      }];
+    }),
+  ];
 
   const attacks: CharacterSheetAttack[] = [
     {
@@ -458,6 +531,11 @@ export function buildCharacterSheetModel(
     })),
     mutations,
     psionicSkills: [...psionicBroadRows, ...psionicSpecialtyRows],
+    fxAbilities,
+    fxBroadSkill: fxBroadDefinition?.name || '',
+    fxCampaignTone: fxToneDefinition?.name || '',
+    currentMaximumFxEnergy: validation.advancement.currentMaximumFxEnergy,
+    maximumFxEnergy: validation.advancement.maximumFxEnergy,
     psionicAccessPath: state.psionicPlan.accessPath,
     mutationOrigin: state.mutationPlan.origin,
     mutationScope: state.mutationPlan.scope,

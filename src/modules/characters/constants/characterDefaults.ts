@@ -48,6 +48,14 @@ export function createEmptyCharacter(): CharacterState {
       purchasedBroadSkillIds: [],
       specialtySkills: [],
     },
+    fxPlan: {
+      campaignTone: null,
+      broadSkill: null,
+      faithFocus: '',
+      designs: [],
+      abilityPurchases: [],
+      faithPurchases: [],
+    },
     mutationPlan: {
       origin: 'natural',
       scope: 'individual',

@@ -20,6 +20,58 @@ function baseContext(): AdvancementBaseContext {
 }
 
 describe('character advancement', () => {
+  it('advances a designed FX specialty and purchases campaign-tone energy', () => {
+    const state = createEmptyCharacter();
+    state.level = 2;
+    state.selectedSourcePackIds.push('gmg-fx');
+    state.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'arcane',
+      designs: [{
+        id: 'bolt',
+        name: 'Bolt of Lightning',
+        discipline: 'arcane',
+        category: 'conjure',
+        ability: 'wil',
+        description: 'A bolt of electrical energy.',
+        characteristics: [
+          { characteristicId: 'attack-type', choiceId: 'energy' },
+          { characteristicId: 'stun-damage', choiceId: '1-5' },
+          { characteristicId: 'wound-damage', choiceId: '1-5' },
+          { characteristicId: 'range', choiceId: '2-4-6-m' },
+        ],
+        trappings: { complexRitual: true, component: 'Wood shaving' },
+      }],
+      abilityPurchases: [{ designId: 'bolt', rank: 1 }],
+      faithPurchases: [],
+    };
+    state.advancementPlan.levels = [{
+      level: 2,
+      broadSkills: [],
+      specialtySkills: [{ domain: 'fx', skillId: 'bolt' }],
+      benefits: [],
+      lastResortPointsSpent: 0,
+      lastResortPointsPurchased: 0,
+      fxEnergyPointsPurchased: 1,
+      creditsAwarded: 0,
+      acquisitions: [],
+      notes: '',
+    }];
+    const context = baseContext();
+    context.remainingSkillPoints = 20;
+
+    const result = evaluateAdvancementPlan(state, context);
+
+    expect(result.valid).toBe(true);
+    expect(result.finalFxAbilityPurchases).toContainEqual({ designId: 'bolt', rank: 2 });
+    expect(result.currentMaximumFxEnergy).toBe(11);
+    expect(result.levelResults[0].costs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'specialty-rank', name: 'Bolt of Lightning rank 2', cost: 6 }),
+      expect.objectContaining({ type: 'fx-energy', cost: 10 }),
+    ]));
+    expect(result.remainingSkillPoints).toBe(10);
+  });
+
   it('applies Optional Rule 2C to later specialty rank improvements', () => {
     const state = createEmptyCharacter();
     state.level = 2;

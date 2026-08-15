@@ -179,6 +179,10 @@ export interface ElectronAPI {
   showOrdnanceSaveDialog: (defaultFileName: string) => Promise<SaveDialogResult>;
   showOrdnanceOpenDialog: () => Promise<OpenDialogResult>;
 
+  // FX ability export/import file dialogs
+  showFxAbilitySaveDialog: (defaultFileName: string) => Promise<SaveDialogResult>;
+  showFxAbilityOpenDialog: () => Promise<OpenDialogResult>;
+
   // Battle save/load file dialogs
   showBattleSaveDialog: (defaultFileName: string, defaultDirectory?: string) => Promise<SaveDialogResult>;
   showBattleOpenDialog: () => Promise<OpenDialogResult>;

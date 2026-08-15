@@ -29,6 +29,7 @@ describe('module welcome screens', () => {
           onNewCharacter={vi.fn()}
           onOpenCharacter={vi.fn()}
           onOpenRecent={vi.fn()}
+          onConfigureSources={vi.fn()}
           onReturnToHub={vi.fn()}
         />
       ),

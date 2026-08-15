@@ -1,5 +1,6 @@
 import CollectionsBookmarkOutlinedIcon from '@mui/icons-material/CollectionsBookmarkOutlined';
 import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import {
   DocumentWelcomeActions,
@@ -12,6 +13,7 @@ interface CharactersWelcomeProps {
   onNewCharacter: () => void;
   onOpenCharacter: () => void;
   onOpenRecent: (filePath: string) => void;
+  onConfigureSources: () => void;
   onReturnToHub: () => void;
 }
 
@@ -19,6 +21,7 @@ export function CharactersWelcome({
   onNewCharacter,
   onOpenCharacter,
   onOpenRecent,
+  onConfigureSources,
   onReturnToHub,
 }: CharactersWelcomeProps) {
   return (
@@ -35,6 +38,15 @@ export function CharactersWelcome({
         onOpenRecent={onOpenRecent}
       />
 
+      <ModuleWelcomeSection label="Setup">
+        <ModuleWelcomeAction
+          label="Rules Sources"
+          description="Choose official books and optional rule sections for new characters"
+          icon={<MenuBookOutlinedIcon />}
+          onClick={onConfigureSources}
+        />
+      </ModuleWelcomeSection>
+
       <ModuleWelcomeSection label="Planned">
         <ModuleWelcomeAction
           label="Character Library"
@@ -42,7 +54,7 @@ export function CharactersWelcome({
           disabled
         />
         <ModuleWelcomeAction
-          label="Sources & Mods"
+          label="Character Mods"
           icon={<ExtensionOutlinedIcon />}
           disabled
         />

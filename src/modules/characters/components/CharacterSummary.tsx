@@ -12,7 +12,7 @@ interface CharacterSummaryProps {
   validation: CharacterValidationResult;
 }
 
-type SummaryTab = 'overview' | 'skills' | 'combat' | 'gear' | 'advancement' | 'options';
+type SummaryTab = 'overview' | 'skills' | 'fx' | 'combat' | 'gear' | 'advancement' | 'options';
 
 function Value({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
@@ -51,6 +51,7 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
       <Tabs value={tab} onChange={(_event, value: SummaryTab) => setTab(value)} variant="scrollable" scrollButtons="auto">
         <Tab value="overview" label="Overview" />
         <Tab value="skills" label="Skills" />
+        {model.fxBroadSkill && <Tab value="fx" label="FX" />}
         <Tab value="combat" label="Combat" />
         <Tab value="gear" label="Gear" />
         <Tab value="advancement" label="Advancement" />
@@ -117,6 +118,24 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
               <TableCell>{skill.ability.toUpperCase()}</TableCell><TableCell>{skill.name}</TableCell><TableCell>{skill.rank ?? '-'}</TableCell>
               <TableCell>{skill.ordinary} / {skill.good} / {skill.amazing}</TableCell><TableCell>{skill.source}</TableCell>
             </TableRow>)}</TableBody>
+          </Table></TableContainer>
+        </Stack>
+      )}
+
+      {tab === 'fx' && model.fxBroadSkill && (
+        <Stack spacing={2}>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            <Chip label={model.fxBroadSkill} color="primary" variant="outlined" />
+            <Chip label={`${model.fxCampaignTone} campaign`} variant="outlined" />
+            <Chip label={`${model.currentMaximumFxEnergy}/${model.maximumFxEnergy} FX energy`} color="success" variant="outlined" />
+          </Stack>
+          <TableContainer sx={scrollableTableContainerSx}><Table size="small">
+            <TableHead><TableRow><TableCell>Ability</TableCell><TableCell>Specialty</TableCell><TableCell>Type</TableCell><TableCell>Quality</TableCell><TableCell>Rank</TableCell><TableCell>O / G / A</TableCell><TableCell>Energy</TableCell><TableCell>Effect</TableCell></TableRow></TableHead>
+            <TableBody>{model.fxAbilities.length > 0 ? model.fxAbilities.map((ability) => <TableRow key={`${ability.discipline}-${ability.name}`}>
+              <TableCell>{ability.ability.toUpperCase()}</TableCell><TableCell>{ability.name}</TableCell><TableCell>{ability.category}</TableCell>
+              <TableCell>{ability.quality}</TableCell><TableCell>{ability.rank}</TableCell><TableCell>{ability.ordinary} / {ability.good} / {ability.amazing}</TableCell>
+              <TableCell>{ability.energyCost}</TableCell><TableCell>{ability.description}</TableCell>
+            </TableRow>) : <EmptyRow columns={8} />}</TableBody>
           </Table></TableContainer>
         </Stack>
       )}

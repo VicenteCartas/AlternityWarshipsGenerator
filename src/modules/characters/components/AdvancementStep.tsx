@@ -14,6 +14,7 @@ import {
   getAllSkills,
   getAllWeapons,
   getAdvancementRules,
+  getFxRules,
 } from '../services/characterDataService';
 import {
   createEmptyAdvancementLevel,
@@ -73,10 +74,33 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
   const benefitChoices = listAdvancementBenefitChoices(state, activeLevel);
   const coreSkills = getAllSkills();
   const psionicSkills = getAllPsionicSkills();
-  const broadDefinitions = (skillDomain === 'core' ? coreSkills : psionicSkills)
-    .filter((entry) => entry.kind === 'broad');
-  const specialtyDefinitions = (skillDomain === 'core' ? coreSkills : psionicSkills)
-    .filter((entry) => entry.kind === 'specialty');
+  const fxRules = getFxRules();
+
+  const fxBroadBeforeOrAtLevel = useMemo(() => {
+    let broadSkill = state.fxPlan.broadSkill;
+    for (const entry of normalizedPlan.levels.filter((candidate) => candidate.level <= activeLevel)) {
+      const purchase = entry.broadSkills.find((candidate) => candidate.domain === 'fx');
+      if (purchase) broadSkill = purchase.skillId as CharacterState['fxPlan']['broadSkill'];
+    }
+    return broadSkill;
+  }, [activeLevel, normalizedPlan.levels, state.fxPlan.broadSkill]);
+
+  const broadDefinitions = skillDomain === 'core'
+    ? coreSkills.filter((entry) => entry.kind === 'broad')
+    : skillDomain === 'psionic'
+      ? psionicSkills.filter((entry) => entry.kind === 'broad')
+      : fxBroadBeforeOrAtLevel
+        ? []
+        : fxRules.broadSkills.map((entry) => ({ id: entry.discipline, name: entry.name }));
+  const specialtyDefinitions = skillDomain === 'core'
+    ? coreSkills.filter((entry) => entry.kind === 'specialty')
+    : skillDomain === 'psionic'
+      ? psionicSkills.filter((entry) => entry.kind === 'specialty')
+      : fxBroadBeforeOrAtLevel === 'faith'
+        ? fxRules.faithSpecialties.map((entry) => ({ id: `faith:${entry.quality}`, name: entry.name }))
+        : state.fxPlan.designs
+          .filter((design) => !fxBroadBeforeOrAtLevel || design.discipline === fxBroadBeforeOrAtLevel)
+          .map((design) => ({ id: design.id, name: design.name }));
 
   const rankBeforeLevel = useMemo(() => {
     const ranks = new Map<string, number>();
@@ -88,6 +112,8 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
       if (![...ranks.keys()].some((key) => key.startsWith(`core:${skillId}:`))) ranks.set(skillKey('core', skillId), rank);
     }
     for (const purchase of state.psionicPlan.specialtySkills) ranks.set(skillKey('psionic', purchase.skillId), purchase.rank);
+    for (const purchase of state.fxPlan.abilityPurchases) ranks.set(skillKey('fx', purchase.designId), purchase.rank);
+    for (const purchase of state.fxPlan.faithPurchases) ranks.set(skillKey('fx', `faith:${purchase.quality}`), purchase.rank);
     for (const entry of normalizedPlan.levels.filter((candidate) => candidate.level < activeLevel)) {
       for (const purchase of entry.specialtySkills) {
         const key = skillKey(purchase.domain, purchase.skillId, purchase.specialization);
@@ -95,7 +121,22 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
       }
     }
     return ranks;
-  }, [activeLevel, normalizedPlan.levels, state.psionicPlan.specialtySkills, state.skillPlan, validation.speciesBenefits.grantedSpecialtyRanks]);
+  }, [activeLevel, normalizedPlan.levels, state.fxPlan.abilityPurchases, state.fxPlan.faithPurchases, state.psionicPlan.specialtySkills, state.skillPlan, validation.speciesBenefits.grantedSpecialtyRanks]);
+
+  const broadSkillLabel = (domain: AdvancementSkillDomain, skillId: string): string => {
+    if (domain === 'core') return coreSkills.find((skill) => skill.id === skillId)?.name || skillId;
+    if (domain === 'psionic') return psionicSkills.find((skill) => skill.id === skillId)?.name || skillId;
+    return fxRules.broadSkills.find((skill) => skill.discipline === skillId)?.name || skillId;
+  };
+
+  const specialtySkillLabel = (domain: AdvancementSkillDomain, skillId: string): string => {
+    if (domain === 'core') return coreSkills.find((skill) => skill.id === skillId)?.name || skillId;
+    if (domain === 'psionic') return psionicSkills.find((skill) => skill.id === skillId)?.name || skillId;
+    if (skillId.startsWith('faith:')) {
+      return fxRules.faithSpecialties.find((skill) => `faith:${skill.quality}` === skillId)?.name || skillId;
+    }
+    return state.fxPlan.designs.find((design) => design.id === skillId)?.name || skillId;
+  };
 
   const updateLevel = (updates: Partial<AdvancementLevelPlan>) => {
     onChange({
@@ -190,6 +231,7 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
           <Chip label={`${validation.advancement.achievementPoints} AP`} variant="outlined" />
           <Chip label={`${validation.advancement.remainingSkillPoints} skill points stored`} color={validation.advancement.remainingSkillPoints >= 0 ? 'success' : 'error'} variant="outlined" />
           <Chip label={`${validation.advancement.remainingCredits} credits`} color={validation.advancement.remainingCredits >= 0 ? 'success' : 'error'} variant="outlined" />
+          {validation.advancement.finalFxBroadSkill && <Chip label={`${validation.advancement.currentMaximumFxEnergy}/${validation.advancement.maximumFxEnergy} FX energy`} color="primary" variant="outlined" />}
         </Stack>
       </Stack>
       {validation.advancement.errors.length > 0 && (
@@ -213,6 +255,7 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
             <Select size="small" value={skillDomain} onChange={(event) => setSkillDomain(event.target.value as AdvancementSkillDomain)} sx={{ minWidth: 130 }} inputProps={{ 'aria-label': 'Skill domain' }}>
               <MenuItem value="core">Core</MenuItem>
               <MenuItem value="psionic" disabled={state.psionicPlan.accessPath === 'none'}>Psionic</MenuItem>
+              <MenuItem value="fx" disabled={!state.selectedSourcePackIds.includes('gmg-fx') && state.fxPlan.designs.length === 0}>FX</MenuItem>
             </Select>
             <Select size="small" value={broadSkillId} onChange={(event) => setBroadSkillId(event.target.value)} displayEmpty fullWidth inputProps={{ 'aria-label': 'New broad skill' }}>
               <MenuItem value=""><em>Choose a broad skill</em></MenuItem>
@@ -238,10 +281,10 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
             <Button variant="outlined" startIcon={<AddIcon />} onClick={addSpecialtyRank} disabled={!specialtySkillId}>Add Rank</Button>
           </Stack>
           {[...levelPlan.broadSkills.map((entry, index) => ({
-            key: `broad-${index}`, label: `${entry.domain === 'psionic' ? 'Psionic ' : ''}${(entry.domain === 'core' ? coreSkills : psionicSkills).find((skill) => skill.id === entry.skillId)?.name || entry.skillId} broad skill`,
+            key: `broad-${index}`, label: `${entry.domain === 'psionic' ? 'Psionic ' : entry.domain === 'fx' ? 'FX ' : ''}${broadSkillLabel(entry.domain, entry.skillId)} broad skill`,
             remove: () => updateLevel({ broadSkills: levelPlan.broadSkills.filter((_item, itemIndex) => itemIndex !== index) }),
           })), ...levelPlan.specialtySkills.map((entry, index) => ({
-            key: `specialty-${index}`, label: `${(entry.domain === 'core' ? coreSkills : psionicSkills).find((skill) => skill.id === entry.skillId)?.name || entry.skillId}${entry.specialization ? ` (${entry.specialization})` : ''}: +1 rank`,
+            key: `specialty-${index}`, label: `${specialtySkillLabel(entry.domain, entry.skillId)}${entry.specialization ? ` (${entry.specialization})` : ''}: +1 rank`,
             remove: () => updateLevel({ specialtySkills: levelPlan.specialtySkills.filter((_item, itemIndex) => itemIndex !== index) }),
           }))].map((entry) => (
             <Stack key={entry.key} direction="row" alignItems="center" justifyContent="space-between">
@@ -298,10 +341,11 @@ export function AdvancementStep({ state, validation, onChange }: AdvancementStep
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={2}>
           <Typography variant="h6">Campaign Resources</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: state.selectedSourcePackIds.includes('gmg-fx') ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)' }, gap: 2 }}>
             <TextField size="small" type="number" label="Credits Awarded" value={levelPlan.creditsAwarded} onChange={(event) => updateLevel({ creditsAwarded: Number(event.target.value) })} inputProps={{ min: 0 }} />
             <TextField size="small" type="number" label="Last Resorts Spent" value={levelPlan.lastResortPointsSpent} onChange={(event) => updateLevel({ lastResortPointsSpent: Number(event.target.value) })} inputProps={{ min: 0 }} />
             <TextField size="small" type="number" label="Last Resorts Repurchased" value={levelPlan.lastResortPointsPurchased} onChange={(event) => updateLevel({ lastResortPointsPurchased: Number(event.target.value) })} inputProps={{ min: 0 }} />
+            {state.selectedSourcePackIds.includes('gmg-fx') && <TextField size="small" type="number" label="FX Energy Purchased" value={levelPlan.fxEnergyPointsPurchased || 0} onChange={(event) => updateLevel({ fxEnergyPointsPurchased: Number(event.target.value) })} inputProps={{ min: 0 }} />}
           </Box>
           <Divider />
           <Typography variant="subtitle1" fontWeight={600}>Equipment Acquisitions</Typography>

@@ -49,6 +49,38 @@ describe('complete character validation', () => {
     expect(result.remainingSkillPoints).toBe(48);
   });
 
+  it('applies GMG FX purchases after psionics in the shared skill budget', () => {
+    const state = validHumanFreeAgent();
+    state.selectedSourcePackIds.push('gmg-fx');
+    state.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'arcane',
+      designs: [{
+        id: 'bolt',
+        name: 'Bolt of Lightning',
+        discipline: 'arcane',
+        category: 'conjure',
+        ability: 'wil',
+        description: 'A bolt of electrical energy.',
+        characteristics: [
+          { characteristicId: 'attack-type', choiceId: 'energy' },
+          { characteristicId: 'stun-damage', choiceId: '1-5' },
+          { characteristicId: 'wound-damage', choiceId: '1-5' },
+          { characteristicId: 'range', choiceId: '2-4-6-m' },
+        ],
+        trappings: { complexRitual: true, component: 'Wood shaving' },
+      }],
+      abilityPurchases: [{ designId: 'bolt', rank: 1 }],
+      faithPurchases: [],
+    };
+
+    const result = validateCharacter(state);
+
+    expect(result.fx.valid).toBe(true);
+    expect(result.fx.spentSkillPoints).toBe(20);
+    expect(result.remainingSkillPoints).toBe(40);
+  });
+
   it('requires identity, profession, funds, and a balanced mutation package when applicable', () => {
     const empty = validateCharacter(createEmptyCharacter());
     expect(empty.valid).toBe(false);

@@ -9,12 +9,14 @@ import {
   getAllWeapons,
   getCharacterRules,
   getCybergearTrainingSkillPointCost,
+  getFxRules,
   getProfessionById,
   getPsionicRules,
   getSpeciesById,
 } from './characterDataService';
 import { calculateLastResorts } from './characterCalculationService';
 import { calculateSkillListCost } from './skillPurchaseService';
+import { calculateFxAbilityDesign, calculateFxRankCost } from './fxService';
 import type {
   AbilityId,
   AdvancementBenefitPurchase,
@@ -24,6 +26,7 @@ import type {
   AdvancementPlan,
   AdvancementProfessionRule,
   AdvancementResult,
+  AdvancementSkillDomain,
   ArmorSelection,
   CharacterOptionSelection,
   CybergearSelection,
@@ -33,6 +36,7 @@ import type {
   WeaponSelection,
 } from '../types/character';
 import type { CharacterState } from '../types/characterState';
+import type { FxAbilityPurchase, FxDiscipline, FxFaithPurchase, FxQuality } from '../types/fx';
 
 export interface AdvancementBaseContext {
   effectiveAbilityScores: Record<AbilityId, number>;
@@ -67,6 +71,7 @@ export function createEmptyAdvancementLevel(level: number): AdvancementLevelPlan
     benefits: [],
     lastResortPointsSpent: 0,
     lastResortPointsPurchased: 0,
+    fxEnergyPointsPurchased: 0,
     creditsAwarded: 0,
     acquisitions: [],
     notes: '',
@@ -85,7 +90,7 @@ function normalizedSpecialization(value: string | undefined): string {
   return (value || '').trim().toLocaleLowerCase();
 }
 
-function specialtyKey(domain: 'core' | 'psionic', skillId: string, specialization?: string): string {
+function specialtyKey(domain: AdvancementSkillDomain, skillId: string, specialization?: string): string {
   return `${domain}:${skillId}:${normalizedSpecialization(specialization)}`;
 }
 
@@ -360,6 +365,7 @@ export function evaluateAdvancementPlan(
   const rules = getAdvancementRules();
   const characterRules = getCharacterRules();
   const psionicRules = getPsionicRules();
+  const fxRules = getFxRules();
   const profession = state.professionId ? getProfessionById(state.professionId) : undefined;
   const species = getSpeciesById(state.speciesId);
   const professionId = profession?.id || '';
@@ -385,6 +391,22 @@ export function evaluateAdvancementPlan(
   for (const purchase of context.psionicSpecialtySkills) {
     psionicRanks.set(specialtyKey('psionic', purchase.skillId, purchase.specialization), { ...purchase });
   }
+  let fxBroadSkill: FxDiscipline | null = state.fxPlan.broadSkill;
+  const fxAbilityRanks = new Map<string, FxAbilityPurchase>(
+    state.fxPlan.abilityPurchases.map((purchase) => [purchase.designId, { ...purchase }]),
+  );
+  const fxFaithRanks = new Map<FxQuality, FxFaithPurchase>(
+    state.fxPlan.faithPurchases.map((purchase) => [purchase.quality, { ...purchase }]),
+  );
+  const fxDesignById = new Map(state.fxPlan.designs.map((design) => [design.id, design]));
+  const fxDesignResultById = new Map(state.fxPlan.designs.map((design) => [
+    design.id,
+    calculateFxAbilityDesign(design, fxRules),
+  ]));
+  const fxTone = state.fxPlan.campaignTone
+    ? fxRules.campaignTones.find((tone) => tone.id === state.fxPlan.campaignTone)
+    : undefined;
+  let currentMaximumFxEnergy = fxBroadSkill ? fxTone?.startingEnergy || 0 : 0;
 
   const discountIds = new Set(context.skillDiscountProfessionIds);
   const genericPurchaseCounts = new Map<string, number>();
@@ -445,7 +467,7 @@ export function evaluateAdvancementPlan(
         coreBroad.add(definition.id);
         costs.push({ type: 'broad-skill', name: definition.name, cost });
         levelSpent += cost;
-      } else {
+      } else if (purchase.domain === 'psionic') {
         const definition = getAllPsionicSkills().find((entry) => entry.id === purchase.skillId);
         if (!definition || definition.kind !== 'broad') {
           errors.push(`Level ${level} references unknown psionic broad skill ${purchase.skillId}.`);
@@ -467,6 +489,25 @@ export function evaluateAdvancementPlan(
         psionicBroad.add(definition.id);
         costs.push({ type: 'broad-skill', name: definition.name, cost });
         levelSpent += cost;
+      } else {
+        const discipline = purchase.skillId as FxDiscipline;
+        const definition = fxRules.broadSkills.find((entry) => entry.discipline === discipline);
+        if (!definition) {
+          errors.push(`Level ${level} references unknown FX broad skill ${purchase.skillId}.`);
+          continue;
+        }
+        if (fxBroadSkill) {
+          errors.push(`A hero can never have more than one FX broad skill; ${fxBroadSkill} is already trained.`);
+          continue;
+        }
+        if (!fxTone) {
+          errors.push(`Level ${level} requires an FX campaign tone before purchasing ${definition.name}.`);
+          continue;
+        }
+        fxBroadSkill = discipline;
+        currentMaximumFxEnergy = fxTone.startingEnergy;
+        costs.push({ type: 'broad-skill', name: definition.name, cost: definition.cost });
+        levelSpent += definition.cost;
       }
     }
 
@@ -502,7 +543,7 @@ export function evaluateAdvancementPlan(
         coreRanks.set(key, { skillId: definition.id, rank: current + 1, specialization: purchase.specialization?.trim() || undefined });
         costs.push({ type: 'specialty-rank', name: `${definition.name} rank ${current + 1}`, cost });
         levelSpent += cost;
-      } else {
+      } else if (purchase.domain === 'psionic') {
         const definition = getAllPsionicSkills().find((entry) => entry.id === purchase.skillId);
         if (!definition || definition.kind !== 'specialty') {
           errors.push(`Level ${level} references unknown psionic specialty ${purchase.skillId}.`);
@@ -529,6 +570,75 @@ export function evaluateAdvancementPlan(
           + (state.skillRules.specialtySkillCosts === 'optional-2c' ? 0 : current);
         psionicRanks.set(key, { skillId: definition.id, rank: current + 1 });
         costs.push({ type: 'specialty-rank', name: `${definition.name} rank ${current + 1}`, cost });
+        levelSpent += cost;
+      } else if (purchase.skillId.startsWith('faith:')) {
+        const quality = purchase.skillId.slice('faith:'.length) as FxQuality;
+        const definition = fxRules.faithSpecialties.find((entry) => entry.quality === quality);
+        if (!definition) {
+          errors.push(`Level ${level} references unknown Faith specialty ${purchase.skillId}.`);
+          continue;
+        }
+        if (fxBroadSkill !== 'faith') {
+          errors.push(`${definition.name} requires the Faith FX broad skill.`);
+          continue;
+        }
+        const current = fxFaithRanks.get(quality)?.rank || 0;
+        if (current >= characterRules.maximumSpecialtyRank) {
+          errors.push(`${definition.name} already has the maximum rank of ${characterRules.maximumSpecialtyRank}.`);
+          continue;
+        }
+        const cost = calculateFxRankCost({
+          baseCost: definition.cost,
+          currentRank: current,
+          specialtySkillCostRule: state.skillRules.specialtySkillCosts,
+        });
+        fxFaithRanks.set(quality, { quality, rank: current + 1 });
+        costs.push({ type: 'specialty-rank', name: `${definition.name} rank ${current + 1}`, cost });
+        levelSpent += cost;
+      } else {
+        const design = fxDesignById.get(purchase.skillId);
+        const designResult = fxDesignResultById.get(purchase.skillId);
+        if (!design || !designResult) {
+          errors.push(`Level ${level} references unknown FX design ${purchase.skillId}.`);
+          continue;
+        }
+        if (!designResult.valid) {
+          errors.push(`${design.name} has an invalid FX design.`);
+          continue;
+        }
+        if (fxBroadSkill !== design.discipline) {
+          errors.push(`${design.name} requires the ${design.discipline} FX broad skill.`);
+          continue;
+        }
+        const current = fxAbilityRanks.get(design.id)?.rank || 0;
+        if (current >= characterRules.maximumSpecialtyRank) {
+          errors.push(`${design.name} already has the maximum rank of ${characterRules.maximumSpecialtyRank}.`);
+          continue;
+        }
+        const cost = calculateFxRankCost({
+          baseCost: designResult.purchaseCost,
+          currentRank: current,
+          specialtySkillCostRule: state.skillRules.specialtySkillCosts,
+        });
+        fxAbilityRanks.set(design.id, { designId: design.id, rank: current + 1 });
+        costs.push({ type: 'specialty-rank', name: `${design.name} rank ${current + 1}`, cost });
+        levelSpent += cost;
+      }
+    }
+
+    const fxEnergyPointsPurchased = Number(levelPlan.fxEnergyPointsPurchased) || 0;
+    if (!Number.isInteger(fxEnergyPointsPurchased) || fxEnergyPointsPurchased < 0) {
+      errors.push(`Level ${level} FX energy purchases must be a nonnegative whole number.`);
+    } else if (fxEnergyPointsPurchased > 0) {
+      if (!fxBroadSkill || !fxTone) {
+        errors.push(`Level ${level} requires an FX broad skill and campaign tone before purchasing FX energy.`);
+      } else {
+        if (currentMaximumFxEnergy + fxEnergyPointsPurchased > fxTone.maximumEnergy) {
+          errors.push(`Level ${level} FX energy exceeds the ${fxTone.name} maximum of ${fxTone.maximumEnergy}.`);
+        }
+        const cost = fxEnergyPointsPurchased * fxTone.skillPointCostPerEnergy;
+        currentMaximumFxEnergy += fxEnergyPointsPurchased;
+        costs.push({ type: 'fx-energy', name: `${fxEnergyPointsPurchased} FX energy`, cost });
         levelSpent += cost;
       }
     }
@@ -745,6 +855,11 @@ export function evaluateAdvancementPlan(
     finalCoreSpecialtySkills: Array.from(coreRanks.values()),
     finalPsionicBroadSkillIds: Array.from(psionicBroad),
     finalPsionicSpecialtySkills: Array.from(psionicRanks.values()),
+    finalFxBroadSkill: fxBroadSkill,
+    finalFxAbilityPurchases: Array.from(fxAbilityRanks.values()),
+    finalFxFaithPurchases: Array.from(fxFaithRanks.values()),
+    currentMaximumFxEnergy,
+    maximumFxEnergy: fxBroadSkill ? fxTone?.maximumEnergy || 0 : 0,
     abilityScoreBonuses,
     actionCheckBonusSteps,
     actionCheckScoreIncreases,

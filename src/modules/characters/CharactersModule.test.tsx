@@ -32,8 +32,45 @@ describe('CharactersModule', () => {
     expect(screen.getByRole('button', { name: 'New Character' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Open Character' })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Character Library/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Sources & Mods/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Rules Sources/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Character Mods/ })).toBeDisabled();
   });
+
+  it('uses official source defaults for new characters and keeps them editable', async () => {
+    const user = userEvent.setup();
+    renderModule();
+    await user.click(screen.getByRole('button', { name: /Rules Sources/ }));
+    expect(screen.getByRole('heading', { name: 'Rules Sources' })).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: /Gamemaster Guide FX/ }));
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rules Sources' })).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Character' }));
+    expect(screen.getByLabelText('FX optional incomplete')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Rules Sources' }));
+    expect(screen.getByRole('checkbox', { name: /Gamemaster Guide FX/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Player's Handbook/ })).toBeChecked();
+  });
+
+  it('confirms before disabling GMG FX when the character contains FX data', async () => {
+    const user = userEvent.setup();
+    renderBuilder();
+    await user.click(screen.getByRole('button', { name: 'Rules Sources' }));
+    await user.click(screen.getByRole('checkbox', { name: /Gamemaster Guide FX/ }));
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rules Sources' })).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'FX (Optional)' }));
+    await user.click(screen.getByRole('button', { name: /^Heroic campaign tone$/ }));
+    await user.click(screen.getByRole('button', { name: /Faith broad skill/ }));
+
+    await user.click(screen.getByRole('button', { name: 'Rules Sources' }));
+    await user.click(screen.getByRole('checkbox', { name: /Gamemaster Guide FX/ }));
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.getByRole('heading', { name: 'Disable GMG FX rules?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Disable GMG FX rules?' })).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Rules Sources' }));
+    expect(screen.getByRole('checkbox', { name: /Gamemaster Guide FX/ })).toBeChecked();
+  }, 60_000);
 
   it('reports contextual modes and protects native return-to-start navigation', async () => {
     const user = userEvent.setup();

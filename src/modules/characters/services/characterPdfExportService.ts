@@ -151,6 +151,16 @@ function renderOptions(context: PdfContext, model: CharacterSheetModel): void {
     ]));
   }
 
+  if (model.fxBroadSkill) {
+    heading(context, 'FX', 10);
+    body(context, `${model.fxBroadSkill}; ${model.fxCampaignTone} campaign; ${model.currentMaximumFxEnergy}/${model.maximumFxEnergy} FX energy.`);
+    table(context, ['Ability', 'FX Specialty', 'Quality / Rank', 'Score / Energy'], [20, 76, 44, 44], model.fxAbilities.map((ability) => [
+      ability.ability.toUpperCase(), ability.name, `${ability.quality} / ${ability.rank}`,
+      `${ability.ordinary}/${ability.good}/${ability.amazing} / ${ability.energyCost}`,
+    ]));
+    model.fxAbilities.forEach((ability) => body(context, `${ability.name}: ${ability.description}${ability.trappings ? ` | ${ability.trappings}` : ''}`));
+  }
+
   if (model.mutations.length > 0) {
     heading(context, 'Mutations', 10);
     table(context, ['Mutation', 'Details'], [90, 94], model.mutations.map((entry) => [entry.name, entry.details || '-']));

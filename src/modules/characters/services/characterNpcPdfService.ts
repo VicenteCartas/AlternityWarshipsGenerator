@@ -283,7 +283,7 @@ function drawContinuation(
   includeBackground: boolean,
 ): void {
   const hasContinuation = leftSkills.length > 0 || rightSkills.length > 0 || model.attacks.length > 4
-    || includeGear || includeBackground;
+    || includeGear || includeBackground || Boolean(model.fxBroadSkill);
   if (!hasContinuation) return;
   pdf.addPage();
   let y = continuationHeader(pdf, model, 'NPC PROFILE CONTINUED');
@@ -291,6 +291,14 @@ function drawContinuation(
     .filter((line) => line.kind === 'skill')
     .map((line) => `${line.label}${line.rank ? ` (rank ${line.rank})` : ''}: ${line.score}`);
   y = continuationSection(pdf, 'Skills Continued', skills, y);
+  if (model.fxBroadSkill) {
+    y = continuationSection(pdf, 'FX', [
+      `${model.fxBroadSkill}; ${model.fxCampaignTone}; ${model.currentMaximumFxEnergy}/${model.maximumFxEnergy} FX energy`,
+      ...model.fxAbilities.map((ability) => (
+        `${ability.name} (${ability.ability.toUpperCase()}, ${ability.quality}, rank ${ability.rank}, ${ability.ordinary}/${ability.good}/${ability.amazing}, ${ability.energyCost} FX): ${ability.description}`
+      )),
+    ], y);
+  }
   y = continuationSection(
     pdf,
     'Additional Attacks',

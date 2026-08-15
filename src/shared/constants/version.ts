@@ -3,7 +3,7 @@
  */
 
 /** Current application version */
-export const APP_VERSION = '2.0.0-beta.1';
+export const APP_VERSION = '2.0.0-beta.3';
 
 /** Application name */
 export const APP_NAME = 'Alternity Workshop';

@@ -35,11 +35,12 @@ describe('PHB character data', () => {
     }
   });
 
-  it('marks the PHB as required and accessory packs as planned', () => {
+  it('marks the PHB as required, GMG FX as implemented, and future accessories as planned', () => {
     const packs = getAllCharacterSourcePacks();
     expect(packs.find((pack) => pack.id === 'phb')).toMatchObject({ required: true, status: 'implemented' });
+    expect(packs.find((pack) => pack.id === 'gmg-fx')).toMatchObject({ required: false, status: 'implemented', sections: ['fx'] });
     expect(packs.find((pack) => pack.id === 'mindwalking')?.replaces).toContain('phb:psionics');
-    expect(packs.filter((pack) => pack.id !== 'phb').every((pack) => pack.status === 'planned')).toBe(true);
+    expect(packs.filter((pack) => !['phb', 'gmg-fx'].includes(pack.id)).every((pack) => pack.status === 'planned')).toBe(true);
   });
 });
 

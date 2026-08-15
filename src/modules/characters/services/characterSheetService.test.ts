@@ -64,6 +64,39 @@ describe('character sheet model', () => {
     expect(model.totalCarriedMass).toBe(0);
   });
 
+  it('resolves final designed FX ranks, scores, costs, and energy', () => {
+    const state = createEmptyCharacter();
+    state.selectedSourcePackIds.push('gmg-fx');
+    state.abilityScores.wil = 12;
+    state.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'arcane',
+      designs: [{
+        id: 'bolt', name: 'Bolt of Lightning', discipline: 'arcane', category: 'conjure', ability: 'wil',
+        description: 'A bolt of electrical energy.',
+        characteristics: [
+          { characteristicId: 'attack-type', choiceId: 'energy' },
+          { characteristicId: 'stun-damage', choiceId: '1-5' },
+          { characteristicId: 'wound-damage', choiceId: '1-5' },
+          { characteristicId: 'range', choiceId: '2-4-6-m' },
+        ],
+        trappings: { complexRitual: true, component: 'Wood shaving' },
+      }],
+      abilityPurchases: [{ designId: 'bolt', rank: 1 }],
+      faithPurchases: [],
+    };
+
+    const model = buildCharacterSheetModel(state, validateCharacter(state));
+
+    expect(model.fxBroadSkill).toBe('Arcane Magic');
+    expect(model.fxCampaignTone).toBe('Heroic');
+    expect(model.currentMaximumFxEnergy).toBe(10);
+    expect(model.fxAbilities).toContainEqual(expect.objectContaining({
+      name: 'Bolt of Lightning', quality: 'good', rank: 1, purchaseCost: 5,
+      energyCost: 2, ordinary: 13, good: 6, amazing: 3,
+    }));
+  });
+
   it('presents species-granted specialty ranks without duplicating purchased skills', () => {
     const state = createEmptyCharacter();
     state.speciesId = 'sesheyan';

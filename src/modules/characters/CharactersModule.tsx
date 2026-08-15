@@ -19,6 +19,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import { APP_NAME } from '@shared/constants/version';
 import { ConfirmDialog } from '@shared/components';
 import { useUndoHistory } from '@shared/hooks/useUndoHistory';
@@ -37,12 +38,14 @@ import { SpeciesStep } from './components/SpeciesStep';
 import { SkillsStep } from './components/SkillsStep';
 import { CharacterOptionsStep } from './components/CharacterOptionsStep';
 import { PsionicsStep } from './components/PsionicsStep';
+import { FxStep } from './components/FxStep';
 import { MutationsStep } from './components/MutationsStep';
 import { CybergearStep } from './components/CybergearStep';
 import { LoadoutStep } from './components/LoadoutStep';
 import { AdvancementStep } from './components/AdvancementStep';
 import { CharactersWelcome } from './components/CharactersWelcome';
 import { CharacterPdfExportDialog } from './components/CharacterPdfExportDialog';
+import { CharacterSourcesDialog } from './components/CharacterSourcesDialog';
 import { useNotification } from '@shared/hooks/useNotification';
 import { useCharacterSaveLoad } from './hooks/useCharacterSaveLoad';
 import { exportCharacterPdf, type CharacterPdfFormat } from './services/characterPdfExportService';
@@ -57,6 +60,7 @@ interface CharactersModuleProps {
 
 type PendingAction = 'new' | 'open' | 'welcome' | 'hub' | null;
 type CharacterMode = 'welcome' | 'builder';
+type SourceDialogTarget = 'new-character' | 'current-character' | null;
 
 export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }: CharactersModuleProps) {
   const [mode, setMode] = useState<CharacterMode>('welcome');
@@ -65,6 +69,9 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [pendingSkillRules, setPendingSkillRules] = useState<CharacterSkillRules | null>(null);
+  const [newCharacterSourcePackIds, setNewCharacterSourcePackIds] = useState<string[]>(['phb']);
+  const [sourceDialogTarget, setSourceDialogTarget] = useState<SourceDialogTarget>(null);
+  const [pendingSourcePackIds, setPendingSourcePackIds] = useState<string[] | null>(null);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const { snackbar, showNotification, handleCloseSnackbar } = useNotification();
   const saveLoad = useCharacterSaveLoad();
@@ -130,6 +137,23 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
     updateState({ skillRules });
   };
 
+  const applyCurrentSources = (selectedSourcePackIds: string[]) => {
+    const disablingFx = state.selectedSourcePackIds.includes('gmg-fx')
+      && !selectedSourcePackIds.includes('gmg-fx');
+    const hasFxData = state.fxPlan.campaignTone !== null
+      || state.fxPlan.broadSkill !== null
+      || Boolean(state.fxPlan.faithFocus?.trim())
+      || state.fxPlan.designs.length > 0
+      || state.fxPlan.abilityPurchases.length > 0
+      || state.fxPlan.faithPurchases.length > 0;
+    if (disablingFx && hasFxData) {
+      setPendingSourcePackIds(selectedSourcePackIds);
+      return;
+    }
+    if (disablingFx && activeStepId === 'fx') setActiveStepId('skills');
+    updateState({ selectedSourcePackIds });
+  };
+
   const selectProfession = (professionId: string) => {
     const leavingDiplomat = state.professionId === 'diplomat' && professionId !== 'diplomat';
     const psionicPlan = professionId === 'mindwalker'
@@ -159,7 +183,9 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   };
 
   const handleNew = () => {
-    adoptCharacter(createEmptyCharacter(), false);
+    const character = createEmptyCharacter();
+    character.selectedSourcePackIds = [...newCharacterSourcePackIds];
+    adoptCharacter(character, false);
     saveLoad.setCurrentFilePath(null);
   };
 
@@ -344,6 +370,8 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
             onCoreSkillPlanChange={(skillPlan) => updateState({ skillPlan })}
           />
         );
+      case 'fx':
+        return <FxStep plan={state.fxPlan} validation={validation} onChange={(fxPlan) => updateState({ fxPlan })} />;
       case 'mutations':
         return <MutationsStep speciesId={state.speciesId} plan={state.mutationPlan} validation={validation} onChange={(mutationPlan) => updateState({ mutationPlan })} />;
       case 'cybergear':
@@ -413,10 +441,38 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
         }}
         onCancel={() => setPendingSkillRules(null)}
       />
+      <ConfirmDialog
+        open={pendingSourcePackIds !== null}
+        title="Disable GMG FX rules?"
+        message="This character contains FX data. The data will be retained but remain invalid until GMG FX is enabled again."
+        confirmLabel="Disable FX Rules"
+        confirmColor="warning"
+        onConfirm={() => {
+          const selectedSourcePackIds = pendingSourcePackIds;
+          setPendingSourcePackIds(null);
+          if (selectedSourcePackIds) updateState({ selectedSourcePackIds });
+        }}
+        onCancel={() => setPendingSourcePackIds(null)}
+      />
       <CharacterPdfExportDialog
         open={pdfDialogOpen}
         onClose={() => setPdfDialogOpen(false)}
         onExport={handleExportPdf}
+      />
+      <CharacterSourcesDialog
+        key={`${sourceDialogTarget || 'closed'}:${(sourceDialogTarget === 'current-character'
+          ? state.selectedSourcePackIds
+          : newCharacterSourcePackIds).join('|')}`}
+        open={sourceDialogTarget !== null}
+        selectedSourcePackIds={sourceDialogTarget === 'current-character'
+          ? state.selectedSourcePackIds
+          : newCharacterSourcePackIds}
+        onApply={(selectedSourcePackIds) => {
+          if (sourceDialogTarget === 'current-character') applyCurrentSources(selectedSourcePackIds);
+          else setNewCharacterSourcePackIds(selectedSourcePackIds);
+          setSourceDialogTarget(null);
+        }}
+        onCancel={() => setSourceDialogTarget(null)}
       />
     </>
   );
@@ -428,6 +484,7 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
           onNewCharacter={() => requestAction('new')}
           onOpenCharacter={() => requestAction('open')}
           onOpenRecent={(filePath) => { void handleOpenPath(filePath); }}
+          onConfigureSources={() => setSourceDialogTarget('new-character')}
           onReturnToHub={() => requestAction('hub')}
         />
         {overlays}
@@ -438,9 +495,9 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" color="primary" enableColorOnDark>
-        <Toolbar>
+        <Toolbar sx={{ minWidth: 0, overflowX: 'auto', px: { xs: 0.5, sm: 2 }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
           <Tooltip title="Back to Character Creator"><IconButton color="inherit" onClick={() => requestAction('welcome')} aria-label="Back to Character Creator"><ArrowBackIcon /></IconButton></Tooltip>
-          <Typography variant="h6" sx={{ ml: 1, flexGrow: 1 }}>{APP_NAME} - Character Creator</Typography>
+          <Typography variant="h6" sx={{ ml: 1, flexGrow: 1, whiteSpace: 'nowrap', display: { xs: 'none', sm: 'block' } }}>{APP_NAME} - Character Creator</Typography>
           <Tooltip title="Undo"><span><IconButton color="inherit" onClick={handleUndo} disabled={!canUndo} aria-label="Undo"><UndoIcon /></IconButton></span></Tooltip>
           <Tooltip title="Redo"><span><IconButton color="inherit" onClick={handleRedo} disabled={!canRedo} aria-label="Redo"><RedoIcon /></IconButton></span></Tooltip>
           <Tooltip title="New Character"><IconButton color="inherit" onClick={() => requestAction('new')} aria-label="New Character"><AddIcon /></IconButton></Tooltip>
@@ -448,6 +505,7 @@ export function CharactersModule({ themeMode, onThemeModeChange, onReturnToHub }
           <Tooltip title={hasUnsavedChanges ? 'Save Character (unsaved changes)' : 'Save Character'}><IconButton color="inherit" onClick={() => handleSave(false)} aria-label="Save Character"><SaveIcon /></IconButton></Tooltip>
           <Tooltip title="Save Character As"><IconButton color="inherit" onClick={() => handleSave(true)} aria-label="Save Character As"><SaveAsIcon /></IconButton></Tooltip>
           <Tooltip title="Export Character PDF"><IconButton color="inherit" onClick={() => setPdfDialogOpen(true)} aria-label="Export Character PDF"><PictureAsPdfIcon /></IconButton></Tooltip>
+          <Tooltip title="Rules Sources"><IconButton color="inherit" onClick={() => setSourceDialogTarget('current-character')} aria-label="Rules Sources"><MenuBookOutlinedIcon /></IconButton></Tooltip>
           <Tooltip title="Cycle theme">
             <IconButton color="inherit" onClick={cycleTheme} aria-label="Cycle theme">
               {themeMode === 'dark' ? <DarkModeIcon /> : themeMode === 'light' ? <LightModeIcon /> : <SettingsBrightnessIcon />}

@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 
 // App version - keep in sync with src/shared/constants/version.ts
-const APP_VERSION = '2.0.0-beta.1';
+const APP_VERSION = '2.0.0-beta.3';
 const APP_NAME = 'Alternity Workshop';
 
 let mainWindow: BrowserWindow | null = null;
@@ -843,6 +843,32 @@ ipcMain.handle('show-ordnance-open-dialog', async () => {
   });
   
   return result;
+});
+
+ipcMain.handle('show-fx-ability-save-dialog', async (_event, defaultFileName: string) => {
+  if (!mainWindow) return { canceled: true };
+  return dialog.showSaveDialog(mainWindow, {
+    title: 'Export FX Abilities',
+    defaultPath: defaultFileName,
+    filters: [
+      { name: 'FX Ability Files', extensions: ['fx-ability.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+});
+
+ipcMain.handle('show-fx-ability-open-dialog', async () => {
+  if (!mainWindow) return { canceled: true, filePaths: [] };
+  return dialog.showOpenDialog(mainWindow, {
+    title: 'Import FX Abilities',
+    filters: [
+      { name: 'FX Ability Files', extensions: ['fx-ability.json'] },
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
 });
 
 ipcMain.handle('save-file', async (_event, filePath: string, content: string) => {

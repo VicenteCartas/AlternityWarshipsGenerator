@@ -590,7 +590,7 @@ export interface CharacterDerivedStats {
   strengthDamageAdjustment: number;
 }
 
-export type AdvancementSkillDomain = 'core' | 'psionic';
+export type AdvancementSkillDomain = 'core' | 'psionic' | 'fx';
 export type AdvancementAcquisitionKind = 'equipment' | 'weapon' | 'armor' | 'cybergear';
 export type AdvancementAcquisitionMethod = 'purchased' | 'granted';
 export type AdvancementBenefitType =
@@ -645,6 +645,7 @@ export interface AdvancementLevelPlan {
   benefits: AdvancementBenefitPurchase[];
   lastResortPointsSpent: number;
   lastResortPointsPurchased: number;
+  fxEnergyPointsPurchased?: number;
   creditsAwarded: number;
   acquisitions: AdvancementEquipmentAcquisition[];
   notes: string;
@@ -655,7 +656,7 @@ export interface AdvancementPlan {
 }
 
 export interface AdvancementCostLine {
-  type: 'broad-skill' | 'specialty-rank' | 'benefit' | 'last-resort' | 'cyber-training';
+  type: 'broad-skill' | 'specialty-rank' | 'benefit' | 'last-resort' | 'cyber-training' | 'fx-energy';
   name: string;
   cost: number;
 }
@@ -686,6 +687,11 @@ export interface AdvancementResult {
   finalCoreSpecialtySkills: SpecialtySkillPurchase[];
   finalPsionicBroadSkillIds: string[];
   finalPsionicSpecialtySkills: SpecialtySkillPurchase[];
+  finalFxBroadSkill: import('./fx').FxDiscipline | null;
+  finalFxAbilityPurchases: import('./fx').FxAbilityPurchase[];
+  finalFxFaithPurchases: import('./fx').FxFaithPurchase[];
+  currentMaximumFxEnergy: number;
+  maximumFxEnergy: number;
   abilityScoreBonuses: Partial<Record<AbilityId, number>>;
   actionCheckBonusSteps: number;
   actionCheckScoreIncreases: number;

@@ -14,6 +14,7 @@ import psionicsData from '../data/psionics.json';
 import sourcePacksData from '../data/sourcePacks.json';
 import speciesData from '../data/species.json';
 import skillsData from '../data/skills.json';
+import fxRulesData from '../data/fxRules.json';
 import type {
   AbilityId,
   AdvancementRules,
@@ -32,6 +33,7 @@ import type {
   SpeciesDefinition,
   WeaponDefinition,
 } from '../types/character';
+import type { FxRules } from '../types/fx';
 import type { CharacterSourcePackDefinition } from '../types/sourcePack';
 
 const rules = rulesData as unknown as CharacterRules;
@@ -64,9 +66,14 @@ const psionicRules = psionicsData.rules as unknown as PsionicRules;
 const psionicSkills = psionicsData.skills as unknown as PsionicSkillDefinition[];
 const weapons = weaponsData.weapons as unknown as WeaponDefinition[];
 const armor = armorData.armor as unknown as ArmorDefinition[];
+const fxRules = fxRulesData as unknown as FxRules;
 
 export function getCharacterRules(): CharacterRules {
   return rules;
+}
+
+export function getFxRules(): FxRules {
+  return fxRules;
 }
 
 export function getAdvancementRules(): AdvancementRules {

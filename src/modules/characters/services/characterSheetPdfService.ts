@@ -288,6 +288,32 @@ function drawSupplementalPage(pdf: jsPDF, model: CharacterSheetModel): void {
   field(pdf, 'Rules / Background / Notes', narrative, 12, 242, 188, 2);
 }
 
+function drawFxPages(pdf: jsPDF, model: CharacterSheetModel): void {
+  const rowsPerPage = 30;
+  const abilities = model.fxAbilities.length > 0 ? model.fxAbilities : [null];
+  for (let offset = 0; offset < abilities.length; offset += rowsPerPage) {
+    pdf.addPage();
+    title(pdf, model, offset === 0 ? 'FX Abilities' : 'FX Abilities Continued');
+    if (offset === 0) {
+      field(pdf, 'Broad Skill / Campaign', `${model.fxBroadSkill} / ${model.fxCampaignTone}`, 12, 24, 120);
+      field(pdf, 'FX Energy', `${model.currentMaximumFxEnergy}/${model.maximumFxEnergy}`, 150, 24, 50);
+    }
+    const pageAbilities = abilities.slice(offset, offset + rowsPerPage);
+    panel(pdf, 9, 34, 198, 225, 'FX Specialties');
+    pageAbilities.forEach((ability, index) => {
+      if (!ability) return;
+      const rowY = 45 + index * 7;
+      setText(pdf, 7, true);
+      drawFittedText(pdf, ability.name, 12, rowY, 72);
+      setText(pdf, 6.2);
+      pdf.text(`${ability.ability.toUpperCase()} ${ability.quality} R${ability.rank}`, 88, rowY);
+      pdf.text(`${ability.ordinary}/${ability.good}/${ability.amazing}`, 142, rowY);
+      pdf.text(`${ability.energyCost} FX`, 199, rowY, { align: 'right' });
+      drawFittedText(pdf, `${ability.description}${ability.trappings ? ` | ${ability.trappings}` : ''}`, 12, rowY + 3.2, 187);
+    });
+  }
+}
+
 function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void {
   const attacks = model.attacks.slice(7);
   const rowsPerPage = 40;
@@ -412,6 +438,7 @@ export function createPrintableCharacterSheetPdf(
     drawSkillContinuationPages(pdf, model, model.psionicSkills.slice(20), 'Psionics Continued');
     drawMutationContinuationPages(pdf, model);
   }
+  if (model.fxBroadSkill) drawFxPages(pdf, model);
   const pages = pdf.getNumberOfPages();
   for (let page = 1; page <= pages; page += 1) {
     pdf.setPage(page);

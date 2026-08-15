@@ -23,6 +23,11 @@ describe('CharacterSummary', () => {
     state.skillPlan.purchasedBroadSkillIds = ['stealth'];
     state.skillPlan.specialtySkills = [{ skillId: 'sneak', rank: 1 }];
     state.skillRules.specialtySkillCosts = 'optional-2c';
+    state.selectedSourcePackIds.push('gmg-fx');
+    state.fxPlan = {
+      campaignTone: 'heroic', broadSkill: 'faith', designs: [], abilityPurchases: [],
+      faithPurchases: [{ quality: 'ordinary', rank: 1 }],
+    };
     state.startingFundsDieRolls = [8, 7, 6, 5, 4];
     state.weaponSelections = [{ weaponId: 'combat-knife', quantity: 1, spareClips: 0 }];
     state.armorSelections = [{ armorId: 'battle-jacket', quantity: 1 }];
@@ -43,6 +48,11 @@ describe('CharacterSummary', () => {
     expect(screen.getByText('Sneak')).toBeInTheDocument();
     expect(screen.getByText('Starting Skills: Standard PHB')).toBeInTheDocument();
     expect(screen.getByText('Specialty Costs: Official Optional Rule 2C')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'FX' }));
+    expect(screen.getByText('Faith')).toBeInTheDocument();
+    expect(screen.getByText('Ordinary-quality miracles')).toBeInTheDocument();
+    expect(screen.getByText('10/20 FX energy')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Combat' }));
     expect(screen.getByText('Combat knife')).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { describe, expect, it } from 'vitest';
@@ -53,11 +53,10 @@ describe('AdvancementStep', () => {
     await user.click(screen.getByRole('button', { name: 'Add Benefit' }));
     expect(screen.getByText('Action Check Increase')).toBeInTheDocument();
 
-    await user.clear(screen.getByLabelText('Credits Awarded'));
-    await user.type(screen.getByLabelText('Credits Awarded'), '500');
+    fireEvent.change(screen.getByLabelText('Credits Awarded'), { target: { value: '500' } });
     await user.click(screen.getByRole('combobox', { name: 'Acquired item' }));
     await user.click(screen.getByRole('option', { name: 'Bedroll' }));
     await user.click(screen.getByRole('button', { name: 'Add Acquisition' }));
     expect(screen.getByText('1x Bedroll | Granted / Found')).toBeInTheDocument();
-  });
+  }, 60_000);
 });

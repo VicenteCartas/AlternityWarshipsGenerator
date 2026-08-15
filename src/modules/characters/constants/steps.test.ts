@@ -33,4 +33,17 @@ describe('Character Creator steps', () => {
     state.skillPlan.additionalDiscountProfessionIds = ['mindwalker'];
     expect(required('psionics', state)).toBe(true);
   });
+
+  it('shows FX only when the GMG source is enabled or FX data remains', () => {
+    const state = createEmptyCharacter();
+    expect(getCharacterSteps(state).some((step) => step.id === 'fx')).toBe(false);
+    state.selectedSourcePackIds.push('gmg-fx');
+    expect(getCharacterSteps(state).find((step) => step.id === 'fx')).toMatchObject({ required: false });
+    state.selectedSourcePackIds = ['phb'];
+    state.fxPlan.designs.push({
+      id: 'saved-fx', name: 'Saved FX', discipline: 'arcane', category: 'augur', ability: 'wil',
+      description: 'Saved design', characteristics: [{ characteristicId: 'knowledge', choiceId: 'cost-3' }], trappings: {},
+    });
+    expect(getCharacterSteps(state).some((step) => step.id === 'fx')).toBe(true);
+  });
 });

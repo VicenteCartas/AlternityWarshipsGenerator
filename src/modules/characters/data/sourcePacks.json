@@ -11,6 +11,16 @@
       "sections": ["core", "mutations", "psionics", "cybertech"]
     },
     {
+      "id": "gmg-fx",
+      "name": "Gamemaster Guide FX",
+      "version": "1.0",
+      "required": false,
+      "status": "implemented",
+      "dependsOn": ["phb"],
+      "replaces": [],
+      "sections": ["fx"]
+    },
+    {
       "id": "mindwalking",
       "name": "Mindwalking: A Guide to Psionics",
       "version": "1.0",

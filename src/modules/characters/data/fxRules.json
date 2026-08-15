@@ -1,0 +1,102 @@
+{
+  "broadSkills": [
+    { "discipline": "arcane", "name": "Arcane Magic", "sourcePackId": "gmg-fx", "cost": 15 },
+    { "discipline": "faith", "name": "Faith", "sourcePackId": "gmg-fx", "cost": 18 },
+    { "discipline": "super-power", "name": "Super Power", "sourcePackId": "gmg-fx", "cost": 12 }
+  ],
+  "faithSpecialties": [
+    { "quality": "ordinary", "name": "Ordinary-quality miracles", "sourcePackId": "gmg-fx", "cost": 5 },
+    { "quality": "good", "name": "Good-quality miracles", "sourcePackId": "gmg-fx", "cost": 10 },
+    { "quality": "amazing", "name": "Amazing-quality miracles", "sourcePackId": "gmg-fx", "cost": 15 }
+  ],
+  "campaignTones": [
+    { "id": "realistic", "name": "Realistic", "startingEnergy": 5, "maximumEnergy": 10, "skillPointCostPerEnergy": 20 },
+    { "id": "heroic", "name": "Heroic", "startingEnergy": 10, "maximumEnergy": 20, "skillPointCostPerEnergy": 10 },
+    { "id": "super-heroic", "name": "Super Heroic", "startingEnergy": 15, "maximumEnergy": 30, "skillPointCostPerEnergy": 5 }
+  ],
+  "characteristics": [
+    { "id": "ability-score-boost", "label": "Ability Score boost", "choices": [
+      { "id": "plus-1", "label": "+1", "cost": 5 },
+      { "id": "plus-3", "label": "+3", "cost": 10 },
+      { "id": "plus-5", "label": "+5", "cost": 15 }
+    ] },
+    { "id": "bonus-steps", "label": "Bonus steps", "choices": [
+      { "id": "minus-1", "label": "-1 step", "cost": 3 },
+      { "id": "minus-2", "label": "-2 steps", "cost": 5 },
+      { "id": "minus-3", "label": "-3 steps", "cost": 7 }
+    ] },
+    { "id": "penalty-steps", "label": "Penalty steps", "choices": [
+      { "id": "plus-1", "label": "+1 step", "cost": 3 },
+      { "id": "plus-2", "label": "+2 steps", "cost": 5 },
+      { "id": "plus-3", "label": "+3 steps", "cost": 7 }
+    ] },
+    { "id": "bonus-damage", "label": "Bonus to damage", "choices": [
+      { "id": "plus-1", "label": "+1 point", "cost": 2 },
+      { "id": "plus-2", "label": "+2 points", "cost": 4 },
+      { "id": "plus-3", "label": "+3 points", "cost": 6 }
+    ] },
+    { "id": "combat-movement", "label": "Bonus to combat movement", "choices": [
+      { "id": "cost-5", "label": "5-point effect", "cost": 5 },
+      { "id": "cost-10", "label": "10-point effect", "cost": 10 },
+      { "id": "cost-15", "label": "15-point effect", "cost": 15 }
+    ] },
+    { "id": "fatigue-damage", "label": "Fatigue damage", "choices": [
+      { "id": "1-4", "label": "1-4 points", "cost": 8 }
+    ] },
+    { "id": "stun-damage", "label": "Stun damage", "choices": [
+      { "id": "1-5", "label": "1-5 points", "cost": 1 },
+      { "id": "6-10", "label": "6-10 points", "cost": 2 },
+      { "id": "11-15", "label": "11-15 points", "cost": 4 }
+    ] },
+    { "id": "wound-damage", "label": "Wound damage", "choices": [
+      { "id": "1-5", "label": "1-5 points", "cost": 2 },
+      { "id": "6-10", "label": "6-10 points", "cost": 4 },
+      { "id": "11-15", "label": "11-15 points", "cost": 6 }
+    ] },
+    { "id": "mortal-damage", "label": "Mortal damage", "choices": [
+      { "id": "1-2", "label": "1-2 points", "cost": 8 },
+      { "id": "3-5", "label": "3-5 points", "cost": 10 }
+    ] },
+    { "id": "damage-quality", "label": "Damage quality", "choices": [
+      { "id": "ordinary", "label": "Ordinary", "cost": 0 },
+      { "id": "good", "label": "Good", "cost": 3 },
+      { "id": "amazing", "label": "Amazing", "cost": 6 }
+    ] },
+    { "id": "attack-type", "label": "Attack type", "choices": [
+      { "id": "low-impact", "label": "Low impact (LI)", "cost": 1 },
+      { "id": "high-impact", "label": "High impact (HI)", "cost": 2 },
+      { "id": "energy", "label": "Energy (En)", "cost": 3 }
+    ] },
+    { "id": "duration", "label": "Duration", "choices": [
+      { "id": "instant", "label": "Instant", "cost": 0 },
+      { "id": "1-unit", "label": "1 time unit", "cost": 2 },
+      { "id": "2-units", "label": "2 time units", "cost": 4 },
+      { "id": "3-units", "label": "3 time units", "cost": 6 }
+    ] },
+    { "id": "special-movement", "label": "Flight or other special movement", "choices": [
+      { "id": "enabled", "label": "Enabled", "cost": 6 }
+    ] },
+    { "id": "knowledge", "label": "Knowledge", "choices": [
+      { "id": "cost-3", "label": "3-point knowledge effect", "cost": 3 },
+      { "id": "cost-6", "label": "6-point knowledge effect", "cost": 6 },
+      { "id": "cost-9", "label": "9-point knowledge effect", "cost": 9 }
+    ] },
+    { "id": "range", "label": "Range", "choices": [
+      { "id": "personal", "label": "Personal", "cost": 0 },
+      { "id": "2-4-6-m", "label": "2/4/6 meters", "cost": 2 },
+      { "id": "10-20-30-m", "label": "10/20/30 meters", "cost": 4 },
+      { "id": "100-200-300-m", "label": "100/200/300 meters", "cost": 6 },
+      { "id": "1-2-3-km", "label": "1/2/3 kilometers", "cost": 8 }
+    ] },
+    { "id": "travel", "label": "Travel", "choices": [
+      { "id": "1-km", "label": "1 kilometer", "cost": 4 },
+      { "id": "10-km", "label": "10 kilometers", "cost": 8 },
+      { "id": "100-km", "label": "100 kilometers", "cost": 12 }
+    ] }
+  ],
+  "energyCosts": {
+    "arcane": { "criticalFailure": 4, "failure": 3, "ordinary": 1, "good": 2, "amazing": 3 },
+    "faith": { "criticalFailure": 5, "failure": 2, "ordinary": 2, "good": 4, "amazing": 6 },
+    "super-power": { "criticalFailure": 3, "failure": 2, "ordinary": 1, "good": 1, "amazing": 1 }
+  }
+}

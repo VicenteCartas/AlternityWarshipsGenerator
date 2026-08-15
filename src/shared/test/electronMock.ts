@@ -123,6 +123,8 @@ export function createMockElectronAPI() {
     // Ordnance export/import
     showOrdnanceSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
     showOrdnanceOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+    showFxAbilitySaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
+    showFxAbilityOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
 
     // Battle save/load, library & auto-save
     showBattleSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),

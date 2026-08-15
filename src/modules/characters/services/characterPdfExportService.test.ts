@@ -61,6 +61,28 @@ describe('character PDF export', () => {
     expect(pdf.output()).toContain('ACTION CHECK SCORE');
   });
 
+  it('adds FX to compact NPC and printable character exports', () => {
+    const state = createEmptyCharacter();
+    state.identity.heroName = 'Miracle Worker';
+    state.selectedSourcePackIds.push('gmg-fx');
+    state.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'faith',
+      faithFocus: 'Silver sunburst',
+      designs: [],
+      abilityPurchases: [],
+      faithPurchases: [{ quality: 'ordinary', rank: 1 }],
+    };
+    const validation = validateCharacter(state);
+    const npc = createNpcCharacterPdf(state, validation);
+    const printable = createPrintableCharacterSheetPdf(state, validation);
+
+    expect(npc.getNumberOfPages()).toBe(2);
+    expect(npc.output()).toContain('Ordinary-quality miracles');
+    expect(printable.getNumberOfPages()).toBe(3);
+    expect(printable.output()).toContain('FX Abilities');
+  });
+
   it('asks where to save a desktop export and writes the chosen path', async () => {
     const electron = installMockElectronAPI();
     electron.api.showPdfSaveDialog = vi.fn().mockResolvedValue({

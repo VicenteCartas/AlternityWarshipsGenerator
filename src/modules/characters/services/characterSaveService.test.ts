@@ -81,6 +81,42 @@ describe('character save files', () => {
     expect(result.character?.skillRules).toEqual(original.skillRules);
   });
 
+  it('round-trips GMG FX designs and purchases', () => {
+    const original = sampleCharacter();
+    original.selectedSourcePackIds.push('gmg-fx');
+    original.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'faith',
+      designs: [],
+      abilityPurchases: [],
+      faithPurchases: [{ quality: 'good', rank: 2 }],
+    };
+
+    const parsed = jsonToCharacterSaveFile(characterSaveFileToJson(serializeCharacter(original)));
+    const result = deserializeCharacter(parsed!);
+
+    expect(result.character?.fxPlan).toEqual(original.fxPlan);
+  });
+
+  it('skips malformed nested FX records without making the character unloadable', () => {
+    const file = serializeCharacter(sampleCharacter());
+    file.character.fxPlan = {
+      campaignTone: 'heroic',
+      broadSkill: 'arcane',
+      designs: [{} as never],
+      abilityPurchases: [{ designId: 'missing', rank: Number.NaN }],
+      faithPurchases: [{ quality: 'wrong' as never, rank: 1 }],
+    };
+
+    const result = deserializeCharacter(file);
+
+    expect(result.success).toBe(true);
+    expect(result.character?.fxPlan.designs).toEqual([]);
+    expect(result.character?.fxPlan.abilityPurchases).toEqual([]);
+    expect(result.character?.fxPlan.faithPurchases).toEqual([]);
+    expect(result.warnings).toContain('Invalid FX designs or purchases were skipped while loading.');
+  });
+
   it('round-trips target level and advancement transactions', () => {
     const original = sampleCharacter();
     original.level = 3;

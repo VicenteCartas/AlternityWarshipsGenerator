@@ -1,6 +1,16 @@
 # Changelog
 
-## [2.0.0-beta.1] - 2026-07-29
+## [2.0.0-beta.3] - 2026-08-06
+
+### Added
+
+- **GMG FX character support:** Added official Rules Sources selection and the complete optional FX framework from GMG pp. 224-229. Characters can purchase Arcane Magic, Faith, or Super Power; choose an explicit Realistic, Heroic, or Super Heroic energy profile; build Arcane and Super Power specialties from the Table G71 characteristics and discipline-specific trappings; purchase fixed Faith miracle skills; advance FX ranks and energy; and import or export reusable `.fx-ability.json` blueprints. The builder reproduces all seven published design examples, shares the normal skill-point and broad-skill budgets, honors Optional Rule 2C, preserves FX in character saves, and includes final FX scores, energy, effects, and trappings in Summary and every PDF format.
+
+### Changed
+
+- **Star Sector Generator review:** Improved map geometry and ownership synchronization, scale-aware route density, responsive editor controls, selected-system inspection, detailed star-system generation, compact expandable Systems/Factions/Spatial Features tables, and clearer generation, lock, legend, and export behavior.
+
+## [2.0.0-beta.1] - 2026-08-06
 
 ### Added
 
@@ -61,9 +71,7 @@
 
 ### Changed
 
-- **Star Sector presentation and controls:** Corrected the hex orientation so adjacent cells share their edges, increased unclaimed-grid visibility, completed the marker legend and hover details, placed selected-system information beside the map at desktop widths, separated new-seed generation from deterministic regeneration, and synchronized system ownership with projected faction borders. Manual assignments now appear as visible one-hex enclaves; unclaimed ruins, anomalies, and unexplored sites remain valid exceptions. Route range now scales with map diameter, preventing Province maps from inheriting the Cluster range and becoming over-connected. Factions now precede Systems, Spatial Features has its own tab, faction locks are visibly labeled, and the selected-system panel distinguishes rerolling the map entry from generating a stored detailed star system. Generated details now open immediately in a stars-and-planets dialog and appear as Detailed status rows in the Systems tab. Systems, factions, and spatial features now share compact summary rows with consistently aligned expand controls; coordinates and other short values remain visible, while longer faction fields and feature descriptions use expandable inline editors. Route rebuilding explicitly states that detailed systems are preserved.
 - **Embarked craft capacity:** Hangars and docking clamps now count only a carried craft's base hull points, excluding economy-of-scale bonus hull points as required by *Warships*. The library and full-design picker use base hull values, and legacy carrier saves are corrected on load when their stored craft hull can be resolved.
-
 - **Mod manifests gained a `module` field** (`"warships"` or `"battles"`). Mods without it are treated as warships mods, so existing mods keep working unchanged.
 - Game data files are now resolved per module. Warships data stays at the root of the data folder; battles data lives in a `battles` subfolder alongside it.
 - **The File menu is now built per module.** Inside Battle Resolution it offers New Battle, Open Battle, Battle Library, Save Battle, Save Battle As and Export Battle Report, on the same shortcuts the Warships module uses for designs.

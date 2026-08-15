@@ -12,11 +12,13 @@ import {
   getAllSkills,
   getAllWeapons,
   getCharacterRules,
+  getFxRules,
   getCybergearTrainingSkillPointCost,
   getProfessionById,
   getPsionicRules,
   getSpeciesById,
 } from './characterDataService';
+import { evaluateFxPlan } from './fxService';
 import { evaluateCharacterOptions } from './characterOptionService';
 import { evaluateCombatGear } from './combatGearService';
 import { resolveCharacterSourcePacks } from './characterSourcePackService';
@@ -237,6 +239,18 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     rules.startingSpecialtyRankLimit,
     state.skillRules.specialtySkillCosts,
   );
+  const fx = evaluateFxPlan(
+    state.fxPlan,
+    {
+      remainingSkillPoints: psionics.remainingSkillPoints,
+      purchasedBroadSkillCount: skills.purchasedBroadSkillCount + psionics.purchasedBroadSkillCount,
+      maxPurchasedBroadSkills: skills.maxPurchasedBroadSkills,
+    },
+    getFxRules(),
+    rules.startingSpecialtyRankLimit,
+    state.skillRules.specialtySkillCosts,
+    (sourcePacks.activeSourcePackIdsBySection.fx || []).length > 0,
+  );
   const cybertechEnabled = (sourcePacks.activeSourcePackIdsBySection.cybertech || []).length > 0;
   const cybergear = evaluateCybergear(
     state.cybergearSelections,
@@ -251,7 +265,7 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     options.effectiveAbilityScores,
     cybergear.abilityAdjustments,
   );
-  const remainingSkillPoints = psionics.remainingSkillPoints - cybergear.trainingSkillPointCost;
+  const remainingSkillPoints = fx.remainingSkillPoints - cybergear.trainingSkillPointCost;
   const skillIntegrationErrors = remainingSkillPoints < 0
     ? [`Cybergear training exceeds the remaining skill points by ${Math.abs(remainingSkillPoints)}.`]
     : [];
@@ -410,6 +424,7 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     ...options.errors,
     ...skills.errors,
     ...psionics.errors,
+    ...fx.errors,
     ...cybergear.errors,
     ...skillIntegrationErrors,
     ...startingFunds.errors,
@@ -431,6 +446,7 @@ export function validateCharacter(state: CharacterState): CharacterValidationRes
     options,
     skills,
     psionics: finalPsionics,
+    fx,
     cybergear,
     startingFunds,
     equipment,

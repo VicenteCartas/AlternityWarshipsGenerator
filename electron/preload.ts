@@ -119,6 +119,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOrdnanceOpenDialog: () =>
     ipcRenderer.invoke('show-ordnance-open-dialog'),
 
+  // FX ability export/import file dialogs
+  showFxAbilitySaveDialog: (defaultFileName: string) =>
+    ipcRenderer.invoke('show-fx-ability-save-dialog', defaultFileName),
+  showFxAbilityOpenDialog: () =>
+    ipcRenderer.invoke('show-fx-ability-open-dialog'),
+
   // Battle save/load file dialogs
   showBattleSaveDialog: (defaultFileName: string, defaultDirectory?: string) =>
     ipcRenderer.invoke('show-battle-save-dialog', defaultFileName, defaultDirectory),
