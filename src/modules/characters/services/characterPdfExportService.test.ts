@@ -33,17 +33,17 @@ describe('character PDF export', () => {
     expect(getCharacterPdfFileName('Jordan / Kade', 'npc')).toBe('Jordan___Kade_npc_profile.pdf');
   });
 
-  it('creates a two-page printable sheet plus a supplemental page when needed', () => {
+  it('creates a three-page printable sheet plus a supplemental page when needed', () => {
     const state = createEmptyCharacter();
     state.identity.heroName = 'Jordan Kade';
     state.skillPlan.nativeLanguage = 'English';
     let validation = validateCharacter(state);
-    expect(createPrintableCharacterSheetPdf(state, validation).getNumberOfPages()).toBe(2);
+    expect(createPrintableCharacterSheetPdf(state, validation).getNumberOfPages()).toBe(3);
 
     state.cybergearSelections = [{ gearId: 'bioart', quality: 'ordinary', quantity: 1 }];
     validation = validateCharacter(state);
     const supplemental = createPrintableCharacterSheetPdf(state, validation);
-    expect(supplemental.getNumberOfPages()).toBe(3);
+    expect(supplemental.getNumberOfPages()).toBe(4);
     expect(supplemental.output('arraybuffer').byteLength).toBeGreaterThan(8000);
   });
 
@@ -57,7 +57,7 @@ describe('character PDF export', () => {
 
     expect(pdf.getNumberOfPages()).toBe(1);
     expect(pdf.output('arraybuffer').byteLength).toBeGreaterThan(4000);
-    expect(pdf.output()).toContain('NPC PROFILE');
+    expect(pdf.output()).toContain('Jordan Kade');
     expect(pdf.output()).toContain('ACTION CHECK SCORE');
   });
 
@@ -77,10 +77,10 @@ describe('character PDF export', () => {
     const npc = createNpcCharacterPdf(state, validation);
     const printable = createPrintableCharacterSheetPdf(state, validation);
 
-    expect(npc.getNumberOfPages()).toBe(2);
+    expect(npc.getNumberOfPages()).toBe(1);
     expect(npc.output()).toContain('Ordinary-quality miracles');
-    expect(printable.getNumberOfPages()).toBe(3);
-    expect(printable.output()).toContain('FX Abilities');
+    expect(printable.getNumberOfPages()).toBe(4);
+    expect(printable.output()).toContain('Ordinary-quality miracles');
   });
 
   it('asks where to save a desktop export and writes the chosen path', async () => {
@@ -148,7 +148,7 @@ describe('character PDF export', () => {
     ];
     const validation = validateCharacter(state);
 
-    expect(createPrintableCharacterSheetPdf(state, validation).getNumberOfPages()).toBe(3);
+    expect(createPrintableCharacterSheetPdf(state, validation).getNumberOfPages()).toBe(4);
     expect(createCharacterPdf(state, validation).getNumberOfPages()).toBeGreaterThanOrEqual(5);
   });
 });

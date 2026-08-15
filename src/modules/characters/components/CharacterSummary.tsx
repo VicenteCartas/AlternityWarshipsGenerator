@@ -143,12 +143,12 @@ export function CharacterSummary({ state, validation }: CharacterSummaryProps) {
       {tab === 'combat' && (
         <Stack spacing={3}>
           <Section title="Attacks"><TableContainer sx={scrollableTableContainerSx}><Table size="small">
-            <TableHead><TableRow><TableCell>Attack</TableCell><TableCell>Skill</TableCell><TableCell>Score</TableCell><TableCell>Qty</TableCell><TableCell>Clips</TableCell><TableCell>Acc</TableCell><TableCell>Actions</TableCell><TableCell>Mode</TableCell><TableCell>Range</TableCell><TableCell>Damage</TableCell></TableRow></TableHead>
+            <TableHead><TableRow><TableCell>Attack</TableCell><TableCell>Skill</TableCell><TableCell>Score</TableCell><TableCell>Qty</TableCell><TableCell>Clips</TableCell><TableCell>Acc</TableCell><TableCell>Actions</TableCell><TableCell>Mode</TableCell><TableCell>Range</TableCell><TableCell>Type</TableCell><TableCell>Damage</TableCell></TableRow></TableHead>
             <TableBody>{model.attacks.map((attack, index) => <TableRow key={`${attack.name}-${index}`}>
               <TableCell>{attack.name}</TableCell><TableCell>{attack.skill}</TableCell>
               <TableCell>{attack.score ? `${attack.score.ordinary}/${attack.score.good}/${attack.score.amazing}` : '-'}</TableCell>
               <TableCell>{attack.quantity}</TableCell><TableCell>{attack.clips}</TableCell>
-              <TableCell>{attack.accuracy}</TableCell><TableCell>{attack.actions}</TableCell><TableCell>{attack.mode}</TableCell><TableCell>{attack.range}</TableCell><TableCell>{attack.damage}</TableCell>
+              <TableCell>{attack.accuracy}</TableCell><TableCell>{attack.actions}</TableCell><TableCell>{attack.mode}</TableCell><TableCell>{attack.range}</TableCell><TableCell>{attack.damageType}</TableCell><TableCell>{attack.damage}</TableCell>
             </TableRow>)}</TableBody>
           </Table></TableContainer></Section>
           <Section title="Armor"><TableContainer sx={scrollableTableContainerSx}><Table size="small">

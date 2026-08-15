@@ -45,6 +45,7 @@ export interface CharacterSheetAttack {
   actions: string;
   mode: string;
   range: string;
+  damageType: string;
   damage: string;
   quantity: number;
   clips: number;
@@ -127,6 +128,8 @@ export interface CharacterSheetModel {
   notes: string;
   abilities: CharacterSheetAbility[];
   skills: CharacterSheetSkill[];
+  skillGroups: CharacterSheetSkillGroup[];
+  fullSkillCatalog: CharacterSheetSkillGroup[];
   attacks: CharacterSheetAttack[];
   armor: CharacterSheetArmor[];
   equipment: CharacterSheetItem[];
@@ -136,6 +139,7 @@ export interface CharacterSheetModel {
   flaws: CharacterSheetNamedDetail[];
   mutations: CharacterSheetNamedDetail[];
   psionicSkills: CharacterSheetSkill[];
+  psionicSkillGroups: CharacterSheetSkillGroup[];
   fxAbilities: CharacterSheetFxAbility[];
   fxBroadSkill: string;
   fxCampaignTone: string;
@@ -183,6 +187,147 @@ function optionDetails(selection: CharacterState['optionSelections'][number]): s
     selection.choiceIds?.join(', '),
     selection.notes,
   );
+}
+
+interface CatalogSkillDefinition {
+  id: string;
+  name: string;
+  ability: AbilityId;
+  kind: 'broad' | 'specialty';
+  parentSkillId?: string;
+  canUseUntrained: boolean;
+  requiresSpecialization?: boolean;
+}
+
+interface CatalogSpecialtyPurchase {
+  skillId: string;
+  rank: number;
+  specialization?: string;
+}
+
+export interface CharacterSheetSkillRow extends SkillScore {
+  name: string;
+  rank: number | null;
+  trained: boolean;
+  usable: boolean;
+}
+
+export interface CharacterSheetSkillGroup {
+  ability: AbilityId;
+  broad: CharacterSheetSkillRow;
+  specialties: CharacterSheetSkillRow[];
+}
+
+function skillRowScore(
+  abilityScore: number,
+  untrainedScore: number,
+  rank: number,
+  trained: boolean,
+  usable: boolean,
+): SkillScore {
+  if (!trained && !usable) return { ordinary: 0, good: 0, amazing: 0 };
+  return trained ? calculateSkillScore(abilityScore, rank) : calculateSkillScore(untrainedScore, 0);
+}
+
+/**
+ * Groups a skill catalogue by ability, pairing each broad skill with its specialties in
+ * printed-catalogue order. `fullCatalog` includes every definition (PHB Table P19/P52 style);
+ * otherwise only trained broads (and their trained specialties) are included.
+ */
+function buildSkillGroups(
+  definitions: CatalogSkillDefinition[],
+  abilityScores: Record<AbilityId, number>,
+  untrainedScores: Record<AbilityId, number>,
+  trainedBroadIds: Set<string>,
+  specialtyPurchases: CatalogSpecialtyPurchase[],
+  fullCatalog: boolean,
+): CharacterSheetSkillGroup[] {
+  const groups: CharacterSheetSkillGroup[] = [];
+  let currentGroup: CharacterSheetSkillGroup | null = null;
+  let currentBroadId: string | null = null;
+
+  for (const definition of definitions) {
+    if (definition.kind === 'broad') {
+      const trained = trainedBroadIds.has(definition.id);
+      currentBroadId = definition.id;
+      if (!fullCatalog && !trained) {
+        currentGroup = null;
+        continue;
+      }
+      currentGroup = {
+        ability: definition.ability,
+        broad: {
+          name: definition.name,
+          rank: null,
+          trained,
+          usable: trained || definition.canUseUntrained,
+          ...skillRowScore(
+            abilityScores[definition.ability],
+            untrainedScores[definition.ability],
+            0,
+            trained,
+            definition.canUseUntrained,
+          ),
+        },
+        specialties: [],
+      };
+      groups.push(currentGroup);
+      continue;
+    }
+
+    if (!currentGroup || definition.parentSkillId !== currentBroadId) continue;
+
+    if (definition.requiresSpecialization) {
+      const purchases = specialtyPurchases.filter((entry) => entry.skillId === definition.id);
+      if (purchases.length === 0) {
+        if (!fullCatalog) continue;
+        currentGroup.specialties.push({
+          name: definition.name,
+          rank: null,
+          trained: false,
+          usable: definition.canUseUntrained,
+          ...skillRowScore(
+            abilityScores[definition.ability],
+            untrainedScores[definition.ability],
+            0,
+            false,
+            definition.canUseUntrained,
+          ),
+        });
+        continue;
+      }
+      for (const purchase of purchases) {
+        currentGroup.specialties.push({
+          name: `${definition.name} (${purchase.specialization})`,
+          rank: purchase.rank,
+          trained: true,
+          usable: true,
+          ...calculateSkillScore(abilityScores[definition.ability], purchase.rank),
+        });
+      }
+      continue;
+    }
+
+    const purchase = specialtyPurchases.find((entry) => entry.skillId === definition.id);
+    const rank = purchase?.rank || 0;
+    const trained = rank > 0;
+    if (!fullCatalog && !trained) continue;
+    currentGroup.specialties.push({
+      name: definition.name,
+      rank: trained ? rank : null,
+      trained,
+      usable: trained || definition.canUseUntrained,
+      ...skillRowScore(
+        abilityScores[definition.ability],
+        untrainedScores[definition.ability],
+        rank,
+        trained,
+        definition.canUseUntrained,
+      ),
+    });
+  }
+
+  return fullCatalog ? groups : groups.filter((group) => group.broad.trained || group.specialties.length > 0);
 }
 
 function skillScoreForWeapon(
@@ -325,6 +470,7 @@ export function buildCharacterSheetModel(
       name: 'Unarmed', skill: 'Unarmed Attack',
       score: skillScoreForWeapon('brawl', validation),
       accuracy: '-', actions: '1', mode: '-', range: 'Personal',
+      damageType: 'LI',
       damage: `d4s/d4+1s/d4+2s (${validation.derived.strengthDamageAdjustment >= 0 ? '+' : ''}${validation.derived.strengthDamageAdjustment} STR)`,
       quantity: 1, clips: 0,
     },
@@ -332,23 +478,26 @@ export function buildCharacterSheetModel(
       const definition = weaponDefinitions.find((entry) => entry.id === selection.weaponId);
       return {
         name: definition?.name || selection.weaponId,
-        skill: definition?.skillId || '-',
+        skill: (definition && skills.find((entry) => entry.id === definition.skillId)?.name) || definition?.skillId || '-',
         score: definition ? skillScoreForWeapon(definition.skillId, validation) : null,
         accuracy: definition ? `${definition.accuracy >= 0 ? '+' : ''}${definition.accuracy}` : '-',
         actions: String(definition?.actions ?? '-'),
         mode: definition?.mode || '-',
         range: definition?.range || '-',
-        damage: definition ? `${definition.damageType} ${definition.damage}` : '-',
+        damageType: definition?.damageType || '-',
+        damage: definition?.damage || '-',
         quantity: selection.quantity,
         clips: selection.spareClips,
       };
     }),
     ...(validation.speciesBenefits.naturalWeapon ? [{
       name: 'Natural weapon',
-      skill: validation.speciesBenefits.naturalWeapon.skillId,
+      skill: skills.find((entry) => entry.id === validation.speciesBenefits.naturalWeapon?.skillId)?.name
+        || validation.speciesBenefits.naturalWeapon.skillId,
       score: skillScoreForWeapon(validation.speciesBenefits.naturalWeapon.skillId, validation),
       accuracy: '-', actions: '1', mode: '-', range: 'Personal',
-      damage: `${validation.speciesBenefits.naturalWeapon.damageType} ${validation.speciesBenefits.naturalWeapon.damage}`,
+      damageType: validation.speciesBenefits.naturalWeapon.damageType,
+      damage: validation.speciesBenefits.naturalWeapon.damage,
       quantity: 1, clips: 0,
     }] : []),
   ];
@@ -486,6 +635,35 @@ export function buildCharacterSheetModel(
       return sum + (definition?.mass || 0) * selection.quantity;
     }, 0);
 
+  const coreTrainedBroadIds = new Set(validation.advancement.finalCoreBroadSkillIds);
+  const skillGroups = buildSkillGroups(
+    skills,
+    validation.effectiveAbilityScores,
+    validation.derived.untrainedScores,
+    coreTrainedBroadIds,
+    validation.advancement.finalCoreSpecialtySkills,
+    false,
+  );
+  const fullSkillCatalog = buildSkillGroups(
+    skills,
+    validation.effectiveAbilityScores,
+    validation.derived.untrainedScores,
+    coreTrainedBroadIds,
+    validation.advancement.finalCoreSpecialtySkills,
+    true,
+  );
+  const psionicTrainedBroadIds = new Set(validation.advancement.finalPsionicBroadSkillIds);
+  const psionicSkillGroups = state.psionicPlan.accessPath !== 'none'
+    ? buildSkillGroups(
+      psionicSkills,
+      validation.effectiveAbilityScores,
+      validation.derived.untrainedScores,
+      psionicTrainedBroadIds,
+      validation.advancement.finalPsionicSpecialtySkills,
+      false,
+    )
+    : [];
+
   return {
     level: state.level,
     achievementPoints: validation.advancement.achievementPoints,
@@ -516,6 +694,8 @@ export function buildCharacterSheetModel(
     notes: state.identity.notes,
     abilities,
     skills: [...broadSkills, ...specialtySkills],
+    skillGroups,
+    fullSkillCatalog,
     attacks,
     armor,
     equipment: equipmentItems,
@@ -531,6 +711,7 @@ export function buildCharacterSheetModel(
     })),
     mutations,
     psionicSkills: [...psionicBroadRows, ...psionicSpecialtyRows],
+    psionicSkillGroups,
     fxAbilities,
     fxBroadSkill: fxBroadDefinition?.name || '',
     fxCampaignTone: fxToneDefinition?.name || '',

@@ -1,7 +1,18 @@
 import { jsPDF } from 'jspdf';
 import { APP_NAME, APP_VERSION } from '@shared/constants/version';
-import { buildCharacterSheetModel, type CharacterSheetModel } from './characterSheetService';
+import {
+  buildCharacterSheetModel,
+  type CharacterSheetModel,
+  type CharacterSheetSkillGroup,
+  type CharacterSheetSkillRow,
+} from './characterSheetService';
+import type { AbilityId } from '../types/character';
 import type { CharacterState, CharacterValidationResult } from '../types/characterState';
+
+const ABILITY_LABELS: Record<AbilityId, string> = {
+  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wil: 'WIL', per: 'PER',
+};
+
 
 const INK: [number, number, number] = [31, 53, 66];
 const ACCENT: [number, number, number] = [35, 119, 143];
@@ -152,26 +163,43 @@ function drawCorePage(pdf: jsPDF, model: CharacterSheetModel): void {
   field(pdf, 'Flaws', model.flaws.map((entry) => entry.name).join(', '), 12, 196, 88);
 
   panel(pdf, 109, 154, 98, 48, 'Personal Data');
-  field(pdf, 'Age / Height / Weight', `${model.age || '-'} / ${model.height || '-'} / ${model.weight || '-'}`, 112, 164, 88);
-  field(pdf, 'Hair / Eyes', `${model.hair || '-'} / ${model.eyes || '-'}`, 112, 174, 88);
-  field(pdf, 'Appearance', model.appearance, 112, 184, 88, 2);
-  field(pdf, 'Allegiance / Status', `${model.allegiance || '-'} / ${model.socialStatus || '-'}`, 112, 196, 88);
+  field(pdf, 'Age / Height / Weight', `${model.age || '-'} / ${model.height || '-'} / ${model.weight || '-'}`, 112, 163, 88);
+  field(pdf, 'Appearance', model.appearance, 112, 171, 88);
+  field(pdf, 'Allegiance / Status', `${model.allegiance || '-'} / ${model.socialStatus || '-'}`, 112, 179, 88);
+  field(pdf, 'Contacts / Enemies', `${model.contacts || '-'} / ${model.enemies || '-'}`, 112, 187, 88);
+  field(pdf, 'Wealth', `${model.remainingFunds} cr (started ${model.startingFunds} cr)`, 112, 195, 88);
 
   panel(pdf, 9, 206, 198, 61, 'Attack Forms & Armor');
   setText(pdf, 5.5, true, MUTED);
   pdf.text('ATTACK', 12, 216); pdf.text('SKILL', 50, 216); pdf.text('SCORE', 85, 216); pdf.text('ACC', 105, 216);
-  pdf.text('ACT', 117, 216); pdf.text('RANGE', 130, 216); pdf.text('DAMAGE', 166, 216);
-  model.attacks.slice(0, 7).forEach((attack, index) => {
+  pdf.text('ACT', 117, 216); pdf.text('RANGE', 128, 216); pdf.text('TYPE', 152, 216); pdf.text('DAMAGE', 165, 216);
+  const attackRows = model.attacks.slice(0, 7);
+  attackRows.forEach((attack, index) => {
     const rowY = 222 + index * 5.2;
     setText(pdf, 6.2);
     drawFittedText(pdf, attack.name, 12, rowY, 34);
     drawFittedText(pdf, attack.skill, 50, rowY, 31);
     pdf.text(attack.score ? `${attack.score.ordinary}/${attack.score.good}/${attack.score.amazing}` : '-', 85, rowY);
     pdf.text(attack.accuracy, 106, rowY); pdf.text(attack.actions, 119, rowY);
-    drawFittedText(pdf, attack.range, 130, rowY, 31); drawFittedText(pdf, attack.damage, 166, rowY, 38);
+    drawFittedText(pdf, attack.range, 128, rowY, 22);
+    drawFittedText(pdf, attack.damageType, 152, rowY, 11);
+    drawFittedText(pdf, attack.damage, 165, rowY, 39);
   });
-  const armorText = model.armor.map((entry) => `${entry.name}: ${entry.lowImpact}/${entry.highImpact}/${entry.energy}`).join('; ') || 'No armor';
-  field(pdf, 'Armor', armorText, 12, 260, 188, 2);
+  const armorTop = 222 + attackRows.length * 5.2 + 3;
+  setText(pdf, 5.7, true, MUTED);
+  pdf.text('ARMOR', 12, armorTop);
+  pdf.text('LI / HI / EN', 50, armorTop);
+  if (model.armor.length === 0) {
+    setText(pdf, 6.5);
+    pdf.text('No armor', 12, armorTop + 4);
+  } else {
+    model.armor.forEach((entry, index) => {
+      const rowY = armorTop + 4.5 + index * 3.8;
+      setText(pdf, 6.2);
+      drawFittedText(pdf, entry.name, 12, rowY, 34);
+      drawFittedText(pdf, `${entry.lowImpact} / ${entry.highImpact} / ${entry.energy}`, 50, rowY, 154);
+    });
+  }
 }
 
 function getPrintableItems(model: CharacterSheetModel): CharacterSheetModel['equipment'] {
@@ -182,140 +210,247 @@ function getPrintableItems(model: CharacterSheetModel): CharacterSheetModel['equ
     ...model.armor.map((entry) => ({
       name: `Armor: ${entry.name}`,
       quantity: entry.quantity,
-      details: `${entry.lowImpact}/${entry.highImpact}/${entry.energy}`,
+      details: `LI ${entry.lowImpact} / HI ${entry.highImpact} / En ${entry.energy}`,
       mass: entry.mass,
     })),
   ];
 }
 
-function drawSkillsAndGearPage(pdf: jsPDF, model: CharacterSheetModel): void {
-  title(pdf, model, 'Skills & Equipment');
-  panel(pdf, 9, 21, 198, 36, 'Weapons');
+/** Counts the display rows a set of skill groups will occupy (one row per ability header, broad, and specialty). */
+function countRows(groups: CharacterSheetSkillGroup[]): number {
+  let lastAbility: AbilityId | null = null;
+  let rows = 0;
+  for (const group of groups) {
+    if (group.ability !== lastAbility) {
+      rows += 1;
+      lastAbility = group.ability;
+    }
+    rows += 1 + group.specialties.length;
+  }
+  return rows;
+}
+
+function drawCatalogRow(
+  pdf: jsPDF,
+  row: CharacterSheetSkillRow,
+  x: number,
+  y: number,
+  width: number,
+  fontSize: number,
+  indented: boolean,
+): void {
+  setText(pdf, fontSize, false, INK);
+  pdf.setFont('helvetica', indented ? 'italic' : 'normal');
+  const nameX = x + (indented ? 3 : 0);
+  drawFittedText(pdf, row.name, nameX, y, width - 20 - (indented ? 3 : 0));
+  pdf.setFont('helvetica', indented ? 'italic' : 'normal');
+  pdf.setFontSize(fontSize);
+  if (row.rank !== null) pdf.text(String(row.rank), x + width - 16, y, { align: 'right' });
+  pdf.text(row.usable ? `${row.ordinary}/${row.good}/${row.amazing}` : '-', x + width, y, { align: 'right' });
+}
+
+/** Renders a hierarchical skill catalogue column: ability headers, broad skills, and their indented specialties. */
+function drawSkillCatalogColumn(
+  pdf: jsPDF,
+  groups: CharacterSheetSkillGroup[],
+  x: number,
+  startY: number,
+  width: number,
+  availableHeight: number,
+): void {
+  const totalRows = countRows(groups);
+  const rowHeight = totalRows > 0 ? Math.max(2.5, Math.min(3.8, availableHeight / totalRows)) : 3.8;
+  const fontSize = Math.max(4.3, Math.min(5.8, rowHeight * 1.5));
+  let y = startY;
+  let lastAbility: AbilityId | null = null;
+  for (const group of groups) {
+    if (group.ability !== lastAbility) {
+      setText(pdf, fontSize, true, ACCENT);
+      pdf.text(ABILITY_LABELS[group.ability], x, y);
+      y += rowHeight;
+      lastAbility = group.ability;
+    }
+    drawCatalogRow(pdf, group.broad, x, y, width, fontSize, false);
+    y += rowHeight;
+    for (const specialty of group.specialties) {
+      drawCatalogRow(pdf, specialty, x, y, width, fontSize, true);
+      y += rowHeight;
+    }
+  }
+}
+
+function abilitySkillGroups(model: CharacterSheetModel, abilities: AbilityId[]): CharacterSheetSkillGroup[] {
+  return model.fullSkillCatalog.filter((group) => abilities.includes(group.ability));
+}
+
+/** Full pre-filled skill catalogue (page 257 style): every skill shown, trained or not, so it's easy to see what to roll. */
+function drawSkillsPage(pdf: jsPDF, model: CharacterSheetModel): void {
+  title(pdf, model, 'Skills');
+  panel(pdf, 9, 21, 198, 246, 'Skills');
+  const columns: Array<{ x: number; abilities: AbilityId[] }> = [
+    { x: 12, abilities: ['str', 'dex', 'con'] },
+    { x: 78, abilities: ['int'] },
+    { x: 144, abilities: ['wil', 'per'] },
+  ];
   setText(pdf, 5.5, true, MUTED);
-  pdf.text('WEAPON', 12, 31); pdf.text('SKILL', 46, 31); pdf.text('QTY', 76, 31); pdf.text('CLIPS', 88, 31);
-  pdf.text('ACC', 105, 31); pdf.text('ACT', 117, 31); pdf.text('MODE', 129, 31); pdf.text('RANGE', 148, 31); pdf.text('DAMAGE', 176, 31);
-  model.attacks.slice(1, 7).forEach((attack, index) => {
-    const rowY = 36.5 + index * 3.8;
+  columns.forEach(({ x }) => {
+    pdf.text('SKILL', x, 29);
+    pdf.text('RANK', x + 44, 29, { align: 'right' });
+    pdf.text('SCORE', x + 60, 29, { align: 'right' });
+  });
+  const startY = 34;
+  const availableHeight = 262 - startY;
+  columns.forEach(({ x, abilities }) => {
+    drawSkillCatalogColumn(pdf, abilitySkillGroups(model, abilities), x, startY, 60, availableHeight);
+  });
+}
+
+function drawExtrasPage(pdf: jsPDF, model: CharacterSheetModel): void {
+  title(pdf, model, 'Extras');
+  const weaponRows = 12;
+  panel(pdf, 9, 21, 198, 12 + weaponRows * 4.2, 'Weapon Data');
+  setText(pdf, 5.5, true, MUTED);
+  pdf.text('WEAPON', 12, 31); pdf.text('SKILL', 50, 31); pdf.text('ACC', 84, 31);
+  pdf.text('ACT', 96, 31); pdf.text('CLIP/AMMO', 108, 31); pdf.text('RANGE', 128, 31); pdf.text('TYPE', 156, 31); pdf.text('DAMAGE', 170, 31);
+  model.attacks.slice(0, weaponRows).forEach((attack, index) => {
+    const rowY = 36.5 + index * 4.2;
     setText(pdf, 6.2);
-    drawFittedText(pdf, attack.name, 12, rowY, 30); drawFittedText(pdf, attack.skill, 46, rowY, 26);
-    pdf.text(String(attack.quantity), 78, rowY); pdf.text(String(attack.clips), 91, rowY);
-    pdf.text(attack.accuracy, 106, rowY); pdf.text(attack.actions, 119, rowY); drawFittedText(pdf, attack.mode, 129, rowY, 15);
-    drawFittedText(pdf, attack.range, 148, rowY, 25); drawFittedText(pdf, attack.damage, 176, rowY, 28);
+    drawFittedText(pdf, attack.name, 12, rowY, 36);
+    drawFittedText(pdf, attack.skill, 50, rowY, 32);
+    pdf.text(attack.accuracy, 86, rowY, { align: 'right' });
+    pdf.text(attack.actions, 98, rowY, { align: 'right' });
+    pdf.text(`${attack.quantity}/${attack.clips}`, 122, rowY, { align: 'right' });
+    drawFittedText(pdf, attack.range, 128, rowY, 26);
+    drawFittedText(pdf, attack.damageType, 156, rowY, 12);
+    drawFittedText(pdf, attack.damage, 170, rowY, 36);
   });
 
-  panel(pdf, 9, 61, 198, 40, 'Equipment');
+  const equipmentTop = 21 + 12 + weaponRows * 4.2 + 6;
+  const equipmentHeight = 70;
+  panel(pdf, 9, equipmentTop, 198, equipmentHeight, 'Equipment');
   const items = getPrintableItems(model);
   const equipmentColumns = 3;
-  items.slice(0, 24).forEach((item, index) => {
+  const equipmentRowsPerPage = 15;
+  items.slice(0, equipmentColumns * equipmentRowsPerPage).forEach((item, index) => {
     const column = index % equipmentColumns;
     const row = Math.floor(index / equipmentColumns);
     const x = 12 + column * 64;
-    const y = 71 + row * 3.4;
+    const y = equipmentTop + 10 + row * 3.6;
     setText(pdf, 6.2);
     drawFittedText(pdf, `${item.quantity}x ${item.name}${item.details ? ` (${item.details})` : ''}`, x, y, 60);
   });
 
-  panel(pdf, 9, 105, 198, 133, 'Skills');
-  const skills = model.skills;
-  const rowsPerColumn = 30;
-  skills.slice(0, rowsPerColumn * 2).forEach((skill, index) => {
-    const column = Math.floor(index / rowsPerColumn);
-    const row = index % rowsPerColumn;
-    const x = 12 + column * 97;
-    const y = 116 + row * 4;
-    setText(pdf, 5.9);
-    pdf.text(skill.ability.toUpperCase(), x, y);
-    drawFittedText(pdf, skill.name, x + 10, y, 57);
-    pdf.text(skill.rank === null ? '-' : String(skill.rank), x + 70, y, { align: 'center' });
-    pdf.text(`${skill.ordinary}/${skill.good}/${skill.amazing}`, x + 94, y, { align: 'right' });
-  });
-
-  panel(pdf, 9, 242, 198, 25, 'Contacts & Notes');
-  field(pdf, 'Contacts', model.contacts, 12, 251, 91);
-  field(pdf, 'Enemies', model.enemies, 109, 251, 91);
+  const notesTop = equipmentTop + equipmentHeight + 6;
+  panel(pdf, 9, notesTop, 198, 267 - notesTop, 'Notes');
+  field(pdf, 'Contacts', model.contacts, 12, notesTop + 10, 91, 2);
+  field(pdf, 'Enemies', model.enemies, 109, notesTop + 10, 91, 2);
   const narrative = [
     model.background ? `Background: ${model.background}` : '',
     model.notes ? `Notes: ${model.notes}` : '',
   ].filter(Boolean).join(' | ');
-  field(pdf, 'Background / Notes', narrative, 12, 260, 188, 2);
+  field(pdf, 'Background / Notes', narrative, 12, notesTop + 24, 188, 3);
 }
 
+
+function ensureRoom(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }, needed: number): void {
+  if (cursor.y + needed <= 267) return;
+  pdf.addPage();
+  title(pdf, model, 'Supplemental Sheet Continued');
+  cursor.y = 21;
+}
+
+function drawPsionicsSection(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }): void {
+  if (model.psionicSkillGroups.length === 0) return;
+  const rows = countRows(model.psionicSkillGroups);
+  const bodyHeight = 11 + rows * 3.8 + 3;
+  ensureRoom(pdf, model, cursor, bodyHeight + 6);
+  panel(pdf, 9, cursor.y, 198, bodyHeight, 'Psionics');
+  setText(pdf, 6.2, true, MUTED);
+  pdf.text(`Access: ${model.psionicAccessPath}   Energy: ${model.psionicEnergy}`, 12, cursor.y + 11);
+  drawSkillCatalogColumn(pdf, model.psionicSkillGroups, 12, cursor.y + 11 + 3.8, 186, rows * 3.8);
+  cursor.y += bodyHeight + 6;
+}
+
+function drawMutationsSection(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }): void {
+  if (model.mutations.length === 0) return;
+  const bodyHeight = 11 + model.mutations.length * 3.8 + 3;
+  ensureRoom(pdf, model, cursor, bodyHeight + 6);
+  panel(pdf, 9, cursor.y, 198, bodyHeight, 'Mutations');
+  setText(pdf, 6.2, true, MUTED);
+  pdf.text(`Origin: ${model.mutationOrigin}   Scope: ${model.mutationScope}`, 12, cursor.y + 11);
+  let y = cursor.y + 11 + 3.8;
+  model.mutations.forEach((entry) => {
+    setText(pdf, 6.2);
+    drawFittedText(pdf, `${entry.name}${entry.details ? ` (${entry.details})` : ''}`, 12, y, 186);
+    y += 3.8;
+  });
+  cursor.y += bodyHeight + 6;
+}
+
+function drawCybertechSection(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }): void {
+  if (model.cybergear.length === 0) return;
+  const bodyHeight = 11 + model.cybergear.length * 3.8 + 3;
+  ensureRoom(pdf, model, cursor, bodyHeight + 6);
+  panel(pdf, 9, cursor.y, 198, bodyHeight, 'Cybertech');
+  setText(pdf, 6.2, true, MUTED);
+  pdf.text(`Cyber Tolerance: ${model.usedCyberTolerance}/${model.cyberTolerance}`, 12, cursor.y + 11);
+  let y = cursor.y + 11 + 3.8;
+  model.cybergear.forEach((item) => {
+    setText(pdf, 6.2);
+    drawFittedText(pdf, `${item.quantity}x ${item.name}${item.details ? ` (${item.details})` : ''}`, 12, y, 186);
+    y += 3.8;
+  });
+  cursor.y += bodyHeight + 6;
+}
+
+function drawComputersSection(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }): void {
+  if (model.computers.length === 0) return;
+  const bodyHeight = 8 + model.computers.length * 3.8 + 3;
+  ensureRoom(pdf, model, cursor, bodyHeight + 6);
+  panel(pdf, 9, cursor.y, 198, bodyHeight, 'Computers');
+  let y = cursor.y + 11;
+  model.computers.forEach((item) => {
+    setText(pdf, 6.2);
+    drawFittedText(pdf, `${item.quantity}x ${item.name}${item.details ? ` (${item.details})` : ''}`, 12, y, 186);
+    y += 3.8;
+  });
+  cursor.y += bodyHeight + 6;
+}
+
+function drawFxSection(pdf: jsPDF, model: CharacterSheetModel, cursor: { y: number }): void {
+  if (!model.fxBroadSkill) return;
+  const bodyHeight = 11 + model.fxAbilities.length * 7 + 3;
+  ensureRoom(pdf, model, cursor, bodyHeight + 6);
+  panel(pdf, 9, cursor.y, 198, bodyHeight, 'FX');
+  setText(pdf, 6.2, true, MUTED);
+  pdf.text(`${model.fxBroadSkill} | ${model.fxCampaignTone} | ${model.currentMaximumFxEnergy}/${model.maximumFxEnergy} FX energy`, 12, cursor.y + 11);
+  let y = cursor.y + 11 + 4;
+  model.fxAbilities.forEach((ability) => {
+    setText(pdf, 6.5, true);
+    drawFittedText(pdf, ability.name, 12, y, 72);
+    setText(pdf, 6.2);
+    pdf.text(`${ability.ability.toUpperCase()} ${ability.quality} R${ability.rank}`, 88, y);
+    pdf.text(`${ability.ordinary}/${ability.good}/${ability.amazing}`, 142, y);
+    pdf.text(`${ability.energyCost} FX`, 199, y, { align: 'right' });
+    setText(pdf, 5.8);
+    drawFittedText(pdf, `${ability.description}${ability.trappings ? ` | ${ability.trappings}` : ''}`, 12, y + 3.4, 187);
+    y += 7;
+  });
+  cursor.y += bodyHeight + 6;
+}
+
+/** Supplemental sheet (page 254 style): psionics, mutations, cybertech, computers, and FX, each omitted entirely when unused. */
 function drawSupplementalPage(pdf: jsPDF, model: CharacterSheetModel): void {
   title(pdf, model, 'Supplemental Sheet');
-  panel(pdf, 9, 21, 96, 105, 'Psionics');
-  field(pdf, 'Access / Energy', `${model.psionicAccessPath} / ${model.psionicEnergy}`, 12, 31, 45);
-  model.psionicSkills.slice(0, 20).forEach((skill, index) => {
-    const rowY = 42 + index * 4;
-    setText(pdf, 6.2);
-    drawFittedText(pdf, skill.name, 12, rowY, 54);
-    pdf.text(String(skill.rank ?? '-'), 76, rowY, { align: 'center' });
-    pdf.text(`${skill.ordinary}/${skill.good}/${skill.amazing}`, 101, rowY, { align: 'right' });
-  });
-
-  panel(pdf, 109, 21, 98, 105, 'Mutations');
-  field(pdf, 'Origin / Scope', `${model.mutationOrigin} / ${model.mutationScope}`, 112, 31, 88);
-  model.mutations.slice(0, 18).forEach((entry, index) => {
-    const rowY = 42 + index * 4.3;
-    setText(pdf, 6.2);
-    drawFittedText(pdf, `${entry.name}${entry.details ? ` (${entry.details})` : ''}`, 112, rowY, 90);
-  });
-
-  panel(pdf, 9, 130, 96, 72, 'Cybertech');
-  field(pdf, 'Cyber Tolerance', `${model.usedCyberTolerance}/${model.cyberTolerance}`, 12, 140, 40);
-  model.cybergear.slice(0, 12).forEach((item, index) => {
-    const rowY = 151 + index * 4;
-    setText(pdf, 6.2);
-    drawFittedText(pdf, `${item.quantity}x ${item.name} (${item.details})`, 12, rowY, 88);
-  });
-
-  panel(pdf, 109, 130, 98, 72, 'Computers');
-  model.computers.slice(0, 12).forEach((item, index) => {
-    const rowY = 142 + index * 4.5;
-    setText(pdf, 6.2);
-    drawFittedText(pdf, `${item.quantity}x ${item.name} (${item.details})`, 112, rowY, 90);
-  });
-
-  panel(pdf, 9, 206, 198, 57, 'Perks, Flaws & Notes');
-  field(pdf, 'Perks', model.perks.map((entry) => entry.name).join(', '), 12, 216, 91, 2);
-  field(pdf, 'Flaws', model.flaws.map((entry) => entry.name).join(', '), 109, 216, 91, 2);
-  field(pdf, 'Contacts', model.contacts, 12, 228, 91, 2);
-  field(pdf, 'Enemies', model.enemies, 109, 228, 91, 2);
-  const narrative = [
-    model.skillRulesSummary,
-    model.background ? `Background: ${model.background}` : '',
-    model.notes ? `Notes: ${model.notes}` : '',
-  ].filter(Boolean).join(' | ');
-  field(pdf, 'Rules / Background / Notes', narrative, 12, 242, 188, 2);
+  const cursor = { y: 21 };
+  drawPsionicsSection(pdf, model, cursor);
+  drawMutationsSection(pdf, model, cursor);
+  drawCybertechSection(pdf, model, cursor);
+  drawComputersSection(pdf, model, cursor);
+  drawFxSection(pdf, model, cursor);
 }
 
-function drawFxPages(pdf: jsPDF, model: CharacterSheetModel): void {
-  const rowsPerPage = 30;
-  const abilities = model.fxAbilities.length > 0 ? model.fxAbilities : [null];
-  for (let offset = 0; offset < abilities.length; offset += rowsPerPage) {
-    pdf.addPage();
-    title(pdf, model, offset === 0 ? 'FX Abilities' : 'FX Abilities Continued');
-    if (offset === 0) {
-      field(pdf, 'Broad Skill / Campaign', `${model.fxBroadSkill} / ${model.fxCampaignTone}`, 12, 24, 120);
-      field(pdf, 'FX Energy', `${model.currentMaximumFxEnergy}/${model.maximumFxEnergy}`, 150, 24, 50);
-    }
-    const pageAbilities = abilities.slice(offset, offset + rowsPerPage);
-    panel(pdf, 9, 34, 198, 225, 'FX Specialties');
-    pageAbilities.forEach((ability, index) => {
-      if (!ability) return;
-      const rowY = 45 + index * 7;
-      setText(pdf, 7, true);
-      drawFittedText(pdf, ability.name, 12, rowY, 72);
-      setText(pdf, 6.2);
-      pdf.text(`${ability.ability.toUpperCase()} ${ability.quality} R${ability.rank}`, 88, rowY);
-      pdf.text(`${ability.ordinary}/${ability.good}/${ability.amazing}`, 142, rowY);
-      pdf.text(`${ability.energyCost} FX`, 199, rowY, { align: 'right' });
-      drawFittedText(pdf, `${ability.description}${ability.trappings ? ` | ${ability.trappings}` : ''}`, 12, rowY + 3.2, 187);
-    });
-  }
-}
-
-function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void {
-  const attacks = model.attacks.slice(7);
+function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel, attacks: CharacterSheetModel['attacks']): void {
   const rowsPerPage = 40;
   for (let offset = 0; offset < attacks.length; offset += rowsPerPage) {
     pdf.addPage();
@@ -323,7 +458,7 @@ function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel): vo
     panel(pdf, 9, 21, 198, 246, 'Attack Forms');
     setText(pdf, 5.5, true, MUTED);
     pdf.text('ATTACK', 12, 31); pdf.text('SKILL', 50, 31); pdf.text('SCORE', 84, 31);
-    pdf.text('QTY', 105, 31); pdf.text('CLIPS', 118, 31); pdf.text('RANGE', 137, 31); pdf.text('DAMAGE', 171, 31);
+    pdf.text('QTY', 105, 31); pdf.text('CLIPS', 118, 31); pdf.text('RANGE', 131, 31); pdf.text('TYPE', 159, 31); pdf.text('DAMAGE', 173, 31);
     attacks.slice(offset, offset + rowsPerPage).forEach((attack, index) => {
       const rowY = 38 + index * 5.3;
       setText(pdf, 6.2);
@@ -332,14 +467,14 @@ function drawAttackContinuationPages(pdf: jsPDF, model: CharacterSheetModel): vo
       pdf.text(attack.score ? `${attack.score.ordinary}/${attack.score.good}/${attack.score.amazing}` : '-', 84, rowY);
       pdf.text(String(attack.quantity), 108, rowY);
       pdf.text(String(attack.clips), 122, rowY);
-      drawFittedText(pdf, attack.range, 137, rowY, 30);
-      drawFittedText(pdf, attack.damage, 171, rowY, 33);
+      drawFittedText(pdf, attack.range, 131, rowY, 24);
+      drawFittedText(pdf, attack.damageType, 159, rowY, 12);
+      drawFittedText(pdf, attack.damage, 173, rowY, 31);
     });
   }
 }
 
-function drawItemContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void {
-  const items = getPrintableItems(model).slice(24);
+function drawItemContinuationPages(pdf: jsPDF, model: CharacterSheetModel, items: CharacterSheetModel['equipment']): void {
   const rowsPerColumn = 60;
   const itemsPerPage = rowsPerColumn * 3;
   for (let offset = 0; offset < items.length; offset += itemsPerPage) {
@@ -353,46 +488,6 @@ function drawItemContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void
       const y = 32 + row * 3.8;
       setText(pdf, 6.2);
       drawFittedText(pdf, `${item.quantity}x ${item.name}${item.details ? ` (${item.details})` : ''}`, x, y, 60);
-    });
-  }
-}
-
-function drawSkillContinuationPages(
-  pdf: jsPDF,
-  model: CharacterSheetModel,
-  skills: CharacterSheetModel['skills'],
-  pageLabel: string,
-): void {
-  const rowsPerColumn = 56;
-  const skillsPerPage = rowsPerColumn * 2;
-  for (let offset = 0; offset < skills.length; offset += skillsPerPage) {
-    pdf.addPage();
-    title(pdf, model, pageLabel);
-    panel(pdf, 9, 21, 198, 246, pageLabel);
-    skills.slice(offset, offset + skillsPerPage).forEach((skill, index) => {
-      const column = Math.floor(index / rowsPerColumn);
-      const row = index % rowsPerColumn;
-      const x = 12 + column * 97;
-      const y = 32 + row * 4;
-      setText(pdf, 5.9);
-      pdf.text(skill.ability.toUpperCase(), x, y);
-      drawFittedText(pdf, skill.name, x + 10, y, 57);
-      pdf.text(skill.rank === null ? '-' : String(skill.rank), x + 70, y, { align: 'center' });
-      pdf.text(`${skill.ordinary}/${skill.good}/${skill.amazing}`, x + 94, y, { align: 'right' });
-    });
-  }
-}
-
-function drawMutationContinuationPages(pdf: jsPDF, model: CharacterSheetModel): void {
-  const mutations = model.mutations.slice(18);
-  const rowsPerPage = 54;
-  for (let offset = 0; offset < mutations.length; offset += rowsPerPage) {
-    pdf.addPage();
-    title(pdf, model, 'Mutations Continued');
-    panel(pdf, 9, 21, 198, 246, 'Mutations');
-    mutations.slice(offset, offset + rowsPerPage).forEach((entry, index) => {
-      setText(pdf, 6.3);
-      drawFittedText(pdf, `${entry.name}${entry.details ? ` (${entry.details})` : ''}`, 12, 32 + index * 4.2, 190);
     });
   }
 }
@@ -423,22 +518,22 @@ export function createPrintableCharacterSheetPdf(
 ): jsPDF {
   const model = buildCharacterSheetModel(state, validation);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const weaponPageLimit = 12;
+  const equipmentPageLimit = 45;
   drawCorePage(pdf, model);
   pdf.addPage();
-  drawSkillsAndGearPage(pdf, model);
-  drawAttackContinuationPages(pdf, model);
-  drawItemContinuationPages(pdf, model);
-  drawSkillContinuationPages(pdf, model, model.skills.slice(60), 'Skills Continued');
+  drawSkillsPage(pdf, model);
+  pdf.addPage();
+  drawExtrasPage(pdf, model);
+  drawAttackContinuationPages(pdf, model, model.attacks.slice(weaponPageLimit));
+  drawItemContinuationPages(pdf, model, getPrintableItems(model).slice(equipmentPageLimit));
   if (model.level > 1) drawAdvancementPages(pdf, model);
-  const hasSupplement = model.psionicSkills.length > 0 || model.mutations.length > 0
-    || model.cybergear.length > 0 || model.computers.length > 0;
+  const hasSupplement = model.psionicSkillGroups.length > 0 || model.mutations.length > 0
+    || model.cybergear.length > 0 || model.computers.length > 0 || Boolean(model.fxBroadSkill);
   if (hasSupplement) {
     pdf.addPage();
     drawSupplementalPage(pdf, model);
-    drawSkillContinuationPages(pdf, model, model.psionicSkills.slice(20), 'Psionics Continued');
-    drawMutationContinuationPages(pdf, model);
   }
-  if (model.fxBroadSkill) drawFxPages(pdf, model);
   const pages = pdf.getNumberOfPages();
   for (let page = 1; page <= pages; page += 1) {
     pdf.setPage(page);

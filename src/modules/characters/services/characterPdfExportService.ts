@@ -177,7 +177,7 @@ function renderEquipment(context: PdfContext, model: CharacterSheetModel): void 
   table(context, ['Cybergear', 'Qty', 'Details'], [105, 24, 55], model.cybergear.map((item) => [item.name, String(item.quantity), item.details || '-']));
   heading(context, 'Weapons', 10);
   table(context, ['Weapon', 'Qty', 'Clips', 'Range / Damage'], [65, 16, 18, 85], model.attacks.map((attack) => [
-    attack.name, String(attack.quantity), String(attack.clips), `${attack.range} | ${attack.damage}`,
+    attack.name, String(attack.quantity), String(attack.clips), `${attack.range} | ${attack.damageType} ${attack.damage}`,
   ]));
   heading(context, 'Armor', 10);
   table(context, ['Armor', 'Qty', 'AP', 'LI / HI / En'], [75, 18, 18, 73], model.armor.map((armor) => [
